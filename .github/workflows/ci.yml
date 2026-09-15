@@ -1,0 +1,92 @@
+name: CI
+on: [push, pull_request]
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: nemio
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: nemio
+        ports: ['5432:5432']
+        options: --health-cmd 'pg_isready -U nemio' --health-interval 5s --health-timeout 5s --health-retries 15
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6379:6379']
+        options: --health-cmd 'redis-cli ping' --health-interval 5s --health-timeout 5s --health-retries 15
+    env:
+      DATABASE_URL: postgresql://nemio:ci-only-password@localhost:5432/nemio
+      # Rate-limit tests use a real Redis (Lua scripts); a dedicated DB keeps them isolated.
+      REDIS_URL: redis://localhost:6379/15
+      DJANGO_SETTINGS_MODULE: config.settings.test
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.10.11'
+          enable-cache: true
+      - run: uv sync --frozen --python 3.12
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run python manage.py makemigrations --check --dry-run
+      - run: uv run python manage.py migrate --noinput
+      - run: uv run python manage.py check
+      - run: uv run pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm run build
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: sh scripts/bootstrap.sh
+      - run: docker compose up --build -d --wait --wait-timeout 240
+      - name: Confirm database, Redis, worker and beat communicate
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:8000/health/ready/; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - run: npm ci --prefix frontend
+      - run: npx --prefix frontend playwright install --with-deps chromium
+      - run: npm --prefix frontend run test:e2e
+      - name: Container status
+        if: always()
+        run: docker compose ps -a
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-test-results
+          path: frontend/test-results
+      - run: docker compose down
+        if: always()

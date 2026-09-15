@@ -1,0 +1,41 @@
+[project]
+name = "nemio-backend"
+version = "0.1.0"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "Django>=5.2,<5.3",
+  "djangorestframework>=3.16,<3.17",
+  "djangorestframework-simplejwt>=5.5,<6",
+  "celery[redis]>=5.6,<5.7",
+  "redis>=5.2,<7",
+  "psycopg[binary]>=3.2,<4",
+  "pgvector>=0.4,<0.5",
+  "cryptography>=46,<49",
+  "dj-database-url>=3,<4",
+  "httpx>=0.28,<0.29",
+  "gunicorn>=23,<26",
+  "flower>=2,<3",
+  "channels>=4.3,<5",
+  "channels-redis>=4.3,<5",
+  "uvicorn[standard]>=0.35,<1",
+  "langgraph>=1,<2",
+  "stripe>=12,<16",
+  "sentry-sdk>=2,<3",
+  "pypdf>=6,<7",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "pytest-django>=4.11,<5", "ruff>=0.12,<1"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]

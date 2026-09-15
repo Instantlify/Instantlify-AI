@@ -1,0 +1,129 @@
+from django.urls import path
+
+from apps.agents.views import AgentAuditView, AgentView, DocumentDetail, DocumentList
+from apps.agents.voice import voice_asset
+from apps.analytics.views import ExperimentDetail, ExperimentList, FunnelView
+from apps.automations.views import (
+    AutomationDetail,
+    AutomationList,
+    ExportView,
+    ImportView,
+    PublishView,
+    RunsView,
+)
+from apps.billing.payments import tenant_stripe_webhook
+from apps.billing.views import (
+    BillingJobView,
+    BillingView,
+    OfferDetail,
+    OfferList,
+    PaymentList,
+    SendPaymentLinkView,
+    stripe_webhook,
+)
+from apps.channels.api import ConnectView, DeliveryList, DisconnectView, SimulateView
+from apps.content.views import BioView, PostDetail, PostList, PublicBioView
+from apps.crm.views import (
+    ConversationDetail,
+    ConversationList,
+    IntegrationList,
+    LeadDetail,
+    LeadList,
+    MergeLeadView,
+    MessageList,
+    NotesView,
+    SyncLeadView,
+)
+from apps.marketplace.views import (
+    InstallTemplateView,
+    MyTemplateDetail,
+    MyTemplateList,
+    PublicTemplateDetail,
+    PublicTemplateList,
+    PublishTemplateView,
+)
+from apps.public_api.views import (
+    DeliveryLog,
+    KeyDetail,
+    KeyList,
+    SubscriptionDetail,
+    SubscriptionList,
+    V1Conversations,
+    V1Lead,
+    V1Leads,
+    V1Messages,
+    V1Sample,
+    V1Subscription,
+    V1Subscriptions,
+)
+from apps.tenants.branding import BrandingView, ClientWorkspaceList, PublicBrandingView
+from apps.tenants.data_views import DataOperationsView, DownloadExportView
+
+P = "api/workspaces/<uuid:workspace_id>/"
+urlpatterns = [
+    path(P + "data-operations/", DataOperationsView.as_view()),
+    path(P + "data-operations/<uuid:pk>/download/", DownloadExportView.as_view()),
+    path(P + "automations/", AutomationList.as_view()),
+    path(P + "automations/import/", ImportView.as_view()),
+    path(P + "automations/<uuid:pk>/", AutomationDetail.as_view()),
+    path(P + "automations/<uuid:pk>/publish/", PublishView.as_view()),
+    path(P + "automations/<uuid:pk>/export/", ExportView.as_view()),
+    path(P + "automation-runs/", RunsView.as_view()),
+    path(P + "conversations/", ConversationList.as_view()),
+    path(P + "conversations/<uuid:pk>/", ConversationDetail.as_view()),
+    path(P + "conversations/<uuid:pk>/messages/", MessageList.as_view()),
+    path(P + "conversations/<uuid:pk>/notes/", NotesView.as_view()),
+    path(P + "conversations/<uuid:pk>/payment-link/", SendPaymentLinkView.as_view()),
+    path(P + "leads/", LeadList.as_view()),
+    path(P + "leads/<uuid:pk>/", LeadDetail.as_view()),
+    path(P + "leads/<uuid:pk>/merge/", MergeLeadView.as_view()),
+    path(P + "leads/<uuid:pk>/sync/", SyncLeadView.as_view()),
+    path(P + "integrations/", IntegrationList.as_view()),
+    path(P + "agent/", AgentView.as_view()),
+    path(P + "agent-audit/", AgentAuditView.as_view()),
+    path(P + "documents/", DocumentList.as_view()),
+    path(P + "documents/<uuid:pk>/", DocumentDetail.as_view()),
+    path(P + "billing/", BillingView.as_view()),
+    path(P + "billing/jobs/<uuid:job_id>/", BillingJobView.as_view()),
+    path(P + "offers/", OfferList.as_view()),
+    path(P + "offers/<uuid:pk>/", OfferDetail.as_view()),
+    path(P + "payments/", PaymentList.as_view()),
+    path(P + "channels/connect/", ConnectView.as_view()),
+    path(P + "channels/<uuid:pk>/simulate/", SimulateView.as_view()),
+    path(P + "channels/<uuid:pk>/disconnect/", DisconnectView.as_view()),
+    path(P + "deliveries/", DeliveryList.as_view()),
+    path(P + "analytics/funnel/", FunnelView.as_view()),
+    path(P + "experiments/", ExperimentList.as_view()),
+    path(P + "experiments/<uuid:pk>/promote/", ExperimentDetail.as_view()),
+    path(P + "posts/", PostList.as_view()),
+    path(P + "posts/<uuid:pk>/", PostDetail.as_view()),
+    path(P + "bio/", BioView.as_view()),
+    path(P + "templates/", MyTemplateList.as_view()),
+    path(P + "templates/publish/", PublishTemplateView.as_view()),
+    path(P + "templates/install/", InstallTemplateView.as_view()),
+    path(P + "templates/<uuid:pk>/", MyTemplateDetail.as_view()),
+    path(P + "api-keys/", KeyList.as_view()),
+    path(P + "api-keys/<uuid:pk>/", KeyDetail.as_view()),
+    path(P + "webhooks/", SubscriptionList.as_view()),
+    path(P + "webhooks/<uuid:pk>/", SubscriptionDetail.as_view()),
+    path(P + "webhook-deliveries/", DeliveryLog.as_view()),
+    path(P + "branding/", BrandingView.as_view()),
+    path(P + "clients/", ClientWorkspaceList.as_view()),
+    # Public (anonymous) surfaces.
+    path("api/public/templates/", PublicTemplateList.as_view()),
+    path("api/public/templates/<slug:slug>/", PublicTemplateDetail.as_view()),
+    path("api/public/bio/<slug:slug>/", PublicBioView.as_view()),
+    path("api/public/branding/", PublicBrandingView.as_view()),
+    # Public API v1 (X-API-Key).
+    path("api/v1/leads/", V1Leads.as_view()),
+    path("api/v1/leads/<uuid:pk>/", V1Lead.as_view()),
+    path("api/v1/conversations/", V1Conversations.as_view()),
+    path("api/v1/conversations/<uuid:pk>/messages/", V1Messages.as_view()),
+    path("api/v1/webhooks/", V1Subscriptions.as_view()),
+    path("api/v1/webhooks/<uuid:pk>/", V1Subscription.as_view()),
+    path("api/v1/webhooks/sample/<str:event>/", V1Sample.as_view()),
+    # Inbound provider webhooks.
+    path("webhooks/stripe/", stripe_webhook),
+    path("webhooks/stripe/<uuid:workspace_id>/", tenant_stripe_webhook),
+    path("media/voice/<str:token>/", voice_asset),
+]

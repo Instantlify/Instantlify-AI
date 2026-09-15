@@ -1,0 +1,133 @@
+name: nemio
+
+x-backend: &backend
+  build:
+    context: ./backend
+    target: runtime
+  env_file: .env
+  init: true
+  restart: unless-stopped
+
+services:
+  test:
+    build:
+      context: ./backend
+      target: test
+    profiles: [test]
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      REDIS_URL: redis://redis:6379/15
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Run bootstrap first}
+      POSTGRES_USER: ${POSTGRES_USER:?Run bootstrap first}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run bootstrap first}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: [redis-server, --appendonly, 'yes', --maxmemory-policy, noeviction]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    <<: *backend
+    command: [python, manage.py, migrate, --noinput]
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    <<: *backend
+    command: [uvicorn, config.asgi:application, --host, '0.0.0.0', --port, '8000', --workers, '2', --no-access-log]
+    ports:
+      - '127.0.0.1:8000:8000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live/', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    <<: *backend
+    command: [celery, -A, config, worker, --loglevel=INFO, --concurrency=2, --hostname=worker@%h]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD-SHELL, 'celery -A config inspect ping --destination "worker@$$HOSTNAME" --timeout 5 | grep -q pong']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  beat:
+    <<: *backend
+    command: [celery, -A, config, beat, --loglevel=INFO, --schedule=/tmp/celerybeat-schedule]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  flower:
+    <<: *backend
+    command: [celery, -A, config, flower, --port=5555]
+    ports:
+      - '127.0.0.1:5555:5555'
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:8000}
+    environment:
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:8000}
+      NODE_ENV: production
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      backend:
+        condition: service_healthy
+    init: true
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:
