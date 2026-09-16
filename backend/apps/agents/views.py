@@ -45,6 +45,8 @@ class AgentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Up to 30 handoff keywords of 1–40 characters.")
         if not 1 <= attrs.get("max_tool_rounds", 4) <= 8:
             raise serializers.ValidationError("Tool rounds must be 1–8.")
+        if attrs.get("mode", "agent") not in {"agent", "simple"}:
+            raise serializers.ValidationError("Mode must be agent or simple.")
         return attrs
 
     class Meta:
@@ -67,6 +69,7 @@ class AgentSerializer(serializers.ModelSerializer):
             "triage_enabled",
             "handoff_keywords",
             "max_tool_rounds",
+            "mode",
         ]
         read_only_fields = ["id", "has_key"]
 

@@ -79,6 +79,8 @@ class IntegrationConfig(TenantModel):
     options = models.JSONField(default=dict)
     enabled = models.BooleanField(default=True)
     is_test = models.BooleanField(default=False)
+    # active, reconnect_required (refresh/auth failed), disconnected (credentials removed).
+    status = models.CharField(max_length=20, default="active")
 
     class Meta:
         constraints = [

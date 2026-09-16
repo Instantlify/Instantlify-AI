@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import UTC, datetime, timedelta
 
 import stripe
@@ -16,6 +17,10 @@ from .models import BillingAccount, BillingEvent, BillingJob
 from .services import account_for
 
 MAX_REPORT_ATTEMPTS = 10
+# Subscription states in which metered usage is billable. Canceled, unpaid or
+# incomplete subscriptions must not receive meter events they can never invoice.
+METERED_STATUSES = ["active", "past_due"]
+CLOSED_STATUSES = {"canceled", "incomplete_expired", "unpaid"}
 
 
 def reportable_usage():
@@ -27,6 +32,7 @@ def reportable_usage():
         report_attempts__lt=MAX_REPORT_ATTEMPTS,
         workspace__billingaccount__customer_id__isnull=False,
         workspace__billingaccount__subscription_id__gt="",
+        workspace__billingaccount__status__in=METERED_STATUSES,
         created_at__gte=F("workspace__billingaccount__period_start"),
     ).filter(Q(report_after__isnull=True) | Q(report_after__lte=timezone.now()))
 
@@ -115,6 +121,51 @@ def process_event(workspace_id, event_id):
         event.save()
 
 
+def invoice_subscription(invoice):
+    """Subscription an invoice bills, across the pre- and post-2025 invoice shapes."""
+    details = (invoice.get("parent") or {}).get("subscription_details") or {}
+    value = invoice.get("subscription") or details.get("subscription")
+    return value.get("id") if isinstance(value, dict) else value
+
+
+def apply_subscription(account, obj):
+    """Map a Stripe subscription object onto the account. Returns audit codes for
+    anything an operator should look at."""
+    notes = []
+    account.subscription_id = obj["id"]
+    account.status = obj["status"]
+    items = obj.get("items", {}).get("data", [])
+    prices = {item["price"]["id"] for item in items}
+    plan = next(
+        (
+            name
+            for name, configured in settings.STRIPE_PRICES.items()
+            if configured.get("base") in prices
+        ),
+        None,
+    )
+    if plan:
+        account.plan = plan
+        limits = settings.PLAN_LIMITS[plan]
+        account.seat_limit = limits["seats"]
+        account.channel_limit = limits["channels"]
+        account.usage_limit = limits["messages"]
+    elif prices:
+        # Configuration drift: Stripe bills prices this deployment does not map. Keep the
+        # current limits so a paying customer is not cut off, but make it visible.
+        account.plan = "unmapped"
+        notes.append("billing.price_unmapped")
+    start = obj.get("current_period_start") or (
+        items[0].get("current_period_start") if items else None
+    )
+    end = obj.get("current_period_end") or (items[0].get("current_period_end") if items else None)
+    if start:
+        account.period_start = datetime.fromtimestamp(start, UTC)
+    if end:
+        account.period_end = datetime.fromtimestamp(end, UTC)
+    return notes
+
+
 def apply_event(workspace_id, payload, event_id):
     if payload["type"].startswith("checkout.session."):
         from apps.marketplace.services import apply_checkout_event
@@ -125,36 +176,68 @@ def apply_event(workspace_id, payload, event_id):
     if payload["created"] < account.last_event_created:
         return "ignored"
     event_type = payload["type"]
+    notes = []
     if event_type.startswith("customer.subscription."):
-        account.subscription_id = obj["id"]
-        account.status = "canceled" if event_type.endswith("deleted") else obj["status"]
-        items = obj.get("items", {}).get("data", [])
-        prices = {item["price"]["id"] for item in items}
-        for plan, configured in settings.STRIPE_PRICES.items():
-            if configured.get("base") in prices:
-                account.plan = plan
-                limits = settings.PLAN_LIMITS[plan]
-                account.seat_limit = limits["seats"]
-                account.channel_limit = limits["channels"]
-                account.usage_limit = limits["messages"]
-        start = obj.get("current_period_start") or (
-            items[0].get("current_period_start") if items else None
-        )
-        end = obj.get("current_period_end") or (
-            items[0].get("current_period_end") if items else None
-        )
-        if start:
-            account.period_start = datetime.fromtimestamp(start, UTC)
-        if end:
-            account.period_end = datetime.fromtimestamp(end, UTC)
-    elif event_type == "invoice.payment_failed":
-        account.status = "past_due"
-    elif event_type == "invoice.paid" and account.subscription_id:
-        account.status = "active"
+        if (
+            event_type.endswith("deleted")
+            and account.subscription_id
+            and obj["id"] != account.subscription_id
+        ):
+            # An older subscription ending after an upgrade replaced it says nothing
+            # about the current one.
+            return "ignored"
+        notes = apply_subscription(account, obj)
+        if event_type.endswith("deleted"):
+            account.status = "canceled"
+    elif event_type in {"invoice.paid", "invoice.payment_failed"}:
+        # Invoices only move the account when they bill the subscription we track and
+        # that subscription is still open; a stray or late invoice cannot revive it.
+        if (
+            not account.subscription_id
+            or invoice_subscription(obj) != account.subscription_id
+            or account.status in CLOSED_STATUSES
+        ):
+            return "ignored"
+        account.status = "active" if event_type == "invoice.paid" else "past_due"
     account.last_event_created = payload["created"]
     account.save()
     audit(account.workspace, None, "billing.updated", event_id)
+    for note in notes:
+        audit(account.workspace, None, note, account.id)
+        logging.getLogger(__name__).warning(
+            "Billing configuration drift", extra={"event_code": note}
+        )
     return "processed"
+
+
+RECONCILED_FIELDS = [
+    "status",
+    "plan",
+    "seat_limit",
+    "channel_limit",
+    "usage_limit",
+    "period_start",
+    "period_end",
+]
+
+
+def reconcile_account(workspace_id, subscription):
+    """Correct drift between the webhook-fed account and Stripe's current subscription
+    (missed or out-of-order events). Only the tracked subscription is authoritative."""
+    with transaction.atomic():
+        account = BillingAccount.objects.for_workspace(workspace_id).select_for_update().get()
+        if account.subscription_id != subscription.get("id"):
+            return False
+        before = {field: getattr(account, field) for field in RECONCILED_FIELDS}
+        notes = apply_subscription(account, subscription)
+        changed = [field for field in RECONCILED_FIELDS if before[field] != getattr(account, field)]
+        if not changed:
+            return False
+        account.save()
+        audit(account.workspace, None, "billing.reconciled", account.id)
+        for note in notes:
+            audit(account.workspace, None, note, account.id)
+        return True
 
 
 @shared_task(ignore_result=True)

@@ -57,12 +57,20 @@ def process_integration(workspace_id, job_id):
 
 @shared_task(ignore_result=True)
 def refresh_integrations():
+    from apps.channels.transport import RetryableError
+
     for config in IntegrationConfig.all_objects.filter(
         provider="google_calendar", enabled=True, is_test=False
-    ):
+    ).exclude(status="reconnect_required"):
         try:
             credentials_for(config)
+        except RetryableError:
+            continue  # Provider hiccup; the next pass retries with the same grant.
         except ProviderError:
+            # The grant itself is dead (revoked consent, expired refresh token). Surface it
+            # for reconnection rather than failing every booking silently.
+            config.status = "reconnect_required"
+            config.save(update_fields=["status"])
             audit(config.workspace, None, "integration.refresh_failed", config.id)
 
 

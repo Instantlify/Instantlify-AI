@@ -28,6 +28,8 @@ class ChannelConnection(TenantModel):
 
 class OAuthState(TenantModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    # Which hosted sign-in this state belongs to; a callback only accepts its own.
+    provider = models.CharField(max_length=30, default="instagram")
     state_hash = models.CharField(max_length=64, unique=True)
     expires_at = models.DateTimeField()
     consumed_at = models.DateTimeField(null=True)

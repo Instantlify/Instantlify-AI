@@ -33,6 +33,8 @@ type FieldSpec = { key: string; label: string; secret?: boolean };
 type ProviderSpec = {
   label: string;
   blurb: string;
+  /** Hosted sign-in button label; manual credentials stay available as a fallback. */
+  oauth?: string;
   credentials: FieldSpec[];
   options: FieldSpec[];
 };
@@ -40,6 +42,7 @@ type ProviderSpec = {
 const PROVIDERS: Record<string, ProviderSpec> = {
   google_calendar: {
     label: "Google Calendar",
+    oauth: "Connect Google Calendar",
     blurb: "Availability checks and bookings on a Google calendar.",
     credentials: [
       { key: "access_token", label: "Access token", secret: true },
@@ -89,6 +92,7 @@ const PROVIDERS: Record<string, ProviderSpec> = {
   },
   slack: {
     label: "Slack",
+    oauth: "Add to Slack",
     blurb: "Hot-lead and human-handoff notifications in a channel.",
     credentials: [{ key: "api_key", label: "Bot token", secret: true }],
     options: [{ key: "channel_id", label: "Channel ID" }],
@@ -121,6 +125,27 @@ const CHANNEL_PROVIDERS = [
   { id: "messenger", label: "Messenger", account: "Page ID" },
   { id: "telegram", label: "Telegram", account: "Bot user ID" },
 ];
+
+function integrationLabel(item: Integration) {
+  if (item.status === "reconnect_required") return "reconnect";
+  if (item.status === "disconnected") return "disconnected";
+  if (item.is_test) return "test";
+  if (!item.enabled) return "disabled";
+  return item.configured ? "connected" : "no credentials";
+}
+
+function integrationTone(item: Integration): "good" | "warn" | "neutral" {
+  if (item.status === "reconnect_required") return "warn";
+  if (item.status === "disconnected" || item.is_test) return "neutral";
+  return item.enabled && item.configured ? "good" : "warn";
+}
+
+const OAUTH_RESULTS: Record<string, string> = {
+  connected: "connected.",
+  "test-connected": "connected in local test mode.",
+  cancelled: "sign-in was cancelled.",
+  failed: "sign-in failed. Try again or enter credentials manually.",
+};
 
 export default function IntegrationsPage() {
   const { workspace, prefix, manager } = useWorkspace();
@@ -202,6 +227,49 @@ export default function IntegrationsPage() {
 
   const integrationFor = (provider: string) =>
     integrations.find((item) => item.provider === provider);
+
+  // Hosted sign-in returns here with ?integration=<result>&provider=<id>.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("integration");
+    if (!result) return;
+    const label =
+      PROVIDERS[params.get("provider") || ""]?.label || "Integration";
+    const text = `${label} ${OAUTH_RESULTS[result] || "sign-in finished."}`;
+    if (result === "cancelled" || result === "failed") feedback.setError(text);
+    else feedback.setNotice(text);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("integration");
+    url.searchParams.delete("provider");
+    window.history.replaceState(null, "", url.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function connectOAuth(provider: string) {
+    await feedback.run(async () => {
+      const started = await api<{ authorization_url: string }>(
+        `${prefix}/integrations/${provider}/oauth/`,
+        "POST",
+        {},
+      );
+      window.location.assign(started.authorization_url);
+    });
+  }
+
+  async function disconnectIntegration(item: Integration) {
+    const label = PROVIDERS[item.provider]?.label || item.provider;
+    if (!window.confirm(`Disconnect ${label}? Stored credentials are removed.`))
+      return;
+    await feedback.run(async () => {
+      const saved = await api<Integration>(
+        `${prefix}/integrations/${item.id}/`,
+        "DELETE",
+      );
+      setIntegrations((list) =>
+        list.map((entry) => (entry.id === saved.id ? saved : entry)),
+      );
+    }, `${label} disconnected.`);
+  }
 
   async function saveIntegration(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -362,22 +430,8 @@ export default function IntegrationsPage() {
                     <div className="row between">
                       <h3>{item.label}</h3>
                       {current ? (
-                        <Pill
-                          tone={
-                            current.is_test
-                              ? "neutral"
-                              : current.enabled && current.configured
-                                ? "good"
-                                : "warn"
-                          }
-                        >
-                          {current.is_test
-                            ? "test"
-                            : current.enabled
-                              ? current.configured
-                                ? "connected"
-                                : "no credentials"
-                              : "disabled"}
+                        <Pill tone={integrationTone(current)}>
+                          {integrationLabel(current)}
                         </Pill>
                       ) : (
                         <Pill>not set up</Pill>
@@ -385,6 +439,18 @@ export default function IntegrationsPage() {
                     </div>
                     <p className="muted-text">{item.blurb}</p>
                     <div className="form-actions">
+                      {item.oauth && (
+                        <button
+                          className="button small primary"
+                          disabled={feedback.busy}
+                          onClick={() => connectOAuth(provider)}
+                        >
+                          {current?.status === "reconnect_required"
+                            ? "Reconnect"
+                            : item.oauth}
+                          <Plug size={14} />
+                        </button>
+                      )}
                       <button
                         className="button small secondary"
                         onClick={() => {
@@ -392,9 +458,22 @@ export default function IntegrationsPage() {
                           setConfiguring(provider);
                         }}
                       >
-                        {current ? "Update" : "Configure"}
-                        <Plug size={14} />
+                        {current
+                          ? "Update"
+                          : item.oauth
+                            ? "Enter manually"
+                            : "Configure"}
+                        {!item.oauth && <Plug size={14} />}
                       </button>
+                      {current?.configured && (
+                        <button
+                          className="button small secondary"
+                          disabled={feedback.busy}
+                          onClick={() => disconnectIntegration(current)}
+                        >
+                          Disconnect
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

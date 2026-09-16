@@ -83,10 +83,15 @@ Prefix: `/api/workspaces/`.
 | POST | `/{id}/conversations/{pk}/payment-link/` | `{offer}` + `Idempotency-Key`; sends a checkout link |
 | GET | `/{id}/leads/` · GET, PATCH `/{id}/leads/{pk}/` | |
 | POST | `/{id}/leads/{pk}/merge/` · `/{id}/leads/{pk}/sync/` | Merge duplicates; push to Airtable/Notion/GoHighLevel/Attio |
-| GET, POST | `/{id}/integrations/` | `{provider, credentials, options, is_test}`; providers: google_calendar, calcom, airtable, notion, gohighlevel, attio, slack, elevenlabs, stripe |
+| GET, POST | `/{id}/integrations/` | `{provider, credentials, options, is_test}`; providers: google_calendar, calcom, airtable, notion, gohighlevel, attio, slack, elevenlabs, stripe. Responses carry `status` (`active`, `reconnect_required`, `disconnected`); saving credentials resets it to `active` |
+| POST | `/{id}/integrations/{provider}/oauth/` | Owner/admin; `google_calendar` or `slack` → `{authorization_url, mode}`. 503 until the provider app is configured (local fake mode returns a test callback) |
+| GET | `/api/integrations/callback/{provider}/` | Browser return from the provider; user-bound single-use state, then redirects to `/w/{id}/integrations?integration=connected\|test-connected\|cancelled\|failed` |
+| DELETE | `/{id}/integrations/{pk}/` | Owner/admin; revokes the grant remotely when possible, clears credentials, keeps job history; → `status: disconnected` |
 | WS | `/ws/workspaces/{id}/` | Session-authenticated; sends `{"type":"refresh"}` hints |
 
 ## AI agent
+
+The agent config carries `mode`: `agent` (default; LangGraph sales agent with triage, stages and guarded tools) or `simple` (one grounded model call per message, no tools; handoff keywords, the plan cap and opt-out rules still apply).
 
 | Method | Path | Notes |
 | --- | --- | --- |

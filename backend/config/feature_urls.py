@@ -23,9 +23,11 @@ from apps.billing.views import (
 )
 from apps.channels.api import ConnectView, DeliveryList, DisconnectView, SimulateView
 from apps.content.views import BioView, PostDetail, PostList, PublicBioView
+from apps.crm.oauth import IntegrationOAuthCallbackView, IntegrationOAuthStartView
 from apps.crm.views import (
     ConversationDetail,
     ConversationList,
+    IntegrationDetail,
     IntegrationList,
     LeadDetail,
     LeadList,
@@ -83,6 +85,9 @@ urlpatterns = [
     path(P + "leads/<uuid:pk>/merge/", MergeLeadView.as_view()),
     path(P + "leads/<uuid:pk>/sync/", SyncLeadView.as_view()),
     path(P + "integrations/", IntegrationList.as_view()),
+    path(P + "integrations/<uuid:pk>/", IntegrationDetail.as_view()),
+    path(P + "integrations/<str:provider>/oauth/", IntegrationOAuthStartView.as_view()),
+    path("api/integrations/callback/<str:provider>/", IntegrationOAuthCallbackView.as_view()),
     path(P + "agent/", AgentView.as_view()),
     path(P + "agent-audit/", AgentAuditView.as_view()),
     path(P + "documents/", DocumentList.as_view()),

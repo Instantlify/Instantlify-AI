@@ -151,6 +151,7 @@ export type AgentConfig = {
   triage_enabled: boolean;
   handoff_keywords: string[];
   max_tool_rounds: number;
+  mode: "agent" | "simple";
 };
 export type KnowledgeDocument = {
   id: string;
@@ -340,6 +341,7 @@ export type Integration = {
   enabled: boolean;
   is_test: boolean;
   configured: boolean;
+  status: string;
 };
 export type APIKey = {
   id: string;

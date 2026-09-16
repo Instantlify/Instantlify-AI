@@ -170,6 +170,12 @@ CHANNEL_LAYERS = {
 PUBLIC_APP_URL = os.environ.get("PUBLIC_APP_URL", "http://localhost:3000").rstrip("/")
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+SLACK_CLIENT_ID = os.environ.get("SLACK_CLIENT_ID", "")
+SLACK_CLIENT_SECRET = os.environ.get("SLACK_CLIENT_SECRET", "")
+# Hosted integration sign-in callbacks: <base><provider>/ must be registered with each provider.
+INTEGRATION_REDIRECT_BASE = os.environ.get(
+    "INTEGRATION_REDIRECT_BASE", PUBLIC_APP_URL + "/api/integrations/callback/"
+)
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_METER_EVENT_NAME = os.environ.get("STRIPE_METER_EVENT_NAME", "ai_messages")

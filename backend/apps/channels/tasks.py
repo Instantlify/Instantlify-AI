@@ -143,8 +143,7 @@ def send_delivery(workspace_id, delivery_id):
             if blocked(workspace_id, "automations", f"automation:{automation_id}"):
                 return
         from apps.crm.models import Message
-
-        from .adapters import WINDOWED_PROVIDERS
+        from apps.crm.services import private_reply_sent, window_closed
 
         message = (
             Message.objects.for_workspace(workspace_id)
@@ -153,22 +152,23 @@ def send_delivery(workspace_id, delivery_id):
             .first()
         )
         if message:
+            # Policy is re-evaluated at send time: a delayed or rate-limited message must
+            # not outlive the opt-in, window or private-reply allowance it was queued under.
             conversation = message.conversation
-            closed = (
-                connection.provider in WINDOWED_PROVIDERS
-                and not payload.get("private_reply")
-                and (
-                    not conversation.last_inbound_at
-                    or conversation.last_inbound_at < timezone.now() - timedelta(hours=24)
-                )
-            )
-            if conversation.identity.lead.opted_out or closed:
+            private = bool(payload.get("private_reply"))
+            if conversation.identity.lead.opted_out:
+                reason = "opted_out"
+            elif private and private_reply_sent(
+                workspace_id, connection, item.recipient_id, exclude=item.pk, in_flight=True
+            ):
+                reason = "private_reply_limit"
+            elif not private and window_closed(connection, conversation):
+                reason = "messaging_window_closed"
+            else:
+                reason = ""
+            if reason:
                 item.status = "failed"
-                item.error_code = (
-                    "opted_out"
-                    if conversation.identity.lead.opted_out
-                    else "messaging_window_closed"
-                )
+                item.error_code = reason
                 item.save()
                 audit(connection.workspace, None, "delivery.failed", item.pk)
                 return

@@ -25,6 +25,9 @@ class AgentConfig(TenantModel):
     triage_enabled = models.BooleanField(default=True)
     handoff_keywords = models.JSONField(default=list)
     max_tool_rounds = models.PositiveSmallIntegerField(default=4)
+    # agent: LangGraph sales agent with tools and stages. simple: one grounded
+    # model call per message, no tools (see agents/simple.py).
+    mode = models.CharField(max_length=10, default="agent")
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["workspace"], name="one_workspace_agent")]

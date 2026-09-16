@@ -55,3 +55,14 @@ Still open (external): live Instagram/WhatsApp/Messenger/Telegram delivery, Meta
 - [x] Make custom app package (`connectors/make`, JSON definitions; no signature verification possible on Make)
 - [x] Connectors panel on the Integrations page, `connectors/README.md`, `docs/PUBLIC_API.md` connector section
 - [ ] Publishing the Zapier/n8n packages to their directories; live Stripe Connect acceptance in a sandbox
+
+## 2026-09-16 — Phase 1, 4 and 5 code gaps (from the master audit)
+
+- [x] Phase 1: one private reply per comment (queue-time fallback to the DM thread, send-time `private_reply_limit`); opt-out and messaging window re-checked when a queued delivery is actually sent
+- [x] Phase 4: hosted OAuth for Google Calendar and Slack (user-bound single-use state, encrypted tokens, refresh-token preservation, Slack channel picked at install), disconnect with best-effort remote revocation, `status` on integrations with `reconnect_required` set by failed refreshes
+- [x] Phase 5 billing: invoice events only apply to the tracked open subscription, deletion of a replaced subscription is ignored, unmapped prices are flagged (`billing.price_unmapped`) without cutting limits, metering stops for closed subscriptions, the subscription sync reconciles drift against Stripe (`billing.reconciled`)
+- [x] Phase 5 data lifecycle: export covers every customer-bearing tenant table (test enforces coverage) plus a manifest of external systems; retention has an explicit per-store policy that skips in-flight work
+- [x] Phase 5 load: `manage.py loadtest --workspaces 50 --messages 20` drives the durable pipeline across workspaces and reports per-stage throughput and p50/p95
+- [x] Integrations page: connect/reconnect/disconnect buttons and hosted sign-in return handling
+- [x] Simple single-turn reply mode beside the LangGraph agent (`AgentConfig.mode`, `agents/simple.py`): one grounded call, no tools, checkpointed reply, keyword handoff kept; selectable on the AI agent page
+- [ ] External: real Instagram private replies, real Google/Slack installs, Stripe sandbox billing reconciliation, a PostgreSQL load run on production-like hardware

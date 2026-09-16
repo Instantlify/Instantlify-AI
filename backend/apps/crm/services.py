@@ -128,6 +128,31 @@ def handle_inbound(msg, lead, payload):
     route_message(msg, payload)
 
 
+def window_closed(connection, conversation):
+    """True when the provider's customer-service window no longer permits a free-form DM."""
+    return connection.provider in WINDOWED_PROVIDERS and (
+        not conversation.last_inbound_at
+        or conversation.last_inbound_at < timezone.now() - timedelta(hours=24)
+    )
+
+
+def private_reply_sent(workspace_id, connection, comment_id, *, exclude=None, in_flight=False):
+    """A private reply already exists for this comment. Failed attempts never reached
+    the provider, so they do not consume the allowance. With `in_flight`, only attempts
+    handed to the provider count, which is what matters at send time."""
+    sent = Delivery.objects.for_workspace(workspace_id).filter(
+        connection=connection, recipient_id=comment_id
+    )
+    sent = (
+        sent.filter(status__in=["sending", "sent", "unknown"])
+        if in_flight
+        else sent.exclude(status="failed")
+    )
+    if exclude is not None:
+        sent = sent.exclude(pk=exclude)
+    return sent.exists()
+
+
 @transaction.atomic
 def queue_reply(
     conversation,
@@ -159,14 +184,13 @@ def queue_reply(
     if conversation.identity.lead.opted_out:
         raise ValidationError("This lead has opted out.")
     connection = conversation.identity.connection
-    if (
-        connection.provider in WINDOWED_PROVIDERS
-        and not private_reply_id
-        and (
-            not conversation.last_inbound_at
-            or conversation.last_inbound_at < timezone.now() - timedelta(hours=24)
-        )
+    if private_reply_id and private_reply_sent(
+        conversation.workspace_id, connection, private_reply_id
     ):
+        # Meta allows exactly one private reply per comment. Later steps of the same
+        # flow continue in the DM thread, subject to the ordinary window rules.
+        private_reply_id = None
+    if not private_reply_id and window_closed(connection, conversation):
         raise ValidationError("The messaging window has closed. Wait for a new customer message.")
     if not text and not media_url:
         raise ValidationError("A message is required.")

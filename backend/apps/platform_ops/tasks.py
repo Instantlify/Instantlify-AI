@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from apps.agents.models import UsageRecord
 from apps.billing.models import BillingAccount
+from apps.billing.tasks import reconcile_account
 
 from .metrics import monthly_amounts
 from .models import SubscriptionSnapshot
@@ -23,6 +24,8 @@ def sync_subscriptions():
             subscription = stripe.Subscription.retrieve(
                 account.subscription_id, api_key=settings.STRIPE_SECRET_KEY
             )
+            if reconcile_account(account.workspace_id, subscription):
+                account.refresh_from_db()
             amounts = monthly_amounts(subscription)
             used = (
                 UsageRecord.objects.for_workspace(account.workspace_id)

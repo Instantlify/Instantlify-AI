@@ -265,8 +265,17 @@ class IntegrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = IntegrationConfig
-        fields = ["id", "provider", "credentials", "options", "enabled", "is_test", "configured"]
-        read_only_fields = ["id", "configured"]
+        fields = [
+            "id",
+            "provider",
+            "credentials",
+            "options",
+            "enabled",
+            "is_test",
+            "configured",
+            "status",
+        ]
+        read_only_fields = ["id", "configured", "status"]
 
 
 class IntegrationList(generics.ListCreateAPIView):
@@ -295,6 +304,9 @@ class IntegrationList(generics.ListCreateAPIView):
         )
         if not existing and "credentials" not in defaults and not data.get("is_test"):
             raise serializers.ValidationError("Enter the provider credentials.")
+        if "credentials" in defaults or data.get("is_test"):
+            # Fresh credentials clear a reconnect flag; saving options alone does not.
+            defaults["status"] = "active"
         item, _ = IntegrationConfig.objects.for_workspace(member.workspace_id).update_or_create(
             workspace=member.workspace,
             provider=data["provider"],
@@ -302,6 +314,24 @@ class IntegrationList(generics.ListCreateAPIView):
         )
         serializer.instance = item
         audit(member.workspace, self.request.user, "integration.configured", item.id)
+
+
+class IntegrationDetail(APIView):
+    def delete(self, request, workspace_id, pk):
+        """Disconnect: revoke remotely when possible, then drop the stored credentials.
+        The row and its job history remain so past bookings/syncs stay auditable."""
+        from .oauth import revoke
+
+        member = workspace_membership(request, workspace_id, ["owner", "admin"])
+        item = get_object_or_404(IntegrationConfig.objects.for_workspace(workspace_id), pk=pk)
+        revoke(item)
+        item.credentials = "{}"
+        item.enabled = False
+        item.is_test = False
+        item.status = "disconnected"
+        item.save()
+        audit(member.workspace, request.user, "integration.disconnected", item.id)
+        return Response(IntegrationSerializer(item).data)
 
 
 class SyncLeadView(APIView):

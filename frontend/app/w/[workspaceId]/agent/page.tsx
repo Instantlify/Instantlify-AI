@@ -57,6 +57,7 @@ type FormState = {
   triage_enabled: boolean;
   handoff_keywords: string;
   max_tool_rounds: number;
+  mode: "agent" | "simple";
   input_cost_per_million: string;
   output_cost_per_million: string;
 };
@@ -76,6 +77,7 @@ const DEFAULTS: FormState = {
   triage_enabled: true,
   handoff_keywords: "",
   max_tool_rounds: 4,
+  mode: "agent",
   input_cost_per_million: "0",
   output_cost_per_million: "0",
 };
@@ -95,6 +97,7 @@ function toForm(config: AgentConfig): FormState {
     triage_enabled: config.triage_enabled,
     handoff_keywords: config.handoff_keywords.join(", "),
     max_tool_rounds: config.max_tool_rounds,
+    mode: config.mode || "agent",
     input_cost_per_million: config.input_cost_per_million,
     output_cost_per_million: config.output_cost_per_million,
   };
@@ -154,6 +157,7 @@ export default function AgentPage() {
           .map((item) => item.trim())
           .filter(Boolean),
         max_tool_rounds: Number(form.max_tool_rounds),
+        mode: form.mode,
         input_cost_per_million: form.input_cost_per_million || "0",
         output_cost_per_million: form.output_cost_per_million || "0",
       };
@@ -373,6 +377,23 @@ export default function AgentPage() {
                   />
                 </label>
               </div>
+              <label>
+                Reply mode
+                <select
+                  value={form.mode}
+                  disabled={!manager}
+                  onChange={(e) =>
+                    set("mode", e.target.value as "agent" | "simple")
+                  }
+                >
+                  <option value="agent">
+                    Sales agent: stages, tools, triage, bookings and payments
+                  </option>
+                  <option value="simple">
+                    Simple replies: one grounded answer per message, no tools
+                  </option>
+                </select>
+              </label>
               <div className="checkbox-grid">
                 <label>
                   <input

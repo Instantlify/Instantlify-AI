@@ -30,7 +30,9 @@ All settings load from process environment. Docker Compose injects the ignored r
 | `META_WEBHOOK_VERIFY_TOKEN` | Phase 1 | Yes | Meta webhook subscription challenge token |
 | `META_API_VERSION` | No | No | Graph API version, default `v23.0` |
 | `PUBLIC_APP_URL` | Deployment | No | Public HTTPS origin used in invite links, voice media, checkout return URLs and Telegram webhooks |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Calendar | Yes | Google Calendar OAuth refresh |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Calendar | Yes | Google Calendar hosted sign-in and token refresh |
+| `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` | Slack | Yes | Slack app for the hosted "Add to Slack" install (`chat:write`, `incoming-webhook`) |
+| `INTEGRATION_REDIRECT_BASE` | Hosted sign-in | No | Default `PUBLIC_APP_URL/api/integrations/callback/`; register `<base>google_calendar/` and `<base>slack/` with each provider |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Platform billing | Yes | Nemio's own subscriptions and metered AI usage |
 | `STRIPE_PRICES` | Platform billing | No | JSON `{plan: {base, meter}}` price IDs |
 | `STRIPE_METER_EVENT_NAME` | No | No | Meter event name, default `ai_messages` |

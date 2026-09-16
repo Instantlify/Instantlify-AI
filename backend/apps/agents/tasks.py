@@ -27,6 +27,7 @@ def dispatch_agents():
 @pause_guard("ai")
 def process_run(workspace_id, run_id):
     from .runtime import run_agent
+    from .simple import run_simple
 
     with transaction.atomic():
         run = (
@@ -57,7 +58,7 @@ def process_run(workspace_id, run_id):
         run.started_at = timezone.now()
         run.save()
     try:
-        run_agent(run, config)
+        (run_simple if config.mode == "simple" else run_agent)(run, config)
     except Exception as exc:
         # Do not retry a partially executed agent automatically. Its checkpoint,
         # tool audit and reserved usage are retained for operator inspection.
