@@ -1,0 +1,66 @@
+{
+  "name": "updateLead",
+  "label": "Update a Lead",
+  "description": "Updates a lead's name, email, stage, tags or custom fields.",
+  "type": "action",
+  "actionType": "update",
+  "connection": "nemio",
+  "communication": {
+    "url": "/api/v1/leads/{{parameters.leadId}}/",
+    "method": "PATCH",
+    "body": {
+      "name": "{{if(parameters.name, parameters.name, undefined)}}",
+      "email": "{{if(parameters.email, parameters.email, undefined)}}",
+      "stage": "{{if(parameters.stage, parameters.stage, undefined)}}",
+      "tags": "{{if(parameters.tags, parameters.tags, undefined)}}",
+      "fields": "{{if(parameters.fields, toCollection(parameters.fields, 'key', 'value'), undefined)}}"
+    },
+    "response": {
+      "output": "{{body}}"
+    }
+  },
+  "expect": [
+    { "name": "leadId", "type": "text", "label": "Lead ID", "required": true },
+    { "name": "name", "type": "text", "label": "Name" },
+    { "name": "email", "type": "email", "label": "Email" },
+    {
+      "name": "stage",
+      "type": "select",
+      "label": "Stage",
+      "options": [
+        { "label": "New", "value": "new" },
+        { "label": "Qualified", "value": "qualified" },
+        { "label": "Pitched", "value": "pitched" },
+        { "label": "Booked", "value": "booked" },
+        { "label": "Won", "value": "won" },
+        { "label": "Lost", "value": "lost" }
+      ]
+    },
+    {
+      "name": "tags",
+      "type": "array",
+      "label": "Tags",
+      "help": "Replaces the lead's tags.",
+      "spec": { "type": "text" }
+    },
+    {
+      "name": "fields",
+      "type": "array",
+      "label": "Custom fields",
+      "help": "Merged into the lead's custom fields.",
+      "spec": [
+        { "name": "key", "type": "text", "label": "Field", "required": true },
+        { "name": "value", "type": "text", "label": "Value" }
+      ]
+    }
+  ],
+  "interface": [
+    { "name": "id", "type": "text", "label": "ID" },
+    { "name": "name", "type": "text", "label": "Name" },
+    { "name": "email", "type": "email", "label": "Email" },
+    { "name": "stage", "type": "text", "label": "Stage" },
+    { "name": "tags", "type": "array", "label": "Tags" },
+    { "name": "fields", "type": "collection", "label": "Custom fields" },
+    { "name": "opted_out", "type": "boolean", "label": "Opted out" }
+  ]
+}

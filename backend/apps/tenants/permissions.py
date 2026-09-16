@@ -12,4 +12,8 @@ def workspace_membership(request, workspace_id, roles=None):
     )
     if roles is not None and membership.role not in roles:
         raise PermissionDenied("Your role cannot perform this action.")
+    from apps.platform_ops.security import blocked
+
+    if blocked(workspace_id):
+        raise PermissionDenied("This workspace is suspended. Contact support.")
     return membership

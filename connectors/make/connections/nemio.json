@@ -1,0 +1,38 @@
+{
+  "type": "apikey",
+  "label": "Nemio",
+  "parameters": [
+    {
+      "name": "baseUrl",
+      "type": "url",
+      "label": "Nemio URL",
+      "required": true,
+      "help": "Address of your Nemio deployment, e.g. https://app.example.com (no trailing slash)."
+    },
+    {
+      "name": "apiKey",
+      "type": "password",
+      "label": "API key",
+      "required": true,
+      "help": "Create one under Integrations → API keys. Instant triggers need the write scope."
+    }
+  ],
+  "communication": {
+    "url": "{{parameters.baseUrl}}/api/v1/me/",
+    "headers": {
+      "X-API-Key": "{{parameters.apiKey}}"
+    },
+    "log": {
+      "sanitize": ["request.headers.X-API-Key"]
+    },
+    "response": {
+      "metadata": {
+        "type": "text",
+        "value": "{{body.workspace.name}}"
+      },
+      "error": {
+        "message": "[{{statusCode}}] {{body.detail}}"
+      }
+    }
+  }
+}

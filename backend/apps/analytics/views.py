@@ -30,6 +30,13 @@ class FunnelView(APIView):
 class ExperimentSerializer(serializers.ModelSerializer):
     results = serializers.SerializerMethodField()
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The default manager fails closed; scope FK choices to the caller's tenant.
+        scoped = Automation.objects.for_workspace(self.context["workspace_id"])
+        self.fields["control"].queryset = scoped
+        self.fields["variant"].queryset = scoped
+
     def get_results(self, obj):
         return experiment_results(obj)
 

@@ -25,6 +25,7 @@ from apps.tenants.views import (
 )
 
 urlpatterns = [
+    path("ops/", include("apps.platform_ops.urls")),
     path("", include("config.feature_urls")),
     path("webhooks/<str:provider>/", meta_webhook),
     path("webhooks/telegram/<uuid:connection_id>/", telegram_webhook),

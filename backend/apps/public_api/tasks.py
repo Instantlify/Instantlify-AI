@@ -50,6 +50,10 @@ def dispatch_outbound_webhooks():
 
 @shared_task(ignore_result=True, soft_time_limit=40, time_limit=50)
 def deliver_webhook(workspace_id, hook_id):
+    from apps.platform_ops.security import blocked
+
+    if blocked(workspace_id):
+        return
     with transaction.atomic():
         hook = (
             OutboundWebhook.objects.for_workspace(workspace_id)
@@ -83,6 +87,7 @@ def deliver_webhook(workspace_id, hook_id):
                 "X-Nemio-Event": hook.event,
                 "X-Nemio-Delivery": str(hook.id),
                 "X-Nemio-Signature": sign(subscription.secret, timestamp, body),
+                **({"X-Nemio-Token": subscription.token} if subscription.token else {}),
             },
             timeout=httpx.Timeout(10, connect=5),
             follow_redirects=False,

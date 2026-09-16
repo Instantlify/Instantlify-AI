@@ -5,6 +5,7 @@ import secrets
 from django.db import connection, transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework import generics, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -21,6 +22,11 @@ from .services import conversation_payload, emit, lead_payload, message_payload
 from .tasks import is_public_https
 
 # ---------- In-app management (session/JWT, owner/admin) ----------
+
+
+def new_credentials():
+    """Both shown exactly once: the HMAC secret and the shared header token."""
+    return "whsec_" + secrets.token_urlsafe(32), "whtok_" + secrets.token_urlsafe(32)
 
 
 class KeySerializer(serializers.ModelSerializer):
@@ -112,10 +118,12 @@ class SubscriptionList(generics.ListCreateAPIView):
         member = workspace_membership(request, workspace_id, ["owner", "admin"])
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        secret = "whsec_" + secrets.token_urlsafe(32)
-        item = serializer.save(workspace=member.workspace, secret=secret)
+        secret, token = new_credentials()
+        item = serializer.save(workspace=member.workspace, secret=secret, token=token)
         audit(member.workspace, request.user, "webhook.subscribed", item.id)
-        return Response({**SubscriptionSerializer(item).data, "secret": secret}, status=201)
+        return Response(
+            {**SubscriptionSerializer(item).data, "secret": secret, "token": token}, status=201
+        )
 
 
 class SubscriptionDetail(APIView):
@@ -166,7 +174,11 @@ class V1View(APIView):
             limit = 50
         cursor = self.request.query_params.get("cursor")
         if cursor:
-            queryset = queryset.filter(created_at__lt=cursor)
+            # "+00:00" arrives as " 00:00" through query-string decoding.
+            parsed = parse_datetime(cursor.replace(" ", "+"))
+            if not parsed:
+                raise serializers.ValidationError("Invalid cursor.")
+            queryset = queryset.filter(created_at__lt=parsed)
         items = list(queryset.order_by("-created_at")[: limit + 1])
         more = len(items) > limit
         items = items[:limit]
@@ -178,9 +190,26 @@ class V1View(APIView):
         )
 
 
+class V1Me(V1View):
+    """Connector auth test: which workspace and scopes does this key have?"""
+
+    def get(self, request):
+        key = request.user.api_key
+        return Response(
+            {
+                "workspace": {"id": str(key.workspace_id), "name": key.workspace.name},
+                "key": {"name": key.name, "prefix": key.prefix, "scopes": key.scopes},
+                "events": EVENTS,
+            }
+        )
+
+
 class V1Leads(V1View):
     def get(self, request):
         query = Lead.objects.for_workspace(self.workspace_id)
+        email = request.query_params.get("email", "")[:254]
+        if email:
+            query = query.filter(email__iexact=email)
         if request.query_params.get("stage"):
             query = query.filter(stage=request.query_params["stage"][:20])
         tag = request.query_params.get("tag", "")[:40]
@@ -260,12 +289,17 @@ class V1Subscriptions(V1View):
     def post(self, request):
         serializer = SubscriptionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        secret = "whsec_" + secrets.token_urlsafe(32)
+        secret, token = new_credentials()
         item = serializer.save(
-            workspace_id=self.workspace_id, secret=secret, api_key=request.user.api_key
+            workspace_id=self.workspace_id,
+            secret=secret,
+            token=token,
+            api_key=request.user.api_key,
         )
         audit(item.workspace, None, "webhook.subscribed", item.id)
-        return Response({**SubscriptionSerializer(item).data, "secret": secret}, status=201)
+        return Response(
+            {**SubscriptionSerializer(item).data, "secret": secret, "token": token}, status=201
+        )
 
 
 class V1Subscription(V1View):

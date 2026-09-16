@@ -23,6 +23,9 @@ class OpenAIProvider:
         self.headers = {"Authorization": f"Bearer {config.api_key}"}
 
     def complete(self, messages, tools):
+        from apps.platform_ops.security import assert_enabled
+
+        assert_enabled(self.config.workspace_id, "ai")
         body = request(
             "POST",
             "https://api.openai.com/v1/responses",
@@ -58,6 +61,9 @@ class OpenAIProvider:
         )
 
     def embed(self, texts):
+        from apps.platform_ops.security import assert_enabled
+
+        assert_enabled(self.config.workspace_id, "ai")
         body = request(
             "POST",
             "https://api.openai.com/v1/embeddings",
@@ -94,6 +100,9 @@ class FakeLLMProvider:
 
 
 def provider_for(config):
+    from apps.platform_ops.security import assert_enabled
+
+    assert_enabled(config.workspace_id, "ai")
     if config.is_test:
         if settings.CHANNEL_ADAPTER_MODE != "fake":
             raise ProviderError("test_provider_disabled")

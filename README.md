@@ -1,6 +1,8 @@
 # Nemio
 
-A multi-tenant sales conversation platform, built in shippable phases. This increment implements **Phase 0: the platform foundation**. Live messaging, automation authoring, autonomous agents, CRM integrations, and billing remain later increments; they are not simulated as finished product features.
+A multi-tenant platform that automates sales conversations across Instagram, WhatsApp, Messenger and Telegram with a visual flow builder and an autonomous AI sales agent: unified inbox, CRM, bookings, in-chat payments, funnel analytics, A/B tests, a template marketplace, content calendar, link-in-bio pages, a public API with webhooks, and white-label agency workspaces.
+
+Everything runs locally with fake providers and no third-party keys. Live delivery on each channel, real bookings and real payments require the corresponding credentials and (for Meta) app review — see [docs/META_REVIEW.md](docs/META_REVIEW.md).
 
 ## Run locally
 
@@ -20,7 +22,13 @@ sh scripts/bootstrap.sh
 docker compose up --build -d --wait --wait-timeout 240
 ```
 
-Open [Nemio](http://localhost:3000). Create an account with a password of at least 12 characters, create a workspace, sign out, and sign back in. Your workspace persists. Use the workspace switcher to create and navigate multiple workspaces. Workspace owners can rename their workspace, see its audit trail, and manage existing members' admin/agent roles. Invitations are a later team feature.
+Open [Nemio](http://localhost:3000). Create an account (password of at least 12 characters) and a workspace. A good first tour with no external keys:
+
+1. **Overview → Test connection setup** creates a local Instagram test channel.
+2. **Automations → Create** opens the flow builder with a starter “comment *price* → DM with a button” flow; press **Publish**.
+3. **Integrations → Simulate an inbound message** (kind *comment*, text containing “price”) fires the flow; the reply appears in **Inbox** within a few seconds.
+4. **AI agent**: tick *Use the local test provider*, enable the agent, paste some FAQ text. In the inbox, switch **AI replies** on for the conversation and simulate a DM.
+5. **Analytics** shows the funnel; **Link in bio**, **Payments** (offers), **Content**, **Templates**, **Team** (invites) and **Settings** (branding, agency clients, export/delete) round out the product.
 
 The bootstrap scripts create an ignored `.env` with cryptographically random secrets and preserve existing configuration. The migration job runs before the web and worker services. PostgreSQL's `vector` extension is enabled by migration. The workspace dashboard reports actual database/cache/worker health, with the worker heartbeat produced every 30 seconds by Celery Beat. Wait up to 60 seconds after a cold start for it to turn green.
 
@@ -35,6 +43,15 @@ The bootstrap scripts create an ignored `.env` with cryptographically random sec
 `docker compose stop` preserves everything. `docker compose down` removes containers and preserves volumes. Do not remove volumes unless you intend to delete local data.
 
 ## What is implemented
+
+- **Channels**: Instagram (Meta OAuth, long-lived tokens, proactive refresh, private comment replies, buttons, content publishing), WhatsApp, Messenger and Telegram behind one `ChannelAdapter`; signed, deduplicated, durably queued webhooks; per-account rate limits with backoff; 24-hour window rules.
+- **Automations**: React Flow builder (messages, buttons, wait, condition, delay, end), keyword triggers on comments/DMs/story replies/live comments, resumable persistent execution, per-lead cooldown, export/import and a community template marketplace.
+- **AI agent**: BYO OpenAI key (encrypted), RAG over uploaded docs in pgvector, LangGraph turn with triage → sales stage machine → bounded tool loop; guarded tools (calendar check, booking with customer confirmation code, CRM updates, voice notes, payment links from configured offers, human handoff); full audit of runs, tool calls and usage; voice-note transcription.
+- **Inbox & CRM**: live WebSocket inbox across channels, assignment, role-based visibility, internal notes, lead stages/tags/fields, AI segmentation with Slack hot-lead alerts, human handoff state, merge, and integrations (Google Calendar, Cal.com, Airtable, Notion, GoHighLevel, Attio, Slack, ElevenLabs, Stripe).
+- **Growth**: funnel analytics (comment → DM → triggered → replied → booked → paid, per automation/channel, revenue), A/B experiments with auto-promotion, sentiment/urgency handoff, in-chat payments on the workspace's own Stripe, content calendar, link-in-bio pages with click tracking.
+- **Platform**: seat/channel/usage plans with Stripe subscriptions and metered AI usage, team invitations, public API keys + signed outbound webhooks (Zapier/n8n/Make), white-label branding and agency client workspaces, GDPR export/delete, retention, Sentry with scrubbing, structured logs, backlog alerts.
+
+### Foundation
 
 - Django 5.2 LTS, DRF, PostgreSQL 17 + pgvector, Celery/Redis/Beat/Flower, Next.js 16 + TypeScript.
 - `apps/tenants`, `channels`, `automations`, `agents`, `crm`, `billing`, `dashboard_api` package boundaries. Future-phase apps intentionally contain no speculative business models.
@@ -78,7 +95,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The browser test expects the Compose app running on `http://127.0.0.1:3000`; override with `E2E_BASE_URL`. It creates an isolated test account, workspace and local channel connection, updates settings, logs out, and logs in. The test writes real local data. It never contacts Meta.
+The browser test expects the Compose app running on `http://127.0.0.1:3000`; override with `E2E_BASE_URL`. It signs up, creates a workspace and test channel, publishes an automation, fires it with a simulated comment, replies from the inbox, enables the test AI agent, checks analytics, publishes a bio page, creates an offer and an invitation, and verifies the mobile layout. It writes real local data and never contacts Meta.
 
 For frontend hot reload against Compose: stop the frontend container with `docker compose stop frontend`, then run `npm run dev` from `frontend/`. The default local proxy target is `http://127.0.0.1:8000`. Set `BACKEND_INTERNAL_URL` before starting/building if you change the backend address. This address is embedded at build time in standalone output.
 
@@ -91,4 +108,4 @@ For frontend hot reload against Compose: stop the frontend container with `docke
 - OAuth callback access logs must omit query strings. The Django JSON formatter intentionally discards arbitrary message and exception contents to prevent credential leakage. Local Gunicorn access logging is disabled. The production ingress must apply the same policy.
 - Refresh-token rows are cleaned daily. Define business-data retention in the compliance increment; a database backup is not a substitute for credential-key backup.
 
-See [architectural decisions](DECISIONS.md), [API reference](docs/API.md), [Meta external gate](docs/META_REVIEW.md), and [phase roadmap](docs/ROADMAP.md).
+See [architectural decisions](DECISIONS.md), [API reference](docs/API.md), [public API and webhooks](docs/PUBLIC_API.md), [Meta external gate](docs/META_REVIEW.md), [phase roadmap](docs/ROADMAP.md) and [implementation status](docs/IMPLEMENTATION_STATUS.md).

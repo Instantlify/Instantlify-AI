@@ -259,10 +259,13 @@ def run_agent(run, config):
                 break
             seen.update(signatures)
             save(seen_calls=sorted(seen))
+            handed_off = False
             for call in completion["calls"]:
                 outcome = run_tool(call)
                 if isinstance(outcome, str):
                     needs_confirmation = outcome
+                if call["name"] == "handoff_to_human" and isinstance(outcome, dict):
+                    handed_off = outcome.get("handed_off", False)
                 messages = messages + [
                     {
                         "type": "function_call",
@@ -282,6 +285,9 @@ def run_agent(run, config):
                 ]
             rounds += 1
             save(messages=messages, rounds=rounds)
+            if handed_off:
+                save(reply=HANDOFF_REPLY)
+                return {"reply": HANDOFF_REPLY}
             if needs_confirmation:
                 # Draft the wording, but the confirmation line is appended verbatim.
                 break
@@ -306,8 +312,6 @@ def run_agent(run, config):
                 "error": getattr(exc, "code", None)
                 or str(exc.args[0] if exc.args else "rejected")[:60]
             }
-        if call["name"] == "handoff_to_human":
-            save(reply=HANDOFF_REPLY)
         return result
 
     def respond(state):

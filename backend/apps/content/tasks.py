@@ -7,6 +7,7 @@ from django.utils import timezone
 from apps.channels.adapters import IntegrationUnavailable, adapter_for
 from apps.channels.tasks import rate_limit_wait
 from apps.channels.transport import AmbiguousDelivery, ProviderError, RetryableError
+from apps.platform_ops.security import pause_guard
 from apps.tenants.dispatch import enqueue_once
 from apps.tenants.services import audit
 
@@ -28,6 +29,7 @@ def dispatch_scheduled_posts():
 
 
 @shared_task(ignore_result=True, soft_time_limit=100, time_limit=120)
+@pause_guard("content", "integration:instagram")
 def publish_post(workspace_id, post_id):
     with transaction.atomic():
         post = (

@@ -11,12 +11,30 @@ from rest_framework.views import APIView
 
 from apps.automations.models import Automation
 from apps.automations.templates import FORMAT, VERSION, import_automation
+from apps.channels.transport import ProviderError
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
 
-from .models import Template, TemplateInstall
+from . import services
+from .models import SellerAccount, Template, TemplateInstall, TemplatePurchase
 
 CATEGORIES = {"sales", "support", "booking", "ecommerce", "creator", "agency", "other"}
+
+PURCHASE_ERRORS = {
+    "stripe_not_configured": "Marketplace payments are not configured on this server.",
+    "seller_unavailable": "The author cannot receive payouts right now. Try again later.",
+    "purchase_not_paid": "This purchase has not been paid.",
+    "template_missing": "The template no longer exists.",
+    "template_invalid": "The template failed validation. Contact the author.",
+    "payment_provider_error": "The payment provider rejected the request. Try again.",
+    "platform_paused": "Marketplace purchases are paused right now.",
+}
+
+
+def purchase_error(exc):
+    return serializers.ValidationError(
+        PURCHASE_ERRORS.get(getattr(exc, "code", str(exc)), "Unable to complete the purchase.")
+    )
 
 
 class TemplateSerializer(serializers.ModelSerializer):
@@ -42,6 +60,36 @@ class TemplateDetailSerializer(TemplateSerializer):
     class Meta(TemplateSerializer.Meta):
         fields = TemplateSerializer.Meta.fields + ["graph"]
         read_only_fields = fields
+
+
+class PurchaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TemplatePurchase
+        fields = [
+            "id",
+            "template_id",
+            "title",
+            "amount_cents",
+            "currency",
+            "status",
+            "automation_id",
+            "paid_at",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+def seller_payload(seller):
+    if not seller:
+        return {"connected": False, "transfers_status": "none", "requirements_due": False}
+    return {
+        "connected": True,
+        "transfers_status": seller.transfers_status,
+        "requirements_due": seller.requirements_due,
+        "can_sell": services.can_receive(seller),
+        "checked_at": seller.checked_at,
+        "country": seller.country,
+    }
 
 
 def published():
@@ -98,6 +146,14 @@ class PublishTemplateView(APIView):
             raise serializers.ValidationError("Price must be a whole number of cents.") from None
         if price < 0 or price > 100000:
             raise serializers.ValidationError("Price must be between 0 and $1000.")
+        if 0 < price < 100:
+            raise serializers.ValidationError("Paid templates must cost at least $1.")
+        if price:
+            seller = SellerAccount.objects.for_workspace(workspace_id).first()
+            if not services.can_receive(seller):
+                raise serializers.ValidationError(
+                    "Connect payouts (Stripe) before publishing a paid template."
+                )
         template = (
             Template.objects.for_workspace(workspace_id)
             .filter(source_automation_id=automation.pk)
@@ -147,25 +203,113 @@ class MyTemplateDetail(APIView):
 
 
 class InstallTemplateView(APIView):
-    @transaction.atomic
+    """Free templates (and the author's own) install immediately (201). Paid templates
+    return 202 with a Stripe Checkout URL; the install happens once payment is confirmed."""
+
     def post(self, request, workspace_id):
         member = workspace_membership(request, workspace_id, ["owner", "admin"])
-        template = get_object_or_404(
-            published().select_for_update(), slug=str(request.data.get("slug", ""))[:140]
-        )
-        if template.price_cents:
-            # Paid templates need a payout rail (Stripe Connect) that does not exist yet.
-            raise serializers.ValidationError(
-                "Paid templates cannot be installed yet. Contact the author."
+        with transaction.atomic():
+            template = get_object_or_404(
+                published().select_for_update(), slug=str(request.data.get("slug", ""))[:140]
             )
-        automation = import_automation(
-            member.workspace,
-            {"format": FORMAT, "version": VERSION, "name": template.title, "graph": template.graph},
-            request.user,
-            installed_from=template.pk,
+            if not template.price_cents or template.workspace_id == member.workspace_id:
+                automation = import_automation(
+                    member.workspace,
+                    {
+                        "format": FORMAT,
+                        "version": VERSION,
+                        "name": template.title,
+                        "graph": template.graph,
+                    },
+                    request.user,
+                    installed_from=template.pk,
+                )
+                TemplateInstall.objects.for_workspace(workspace_id).create(
+                    workspace=member.workspace, template_id=template.pk, automation=automation
+                )
+                Template.all_objects.filter(pk=template.pk).update(
+                    install_count=F("install_count") + 1
+                )
+                return Response({"automation_id": automation.id}, status=201)
+        key = str(request.data.get("idempotency_key") or request.headers.get("Idempotency-Key", ""))
+        if not 1 <= len(key) <= 100:
+            raise serializers.ValidationError("Supply an idempotency_key for a paid install.")
+        try:
+            purchase = services.start_purchase(
+                member.workspace, request.user, template, f"install:{template.pk}:{key}"
+            )
+            if purchase.status == "paid":
+                services.install_purchase(purchase, request.user)
+        except (ValueError, ProviderError) as exc:
+            raise purchase_error(exc) from None
+        if purchase.status == "installed":
+            return Response({"automation_id": purchase.automation_id}, status=201)
+        return Response(
+            {
+                "purchase_id": purchase.id,
+                "status": purchase.status,
+                "checkout_url": purchase.checkout_url,
+            },
+            status=202,
         )
-        TemplateInstall.objects.for_workspace(workspace_id).create(
-            workspace=member.workspace, template_id=template.pk, automation=automation
-        )
-        Template.all_objects.filter(pk=template.pk).update(install_count=F("install_count") + 1)
-        return Response({"automation_id": automation.id}, status=201)
+
+
+class PurchaseList(generics.ListAPIView):
+    serializer_class = PurchaseSerializer
+
+    def get_queryset(self):
+        workspace_membership(self.request, self.kwargs["workspace_id"], ["owner", "admin"])
+        return TemplatePurchase.objects.for_workspace(self.kwargs["workspace_id"])
+
+
+class PurchaseDetail(APIView):
+    """GET the state; POST re-checks Stripe (webhook fallback) and installs if paid."""
+
+    def get(self, request, workspace_id, pk):
+        workspace_membership(request, workspace_id, ["owner", "admin"])
+        purchase = get_object_or_404(TemplatePurchase.objects.for_workspace(workspace_id), pk=pk)
+        return Response(PurchaseSerializer(purchase).data)
+
+    def post(self, request, workspace_id, pk):
+        workspace_membership(request, workspace_id, ["owner", "admin"])
+        purchase = get_object_or_404(TemplatePurchase.objects.for_workspace(workspace_id), pk=pk)
+        try:
+            purchase = services.sync_purchase(purchase)
+            if purchase.status == "paid":
+                services.install_purchase(purchase, request.user)
+        except (ValueError, ProviderError) as exc:
+            raise purchase_error(exc) from None
+        return Response(PurchaseSerializer(purchase).data)
+
+
+class PayoutView(APIView):
+    """Author-side Stripe Connect onboarding (owner only for anything that hits Stripe)."""
+
+    def get(self, request, workspace_id):
+        workspace_membership(request, workspace_id, ["owner", "admin"])
+        seller = SellerAccount.objects.for_workspace(workspace_id).first()
+        return Response(seller_payload(seller))
+
+    def post(self, request, workspace_id):
+        member = workspace_membership(request, workspace_id, ["owner"])
+        action = request.data.get("action", "onboard")
+        country = str(request.data.get("country", "us")).lower()
+        if action not in {"onboard", "refresh", "dashboard"}:
+            raise serializers.ValidationError("Unknown action.")
+        if len(country) != 2 or not country.isalpha():
+            raise serializers.ValidationError("Country must be an ISO 3166-1 alpha-2 code.")
+        seller = SellerAccount.objects.for_workspace(workspace_id).first()
+        try:
+            if action == "onboard":
+                seller = seller or services.ensure_seller(member.workspace, request.user, country)
+                url = services.onboarding_link(seller)
+                audit(member.workspace, request.user, "marketplace.onboarding_started", seller.id)
+                return Response({**seller_payload(seller), "url": url}, status=202)
+            if not seller:
+                raise serializers.ValidationError("Set up payouts first.")
+            if action == "refresh":
+                seller = services.sync_seller(seller)
+                return Response(seller_payload(seller))
+            return Response({**seller_payload(seller), "url": services.dashboard_link(seller)})
+        except (ValueError, ProviderError) as exc:
+            raise purchase_error(exc) from None

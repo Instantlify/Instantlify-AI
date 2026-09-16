@@ -25,9 +25,24 @@ All settings load from process environment. Docker Compose injects the ignored r
 | `META_CALLS_PER_HOUR` | No | No | Outbound calls per hour per Instagram account (default 200) |
 | `WHATSAPP_CALLS_PER_HOUR` / `TELEGRAM_CALLS_PER_HOUR` | No | No | Per-connection outbound budgets (defaults 3600 / 1800) |
 | `META_APP_CALLS_PER_HOUR` | No | No | Optional app-wide Meta ceiling across all tenants; `0` disables |
+| `MESSENGER_CALLS_PER_HOUR` | No | No | Per-Page outbound budget (default 3600) |
+| `WHATSAPP_APP_SECRET` / `MESSENGER_APP_SECRET` | If separate Meta apps | Yes | Webhook signature secrets; default to `META_APP_SECRET` |
+| `META_WEBHOOK_VERIFY_TOKEN` | Phase 1 | Yes | Meta webhook subscription challenge token |
+| `META_API_VERSION` | No | No | Graph API version, default `v23.0` |
+| `PUBLIC_APP_URL` | Deployment | No | Public HTTPS origin used in invite links, voice media, checkout return URLs and Telegram webhooks |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Calendar | Yes | Google Calendar OAuth refresh |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Platform billing | Yes | Nemio's own subscriptions and metered AI usage |
+| `STRIPE_PRICES` | Platform billing | No | JSON `{plan: {base, meter}}` price IDs |
+| `STRIPE_METER_EVENT_NAME` | No | No | Meter event name, default `ai_messages` |
+| `MARKETPLACE_FEE_PERCENT` | Marketplace | No | Platform share of paid template sales (default 15); needs `STRIPE_SECRET_KEY` and the platform webhook to receive `checkout.session.*` events |
+| `PUBLIC_API_RATE` | No | No | Per-API-key throttle, default `600/min` |
+| `SENTRY_DSN` | Production | Yes | Enables Sentry with request bodies, cookies, auth headers, query strings and local variables scrubbed |
+| `SENTRY_ENVIRONMENT` / `SENTRY_TRACES_SAMPLE_RATE` / `APP_RELEASE` | No | No | Sentry tagging and tracing |
+| `RETENTION_DAYS` | No | No | Customer payload retention (default 90) |
+| `NEXT_PUBLIC_WS_URL` | Frontend | No | WebSocket origin for the live inbox (local default `ws://localhost:8000`); behind one domain in production the same-origin default applies |
 | `META_SCOPES` | Phase 1 | No | Permission list for selected Instagram login product; confirm during live implementation |
 
-Meta webhook verification token, pinned Graph API version, provider key fields, Stripe keys/webhook secret, calendar OAuth client credentials, ElevenLabs credentials and Sentry configuration will be added with their respective integrations. They are not required or read by Phase 0.
+Tenant-owned credentials (LLM keys, ElevenLabs, calendar, CRM, Slack and each workspace's Stripe keys for in-chat payments) are entered in the app and stored encrypted; they are never environment variables.
 
 ## Production differences
 

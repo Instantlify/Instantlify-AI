@@ -5,6 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.crm.models import Conversation
+from apps.platform_ops.security import pause_guard
 from apps.tenants.dispatch import enqueue_once
 
 from .models import AgentConfig, AgentRun, KnowledgeDocument
@@ -23,6 +24,7 @@ def dispatch_agents():
 
 
 @shared_task(ignore_result=True, soft_time_limit=100, time_limit=120)
+@pause_guard("ai")
 def process_run(workspace_id, run_id):
     from .runtime import run_agent
 
@@ -68,6 +70,7 @@ def process_run(workspace_id, run_id):
 
 
 @shared_task(ignore_result=True, soft_time_limit=100, time_limit=120)
+@pause_guard("ai")
 def ingest_document(workspace_id, document_id):
     from .rag import ingest
 

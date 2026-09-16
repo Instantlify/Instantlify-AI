@@ -16,6 +16,10 @@ class InboxConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def is_member(self):
+        from apps.platform_ops.security import blocked
+
+        if blocked(self.workspace_id):
+            return False
         return (
             Membership.objects.for_workspace(self.workspace_id)
             .filter(user_id=self.scope["user"].id)

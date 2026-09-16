@@ -32,6 +32,9 @@ def stripe_integration(workspace_id):
 @transaction.atomic
 def create_checkout(offer, conversation, key):
     """Create (or return) the checkout for this intent. Amounts come from the Offer row."""
+    from apps.platform_ops.security import assert_enabled
+
+    assert_enabled(offer.workspace_id, "integration:stripe")
     existing = Payment.objects.for_workspace(offer.workspace_id).filter(idempotency_key=key).first()
     if existing:
         return existing

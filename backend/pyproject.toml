@@ -31,6 +31,7 @@ dev = ["pytest>=8,<10", "pytest-django>=4.11,<5", "ruff>=0.12,<1"]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 pythonpath = ["."]
 testpaths = ["tests"]
+markers = ["real_dns: do not mock outbound URL validation"]
 
 [tool.ruff]
 line-length = 100

@@ -1,0 +1,39 @@
+{
+  "name": "n8n-nodes-nemio",
+  "version": "1.0.0",
+  "description": "n8n community node for Nemio: signed webhook trigger plus lead, conversation and message operations.",
+  "keywords": [
+    "n8n-community-node-package",
+    "nemio",
+    "instagram",
+    "whatsapp",
+    "crm"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && node scripts/copy-assets.js",
+    "lint": "tsc --noEmit"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/NemioApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Nemio/Nemio.node.js",
+      "dist/nodes/Nemio/NemioTrigger.node.js"
+    ]
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "n8n-workflow": "^1.82.0",
+    "typescript": "^5.6.0"
+  }
+}

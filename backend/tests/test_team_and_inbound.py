@@ -306,3 +306,19 @@ def test_segmentation_ignores_unexpected_output_and_opted_out_leads(channel, con
     with classifier("hot") as provider_for:
         segment_lead(str(workspace.pk), str(lead.pk))
         provider_for.assert_not_called()
+
+
+def test_reconciliation_queues_agent_runs_for_ai_conversations(channel, config, workspace):
+    from apps.agents.models import AgentRun
+    from apps.crm.tasks import reconcile_agent_runs
+
+    message = inbound(channel, "hello?")
+    assert not AgentRun.objects.for_workspace(workspace).exists()  # AI off: nothing queued
+    reconcile_agent_runs()
+    assert not AgentRun.objects.for_workspace(workspace).exists()
+    conversation = message.conversation
+    conversation.ai_enabled = True
+    conversation.save()
+    reconcile_agent_runs()
+    reconcile_agent_runs()
+    assert AgentRun.objects.for_workspace(workspace).filter(message=message).count() == 1

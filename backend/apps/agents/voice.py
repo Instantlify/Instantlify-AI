@@ -31,6 +31,9 @@ def bounded_bytes(method, url, **kwargs):
 
 
 def queue_voice(conversation, text, key):
+    from apps.platform_ops.security import assert_enabled
+
+    assert_enabled(conversation.workspace_id, "ai", "integration:elevenlabs")
     integration = (
         IntegrationConfig.objects.for_workspace(conversation.workspace_id)
         .filter(provider="elevenlabs", enabled=True)

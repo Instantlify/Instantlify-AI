@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from apps.crm.services import queue_reply
+from apps.platform_ops.security import blocked, pause_guard
 from apps.tenants.dispatch import enqueue_once
 
 from .models import ConversationState
@@ -20,6 +21,7 @@ def dispatch_runs():
 
 
 @shared_task(ignore_result=True)
+@pause_guard("automations")
 def step(workspace_id, state_id):
     with transaction.atomic():
         state = (
@@ -29,6 +31,8 @@ def step(workspace_id, state_id):
             .first()
         )
         if not state:
+            return
+        if blocked(workspace_id, "automations", f"automation:{state.automation_id}"):
             return
         if state.steps >= 100 or state.conversation.identity.lead.opted_out:
             state.status = "stopped"
@@ -58,6 +62,7 @@ def step(workspace_id, state_id):
                     f"flow:{state.id}:{state.last_message_id}:{state.steps}",
                     buttons=data.get("buttons"),
                     private_reply_id=state.variables.get("comment_id"),
+                    automation_id=state.automation_id,
                 )
                 state.variables.pop("comment_id", None)
             elif kind == "delay":

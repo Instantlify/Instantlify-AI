@@ -236,7 +236,8 @@ class MergeLeadView(APIView):
 
 
 class IntegrationSerializer(serializers.ModelSerializer):
-    credentials = serializers.JSONField(write_only=True)
+    # Omitting credentials (or sending {}) on re-save keeps the stored secret.
+    credentials = serializers.JSONField(write_only=True, required=False)
     configured = serializers.SerializerMethodField()
 
     def get_configured(self, obj):
@@ -284,10 +285,20 @@ class IntegrationList(generics.ListCreateAPIView):
 
         if data.get("is_test") and settings.CHANNEL_ADAPTER_MODE != "fake":
             raise serializers.ValidationError("Test integrations are disabled.")
+        defaults = {key: value for key, value in data.items() if key != "provider"}
+        if defaults.get("credentials", "{}") == "{}":
+            defaults.pop("credentials", None)
+        existing = (
+            IntegrationConfig.objects.for_workspace(member.workspace_id)
+            .filter(provider=data["provider"])
+            .first()
+        )
+        if not existing and "credentials" not in defaults and not data.get("is_test"):
+            raise serializers.ValidationError("Enter the provider credentials.")
         item, _ = IntegrationConfig.objects.for_workspace(member.workspace_id).update_or_create(
             workspace=member.workspace,
             provider=data["provider"],
-            defaults={key: value for key, value in data.items() if key != "provider"},
+            defaults=defaults,
         )
         serializer.instance = item
         audit(member.workspace, self.request.user, "integration.configured", item.id)

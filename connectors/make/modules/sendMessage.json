@@ -1,0 +1,41 @@
+{
+  "name": "sendMessage",
+  "label": "Send a Message",
+  "description": "Queues a reply into a conversation through Nemio's delivery pipeline (opt-out and messaging-window rules apply).",
+  "type": "action",
+  "actionType": "create",
+  "connection": "nemio",
+  "communication": {
+    "url": "/api/v1/conversations/{{parameters.conversationId}}/messages/",
+    "method": "POST",
+    "body": {
+      "text": "{{parameters.text}}",
+      "idempotency_key": "{{uuid}}"
+    },
+    "response": {
+      "output": {
+        "delivery_id": "{{body.delivery_id}}",
+        "status": "{{body.status}}"
+      }
+    }
+  },
+  "expect": [
+    {
+      "name": "conversationId",
+      "type": "text",
+      "label": "Conversation ID",
+      "required": true
+    },
+    {
+      "name": "text",
+      "type": "text",
+      "label": "Text",
+      "required": true,
+      "multiline": true
+    }
+  ],
+  "interface": [
+    { "name": "delivery_id", "type": "text", "label": "Delivery ID" },
+    { "name": "status", "type": "text", "label": "Status" }
+  ]
+}

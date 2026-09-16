@@ -1,0 +1,23 @@
+{
+  "name": "nemio-zapier",
+  "version": "1.0.0",
+  "description": "Zapier integration for Nemio: instant triggers for leads, messages, bookings and payments, plus actions to reply and update leads.",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "test": "jest --testTimeout 10000",
+    "validate": "zapier validate",
+    "push": "zapier push"
+  },
+  "engines": {
+    "node": ">=18",
+    "npm": ">=9"
+  },
+  "dependencies": {
+    "zapier-platform-core": "17.0.3"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nock": "^13.5.4"
+  }
+}

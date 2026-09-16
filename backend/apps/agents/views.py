@@ -75,7 +75,7 @@ class AgentView(APIView):
     def get(self, request, workspace_id):
         workspace_membership(request, workspace_id, ["owner", "admin"])
         config = AgentConfig.objects.for_workspace(workspace_id).first()
-        return Response(AgentSerializer(config).data if config else None)
+        return Response(AgentSerializer(config).data if config else {})
 
     def put(self, request, workspace_id):
         member = workspace_membership(request, workspace_id, ["owner", "admin"])

@@ -41,6 +41,10 @@ class WebhookSubscription(TenantModel):
     url = models.URLField(max_length=2000)
     events = models.JSONField(default=list)
     secret = EncryptedTextField()
+    # Shared token sent as X-Nemio-Token for receivers that cannot compute an HMAC
+    # (e.g. Make). Weaker than the signature: no body integrity or replay protection
+    # beyond TLS, so it is a second header, never a replacement.
+    token = EncryptedTextField(blank=True)
     active = models.BooleanField(default=True)
     api_key = models.ForeignKey(APIKey, null=True, on_delete=models.SET_NULL)
     failure_count = models.PositiveIntegerField(default=0)

@@ -1,0 +1,38 @@
+{
+  "name": "findLead",
+  "label": "Search Leads",
+  "description": "Finds leads by email, stage or tag.",
+  "type": "search",
+  "connection": "nemio",
+  "communication": {
+    "url": "/api/v1/leads/",
+    "method": "GET",
+    "qs": {
+      "email": "{{if(parameters.email, parameters.email, undefined)}}",
+      "stage": "{{if(parameters.stage, parameters.stage, undefined)}}",
+      "tag": "{{if(parameters.tag, parameters.tag, undefined)}}",
+      "limit": "{{parameters.limit}}"
+    },
+    "response": {
+      "iterate": "{{body.results}}",
+      "output": "{{item}}",
+      "limit": "{{parameters.limit}}"
+    }
+  },
+  "expect": [
+    { "name": "email", "type": "email", "label": "Email" },
+    { "name": "stage", "type": "text", "label": "Stage" },
+    { "name": "tag", "type": "text", "label": "Tag" },
+    { "name": "limit", "type": "number", "label": "Limit", "default": 50 }
+  ],
+  "interface": [
+    { "name": "id", "type": "text", "label": "ID" },
+    { "name": "name", "type": "text", "label": "Name" },
+    { "name": "email", "type": "email", "label": "Email" },
+    { "name": "stage", "type": "text", "label": "Stage" },
+    { "name": "tags", "type": "array", "label": "Tags" },
+    { "name": "fields", "type": "collection", "label": "Custom fields" },
+    { "name": "opted_out", "type": "boolean", "label": "Opted out" },
+    { "name": "created_at", "type": "date", "label": "Created at" }
+  ]
+}

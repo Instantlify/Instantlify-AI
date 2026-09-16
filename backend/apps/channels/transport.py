@@ -37,6 +37,26 @@ def retry_after(value):
 
 
 def request(method, url, *, side_effect=False, **kwargs):
+    from urllib.parse import urlsplit
+
+    from apps.platform_ops.metrics import increment
+
+    meta = urlsplit(url).hostname in {
+        "graph.instagram.com",
+        "api.instagram.com",
+        "graph.facebook.com",
+    }
+    if meta:
+        increment("meta.calls")
+    try:
+        return _request(method, url, side_effect=side_effect, **kwargs)
+    except ProviderError:
+        if meta:
+            increment("meta.errors")
+        raise
+
+
+def _request(method, url, *, side_effect=False, **kwargs):
     try:
         response = httpx.request(
             method, url, timeout=httpx.Timeout(15, connect=5), follow_redirects=False, **kwargs

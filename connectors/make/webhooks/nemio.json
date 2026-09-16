@@ -1,0 +1,59 @@
+{
+  "type": "web",
+  "label": "Nemio event",
+  "connection": "nemio",
+  "parameters": [
+    {
+      "name": "events",
+      "type": "select",
+      "label": "Events",
+      "multiple": true,
+      "required": true,
+      "options": [
+        { "label": "Lead created", "value": "lead.created" },
+        { "label": "Lead updated", "value": "lead.updated" },
+        { "label": "Lead hot", "value": "lead.hot" },
+        { "label": "Message received", "value": "message.received" },
+        { "label": "Message sent", "value": "message.sent" },
+        { "label": "Conversation handoff", "value": "conversation.handoff" },
+        { "label": "Call booked", "value": "call.booked" },
+        { "label": "Payment paid", "value": "payment.paid" }
+      ]
+    }
+  ],
+  "attach": {
+    "url": "/api/v1/webhooks/",
+    "method": "POST",
+    "body": {
+      "url": "{{webhook.url}}",
+      "events": "{{parameters.events}}"
+    },
+    "response": {
+      "data": {
+        "id": "{{body.id}}",
+        "token": "{{body.token}}"
+      }
+    }
+  },
+  "detach": {
+    "url": "/api/v1/webhooks/{{webhook.id}}/",
+    "method": "DELETE"
+  },
+  "communication": {
+    "verification": {
+      "condition": "{{headers.`x-nemio-token` = webhook.token}}",
+      "respond": {
+        "status": 401,
+        "type": "text",
+        "body": "invalid token"
+      }
+    },
+    "output": {
+      "delivery_id": "{{headers.`x-nemio-delivery`}}",
+      "event": "{{body.event}}",
+      "occurred_at": "{{body.occurred_at}}",
+      "workspace_id": "{{body.workspace_id}}",
+      "data": "{{body.data}}"
+    }
+  }
+}

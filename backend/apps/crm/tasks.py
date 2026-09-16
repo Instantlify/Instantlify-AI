@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from apps.channels.transport import ProviderError
+from apps.platform_ops.security import blocked, pause_guard
 from apps.tenants.dispatch import enqueue_once
 from apps.tenants.services import audit
 
@@ -25,6 +26,7 @@ def dispatch_integrations():
 
 
 @shared_task(ignore_result=True)
+@pause_guard()
 def process_integration(workspace_id, job_id):
     with transaction.atomic():
         job = (
@@ -34,6 +36,8 @@ def process_integration(workspace_id, job_id):
             .first()
         )
         if not job:
+            return
+        if blocked(workspace_id, "integration:" + job.integration.provider):
             return
         job.status = "executing"
         job.save()
@@ -76,9 +80,44 @@ def dispatch_inbound_jobs():
     Message.all_objects.filter(
         transcription_status="processing", created_at__lt=timezone.now() - timedelta(minutes=15)
     ).update(transcription_status="failed")
+    reconcile_agent_runs()
+
+
+def reconcile_agent_runs():
+    """Durable safety net: any recent inbound message in an AI-enabled conversation
+    that has no agent run (e.g. AI was switched on moments after it arrived, or a
+    routing decision raced a concurrent update) gets one. Idempotent by design."""
+    from apps.agents.models import AgentRun
+    from apps.automations.models import ConversationState
+
+    recent = (
+        Message.all_objects.filter(
+            direction="inbound",
+            agentrun__isnull=True,
+            conversation__ai_enabled=True,
+            transcription_status__in=["", "complete"],
+            created_at__gte=timezone.now() - timedelta(minutes=10),
+        )
+        .select_related("conversation__identity__lead")
+        .order_by("created_at")[:100]
+    )
+    for message in recent:
+        if not message.text.strip() or message.conversation.identity.lead.opted_out:
+            continue
+        if ConversationState.all_objects.filter(
+            conversation_id=message.conversation_id, status__in=["running", "waiting"]
+        ).exists():
+            continue
+        with transaction.atomic():
+            run, created = AgentRun.objects.for_workspace(message.workspace_id).get_or_create(
+                message=message, defaults={"workspace_id": message.workspace_id}
+            )
+            if created:
+                audit(message.workspace, None, "agent.run_reconciled", run.id)
 
 
 @shared_task(ignore_result=True, soft_time_limit=100, time_limit=120)
+@pause_guard("ai")
 def transcribe_message(workspace_id, message_id):
     from apps.agents.models import AgentConfig
     from apps.agents.voice import transcribe
@@ -132,6 +171,7 @@ def transcribe_message(workspace_id, message_id):
 
 
 @shared_task(ignore_result=True, soft_time_limit=60, time_limit=90)
+@pause_guard("ai")
 def segment_lead(workspace_id, lead_id):
     from apps.agents.models import AgentConfig
     from apps.agents.providers import provider_for

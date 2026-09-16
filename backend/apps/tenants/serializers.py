@@ -57,8 +57,8 @@ class MembershipSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Membership
-        fields = ["id", "name", "email", "role", "created_at"]
-        read_only_fields = ["id", "name", "email", "created_at"]
+        fields = ["id", "user_id", "name", "email", "role", "created_at"]
+        read_only_fields = ["id", "user_id", "name", "email", "created_at"]
 
 
 class AuditSerializer(serializers.ModelSerializer):

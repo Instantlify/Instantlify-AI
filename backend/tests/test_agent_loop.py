@@ -23,7 +23,13 @@ from apps.public_api.models import OutboundWebhook, WebhookSubscription
 
 pytestmark = pytest.mark.django_db
 
-TOOLS = ["check_calendar_availability", "book_call", "update_crm_field", "create_payment_link", "handoff_to_human"]
+TOOLS = [
+    "check_calendar_availability",
+    "book_call",
+    "update_crm_field",
+    "create_payment_link",
+    "handoff_to_human",
+]
 NEUTRAL = Completion('{"sentiment":"neutral","urgency":"normal","intent":"question"}', [], 5, 5)
 
 
@@ -37,7 +43,9 @@ def triage(**fields):
 
 
 def calling(name, args, call_id="call_1"):
-    return Completion("", [{"name": name, "arguments": json.dumps(args), "call_id": call_id}], 10, 5)
+    return Completion(
+        "", [{"name": name, "arguments": json.dumps(args), "call_id": call_id}], 10, 5
+    )
 
 
 def saying(text):
@@ -99,7 +107,10 @@ def run(message, *completions):
     provider = MagicMock()
     provider.complete.side_effect = list(completions)
     with patch("apps.agents.runtime.provider_for", return_value=provider):
-        process_run(str(message.workspace_id), str(AgentRun.objects.for_workspace(message.workspace_id).get(message=message).id))
+        process_run(
+            str(message.workspace_id),
+            str(AgentRun.objects.for_workspace(message.workspace_id).get(message=message).id),
+        )
     return provider
 
 
@@ -200,7 +211,10 @@ def test_keyword_handoff_is_deterministic_and_pauses_everything(channel, config,
         workspace=workspace, provider="slack", is_test=True
     )
     sub = WebhookSubscription.objects.for_workspace(workspace).create(
-        workspace=workspace, url="https://example.com/hook", events=["conversation.handoff"], secret="s"
+        workspace=workspace,
+        url="https://example.com/hook",
+        events=["conversation.handoff"],
+        secret="s",
     )
     automation = Automation.objects.for_workspace(workspace).create(workspace=workspace, name="x")
     publish(
@@ -226,8 +240,16 @@ def test_keyword_handoff_is_deterministic_and_pauses_everything(channel, config,
     assert OutboundWebhook.objects.for_workspace(workspace).filter(subscription=sub).count() == 1
     assert FunnelEvent.objects.for_workspace(workspace).filter(kind="handoff").count() == 1
     # A later message must not re-open AI or re-page the team.
-    later = inbound(channel, "hello?")
+    event = WebhookEvent.objects.for_workspace(workspace).create(
+        workspace=workspace,
+        connection=channel,
+        event_id="later",
+        payload="{}",
+        available_at=timezone.now(),
+    )
+    later = receive(event, {"sender_id": "lead-1", "text": "hello?"})
     assert not AgentRun.objects.for_workspace(workspace).filter(message=later).exists()
+    assert IntegrationJob.objects.for_workspace(workspace).filter(operation="notify").count() == 1
 
 
 def test_llm_triage_hands_off_angry_or_urgent_customers(channel, config, workspace):
@@ -295,7 +317,9 @@ def test_inactive_offer_and_missing_stripe_are_refused(channel, config, workspac
     assert json.loads(call.output) == {"error": "payments_not_connected"}
 
 
-def test_paid_checkout_marks_lead_won_and_records_revenue(channel, config, workspace, stripe_test, offer):
+def test_paid_checkout_marks_lead_won_and_records_revenue(
+    channel, config, workspace, stripe_test, offer
+):
     WebhookSubscription.objects.for_workspace(workspace).create(
         workspace=workspace, url="https://example.com/h", events=["payment.paid"], secret="s"
     )
@@ -306,12 +330,19 @@ def test_paid_checkout_marks_lead_won_and_records_revenue(channel, config, works
     mark_paid(workspace.pk, payment.checkout_session_id, 4900)
     payment.refresh_from_db()
     assert payment.status == "paid" and payment.paid_at
-    assert message.conversation.identity.lead.__class__.objects.for_workspace(workspace).get().stage == "won"
+    assert (
+        message.conversation.identity.lead.__class__.objects.for_workspace(workspace).get().stage
+        == "won"
+    )
     assert FunnelEvent.objects.for_workspace(workspace).filter(kind="paid").count() == 1
-    assert OutboundWebhook.objects.for_workspace(workspace).filter(event="payment.paid").count() == 1
+    assert (
+        OutboundWebhook.objects.for_workspace(workspace).filter(event="payment.paid").count() == 1
+    )
 
 
-def test_human_can_send_payment_link_into_conversation(client, channel, workspace, stripe_test, offer):
+def test_human_can_send_payment_link_into_conversation(
+    client, channel, workspace, stripe_test, offer
+):
     message = inbound(channel, "hi")
     response = client.post(
         f"/api/workspaces/{workspace.pk}/conversations/{message.conversation_id}/payment-link/",
@@ -339,17 +370,32 @@ def test_tenant_stripe_webhook_requires_a_valid_signature(workspace):
         credentials=json.dumps({"secret_key": "sk", "webhook_secret": "whsec_x"}),
     )
     response = Client().post(
-        f"/webhooks/stripe/{workspace.pk}/", b"{}", content_type="application/json", HTTP_STRIPE_SIGNATURE="bad"
+        f"/webhooks/stripe/{workspace.pk}/",
+        b"{}",
+        content_type="application/json",
+        HTTP_STRIPE_SIGNATURE="bad",
     )
     assert response.status_code == 400
-    assert Client().post(f"/webhooks/stripe/{workspace.pk}/", b"{}", content_type="application/json").status_code == 400
+    assert (
+        Client()
+        .post(f"/webhooks/stripe/{workspace.pk}/", b"{}", content_type="application/json")
+        .status_code
+        == 400
+    )
 
 
 def test_offer_validation(client, workspace):
     url = f"/api/workspaces/{workspace.pk}/offers/"
     assert client.post(url, {"name": "x", "amount_cents": 10}, format="json").status_code == 400
-    assert client.post(url, {"name": "x", "amount_cents": 500, "currency": "xyz"}, format="json").status_code == 400
-    created = client.post(url, {"name": "Pack", "amount_cents": 500, "currency": "EUR"}, format="json")
+    assert (
+        client.post(
+            url, {"name": "x", "amount_cents": 500, "currency": "xyz"}, format="json"
+        ).status_code
+        == 400
+    )
+    created = client.post(
+        url, {"name": "Pack", "amount_cents": 500, "currency": "EUR"}, format="json"
+    )
     assert created.status_code == 201 and created.json()["currency"] == "eur"
 
 
@@ -369,7 +415,11 @@ def test_handoff_stops_running_automation(channel, config, workspace, user):
         user,
     )
     event = WebhookEvent.objects.for_workspace(workspace).create(
-        workspace=workspace, connection=channel, event_id="s", payload="{}", available_at=timezone.now()
+        workspace=workspace,
+        connection=channel,
+        event_id="s",
+        payload="{}",
+        available_at=timezone.now(),
     )
     message = receive(event, {"sender_id": "lead-9", "text": "start", "kind": "dm"})
     from apps.automations.tasks import step
@@ -383,3 +433,38 @@ def test_handoff_stops_running_automation(channel, config, workspace, user):
     hand_off(message.conversation, reason="test")
     state.refresh_from_db()
     assert (state.status, state.error_code) == ("stopped", "handoff")
+
+
+def test_agent_still_answers_during_automation_cooldown(channel, config, workspace, user):
+    automation = Automation.objects.for_workspace(workspace).create(workspace=workspace, name="x")
+    publish(
+        automation,
+        {
+            "start": "hi",
+            "triggers": [{"kind": "dm", "keyword": "price"}],
+            "nodes": [
+                {"id": "hi", "data": {"kind": "send_message", "text": "Prices!"}},
+                {"id": "end", "data": {"kind": "end"}},
+            ],
+            "edges": [{"source": "hi", "target": "end"}],
+        },
+        user,
+    )
+    from apps.automations.tasks import step
+
+    first = inbound(channel, "price")  # matches the flow; AI is enabled by the helper
+    state = ConversationState.objects.for_workspace(workspace).get()
+    for _ in range(3):  # send → end → completed
+        step(str(workspace.pk), str(state.id))
+    state.refresh_from_db()
+    assert state.status == "completed" and state.cooldown_until > timezone.now()
+    assert first.conversation_id == state.conversation_id
+    # Another "price" inside the cooldown must not restart the flow…
+    again = inbound(channel, "price again")
+    assert ConversationState.objects.for_workspace(workspace).count() == 1
+    state.refresh_from_db()
+    assert state.status == "completed"
+    # …but the agent still gets to answer it.
+    assert AgentRun.objects.for_workspace(workspace).filter(message=again).exists()
+    run(again, NEUTRAL, saying("Happy to help with pricing."))
+    assert replies(channel)[-1] == "Happy to help with pricing."

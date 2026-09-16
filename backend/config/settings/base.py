@@ -27,6 +27,7 @@ DEBUG = False
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(",")
 CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "http://localhost:3000").split(",")
 INSTALLED_APPS = [
+    "apps.platform_ops",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
     "apps.public_api",
 ]
 MIDDLEWARE = [
+    "apps.platform_ops.middleware.ConsoleBoundary",
     "apps.tenants.middleware.PrivateAPIResponses",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -57,6 +59,12 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 ROOT_URLCONF = "config.urls"
+PLATFORM_ADMIN_HOST = os.environ.get("PLATFORM_ADMIN_HOST", "ops.localhost").lower()
+PLATFORM_ADMIN_NETWORKS = [
+    s.strip() for s in os.environ.get("PLATFORM_ADMIN_NETWORKS", "").split(",") if s.strip()
+]
+if PLATFORM_ADMIN_HOST not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(PLATFORM_ADMIN_HOST)
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 TEMPLATES = [
@@ -65,6 +73,7 @@ TEMPLATES = [
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
+                "django.template.context_processors.request",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
@@ -114,6 +123,10 @@ CELERY_RESULT_EXPIRES = 3600
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 120}
 CELERY_BEAT_SCHEDULE = {
+    "platform-billing-snapshot": {
+        "task": "apps.platform_ops.tasks.sync_subscriptions",
+        "schedule": 3600.0,
+    },
     "worker-health": {"task": "apps.dashboard_api.tasks.health_check", "schedule": 30.0},
     "flush-audit-outbox": {"task": "apps.tenants.tasks.dispatch_outbox", "schedule": 5.0},
     "expire-auth-tokens": {"task": "apps.tenants.tasks.expire_tokens", "schedule": 86400.0},
@@ -169,6 +182,8 @@ PLAN_LIMITS = {
     "scale": {"seats": 50, "channels": 20, "messages": 100000},
 }
 RETENTION_DAYS = int(os.environ.get("RETENTION_DAYS", "90"))
+# Platform share of paid marketplace templates (destination charges on Connect).
+MARKETPLACE_FEE_PERCENT = int(os.environ.get("MARKETPLACE_FEE_PERCENT", "15"))
 CELERY_BEAT_SCHEDULE.update(
     {
         "agent-dispatch": {"task": "apps.agents.tasks.dispatch_agents", "schedule": 2.0},
@@ -181,6 +196,14 @@ CELERY_BEAT_SCHEDULE.update(
         },
         "retention": {"task": "apps.tenants.data_tasks.apply_retention", "schedule": 86400.0},
         "operations-check": {"task": "apps.dashboard_api.tasks.check_backlogs", "schedule": 60.0},
+        "marketplace-sellers": {
+            "task": "apps.marketplace.tasks.refresh_sellers",
+            "schedule": 43200.0,
+        },
+        "marketplace-purchases": {
+            "task": "apps.marketplace.tasks.expire_purchases",
+            "schedule": 3600.0,
+        },
     }
 )
 META_API_VERSION = os.environ.get("META_API_VERSION", "v23.0")

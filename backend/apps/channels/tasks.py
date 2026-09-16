@@ -8,6 +8,7 @@ from django.db import transaction
 from django.utils import timezone
 from redis import Redis
 
+from apps.platform_ops.security import blocked, pause_guard
 from apps.tenants.dispatch import enqueue_once
 from apps.tenants.services import audit
 
@@ -68,6 +69,7 @@ def dispatch_channel_jobs():
 
 
 @shared_task(ignore_result=True)
+@pause_guard("messaging")
 def process_webhook(workspace_id, event_id):
     from apps.crm.services import receive
 
@@ -101,6 +103,7 @@ def process_webhook(workspace_id, event_id):
 
 
 @shared_task(ignore_result=True)
+@pause_guard("messaging")
 def send_delivery(workspace_id, delivery_id):
     with transaction.atomic():
         item = (
@@ -112,6 +115,63 @@ def send_delivery(workspace_id, delivery_id):
         if not item:
             return
         connection = item.connection
+        if blocked(workspace_id, "messaging", "integration:" + connection.provider):
+            return
+        payload = json.loads(item.payload)
+        if item.idempotency_key.startswith(("agent-reply:", "voice:")) and blocked(
+            workspace_id, "ai"
+        ):
+            return
+        automation_id = payload.get("automation_id")
+        if item.idempotency_key.startswith("flow:"):
+            if not automation_id:
+                from uuid import UUID
+
+                from apps.automations.models import ConversationState
+
+                try:
+                    state_id = UUID(item.idempotency_key.split(":")[1])
+                except (ValueError, IndexError):
+                    state_id = None
+                if state_id:
+                    automation_id = (
+                        ConversationState.objects.for_workspace(workspace_id)
+                        .filter(pk=state_id)
+                        .values_list("automation_id", flat=True)
+                        .first()
+                    )
+            if blocked(workspace_id, "automations", f"automation:{automation_id}"):
+                return
+        from apps.crm.models import Message
+
+        from .adapters import WINDOWED_PROVIDERS
+
+        message = (
+            Message.objects.for_workspace(workspace_id)
+            .select_related("conversation__identity__lead")
+            .filter(delivery=item)
+            .first()
+        )
+        if message:
+            conversation = message.conversation
+            closed = (
+                connection.provider in WINDOWED_PROVIDERS
+                and not payload.get("private_reply")
+                and (
+                    not conversation.last_inbound_at
+                    or conversation.last_inbound_at < timezone.now() - timedelta(hours=24)
+                )
+            )
+            if conversation.identity.lead.opted_out or closed:
+                item.status = "failed"
+                item.error_code = (
+                    "opted_out"
+                    if conversation.identity.lead.opted_out
+                    else "messaging_window_closed"
+                )
+                item.save()
+                audit(connection.workspace, None, "delivery.failed", item.pk)
+                return
         if connection.status != "active" or connection.expires_at <= timezone.now():
             item.status = "failed"
             item.error_code = "connection_unavailable"
@@ -194,6 +254,7 @@ def refresh_expiring_tokens():
 
 
 @shared_task(ignore_result=True)
+@pause_guard("integration:instagram")
 def refresh_connection(workspace_id, connection_id):
     with transaction.atomic():
         connection = (
@@ -227,6 +288,7 @@ def refresh_connection(workspace_id, connection_id):
 
 
 @shared_task(ignore_result=True)
+@pause_guard()
 def verify_connection(workspace_id, connection_id):
     from .transport import request
 
@@ -237,6 +299,8 @@ def verify_connection(workspace_id, connection_id):
             .get(pk=connection_id)
         )
         if connection.status != "verifying":
+            return
+        if blocked(workspace_id, "integration:" + connection.provider):
             return
         try:
             if connection.provider == "telegram":

@@ -2,6 +2,7 @@ import json
 
 import stripe
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -30,15 +31,37 @@ def stripe_webhook(request):
         )
     except (ValueError, stripe.SignatureVerificationError):
         return HttpResponse(status=400)
-    customer = event["data"]["object"].get("customer")
-    account = BillingAccount.all_objects.filter(customer_id=customer).first() if customer else None
-    if account:
+    workspace_id = event_workspace(event)
+    if workspace_id:
         with transaction.atomic():
-            BillingEvent.objects.for_workspace(account.workspace_id).get_or_create(
+            BillingEvent.objects.for_workspace(workspace_id).get_or_create(
                 event_id=event["id"],
-                defaults={"workspace_id": account.workspace_id, "payload": request.body.decode()},
+                defaults={"workspace_id": workspace_id, "payload": request.body.decode()},
             )
     return HttpResponse(status=200)
+
+
+def event_workspace(event):
+    """Route a platform-account event to the tenant it concerns: subscription events
+    by Stripe customer, marketplace checkouts by the purchase metadata we set.
+    Anything else is acknowledged and dropped."""
+    obj = event["data"]["object"]
+    if event["type"].startswith("checkout.session."):
+        metadata = obj.get("metadata") or {}
+        purchase_id = metadata.get("nemio_template_purchase")
+        if purchase_id:
+            from apps.marketplace.models import TemplatePurchase
+
+            try:
+                purchase = TemplatePurchase.all_objects.filter(pk=purchase_id).first()
+            except (ValueError, ValidationError):
+                return None
+            if purchase and str(purchase.workspace_id) == metadata.get("workspace"):
+                return purchase.workspace_id
+        return None
+    customer = obj.get("customer")
+    account = BillingAccount.all_objects.filter(customer_id=customer).first() if customer else None
+    return account.workspace_id if account else None
 
 
 class BillingView(APIView):

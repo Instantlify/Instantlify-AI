@@ -50,6 +50,10 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
         )
         if not key:
             raise exceptions.AuthenticationFailed("Invalid API key.")
+        from apps.platform_ops.security import blocked
+
+        if blocked(key.workspace_id):
+            raise exceptions.AuthenticationFailed("Workspace access is suspended.")
         APIKey.all_objects.filter(pk=key.pk).update(last_used_at=timezone.now())
         return APIKeyPrincipal(key), key
 

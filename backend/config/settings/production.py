@@ -1,6 +1,14 @@
+import os
+from urllib.parse import urlsplit
+
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
+
+if not os.environ.get("PLATFORM_ADMIN_HOST") or PLATFORM_ADMIN_HOST.endswith("localhost"):  # noqa: F405
+    raise ImproperlyConfigured("Set a dedicated production PLATFORM_ADMIN_HOST")
+if PLATFORM_ADMIN_HOST == urlsplit(PUBLIC_APP_URL).hostname:  # noqa: F405
+    raise ImproperlyConfigured("Platform console and customer app must use different hosts")
 
 if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":  # noqa: F405
     raise ImproperlyConfigured("Production requires PostgreSQL")

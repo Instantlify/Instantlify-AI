@@ -38,9 +38,12 @@ from apps.marketplace.views import (
     InstallTemplateView,
     MyTemplateDetail,
     MyTemplateList,
+    PayoutView,
     PublicTemplateDetail,
     PublicTemplateList,
     PublishTemplateView,
+    PurchaseDetail,
+    PurchaseList,
 )
 from apps.public_api.views import (
     DeliveryLog,
@@ -51,6 +54,7 @@ from apps.public_api.views import (
     V1Conversations,
     V1Lead,
     V1Leads,
+    V1Me,
     V1Messages,
     V1Sample,
     V1Subscription,
@@ -102,6 +106,9 @@ urlpatterns = [
     path(P + "templates/publish/", PublishTemplateView.as_view()),
     path(P + "templates/install/", InstallTemplateView.as_view()),
     path(P + "templates/<uuid:pk>/", MyTemplateDetail.as_view()),
+    path(P + "templates/payouts/", PayoutView.as_view()),
+    path(P + "templates/purchases/", PurchaseList.as_view()),
+    path(P + "templates/purchases/<uuid:pk>/", PurchaseDetail.as_view()),
     path(P + "api-keys/", KeyList.as_view()),
     path(P + "api-keys/<uuid:pk>/", KeyDetail.as_view()),
     path(P + "webhooks/", SubscriptionList.as_view()),
@@ -115,6 +122,7 @@ urlpatterns = [
     path("api/public/bio/<slug:slug>/", PublicBioView.as_view()),
     path("api/public/branding/", PublicBrandingView.as_view()),
     # Public API v1 (X-API-Key).
+    path("api/v1/me/", V1Me.as_view()),
     path("api/v1/leads/", V1Leads.as_view()),
     path("api/v1/leads/<uuid:pk>/", V1Lead.as_view()),
     path("api/v1/conversations/", V1Conversations.as_view()),

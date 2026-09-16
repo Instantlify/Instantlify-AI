@@ -23,6 +23,9 @@ class FakeIntegration(IntegrationAdapter):
 
 
 def credentials_for(config):
+    from apps.platform_ops.security import assert_enabled
+
+    assert_enabled(config.workspace_id, "integration:" + config.provider)
     credentials = json.loads(config.credentials)
     expiry = parse_datetime(credentials.get("expires_at", ""))
     if (
@@ -255,6 +258,9 @@ class CRMIntegration(IntegrationAdapter):
 
 
 def integration_for(config):
+    from apps.platform_ops.security import assert_enabled
+
+    assert_enabled(config.workspace_id, "integration:" + config.provider)
     if not config.enabled:
         raise ProviderError("integration_disabled")
     if config.is_test:

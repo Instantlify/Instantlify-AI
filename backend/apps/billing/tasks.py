@@ -116,6 +116,10 @@ def process_event(workspace_id, event_id):
 
 
 def apply_event(workspace_id, payload, event_id):
+    if payload["type"].startswith("checkout.session."):
+        from apps.marketplace.services import apply_checkout_event
+
+        return apply_checkout_event(workspace_id, payload)
     obj = payload["data"]["object"]
     account = BillingAccount.objects.for_workspace(workspace_id).select_for_update().get()
     if payload["created"] < account.last_event_created:

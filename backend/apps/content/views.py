@@ -1,6 +1,6 @@
 import re
 
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, serializers
@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
+from apps.channels.models import ChannelConnection
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
 
@@ -16,6 +17,13 @@ from .models import BioPage, ScheduledPost
 
 
 class PostSerializer(serializers.ModelSerializer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The default manager fails closed; offer only this tenant's connections.
+        self.fields["connection"].queryset = ChannelConnection.objects.for_workspace(
+            self.context["workspace_id"]
+        )
+
     class Meta:
         model = ScheduledPost
         fields = [
@@ -157,7 +165,7 @@ class BioView(APIView):
     def get(self, request, workspace_id):
         workspace_membership(request, workspace_id)
         page = BioPage.objects.for_workspace(workspace_id).first()
-        return Response(BioSerializer(page).data if page else None)
+        return Response(BioSerializer(page).data if page else {})
 
     def put(self, request, workspace_id):
         member = workspace_membership(request, workspace_id, ["owner", "admin"])
@@ -165,7 +173,8 @@ class BioView(APIView):
         serializer = BioSerializer(page, data=request.data, partial=bool(page))
         serializer.is_valid(raise_exception=True)
         try:
-            page = serializer.save(workspace=member.workspace)
+            with transaction.atomic():
+                page = serializer.save(workspace=member.workspace)
         except IntegrityError:
             raise serializers.ValidationError({"slug": "That link is already taken."}) from None
         audit(member.workspace, request.user, "bio.updated", page.id)

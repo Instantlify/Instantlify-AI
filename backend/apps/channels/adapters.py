@@ -104,9 +104,14 @@ class FakeChannelAdapter(InstagramAdapter):
 
 def exchange_oauth_code(code, workspace_id):
     if settings.CHANNEL_ADAPTER_MODE == "live":
+        from apps.platform_ops.metrics import workspace_metrics
+        from apps.platform_ops.security import assert_enabled
+
         from .instagram import live_exchange
 
-        return live_exchange(code)
+        assert_enabled(workspace_id, "integration:instagram")
+        with workspace_metrics(workspace_id):
+            return live_exchange(code)
     if settings.CHANNEL_ADAPTER_MODE != "fake":
         raise IntegrationUnavailable("Live Meta OAuth exchange is gated on Phase 1")
     if code != "local-test-code":
@@ -120,6 +125,9 @@ def exchange_oauth_code(code, workspace_id):
 
 
 def adapter_for(connection):
+    from apps.platform_ops.security import assert_enabled
+
+    assert_enabled(connection.workspace_id, "integration:" + connection.provider)
     if connection.is_test:
         if settings.CHANNEL_ADAPTER_MODE != "fake":
             raise IntegrationUnavailable("Test connections are disabled")

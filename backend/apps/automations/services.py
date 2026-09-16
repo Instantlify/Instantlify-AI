@@ -153,13 +153,15 @@ def route_message(message, payload):
         state.last_message_id = message.id
         state.save()
         return
-    if state and (
-        state.status == "running"
-        or (state.cooldown_until and state.cooldown_until > timezone.now())
-    ):
+    if state and state.status == "running":
+        # A flow is mid-step; neither triggers nor the agent may interleave.
         return
+    # Cooldown only stops a flow from re-triggering; the agent may still answer.
+    cooling = bool(state and state.cooldown_until and state.cooldown_until > timezone.now())
     for trigger in (
-        Trigger.objects.for_workspace(message.workspace_id)
+        []
+        if cooling
+        else Trigger.objects.for_workspace(message.workspace_id)
         .filter(automation__enabled=True, kind=payload.get("kind", "dm"))
         .select_related("automation")
         .order_by("created_at", "id")
@@ -205,6 +207,8 @@ def route_message(message, payload):
     if message.conversation.ai_enabled:
         from apps.agents.models import AgentRun
 
-        AgentRun.objects.for_workspace(message.workspace_id).get_or_create(
+        run, created = AgentRun.objects.for_workspace(message.workspace_id).get_or_create(
             message=message, defaults={"workspace_id": message.workspace_id}
         )
+        if created:
+            audit(message.conversation.workspace, None, "agent.run_queued", run.id)

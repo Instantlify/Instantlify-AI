@@ -1,6 +1,5 @@
 """Funnel analytics, A/B experiments, template export/import and the marketplace."""
 
-import json
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -77,7 +76,9 @@ def test_inbound_reply_and_trigger_are_recorded_once(workspace, user, channel):
     state = ConversationState.objects.for_workspace(workspace).get()
     step(str(workspace.pk), str(state.id))
     kinds = list(
-        FunnelEvent.objects.for_workspace(workspace).order_by("created_at").values_list("kind", flat=True)
+        FunnelEvent.objects.for_workspace(workspace)
+        .order_by("created_at")
+        .values_list("kind", flat=True)
     )
     assert kinds == ["comment", "triggered", "replied"]
     assert record(workspace.pk, "comment", key=f"inbound:{message.id}") is None
@@ -152,15 +153,12 @@ def test_experiment_routes_variant_and_attributes_goal(client, workspace, user, 
         seen[state.variant] += 1
         assert state.experiment_id == experiment.pk
         step(str(workspace.pk), str(state.id))
-        text = json.loads(
-            state.conversation.identity.lead.__class__.objects.for_workspace(workspace)
-            .get(pk=state.conversation.identity.lead_id)
-            .name
-            and state.graph["nodes"][0]["data"]["text"].join(['"', '"'])
-        )
+        text = state.graph["nodes"][0]["data"]["text"]
         assert text == ("Variant copy" if state.variant == "variant" else "Control copy")
     assert seen["control"] and seen["variant"]
-    lead_id = ConversationState.objects.for_workspace(workspace).first().conversation.identity.lead_id
+    lead_id = (
+        ConversationState.objects.for_workspace(workspace).first().conversation.identity.lead_id
+    )
     triggered = FunnelEvent.objects.for_workspace(workspace).get(kind="triggered", lead_id=lead_id)
     record(
         workspace.pk,
@@ -216,9 +214,16 @@ def test_auto_promote_waits_for_minimum_leads_then_picks_the_better_arm(workspac
         auto_promote=True,
         min_leads=3,
     )
-    for arm, conversions in [("control", 1), ("variant", 3)]:
+    for arm, _ in [("control", 1), ("variant", 3)]:
         for i in range(3):
-            record(workspace.pk, "triggered", lead_id=workspace.pk, experiment_id=experiment.pk, variant=arm, key=f"t:{arm}:{i}")
+            record(
+                workspace.pk,
+                "triggered",
+                lead_id=workspace.pk,
+                experiment_id=experiment.pk,
+                variant=arm,
+                key=f"t:{arm}:{i}",
+            )
     maybe_auto_promote(experiment)
     experiment.refresh_from_db()
     assert experiment.status == "running"  # 1 distinct lead per arm so far
@@ -227,9 +232,13 @@ def test_auto_promote_waits_for_minimum_leads_then_picks_the_better_arm(workspac
     for arm, conversions in [("control", 1), ("variant", 3)]:
         for i in range(3):
             lead = uuid.uuid4()
-            record(workspace.pk, "triggered", lead_id=lead, experiment_id=experiment.pk, variant=arm)
+            record(
+                workspace.pk, "triggered", lead_id=lead, experiment_id=experiment.pk, variant=arm
+            )
             if i < conversions:
-                record(workspace.pk, "booked", lead_id=lead, experiment_id=experiment.pk, variant=arm)
+                record(
+                    workspace.pk, "booked", lead_id=lead, experiment_id=experiment.pk, variant=arm
+                )
     maybe_auto_promote(experiment)
     experiment.refresh_from_db()
     assert (experiment.status, experiment.winner) == ("concluded", "variant")
@@ -246,7 +255,9 @@ def test_one_running_experiment_per_control_and_same_tenant_only(client, workspa
     other = create_workspace(stranger, "Other")
     theirs = automation(other, stranger, "Theirs")
     assert (
-        client.post(url, {"name": "y", "control": theirs.pk, "variant": variant.pk}, format="json").status_code
+        client.post(
+            url, {"name": "y", "control": theirs.pk, "variant": variant.pk}, format="json"
+        ).status_code
         == 400
     )
 
@@ -275,7 +286,11 @@ def test_export_then_import_round_trips_as_a_draft(client, workspace, user):
     [
         {"format": "other"},
         {"format": "nemio.automation", "version": 99, "graph": {}},
-        {"format": "nemio.automation", "version": 1, "graph": {"start": "x", "nodes": [], "edges": []}},
+        {
+            "format": "nemio.automation",
+            "version": 1,
+            "graph": {"start": "x", "nodes": [], "edges": []},
+        },
         "not json",
     ],
 )
@@ -314,24 +329,16 @@ def test_marketplace_publish_list_and_install(client, workspace, user):
     assert copy.installed_from == Template.all_objects.get(slug=slug).pk
     assert Template.all_objects.get(slug=slug).install_count == 1
     # Unlisting hides it from the public listing and from installs.
-    assert client.delete(
-        f"/api/workspaces/{workspace.pk}/templates/{published.json()['id']}/"
-    ).status_code == 204
+    assert (
+        client.delete(
+            f"/api/workspaces/{workspace.pk}/templates/{published.json()['id']}/"
+        ).status_code
+        == 204
+    )
     assert anonymous.get(f"/api/public/templates/{slug}/").status_code == 404
     assert (
-        theirs.post(f"/api/workspaces/{other.pk}/templates/install/", {"slug": slug}, format="json").status_code
+        theirs.post(
+            f"/api/workspaces/{other.pk}/templates/install/", {"slug": slug}, format="json"
+        ).status_code
         == 404
     )
-
-
-def test_paid_templates_cannot_be_installed_yet(client, workspace, user):
-    item = automation(workspace, user, "Prices!")
-    published = client.post(
-        f"/api/workspaces/{workspace.pk}/templates/publish/",
-        {"automation": item.pk, "title": "Premium", "price_cents": 1900},
-        format="json",
-    ).json()
-    response = client.post(
-        f"/api/workspaces/{workspace.pk}/templates/install/", {"slug": published["slug"]}, format="json"
-    )
-    assert response.status_code == 400

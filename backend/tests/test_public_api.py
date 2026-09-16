@@ -23,10 +23,15 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture(autouse=True)
-def public_urls():
-    with patch("apps.public_api.views.is_public_https", return_value=True), patch(
-        "apps.public_api.tasks.is_public_https", return_value=True
-    ), patch("apps.crm.services.notify"):
+def public_urls(request):
+    if request.node.get_closest_marker("real_dns"):
+        yield
+        return
+    with (
+        patch("apps.public_api.views.is_public_https", return_value=True),
+        patch("apps.public_api.tasks.is_public_https", return_value=True),
+        patch("apps.crm.services.notify"),
+    ):
         yield
 
 
@@ -87,7 +92,12 @@ def test_key_auth_scopes_and_tenant_isolation(client, workspace, channel):
     listed = api(read_only).get("/api/v1/leads/")
     assert listed.status_code == 200 and len(listed.json()["results"]) == 1
     lead_id = listed.json()["results"][0]["id"]
-    assert api(read_only).patch(f"/api/v1/leads/{lead_id}/", {"stage": "qualified"}, format="json").status_code == 403
+    assert (
+        api(read_only)
+        .patch(f"/api/v1/leads/{lead_id}/", {"stage": "qualified"}, format="json")
+        .status_code
+        == 403
+    )
     updated = api(full).patch(f"/api/v1/leads/{lead_id}/", {"stage": "qualified"}, format="json")
     assert updated.status_code == 200 and updated.json()["stage"] == "qualified"
 
@@ -100,7 +110,11 @@ def test_key_auth_scopes_and_tenant_isolation(client, workspace, channel):
     assert api(their_key).get(f"/api/v1/leads/{lead_id}/").status_code == 404
     assert (
         api(their_key)
-        .post(f"/api/v1/conversations/{message.conversation_id}/messages/", {"text": "x", "idempotency_key": "k"}, format="json")
+        .post(
+            f"/api/v1/conversations/{message.conversation_id}/messages/",
+            {"text": "x", "idempotency_key": "k"},
+            format="json",
+        )
         .status_code
         == 404
     )
@@ -135,10 +149,16 @@ def test_revoking_a_key_disables_it_and_its_subscriptions(client, workspace):
     created = make_key(client, workspace)
     key = created["key"]
     sub = api(key).post(
-        "/api/v1/webhooks/", {"url": "https://hooks.zapier.com/x", "events": ["lead.created"]}, format="json"
+        "/api/v1/webhooks/",
+        {"url": "https://hooks.zapier.com/x", "events": ["lead.created"]},
+        format="json",
     )
     assert sub.status_code == 201 and sub.json()["secret"].startswith("whsec_")
-    assert client.delete(f"/api/workspaces/{workspace.pk}/api-keys/{created['id']}/").status_code == 204
+    assert sub.json()["token"].startswith("whtok_")
+    assert (
+        client.delete(f"/api/workspaces/{workspace.pk}/api-keys/{created['id']}/").status_code
+        == 204
+    )
     assert api(key).get("/api/v1/leads/").status_code == 401
     assert not WebhookSubscription.objects.for_workspace(workspace).get().active
 
@@ -151,10 +171,16 @@ def test_events_are_emitted_only_to_matching_active_subscriptions(client, worksp
         workspace=workspace, url="https://b.example.com/", events=["message.received"], secret="b"
     )
     WebhookSubscription.objects.for_workspace(workspace).create(
-        workspace=workspace, url="https://c.example.com/", events=["lead.created"], secret="c", active=False
+        workspace=workspace,
+        url="https://c.example.com/",
+        events=["lead.created"],
+        secret="c",
+        active=False,
     )
     inbound(channel, "hello")
-    events = sorted(OutboundWebhook.objects.for_workspace(workspace).values_list("event", flat=True))
+    events = sorted(
+        OutboundWebhook.objects.for_workspace(workspace).values_list("event", flat=True)
+    )
     assert events == ["lead.created", "message.received"]
     with pytest.raises(ValueError):
         emit(workspace.pk, "not.an.event", {})
@@ -162,7 +188,11 @@ def test_events_are_emitted_only_to_matching_active_subscriptions(client, worksp
 
 def test_delivery_is_signed_and_backs_off_then_fails(workspace):
     sub = WebhookSubscription.objects.for_workspace(workspace).create(
-        workspace=workspace, url="https://a.example.com/", events=["lead.hot"], secret="topsecret"
+        workspace=workspace,
+        url="https://a.example.com/",
+        events=["lead.hot"],
+        secret="topsecret",
+        token="whtok_shared",
     )
     emit(workspace.pk, "lead.hot", {"id": "1"})
     hook = OutboundWebhook.objects.for_workspace(workspace).get()
@@ -170,9 +200,12 @@ def test_delivery_is_signed_and_backs_off_then_fails(workspace):
         post.return_value = MagicMock(status_code=200)
         deliver_webhook(str(workspace.pk), str(hook.id))
         body = post.call_args.kwargs["content"]
+        assert post.call_args.kwargs["headers"]["X-Nemio-Token"] == "whtok_shared"
         header = post.call_args.kwargs["headers"]["X-Nemio-Signature"]
         timestamp, digest = (part.split("=")[1] for part in header.split(","))
-        expected = hmac.new(b"topsecret", f"{timestamp}.".encode() + body, hashlib.sha256).hexdigest()
+        expected = hmac.new(
+            b"topsecret", f"{timestamp}.".encode() + body, hashlib.sha256
+        ).hexdigest()
         assert digest == expected
         assert json.loads(body)["event"] == "lead.hot"
     hook.refresh_from_db()
@@ -198,10 +231,14 @@ def test_delivery_is_signed_and_backs_off_then_fails(workspace):
     assert hook.status == "failed" and sub.failure_count == 2
 
 
+@pytest.mark.real_dns
 def test_private_targets_are_refused_without_mocks(client, workspace):
     from apps.public_api.tasks import is_public_https
 
-    with patch("apps.public_api.tasks.socket.getaddrinfo", return_value=[(None, None, None, None, ("127.0.0.1", 443))]):
+    with patch(
+        "apps.public_api.tasks.socket.getaddrinfo",
+        return_value=[(None, None, None, None, ("127.0.0.1", 443))],
+    ):
         assert not is_public_https("https://internal.example.com/")
     assert not is_public_https("http://example.com/")
 
@@ -210,8 +247,17 @@ def test_key_management_requires_owner(workspace, user):
     from apps.tenants.models import Membership
 
     admin = User.objects.create_user(username="a", email="a@example.com")
-    Membership.objects.for_workspace(workspace).create(workspace=workspace, user=admin, role="admin")
+    Membership.objects.for_workspace(workspace).create(
+        workspace=workspace, user=admin, role="admin"
+    )
     client = APIClient()
     client.force_authenticate(admin)
-    assert client.post(f"/api/workspaces/{workspace.pk}/api-keys/", {"name": "x", "scopes": ["read"]}, format="json").status_code == 403
+    assert (
+        client.post(
+            f"/api/workspaces/{workspace.pk}/api-keys/",
+            {"name": "x", "scopes": ["read"]},
+            format="json",
+        ).status_code
+        == 403
+    )
     assert client.get(f"/api/workspaces/{workspace.pk}/api-keys/").status_code == 200

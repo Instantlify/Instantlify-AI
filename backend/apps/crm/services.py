@@ -130,8 +130,19 @@ def handle_inbound(msg, lead, payload):
 
 @transaction.atomic
 def queue_reply(
-    conversation, text, key, *, actor=None, buttons=None, private_reply_id=None, media_url=None
+    conversation,
+    text,
+    key,
+    *,
+    actor=None,
+    buttons=None,
+    private_reply_id=None,
+    media_url=None,
+    automation_id=None,
 ):
+    from apps.platform_ops.security import assert_enabled
+
+    assert_enabled(conversation.workspace_id, "messaging")
     existing = (
         Delivery.objects.for_workspace(conversation.workspace_id)
         .filter(idempotency_key=key)
@@ -167,6 +178,8 @@ def queue_reply(
         "buttons": buttons or [],
         "private_reply": bool(private_reply_id),
     }
+    if automation_id:
+        payload["automation_id"] = str(automation_id)
     if media_url:
         payload.update(kind="voice", media_url=media_url)
     item = Delivery.objects.for_workspace(conversation.workspace_id).create(

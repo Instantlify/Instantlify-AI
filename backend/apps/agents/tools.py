@@ -117,6 +117,9 @@ def propose(run, name, args, config):
 
 
 def execute(call, config, *, customer_message=None):
+    from apps.platform_ops.security import assert_enabled
+
+    assert_enabled(config.workspace_id, "ai")
     from apps.crm.integrations import integration_for
 
     with transaction.atomic():
@@ -195,7 +198,10 @@ def execute(call, config, *, customer_message=None):
             result = queue_voice(conversation, args["text"], str(call.id))
     except (ProviderError, ValueError, ValidationError) as exc:
         call.status = "failed"
-        call.output = json.dumps({"error": getattr(exc, "code", "tool_guard_or_configuration")})
+        reason = getattr(exc, "code", None)
+        if not reason and isinstance(exc, ValueError) and exc.args:
+            reason = str(exc.args[0])[:50]
+        call.output = json.dumps({"error": reason or "tool_guard_or_configuration"})
         call.save()
         raise
     call.status = "complete"
