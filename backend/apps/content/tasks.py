@@ -14,18 +14,32 @@ from apps.tenants.services import audit
 from .models import ScheduledPost
 
 MAX_ATTEMPTS = 5
+# Meta media containers expire 24 hours after creation.
+CONTAINER_LIFETIME = timedelta(hours=24)
+
+
+def poll_delay(polls):
+    """Seconds until the next status check: 30s, 60s, 120s … capped at ten minutes.
+    Video processing is usually done within a few minutes; polling every second
+    would burn the account's hourly API budget."""
+    return min(600, 30 * 2**polls)
 
 
 @shared_task(ignore_result=True)
 def dispatch_scheduled_posts():
+    now = timezone.now()
+    # Lost before a container was recorded: nothing was created or published, so a
+    # plain retry is safe. Containers are idempotent to abandon; publishes are not.
+    ScheduledPost.all_objects.filter(
+        status="publishing", container_id="", updated_at__lt=now - timedelta(minutes=10)
+    ).update(status="scheduled", error_code="worker_interrupted", scheduled_at=now)
+    ScheduledPost.all_objects.filter(
+        status="publishing", container_created_at__lt=now - CONTAINER_LIFETIME
+    ).exclude(container_id="").update(status="failed", error_code="container_expired")
     for wid, pk in ScheduledPost.all_objects.filter(
-        status="scheduled", scheduled_at__lte=timezone.now()
+        status__in=["scheduled", "publishing"], scheduled_at__lte=now
     ).values_list("workspace_id", "pk")[:50]:
         enqueue_once(publish_post, wid, pk, ttl=120)
-    # A worker lost mid-publish may or may not have published; never re-post blindly.
-    ScheduledPost.all_objects.filter(
-        status="publishing", updated_at__lt=timezone.now() - timedelta(minutes=10)
-    ).update(status="unknown", error_code="worker_interrupted")
 
 
 @shared_task(ignore_result=True, soft_time_limit=100, time_limit=120)
@@ -36,7 +50,9 @@ def publish_post(workspace_id, post_id):
             ScheduledPost.objects.for_workspace(workspace_id)
             .select_for_update()
             .select_related("connection")
-            .filter(pk=post_id, status="scheduled", scheduled_at__lte=timezone.now())
+            .filter(
+                pk=post_id, status__in=["scheduled", "publishing"], scheduled_at__lte=timezone.now()
+            )
             .first()
         )
         if not post:
@@ -52,28 +68,65 @@ def publish_post(workspace_id, post_id):
             post.scheduled_at = timezone.now() + timedelta(seconds=wait)
             post.save(update_fields=["scheduled_at"])
             return
-        post.status = "publishing"
-        post.attempts += 1
-        post.save()
+        creating = post.status == "scheduled"
+        if creating:
+            post.status = "publishing"
+            post.attempts += 1
+            post.save()
+    adapter = adapter_for(connection)
     try:
-        provider_id = adapter_for(connection).publish_post(
-            caption=post.caption, media_url=post.media_url, media_type=post.media_type
-        )
-        if not provider_id:
-            raise AmbiguousDelivery()
+        if creating:
+            container_id = adapter.create_media_container(
+                caption=post.caption, media_url=post.media_url, media_type=post.media_type
+            )
+            post.container_id = container_id
+            post.container_created_at = timezone.now()
+            post.polls = 0
+            # Persist before anything that could publish, so a crash resumes here.
+            post.save(update_fields=["container_id", "container_created_at", "polls", "updated_at"])
+        state = adapter.container_status(post.container_id)
+        if state == "IN_PROGRESS":
+            post.scheduled_at = timezone.now() + timedelta(seconds=poll_delay(post.polls))
+            post.polls += 1
+            post.error_code = ""
+            post.save(update_fields=["scheduled_at", "polls", "error_code", "updated_at"])
+            return
+        if state == "PUBLISHED":
+            # A previous attempt published but never recorded it (crash or ambiguous
+            # response). The container is spent, so do not publish again.
+            provider_id = ""
+        elif state == "FINISHED":
+            provider_id = adapter.publish_container(post.container_id)
+            if not provider_id:
+                raise AmbiguousDelivery()
+        else:
+            raise ProviderError(
+                "container_expired" if state == "EXPIRED" else "media_processing_failed"
+            )
     except RetryableError as exc:
-        post.status = "scheduled" if post.attempts < MAX_ATTEMPTS else "failed"
-        post.error_code = exc.code
-        post.scheduled_at = timezone.now() + timedelta(seconds=max(exc.delay, 60 * post.attempts))
+        if creating:
+            post.status = "scheduled" if post.attempts < MAX_ATTEMPTS else "failed"
+            post.error_code = exc.code
+            post.scheduled_at = timezone.now() + timedelta(
+                seconds=max(exc.delay, 60 * post.attempts)
+            )
+        else:
+            # A throttled status check or publish is retried; the container is still ours.
+            post.error_code = exc.code
+            post.scheduled_at = timezone.now() + timedelta(seconds=exc.delay)
     except AmbiguousDelivery:
-        post.status = "unknown"
+        # The publish call may have gone through. The next poll asks the container,
+        # which reports PUBLISHED if it did, instead of guessing.
         post.error_code = "publish_unknown"
+        post.scheduled_at = timezone.now() + timedelta(seconds=poll_delay(post.polls))
+        post.polls += 1
     except (ProviderError, IntegrationUnavailable, NotImplementedError) as exc:
         post.status = "failed"
         post.error_code = getattr(exc, "code", "unsupported_provider")
     else:
         post.status = "published"
         post.provider_post_id = str(provider_id)
+        post.error_code = ""
         post.published_at = timezone.now()
     post.save()
     audit(connection.workspace, None, "post." + post.status, post.id)

@@ -109,7 +109,7 @@ def test_post_failures_back_off_and_then_fail(workspace, channel):
         scheduled_at=timezone.now(),
     )
     with patch("apps.content.tasks.adapter_for") as adapter:
-        adapter.return_value.publish_post.side_effect = RetryableError(120)
+        adapter.return_value.create_media_container.side_effect = RetryableError(120)
         publish_post(str(workspace.pk), str(post.id))
     post.refresh_from_db()
     assert post.status == "scheduled" and post.scheduled_at > timezone.now() + timedelta(
@@ -118,7 +118,9 @@ def test_post_failures_back_off_and_then_fail(workspace, channel):
     post.scheduled_at = timezone.now()
     post.save()
     with patch("apps.content.tasks.adapter_for") as adapter:
-        adapter.return_value.publish_post.side_effect = ProviderError("media_container_failed")
+        adapter.return_value.create_media_container.side_effect = ProviderError(
+            "media_container_failed"
+        )
         publish_post(str(workspace.pk), str(post.id))
     post.refresh_from_db()
     assert (post.status, post.error_code) == ("failed", "media_container_failed")

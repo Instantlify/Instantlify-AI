@@ -64,5 +64,6 @@ Still open (external): live Instagram/WhatsApp/Messenger/Telegram delivery, Meta
 - [x] Phase 5 data lifecycle: export covers every customer-bearing tenant table (test enforces coverage) plus a manifest of external systems; retention has an explicit per-store policy that skips in-flight work
 - [x] Phase 5 load: `manage.py loadtest --workspaces 50 --messages 20` drives the durable pipeline across workspaces and reports per-stage throughput and p50/p95
 - [x] Integrations page: connect/reconnect/disconnect buttons and hosted sign-in return handling
+- [x] Instagram publishing: container ID persisted, processing polled with backoff, publish only when `FINISHED`, ambiguous publishes resolved via container status, expired containers failed
 - [x] Simple single-turn reply mode beside the LangGraph agent (`AgentConfig.mode`, `agents/simple.py`): one grounded call, no tools, checkpointed reply, keyword handoff kept; selectable on the AI agent page
 - [ ] External: real Instagram private replies, real Google/Slack installs, Stripe sandbox billing reconciliation, a PostgreSQL load run on production-like hardware

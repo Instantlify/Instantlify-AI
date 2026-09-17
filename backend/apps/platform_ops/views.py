@@ -236,7 +236,15 @@ def dashboard(request):
         rows=rows,
         totals=totals,
         messages=Message.all_objects.filter(created_at__gte=start).count(),
-        plans=BillingAccount.all_objects.values("plan", "status").annotate(total=Count("id")),
+        plans=BillingAccount.all_objects.values("plan", "billing_interval", "status")
+        .annotate(total=Count("id"))
+        .order_by("plan", "billing_interval", "status"),
+        trials=BillingAccount.all_objects.filter(status="trialing", trial_ends_at__isnull=False)
+        .select_related("workspace")
+        .order_by("trial_ends_at")[:50],
+        past_due=BillingAccount.all_objects.filter(status__in=["past_due", "unpaid"])
+        .select_related("workspace")
+        .order_by("period_end")[:50],
         delivery=Delivery.all_objects.filter(created_at__gte=start)
         .values("status")
         .annotate(total=Count("id")),

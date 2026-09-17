@@ -52,23 +52,36 @@ class LiveInstagramAdapter(InstagramAdapter):
         )
         return body.get("message_id", "")
 
-    def publish_post(self, *, caption, media_url, media_type):
-        # Two-step content publishing: create a media container, then publish it.
-        headers = {"Authorization": f"Bearer {self.connection.access_token}"}
+    def headers(self):
+        return {"Authorization": f"Bearer {self.connection.access_token}"}
+
+    def create_media_container(self, *, caption, media_url, media_type):
         payload = {"caption": caption[:2200]}
         if media_type == "video":
             payload.update(media_type="REELS", video_url=media_url)
         else:
             payload.update(image_url=media_url)
-        container = request("POST", self.url("media"), headers=headers, data=payload)
+        container = request("POST", self.url("media"), headers=self.headers(), data=payload)
         if not container.get("id"):
             raise ProviderError("media_container_failed")
+        return str(container["id"])
+
+    def container_status(self, container_id):
+        body = request(
+            "GET",
+            f"https://graph.instagram.com/{settings.META_API_VERSION}/{container_id}",
+            headers=self.headers(),
+            params={"fields": "status_code,status"},
+        )
+        return str(body.get("status_code") or "IN_PROGRESS").upper()
+
+    def publish_container(self, container_id):
         published = request(
             "POST",
             self.url("media_publish"),
             side_effect=True,
-            headers=headers,
-            data={"creation_id": container["id"]},
+            headers=self.headers(),
+            data={"creation_id": container_id},
         )
         return published.get("id", "")
 

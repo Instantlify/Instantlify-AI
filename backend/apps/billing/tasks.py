@@ -163,7 +163,26 @@ def apply_subscription(account, obj):
         account.period_start = datetime.fromtimestamp(start, UTC)
     if end:
         account.period_end = datetime.fromtimestamp(end, UTC)
+    account.billing_interval = billing_interval(items)
+    trial_end = obj.get("trial_end")
+    account.trial_ends_at = datetime.fromtimestamp(trial_end, UTC) if trial_end else None
     return notes
+
+
+def billing_interval(items):
+    """Interval of the base (non-metered) price: monthly or annual."""
+    for item in items:
+        recurring = (item.get("price") or {}).get("recurring") or {}
+        if recurring.get("usage_type") == "metered":
+            continue
+        interval, count = recurring.get("interval"), int(recurring.get("interval_count") or 1)
+        if interval == "month" and count == 1:
+            return "monthly"
+        if interval == "year" and count == 1:
+            return "annual"
+        if interval:
+            return f"{count}-{interval}"
+    return ""
 
 
 def apply_event(workspace_id, payload, event_id):
@@ -218,6 +237,8 @@ RECONCILED_FIELDS = [
     "usage_limit",
     "period_start",
     "period_end",
+    "billing_interval",
+    "trial_ends_at",
 ]
 
 

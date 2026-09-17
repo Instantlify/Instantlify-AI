@@ -16,6 +16,9 @@ class BillingAccount(TenantModel):
     seat_limit = models.PositiveIntegerField(default=1)
     channel_limit = models.PositiveIntegerField(default=1)
     last_event_created = models.BigIntegerField(default=0)
+    # From the Stripe subscription: "monthly" / "annual" ("" when unknown or free).
+    billing_interval = models.CharField(max_length=10, blank=True)
+    trial_ends_at = models.DateTimeField(null=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["workspace"], name="one_billing_account")]

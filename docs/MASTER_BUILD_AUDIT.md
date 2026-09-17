@@ -37,7 +37,7 @@ Compared the attached master brief with the current source, routes, workers, fro
 9. **Tenant defense:** `TenantModel.save()` validates tenant-related FKs, and API queries are scoped. There are no comprehensive database-level composite tenant FK constraints; bulk writes can bypass the save guard. This is a hardening gap, not evidence that a tested API endpoint leaks data.
 10. **White label:** Branding inheritance and custom-host lookup exist. Domain ownership verification, automated certificates and reseller billing/payout management are not implemented as a complete service.
 11. **Operational readiness:** Health/backlog checks and Sentry integration exist. No realistic 50-workspace traffic benchmark or configured external webhook uptime paging was found. Next rewrites only API/health; production routing still needs WebSockets, provider webhooks and signed voice media paths directed to Django.
-12. **Content publishing:** The live Instagram adapter creates a media container and immediately publishes it; it does not persist/poll processing status before video publication. Fake publishing tests do not establish real video readiness.
+12. **Content publishing:** *Resolved 2026-09-17.* The container ID is persisted before any publish call, status is polled with backoff until `FINISHED`, `ERROR`/`EXPIRED` fail without publishing, an ambiguous publish is resolved by the container reporting `PUBLISHED`, and lost workers resume instead of re-creating. Real video acceptance still needs a live account.
 
 ## External acceptance still unproven
 

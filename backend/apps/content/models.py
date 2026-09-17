@@ -13,8 +13,14 @@ class ScheduledPost(TenantModel):
     media_url = models.URLField(max_length=2000)
     media_type = models.CharField(max_length=10, default="image")
     scheduled_at = models.DateTimeField()
+    # scheduled → publishing (container created, processing) → published | failed | unknown
     status = models.CharField(max_length=20, default="scheduled")
     attempts = models.PositiveIntegerField(default=0)
+    # Instagram media container: recorded before any publish call so a lost worker can
+    # resume polling instead of creating a second container or publishing twice.
+    container_id = models.CharField(max_length=120, blank=True)
+    container_created_at = models.DateTimeField(null=True)
+    polls = models.PositiveIntegerField(default=0)
     provider_post_id = models.CharField(max_length=120, blank=True)
     error_code = models.CharField(max_length=50, blank=True)
     published_at = models.DateTimeField(null=True)

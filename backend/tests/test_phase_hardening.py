@@ -513,3 +513,28 @@ def test_dead_google_grant_marks_reconnect_required(client, workspace):
         format="json",
     )
     assert response.status_code == 201 and response.json()["status"] == "active"
+
+
+def test_subscription_events_record_interval_and_trial_end(workspace, settings):
+    settings.STRIPE_PRICES = {"pro": {"base": "price_pro_year", "meter": "price_meter"}}
+    account = account_for(workspace.pk)
+    account.customer_id = "cus_1"
+    account.save()
+    trial_end = int((timezone.now() + timedelta(days=7)).timestamp())
+    metered = {"id": "price_meter", "recurring": {"usage_type": "metered", "interval": "month"}}
+    base = {"id": "price_pro_year", "recurring": {"interval": "year", "interval_count": 1}}
+    obj = {
+        "id": "sub_1",
+        "status": "trialing",
+        "trial_end": trial_end,
+        "items": {"data": [{"price": metered}, {"price": base}]},
+    }
+    assert billing_event(workspace, "customer.subscription.created", obj) == "processed"
+    account = account_for(workspace.pk)
+    assert (account.plan, account.billing_interval, account.status) == ("pro", "annual", "trialing")
+    assert int(account.trial_ends_at.timestamp()) == trial_end
+    obj.update(status="active", trial_end=None)
+    base["recurring"] = {"interval": "month", "interval_count": 1}
+    assert billing_event(workspace, "customer.subscription.updated", obj) == "processed"
+    account = account_for(workspace.pk)
+    assert (account.billing_interval, account.trial_ends_at) == ("monthly", None)

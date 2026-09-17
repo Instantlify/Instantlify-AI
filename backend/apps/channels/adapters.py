@@ -43,8 +43,16 @@ class ChannelAdapter(ABC):
     @abstractmethod
     def refresh_token(self, credentials: Credentials) -> Credentials: ...
 
-    def publish_post(self, *, caption: str, media_url: str, media_type: str) -> str:
-        """Publish to the account's own feed (content calendar). Optional per channel."""
+    # Content calendar (optional per channel). Publishing is three steps because video
+    # containers process asynchronously and must not be published until FINISHED.
+    def create_media_container(self, *, caption: str, media_url: str, media_type: str) -> str:
+        raise NotImplementedError("unsupported_provider")
+
+    def container_status(self, container_id: str) -> str:
+        """IN_PROGRESS, FINISHED, ERROR, EXPIRED or PUBLISHED (Meta's status_code)."""
+        raise NotImplementedError("unsupported_provider")
+
+    def publish_container(self, container_id: str) -> str:
         raise NotImplementedError("unsupported_provider")
 
 
@@ -90,8 +98,14 @@ class FakeChannelAdapter(InstagramAdapter):
             recipient_id=recipient_id, text=media_url, idempotency_key=idempotency_key
         )
 
-    def publish_post(self, *, caption, media_url, media_type):
-        return "fake-post-" + str(abs(hash((caption, media_url))))[:12]
+    def create_media_container(self, *, caption, media_url, media_type):
+        return "fake-container-" + str(abs(hash((caption, media_url))))[:12]
+
+    def container_status(self, container_id):
+        return "FINISHED"
+
+    def publish_container(self, container_id):
+        return container_id.replace("fake-container-", "fake-post-")
 
     def refresh_token(self, credentials):
         return Credentials(

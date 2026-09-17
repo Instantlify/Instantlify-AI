@@ -511,3 +511,25 @@ def test_dashboard_renders_one_tab_at_a_time(operator):
     assert team.context["tab"] == "team"
     assert b"Invite staff" in team.content and b"Platform overview" not in team.content
     assert b'href="/ops/?tab=team" class="nav-item active"' in team.content
+
+
+def test_revenue_tab_lists_plan_distribution_trials_and_past_due(operator, workspace):
+    from apps.billing.services import account_for
+    from apps.tenants.services import create_workspace
+
+    trial = account_for(workspace.pk)
+    trial.plan, trial.billing_interval, trial.status = "pro", "annual", "trialing"
+    trial.trial_ends_at = timezone.now() + timedelta(days=3)
+    trial.save()
+    late = account_for(create_workspace(operator.user, "Late payer").pk)
+    late.plan, late.billing_interval, late.status = "starter", "monthly", "past_due"
+    late.save()
+    client = signed_client(operator)
+    with patch("redis.Redis.get", return_value=None), patch("redis.Redis.ttl", return_value=-2):
+        response = client.get("/ops/?tab=revenue")
+    body = response.content.decode()
+    rows = [(p["plan"], p["billing_interval"], p["status"]) for p in response.context["plans"]]
+    assert rows == [("pro", "annual", "trialing"), ("starter", "monthly", "past_due")]
+    assert list(response.context["trials"]) == [trial]
+    assert list(response.context["past_due"]) == [late]
+    assert "Trials ending" in body and "Late payer" in body

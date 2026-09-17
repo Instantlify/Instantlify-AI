@@ -289,7 +289,7 @@ details summary{cursor:pointer;color:var(--green);font-weight:650;font-size:12px
         </section>
         <section class="panel">
           <div class="panel-title"><h2>Billing distribution</h2><span class="subtle">Accounts by plan and status</span></div>
-          {% for plan in plans %}<div class="health-row"><span>{{ plan.plan }} · {{ plan.status }}</span><span>{{ plan.total }}</span></div>{% empty %}<p class="empty-copy">No billing accounts yet.</p>{% endfor %}
+          {% for plan in plans %}<div class="health-row"><span>{{ plan.plan|default:'free' }}{% if plan.billing_interval %} · {{ plan.billing_interval }}{% endif %} · {{ plan.status }}</span><span>{{ plan.total }}</span></div>{% empty %}<p class="empty-copy">No billing accounts yet.</p>{% endfor %}
         </section>
       </div>
       {% endif %}
@@ -337,12 +337,19 @@ details summary{cursor:pointer;color:var(--green);font-weight:650;font-size:12px
         </section>
         <div class="stack">
           <section class="panel">
-            <div class="panel-title"><h2>Billing distribution</h2><span class="subtle">Accounts by plan and status</span></div>
-            {% for plan in plans %}<div class="health-row"><span>{{ plan.plan }} · {{ plan.status }}</span><span>{{ plan.total }}</span></div>{% empty %}<p class="empty-copy">No billing accounts yet.</p>{% endfor %}
+            <div class="panel-title"><h2>Plan distribution</h2><span class="subtle">Accounts by tier, interval and status</span></div>
+            <div class="table-scroll"><table>
+              <thead><tr><th>Tier</th><th>Interval</th><th>Status</th><th>Accounts</th></tr></thead>
+              <tbody>{% for plan in plans %}<tr><td><span class="pill">{{ plan.plan|default:'free' }}</span></td><td>{{ plan.billing_interval|default:'—' }}</td><td><span class="pill {% if plan.status == 'active' %}pill-good{% elif plan.status == 'trialing' %}pill-warn{% elif plan.status == 'past_due' or plan.status == 'canceled' or plan.status == 'unpaid' %}pill-bad{% endif %}">{{ plan.status }}</span></td><td><strong>{{ plan.total }}</strong></td></tr>{% empty %}<tr><td colspan="4"><p class="empty-copy">No billing accounts yet.</p></td></tr>{% endfor %}</tbody>
+            </table></div>
           </section>
           <section class="panel">
-            <div class="panel-title"><h2>Delivery health</h2><span class="subtle">Outbound, last 30 days</span></div>
-            {% for item in delivery %}<div class="health-row"><span>{{ item.status }}</span><span>{{ item.total }}</span></div>{% empty %}<p class="empty-copy">No deliveries yet.</p>{% endfor %}
+            <div class="panel-title"><h2>Trials ending</h2><span class="subtle">Soonest first · {{ trials|length }} on a Stripe trial</span></div>
+            {% for item in trials %}<div class="list-row"><strong>{{ item.workspace.name }}</strong><span class="pill">{{ item.plan }}</span><span class="muted-text">{{ item.billing_interval }}</span><span class="spacer"></span><span class="muted-text">ends {{ item.trial_ends_at }} ({{ item.trial_ends_at|timeuntil }})</span></div>{% empty %}<p class="empty-copy">No Stripe trials in progress. Free-tier workspaces have no expiry.</p>{% endfor %}
+          </section>
+          <section class="panel">
+            <div class="panel-title"><h2>Payment problems</h2><span class="subtle">Past due or unpaid</span></div>
+            {% for item in past_due %}<div class="list-row"><strong>{{ item.workspace.name }}</strong><span class="pill">{{ item.plan }}</span><span class="pill pill-bad">{{ item.status }}</span><span class="spacer"></span><span class="muted-text">period ends {{ item.period_end|default:'—' }}</span></div>{% empty %}<p class="empty-copy">No accounts past due.</p>{% endfor %}
           </section>
         </div>
       </div>
