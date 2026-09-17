@@ -1,34 +1,471 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nemio · Platform operations</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nemio · Platform operations</title>
+<style>
+/* Mirrors the workspace app's design system (frontend/app/globals.css + features.css). */
+:root{--ink:#233a33;--muted:#7b8580;--line:#e7ebe7;--green:#347359;--soft:#edf4ed;--bg:#fafbf8;--font:"DM Sans",Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:var(--font);font-size:14px;background:var(--bg)}
+button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:wait}
+a{color:inherit;text-decoration:none}
+button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid #8fbc91;outline-offset:4px}
+h1,h2,h3,p{margin:0}
+h1,h2,h3,.brand{font-family:"Manrope",Arial,sans-serif}
+h1{font-size:32px;letter-spacing:-1.35px;font-weight:650;line-height:1.25}
+h2{font-size:18px;letter-spacing:-.4px;font-weight:700}
+h3{font-size:14px;font-weight:600}
+p{line-height:1.65;color:var(--muted)}
+.brand{display:flex;align-items:center;font-size:29px;font-weight:800;letter-spacing:-1.5px}
+.brand-icon{background:var(--ink);color:#e9f4d1;border-radius:10px;width:33px;height:35px;display:inline-flex;align-items:center;justify-content:center;margin-right:9px}
+.brand-dot{color:#759a48}
+.eyebrow{display:block;font-size:10px;letter-spacing:1.65px;font-weight:700;color:#7d8c7d;margin-bottom:12px}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:14px;border-radius:7px;border:0;padding:13px 18px;font-size:13px;font-weight:600;transition:background .15s,transform .15s;white-space:nowrap}
+.button:hover{transform:translateY(-1px)}
+.primary{background:#347359;color:#fff}.primary:hover{background:#2c644d}
+.button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.button.danger{background:#fbe9e6;color:#9a3f36}
+.button.small{padding:8px 12px;font-size:12px;gap:8px}
+.full{width:100%}
+.text-button{display:inline-flex;align-items:center;gap:8px;color:var(--green);font-weight:650;font-size:12px;background:none;border:0;padding:0}
+.icon-button{display:flex;align-items:center;justify-content:center;border:0;background:none;color:#78837d;padding:8px;border-radius:6px}
+.icon-button:hover{background:#edf2eb}
+label{display:flex;flex-direction:column;gap:9px;font-size:12px;font-weight:600;margin-bottom:22px}
+input{background:#fff;border:1px solid #dce2db;color:var(--ink);padding:13px 14px;border-radius:7px;width:100%;outline:0;min-width:0}
+input:focus{border-color:#6b9570;box-shadow:0 0 0 3px #e4eee1}
+input::placeholder{color:#a0a7a0;font-weight:400}
+select{color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px}
+.error-notice{padding:13px 16px;color:#904139;border:1px solid #ecc9c1;background:#fff4f0;border-radius:7px;margin-bottom:20px;line-height:1.6}
+.success-notice{padding:10px 15px;background:#edf5e9;border-radius:7px;margin-bottom:20px;color:var(--green)}
+.app-shell{display:flex;min-height:100vh}
+.sidebar{width:234px;background:#fff;border-right:1px solid var(--line);padding:29px 18px 0;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column;z-index:20;overflow-y:auto}
+.sidebar>*{flex-shrink:0}
+.sidebar>.brand{margin-left:15px}
+.workspace-select{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;margin-top:34px;margin-bottom:32px;padding:11px 9px}
+.workspace-select>div{min-width:0;flex:1}
+.workspace-avatar{display:flex;align-items:center;justify-content:center;background:#f0f0e8;border:1px solid #e4e5d9;color:#6d745b;font-size:10px;font-weight:700;border-radius:7px;width:31px;height:33px;flex-shrink:0}
+.tiny-label{display:block;font-size:8px;color:#a0a498;letter-spacing:1px;margin-bottom:3px}
+.workspace-name{display:block;font-size:11px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-label{font-size:8px;letter-spacing:1.4px;font-weight:700;color:#9fa699;margin:0 15px 13px}
+.nav-item{display:flex;align-items:center;gap:12px;font-size:12px;font-weight:500;color:#7a857a;border:0;background:transparent;width:100%;text-align:left;padding:12px 15px;border-radius:6px;margin-bottom:4px}
+.nav-item.active{background:#eaf1e6;color:#375c3e;font-weight:650}
+.nav-item:hover{background:#f1f5ed}
+.nav-item svg{flex-shrink:0}
+.nav-dot{width:5px;height:5px;background:#698a4e;border-radius:50%;margin-left:auto}
+.sidebar-bottom{margin-top:auto;padding-top:34px}
+.foundation-card{border:1px solid #e5eadd;border-radius:8px;padding:16px;background:linear-gradient(130deg,#f4f6ed,#fafbf7);margin:0 4px 18px}
+.foundation-icon{display:flex;margin-bottom:12px;color:#87986a}
+.foundation-card strong{font-size:12px}
+.foundation-card p{font-size:10px;line-height:1.7;margin:7px 0 0;color:#8a9581}
+.user-card{border-top:1px solid var(--line);margin-top:13px;display:flex;align-items:center;gap:9px;padding:19px 0}
+.user-avatar{flex-shrink:0;background:#ecede6;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:#768263;font-size:10px;font-weight:600;text-transform:uppercase}
+.user-card>div{flex:1;min-width:0}
+.user-card strong{display:block;font-size:10px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-card>div>span{display:block;font-size:9px;color:#a0a79b;text-transform:capitalize}
+.user-card form{display:flex}
+.main-shell{margin-left:234px;width:calc(100% - 234px);display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:72px;flex-shrink:0;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 39px;font-size:10px;background:#ffffff80;color:#929a8d}
+.topbar>div{display:flex;gap:15px;align-items:center}
+.topbar strong{color:#66735f;font-weight:500}
+.topbar>div>span{color:#c4cabe}
+.private-badge{display:flex;align-items:center;gap:6px;font-size:9px;color:#86927c;text-transform:capitalize}
+.main-content{padding:38px 39px;max-width:1320px;width:100%;margin:0 auto}
+.page-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:31px;gap:16px}
+.page-heading .eyebrow{font-size:8px;letter-spacing:1.5px;margin-bottom:9px}
+.page-heading h1{font-size:29px}
+.page-heading p{font-size:11px;margin-top:10px}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:17px;margin:0 0 22px}
+.stat-card{background:#fff;border:1px solid var(--line);border-radius:9px;padding:19px 21px}
+.stat-top{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#7e8976}
+.stat-icon{display:flex;color:#9ba48f}
+.stat-card>strong{display:block;font-size:27px;font-weight:550;letter-spacing:-.6px;margin-top:10px}
+.stat-card>p{font-size:9px;color:#a0a796;margin-top:7px}
+.stat-card>p a{color:var(--green);font-weight:650}
+.overview-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:22px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:9px;padding:23px}
+.panel-title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px}
+.panel h2{font-size:13px;font-weight:700}
+.subtle{color:#a0a797;font-size:9px}
+.panel-subtitle{font-size:10px;margin:-12px 0 18px;color:#a0a897}
+.panel-footnote{font-size:10px;margin-top:25px}
+.empty-copy{font-size:12px;padding:20px 0}
+.health-row{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f2ea;padding:14px 0;gap:12px;font-size:11px;color:#86917e}
+.health-row:last-child{border-bottom:0}
+.health-row>span:last-child{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;background:#eef0ea;color:#6f7a6f;white-space:nowrap}
+.pill-good{background:#e6f3ea;color:#2f6b4f}.pill-warn{background:#fdf3df;color:#8a6420}.pill-bad{background:#fbe9e6;color:#9a3f36}
+.two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+.stack{display:grid;gap:20px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.row.between{justify-content:space-between}
+.muted-text{color:var(--muted);font-size:12px}.small{font-size:12px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;overflow-wrap:anywhere}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+.toolbar label{margin:0;flex:1 1 220px}
+.toolbar input,.toolbar select{padding:9px 11px;border:1px solid var(--line);border-radius:7px;background:#fff}
+.form-grid{display:grid;gap:14px}
+.form-grid label{display:grid;gap:6px;font-size:12px;margin:0}
+.form-grid input,.form-grid select{padding:10px 12px}
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.form-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.inline-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px}
+.inline-form label{margin:0;display:grid;gap:6px;font-size:11px;min-width:160px}
+.inline-form input,.inline-form select{padding:8px 10px;font-size:12px}
+.card-list{display:grid;gap:12px}
+.card{border:1px solid var(--line);border-radius:10px;padding:16px;background:#fff;display:grid;gap:8px}
+.card h3{font-size:14px;margin:0}
+.list-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 0;border-bottom:1px solid var(--line);font-size:13px}
+.list-row:last-child{border-bottom:0}
+.list-row strong{overflow-wrap:anywhere}
+.list-row .spacer{flex:1}
+.table-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;text-align:left;font-size:12px}
+th{color:#a2ab96;font-size:10px;font-weight:500;padding:15px 12px 15px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:15px 12px 15px 0;border-bottom:1px solid #f0f3e9;color:#7f8c73;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td strong{color:var(--ink);font-weight:600}
+td .mono{display:block;font-size:10px;color:#a4ad9a;margin-top:3px}
+.secret-box{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;letter-spacing:.08em;background:var(--soft);border:1px dashed #c6d6c4;border-radius:8px;padding:14px;margin:18px 0;overflow-wrap:anywhere;text-align:center;color:var(--ink)}
+.support-banner{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:#fdf3df;border:1px solid #f0dcae;border-radius:9px;padding:16px 20px;margin-bottom:22px}
+.support-banner strong{font-size:12px;color:#8a6420;letter-spacing:.4px}
+.support-banner p{font-size:11px;margin-top:5px}
+.message-row{padding:12px 0;border-bottom:1px solid #f0f3e9;font-size:12px;color:#5f7054}
+.message-row:last-child{border-bottom:0}
+.message-row .meta{font-size:10px;color:#a4ad9a;margin-bottom:3px}
+.message-row .meta b{text-transform:capitalize;color:#7f8c73;font-weight:600}
+details summary{cursor:pointer;color:var(--green);font-weight:650;font-size:12px}
+.pager{display:flex;align-items:center;gap:14px;margin:0 0 6px;color:#a0a797;font-size:10px}
+.pager a{color:var(--green);font-weight:650}
+.app-footer{margin-top:auto;display:flex;justify-content:space-between;padding:8px 40px 25px;font-size:8px;color:#b0b7a7;gap:15px}
+.setup-card{max-width:440px;margin:9vh auto;background:#fff;border:1px solid var(--line);padding:40px;border-radius:12px}
+.setup-card .brand{font-size:24px;margin-bottom:34px}
+.setup-card .brand .brand-icon{width:28px;height:29px}
+.setup-card h1{font-size:26px}
+.setup-card>p{font-size:13px;margin:12px 0 28px}
+.setup-card .button{width:100%}
+.setup-card .foot{text-align:center;font-size:11px;margin-top:20px}
+.setup-card .foot a{color:var(--green);font-weight:650}
+@media (max-width:1150px){.sidebar{width:205px;padding-left:12px;padding-right:12px}.main-shell{margin-left:205px;width:calc(100% - 205px)}.main-content{padding:30px 26px}.topbar{padding:0 26px}.overview-grid{grid-template-columns:1fr}.stats-grid{gap:10px}.stat-card{padding:15px}}
+@media (max-width:760px){.sidebar{position:static;width:100%;padding:16px;border-right:0;border-bottom:1px solid var(--line);display:block}.sidebar>.brand{font-size:24px;margin-left:0}.workspace-select{display:none}.sidebar nav{display:flex;flex-wrap:wrap;gap:5px;margin-top:18px}.nav-item{font-size:11px;padding:10px;justify-content:center;gap:6px;margin:0;width:auto}.nav-item svg{width:15px}.nav-dot,.nav-label,.sidebar-bottom{display:none}.app-shell{display:block}.main-shell{margin:0;width:100%}.topbar{height:49px;padding:0 20px}.main-content{padding:28px 20px}.page-heading h1{font-size:25px}.stats-grid{grid-template-columns:1fr 1fr}.two-col{grid-template-columns:1fr}.setup-card{margin:25px 16px;padding:25px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+{% if screen == 'login' or screen == 'mfa' or screen == 'accept' %}
+<main>
+  <section class="setup-card">
+    <div class="brand"><span class="brand-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></span>Nemio<span class="brand-dot">.</span></div>
+    <span class="eyebrow">PLATFORM OPERATIONS</span>
+    {% if error %}<div role="alert" class="error-notice">{{ error }}</div>{% endif %}
 
-<style>body{font:16px system-ui;background:#f4f6f8;color:#172b36;margin:0}header{background:#152f29;color:white;padding:20px 5%;display:flex;align-items:center;justify-content:space-between}main{max-width:1250px;margin:30px auto;padding:0 20px}section{background:white;border:1px solid #dce2e6;border-radius:12px;padding:24px;margin:20px 0;overflow:auto}h1{font-size:24px}h2{font-size:20px}label{display:block;margin:12px 0}input,select,button{font:inherit;padding:9px;border:1px solid #a8b5bd;border-radius:5px;max-width:100%;box-sizing:border-box}button{background:#205641;color:white;cursor:pointer}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid #e4e8eb;padding:10px;vertical-align:top}.error,.banner{background:#fff0c9;padding:16px;border:2px solid #b07c00}.muted{color:#536673}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}code{overflow-wrap:anywhere}a{color:#205641}header a{color:white}form.inline{display:inline}textarea{width:100%;min-height:70px}pre{white-space:pre-wrap;overflow-wrap:anywhere}.metric{font-size:24px;font-weight:bold}</style></head>
+    {% if screen == 'login' %}
+    <h1>Platform sign in</h1>
+    <p>Authorized platform staff only. A workspace owner account does not grant access.</p>
+    <form method="post">{% csrf_token %}
+      <label>Username <input name="username" autocomplete="username" required></label>
+      <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="button primary">Continue to two-factor verification</button>
+    </form>
+    <p class="foot"><a href="/ops/accept/">Accept a staff invitation</a></p>
+    {% endif %}
 
-<body><header><strong>Nemio / Platform operations</strong><nav><a href="/ops/">Dashboard</a> · <form class="inline" method="post" action="/ops/logout/">{% csrf_token %}<button>Sign out</button></form></nav></header><main>
+    {% if screen == 'mfa' %}
+    <h1>Two-factor verification</h1>
+    {% if secret %}
+    <p>Add a time-based account to your authenticator using this setup key. Keep it private. This key disappears after verification.</p>
+    <code class="secret-box">{{ secret }}</code>
+    <p class="muted-text">Account: Nemio platform · 6 digits · 30 seconds · SHA1</p>
+    {% else %}
+    <p>Enter the current code from your authenticator.</p>
+    {% endif %}
+    <form method="post">{% csrf_token %}
+      <label>Authenticator code <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>
+      <button class="button primary">Verify</button>
+    </form>
+    {% endif %}
 
-{% if error %}<p role="alert" class="error">{{ error }}</p>{% endif %}
+    {% if screen == 'accept' %}
+    <h1>Accept platform invitation</h1>
+    <p>Use your existing Nemio account. The invitation must match its email address. Mandatory authenticator enrollment follows.</p>
+    <form method="post">{% csrf_token %}
+      <label>Invitation token <input name="token" type="password" required></label>
+      <label>Username <input name="username" required></label>
+      <label>Password <input type="password" name="password" required></label>
+      <button class="button primary">Accept invitation</button>
+    </form>
+    <p class="foot"><a href="/ops/login/">Back to sign in</a></p>
+    {% endif %}
+  </section>
+</main>
 
-{% if screen == 'login' %}<section><h1>Platform sign in</h1><p>Authorized platform staff only. A workspace owner account does not grant access.</p><form method="post">{% csrf_token %}<label>Username <input name="username" autocomplete="username" required></label><label>Password <input name="password" type="password" autocomplete="current-password" required></label><button>Continue to two-factor verification</button></form><p><a href="/ops/accept/">Accept a staff invitation</a></p></section>{% endif %}
+{% else %}
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></span>Nemio<span class="brand-dot">.</span></div>
+    <div class="workspace-select">
+      <span class="workspace-avatar">OP</span>
+      <div><span class="tiny-label">CONSOLE</span><span class="workspace-name">Platform operations</span></div>
+    </div>
+    <div class="nav-label">PLATFORM</div>
+    <nav aria-label="Console navigation">
+      <a href="/ops/?tab=overview" class="nav-item{% if tab == 'overview' %} active{% endif %}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>Overview{% if tab == 'overview' %}<span class="nav-dot"></span>{% endif %}</a>
+      <a href="/ops/?tab=workspaces" class="nav-item{% if tab == 'workspaces' %} active{% endif %}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></svg>Workspaces{% if tab == 'workspaces' %}<span class="nav-dot"></span>{% endif %}</a>
+      <a href="/ops/?tab=revenue" class="nav-item{% if tab == 'revenue' %} active{% endif %}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>Revenue{% if tab == 'revenue' %}<span class="nav-dot"></span>{% endif %}</a>
+      <a href="/ops/?tab=operations" class="nav-item{% if tab == 'operations' %} active{% endif %}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Operations{% if tab == 'operations' %}<span class="nav-dot"></span>{% endif %}</a>
+      <a href="/ops/?tab=controls" class="nav-item{% if tab == 'controls' %} active{% endif %}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>Pause controls{% if tab == 'controls' %}<span class="nav-dot"></span>{% endif %}</a>
+      <a href="/ops/?tab=team" class="nav-item{% if tab == 'team' %} active{% endif %}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Platform team{% if tab == 'team' %}<span class="nav-dot"></span>{% endif %}</a>
+      <a href="/ops/?tab=audit" class="nav-item{% if tab == 'audit' %} active{% endif %}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12h-5M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>Audit log{% if tab == 'audit' %}<span class="nav-dot"></span>{% endif %}</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="foundation-card">
+        <span class="foundation-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <strong>Every action is audited</strong>
+        <p>Support views are read-only and expire after ten minutes. Pauses never discard customer messages.</p>
+      </div>
+      <div class="user-card">
+        <span class="user-avatar">{{ request.user.username|slice:":2" }}</span>
+        <div><strong>{{ request.user.username }}</strong><span>{{ role|default:"staff" }}</span></div>
+        <form method="post" action="/ops/logout/">{% csrf_token %}<button class="icon-button" aria-label="Sign out" title="Sign out"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg></button></form>
+      </div>
+    </div>
+  </aside>
 
-{% if screen == 'mfa' %}<section><h1>Two-factor verification</h1>{% if secret %}<p>Add a time-based account to your authenticator using this setup key. Keep it private. This key disappears after verification.</p><code>{{ secret }}</code><p>Account: Nemio platform · 6 digits · 30 seconds · SHA1</p>{% endif %}<form method="post">{% csrf_token %}<label>Authenticator code <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label><button>Verify</button></form></section>{% endif %}
+  <div class="main-shell">
+    <header class="topbar">
+      <div>Platform operations <span>/</span> <strong>{% if screen == 'support' %}Support view{% elif screen == 'invite' %}Invitation{% elif tab == 'overview' %}Overview{% elif tab == 'workspaces' %}Workspaces{% elif tab == 'revenue' %}Revenue{% elif tab == 'operations' %}Operations{% elif tab == 'controls' %}Pause controls{% elif tab == 'team' %}Platform team{% elif tab == 'audit' %}Audit log{% endif %}</strong></div>
+      <span class="private-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg> {{ role|default:"staff" }}</span>
+    </header>
+    <main class="main-content">
+      {% if error %}<div role="alert" class="error-notice">{{ error }}</div>{% endif %}
 
-{% if screen == 'accept' %}<section><h1>Accept platform invitation</h1><p>Use your existing Nemio account. The invitation must match its email address. Mandatory authenticator enrollment follows.</p><form method="post">{% csrf_token %}<label>Invitation token <input name="token" type="password" required></label><label>Username <input name="username" required></label><label>Password <input type="password" name="password" required></label><button>Accept invitation</button></form></section>{% endif %}
+      {% if screen == 'invite' %}
+      <div class="page-heading"><div><span class="eyebrow">PLATFORM TEAM</span><h1>Invitation created</h1><p>Share this one-time token privately with the invited staff member. It expires in 24 hours.</p></div></div>
+      <section class="panel" style="max-width:600px">
+        <div class="panel-title"><h2>Invitation token</h2><span class="subtle">Shown once</span></div>
+        <code class="secret-box">{{ token }}</code>
+        <p class="muted-text">They accept it at <span class="mono">/ops/accept/</span> on this host, using the account whose email matches the invitation.</p>
+        <div class="form-actions"><a class="button secondary small" href="/ops/?tab=team">Back to the platform team</a></div>
+      </section>
+      {% endif %}
 
-{% if screen == 'invite' %}<section><h1>Invitation created</h1><p>Share this one-time token privately with the invited staff member. It expires in 24 hours. They accept it at <code>/ops/accept/</code> on this host.</p><code>{{ token }}</code></section>{% endif %}
+      {% if screen == 'support' %}
+      <div class="support-banner">
+        <div><strong>SUPPORT VIEW · READ ONLY · {{ support.workspace.name }}</strong>
+          <p>Operator: {{ request.user.username }} · Expires: {{ support.expires_at }} · Reason: {{ support.reason }}</p></div>
+        <form method="post">{% csrf_token %}<button class="button danger small">End support session</button></form>
+      </div>
+      <div class="stack">
+        <section class="panel">
+          <div class="panel-title"><h2>Workspace conversations</h2><span class="subtle">No customer identity has been assumed. Each view is audited.</span></div>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Lead</th><th>Status</th><th>Conversation</th></tr></thead>
+            <tbody>{% for item in conversations %}<tr><td><strong>{{ item.identity.lead.name }}</strong></td><td><span class="pill">{{ item.status }}</span></td><td class="mono">{{ item.pk }}</td></tr>{% empty %}<tr><td colspan="3"><p class="empty-copy">No conversations.</p></td></tr>{% endfor %}</tbody>
+          </table></div>
+        </section>
+        <section class="panel">
+          <div class="panel-title"><h2>Latest 50 messages</h2></div>
+          {% for item in messages %}<div class="message-row"><div class="meta"><b>{{ item.direction }}</b> · {{ item.created_at }}</div>{{ item.text }}</div>{% empty %}<p class="empty-copy">No messages.</p>{% endfor %}
+        </section>
+      </div>
+      {% endif %}
 
-{% if screen == 'support' %}<div class="banner"><strong>SUPPORT VIEW · READ ONLY · {{ support.workspace.name }}</strong><p>Operator: {{ request.user.username }} · Expires: {{ support.expires_at }} · Reason: {{ support.reason }}</p><form method="post">{% csrf_token %}<button>End support session</button></form></div><section><h1>Workspace conversations</h1><p>No customer identity has been assumed. Each view is audited.</p><table><tr><th>Lead</th><th>Status</th><th>Conversation</th></tr>{% for item in conversations %}<tr><td>{{ item.identity.lead.name }}</td><td>{{ item.status }}</td><td>{{ item.pk }}</td></tr>{% empty %}<tr><td>No conversations.</td></tr>{% endfor %}</table><h2>Latest 50 messages</h2>{% for item in messages %}<p><strong>{{ item.direction }} · {{ item.created_at }}</strong> {{ item.text }}</p>{% endfor %}</section>{% endif %}
+      {% if screen == 'dashboard' %}
 
-{% if screen == 'dashboard' %}<h1>Platform overview</h1><p class="muted">Role: {{ role }} · Usage below covers the last 30 days. Model cost reflects configured prices; it is not a provider invoice.</p><div class="grid"><section>Messages processed<div class="metric">{{ messages }}</div></section><section>Recorded AI spend<div class="metric">{{ totals.cost|default:'0' }}</div></section><section>Usage records<div class="metric">{{ totals.calls }}</div></section></div>
+      {% if tab == 'overview' %}
+      <div class="page-heading"><div><span class="eyebrow">OVERVIEW</span><h1>Platform overview</h1><p>Last 30 days. Model cost reflects configured prices; it is not a provider invoice.</p></div></div>
+      <div class="stats-grid">
+        <article class="stat-card"><div class="stat-top"><span>Messages processed</span></div><strong>{{ messages }}</strong><p>Inbound and outbound, all tenants</p></article>
+        <article class="stat-card"><div class="stat-top"><span>Recorded AI spend</span></div><strong>{{ totals.cost|default:'0' }}</strong><p>{{ totals.calls }} usage records</p></article>
+        <article class="stat-card"><div class="stat-top"><span>Queue backlog</span></div><strong>{% if backlog.known %}{{ backlog.total }}{% else %}—{% endif %}</strong><p>{% if backlog.known %}<a href="/ops/?tab=operations">See breakdown</a>{% else %}Not checked yet{% endif %}</p></article>
+        <article class="stat-card"><div class="stat-top"><span>Workspaces</span></div><strong>{{ workspace_page.paginator.count }}</strong><p><a href="/ops/?tab=workspaces">Browse tenants</a></p></article>
+        <article class="stat-card"><div class="stat-top"><span>Active pauses</span></div><strong>{{ controls|length }}</strong><p><a href="/ops/?tab=controls">Manage controls</a></p></article>
+        <article class="stat-card"><div class="stat-top"><span>Billing sync</span></div><strong style="font-size:15px;letter-spacing:0;margin-top:14px">{{ billing_sync }}</strong><p><a href="/ops/?tab=revenue">Revenue</a></p></article>
+      </div>
+      <div class="two-col">
+        <section class="panel">
+          <div class="panel-title"><h2>Delivery health</h2><span class="subtle">Outbound, last 30 days</span></div>
+          {% for item in delivery %}<div class="health-row"><span>{{ item.status }}</span><span>{{ item.total }}</span></div>{% empty %}<p class="empty-copy">No deliveries yet.</p>{% endfor %}
+        </section>
+        <section class="panel">
+          <div class="panel-title"><h2>Billing distribution</h2><span class="subtle">Accounts by plan and status</span></div>
+          {% for plan in plans %}<div class="health-row"><span>{{ plan.plan }} · {{ plan.status }}</span><span>{{ plan.total }}</span></div>{% empty %}<p class="empty-copy">No billing accounts yet.</p>{% endfor %}
+        </section>
+      </div>
+      {% endif %}
 
-<section><h2>Workspaces</h2><form method="get"><label>Search by name <input name="q" value="{{ request.GET.q }}"></label><select name="sort"><option value="">Name</option><option value="cost">AI spend descending</option><option value="calls">Usage descending</option></select> <button>Search</button></form><p class="muted">Page {{ workspace_page.number }} of {{ workspace_page.paginator.num_pages }} / {{ workspace_page.paginator.count }} workspaces.</p>{% if workspace_page.has_previous %}<a href="?q={{ request.GET.q|urlencode }}&amp;sort={{ request.GET.sort|urlencode }}&amp;page={{ workspace_page.previous_page_number }}">Previous</a>{% endif %} {% if workspace_page.has_next %}<a href="?q={{ request.GET.q|urlencode }}&amp;sort={{ request.GET.sort|urlencode }}&amp;page={{ workspace_page.next_page_number }}">Next</a>{% endif %}<table><tr><th>Workspace</th><th>Plan / status</th><th>Usage / spend</th><th>Channels / failed webhooks / Meta calls</th><th>Support</th></tr>{% for row in rows %}<tr><td>{{ row.workspace.name }}<br><small>{{ row.workspace.pk }}</small>{% if row.suspended %}<p class="error">Suspended</p>{% endif %}</td><td>{{ row.account.plan|default:'free' }} / {{ row.account.status|default:'trialing' }}</td><td>{{ row.usage.calls }} / {{ row.usage.cost|default:'0' }}</td><td>{{ row.channels }} / {{ row.failed }} / {{ row.meta_calls }}</td><td>{% if role != 'analyst' %}<form method="post" action="/ops/support/">{% csrf_token %}<input type="hidden" name="workspace" value="{{ row.workspace.pk }}"><label>Support reason <input name="reason" required maxlength="300"></label><button>View for 10 minutes</button></form>{% endif %}</td></tr>{% empty %}<tr><td>No workspaces found.</td></tr>{% endfor %}</table></section>
+      {% if tab == 'workspaces' %}
+      <div class="page-heading"><div><span class="eyebrow">TENANTS</span><h1>Workspaces</h1><p>Every tenant on the platform, with usage, health and support access.</p></div></div>
+      <section class="panel">
+        <form method="get" class="toolbar">
+          <input type="hidden" name="tab" value="workspaces">
+          <input type="search" name="q" placeholder="Search by name" value="{{ request.GET.q }}" aria-label="Search by name">
+          <select name="sort" aria-label="Sort"><option value="">Name</option><option value="cost"{% if request.GET.sort == 'cost' %} selected{% endif %}>AI spend descending</option><option value="calls"{% if request.GET.sort == 'calls' %} selected{% endif %}>Usage descending</option></select>
+          <button class="button secondary small">Search</button>
+        </form>
+        <div class="pager">
+          <span>Page {{ workspace_page.number }} of {{ workspace_page.paginator.num_pages }} · {{ workspace_page.paginator.count }} workspaces</span>
+          {% if workspace_page.has_previous %}<a href="?tab=workspaces&amp;q={{ request.GET.q|urlencode }}&amp;sort={{ request.GET.sort|urlencode }}&amp;page={{ workspace_page.previous_page_number }}">← Previous</a>{% endif %}
+          {% if workspace_page.has_next %}<a href="?tab=workspaces&amp;q={{ request.GET.q|urlencode }}&amp;sort={{ request.GET.sort|urlencode }}&amp;page={{ workspace_page.next_page_number }}">Next →</a>{% endif %}
+        </div>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Workspace</th><th>Plan</th><th>Status</th><th>Usage / spend</th><th>Channels</th><th>Failed webhooks</th><th>Meta calls</th>{% if role != 'analyst' %}<th>Support</th>{% endif %}</tr></thead>
+          <tbody>{% for row in rows %}<tr>
+            <td><strong>{{ row.workspace.name }}</strong>{% if row.suspended %} <span class="pill pill-bad">Suspended</span>{% endif %}<span class="mono">{{ row.workspace.pk }}</span></td>
+            <td><span class="pill">{{ row.account.plan|default:'free' }}</span></td>
+            <td><span class="pill {% if row.account.status == 'active' %}pill-good{% elif row.account.status == 'past_due' or row.account.status == 'canceled' %}pill-bad{% endif %}">{{ row.account.status|default:'trialing' }}</span></td>
+            <td>{{ row.usage.calls }} · {{ row.usage.cost|default:'0' }}</td>
+            <td>{{ row.channels }}</td>
+            <td>{{ row.failed }}</td>
+            <td>{{ row.meta_calls }}</td>
+            {% if role != 'analyst' %}<td><form method="post" action="/ops/support/" class="inline-form">{% csrf_token %}<input type="hidden" name="workspace" value="{{ row.workspace.pk }}"><label>Reason<input name="reason" required maxlength="300" placeholder="Ticket reference"></label><button class="button secondary small">View 10 min</button></form></td>{% endif %}
+          </tr>{% empty %}<tr><td colspan="8"><p class="empty-copy">No workspaces found.</p></td></tr>{% endfor %}</tbody>
+        </table></div>
+      </section>
+      {% endif %}
 
-<section><h2>Revenue and usage trends</h2><p>{{ billing_sync }}</p><p>Snapshot date: {{ revenue.as_of|default:'Not synchronized' }}</p><p>Gross contracted monthly recurring revenue (cents, before discounts/taxes, excludes metered usage):</p>{% for item in revenue.mrr %}<p>{{ item.currency|upper }}: {{ item.cents }}</p>{% empty %}<p>Unavailable until Stripe subscription snapshots are synchronized.</p>{% endfor %}<p>30-day customer churn: {{ revenue.churn|default:'Needs a 30-day baseline' }}</p><details><summary>Daily messages above plan allowance</summary>{% for item in revenue.overage %}<p>{{ item.day }}: {{ item.messages }}</p>{% endfor %}</details></section><section><h2>Billing distribution and delivery health</h2><div class="grid"><div>{% for plan in plans %}<p>{{ plan.plan }} · {{ plan.status }}: {{ plan.total }}</p>{% endfor %}</div><div>{% for item in delivery %}<p>{{ item.status }}: {{ item.total }}</p>{% endfor %}</div></div><p>Queue backlog: {{ backlog }}</p><p class="muted">Revenue metrics require synchronized Stripe subscription prices; empty or unknown metrics must not be interpreted as zero revenue.</p></section>
+      {% if tab == 'revenue' %}
+      <div class="page-heading"><div><span class="eyebrow">BILLING</span><h1>Revenue &amp; billing</h1><p>{{ billing_sync }}</p></div></div>
+      <div class="two-col">
+        <section class="panel">
+          <div class="panel-title"><h2>Revenue and usage</h2><span class="subtle">Snapshot {{ revenue.as_of|default:'not synchronized' }}</span></div>
+          <div class="health-row"><span>30-day customer churn</span><span>{{ revenue.churn|default:'Needs a 30-day baseline' }}</span></div>
+          <p class="panel-subtitle" style="margin-top:18px">Gross contracted monthly recurring revenue. Cents, before discounts and taxes, excluding metered usage.</p>
+          {% for item in revenue.mrr %}<div class="health-row"><span>{{ item.currency|upper }}</span><span>{{ item.cents }}</span></div>{% empty %}<p class="empty-copy">Unavailable until Stripe subscription snapshots are synchronized.</p>{% endfor %}
+          <details style="margin-top:14px"><summary>Daily messages above plan allowance</summary>{% for item in revenue.overage %}<div class="health-row"><span>{{ item.day }}</span><span>{{ item.messages }}</span></div>{% empty %}<p class="empty-copy">None recorded.</p>{% endfor %}</details>
+          <p class="panel-footnote">Revenue metrics require synchronized Stripe prices; empty or unknown metrics must not be read as zero revenue.</p>
+        </section>
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-title"><h2>Billing distribution</h2><span class="subtle">Accounts by plan and status</span></div>
+            {% for plan in plans %}<div class="health-row"><span>{{ plan.plan }} · {{ plan.status }}</span><span>{{ plan.total }}</span></div>{% empty %}<p class="empty-copy">No billing accounts yet.</p>{% endfor %}
+          </section>
+          <section class="panel">
+            <div class="panel-title"><h2>Delivery health</h2><span class="subtle">Outbound, last 30 days</span></div>
+            {% for item in delivery %}<div class="health-row"><span>{{ item.status }}</span><span>{{ item.total }}</span></div>{% empty %}<p class="empty-copy">No deliveries yet.</p>{% endfor %}
+          </section>
+        </div>
+      </div>
+      {% endif %}
 
-<section><h2>Meta / API operations</h2><h3>Measured traffic since instrumentation</h3>{% for item in provider_metrics %}<p>{{ item.name }}: {{ item.total }}</p>{% empty %}<p>No measured traffic yet.</p>{% endfor %}<h3>Shared Redis rate-limit bucket</h3>{% if bucket.unavailable %}<p>Redis unavailable — quota usage unknown.</p>{% elif not bucket.limit %}<p>No shared app ceiling configured. Per-account limits still apply.</p>{% else %}<p>{{ bucket.used }} / {{ bucket.limit }} — resets in {{ bucket.ttl }} seconds</p>{% endif %}<p>Account tokens ordered by expiry; first 100 accounts. Credentials are never displayed.</p><table><tr><th>Workspace</th><th>Provider</th><th>Status</th><th>Token expires</th></tr>{% for item in connections %}<tr><td>{{ item.workspace.name }}</td><td>{{ item.provider }}</td><td>{{ item.status }}</td><td>{{ item.expires_at }} ({{ item.expires_at|timeuntil }})</td></tr>{% endfor %}</table><h3>Operator-verified provider status</h3>{% for item in statuses %}<p>{{ item.provider }}: {{ item.review_status }} · Permissions: {{ item.permissions }} · Certificate expiry: {{ item.certificate_expires_at|default:'Not configured / not applicable' }} · Updated: {{ item.updated_at }}</p>{% empty %}<p>No provider review status recorded.</p>{% endfor %}{% if role == 'owner' %}<form method="post" action="/ops/operations/">{% csrf_token %}<label>Provider <select name="provider"><option>instagram</option><option>whatsapp</option><option>messenger</option><option>telegram</option></select></label><label>Verified review status <input name="review_status" required maxlength="100"></label><label>Verified permissions <input name="permissions" maxlength="1000"></label><label>mTLS certificate expiry (ISO datetime, only if applicable) <input name="certificate_expires_at"></label><button>Record status</button></form>{% endif %}<p class="muted">These records document an operator's verification; configure the app itself in the provider console.</p></section>
+      {% if tab == 'operations' %}
+      <div class="page-heading"><div><span class="eyebrow">OPERATIONS</span><h1>Meta / API operations</h1><p>Provider traffic, rate limits, account tokens and queue health.</p></div></div>
+      <div class="stack">
+        <div class="two-col">
+          <section class="panel">
+            <div class="panel-title"><h2>Queue backlog</h2><span class="subtle">Checked every minute by the worker</span></div>
+            {% for label, count in backlog.items %}<div class="health-row"><span>{{ label }}</span><span>{% if count %}<span class="pill pill-warn">{{ count }}</span>{% else %}{{ count }}{% endif %}</span></div>{% empty %}<p class="empty-copy">The backlog check has not run in the last three minutes.</p>{% endfor %}
+          </section>
+          <section class="panel">
+            <div class="panel-title"><h2>Measured traffic</h2><span class="subtle">Since instrumentation</span></div>
+            {% for item in provider_metrics %}<div class="health-row"><span>{{ item.name }}</span><span>{{ item.total }}</span></div>{% empty %}<p class="empty-copy">No measured traffic yet.</p>{% endfor %}
+            <p class="panel-subtitle" style="margin-top:18px">Shared Redis rate-limit bucket</p>
+            {% if bucket.unavailable %}<p class="muted-text"><span class="pill pill-warn">Redis unavailable</span> quota usage unknown.</p>
+            {% elif not bucket.limit %}<p class="muted-text">No shared app ceiling configured. Per-account limits still apply.</p>
+            {% else %}<div class="health-row"><span>Used / ceiling · resets in {{ bucket.ttl }}s</span><span>{{ bucket.used }} / {{ bucket.limit }}</span></div>{% endif %}
+          </section>
+        </div>
+        <section class="panel">
+          <div class="panel-title"><h2>Account tokens</h2><span class="subtle">Ordered by expiry · first 100 · credentials are never displayed</span></div>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Workspace</th><th>Provider</th><th>Status</th><th>Token expires</th></tr></thead>
+            <tbody>{% for item in connections %}<tr><td><strong>{{ item.workspace.name }}</strong></td><td>{{ item.provider }}</td><td><span class="pill {% if item.status == 'active' %}pill-good{% elif item.status == 'reconnect_required' %}pill-warn{% endif %}">{{ item.status }}</span></td><td>{{ item.expires_at }} <span class="muted-text">({{ item.expires_at|timeuntil }})</span></td></tr>{% empty %}<tr><td colspan="4"><p class="empty-copy">No connected accounts.</p></td></tr>{% endfor %}</tbody>
+          </table></div>
+        </section>
+        <section class="panel">
+          <div class="panel-title"><h2>Operator-verified provider status</h2><span class="subtle">Documents an operator's verification; configure the app itself in the provider console</span></div>
+          {% for item in statuses %}<div class="list-row"><strong>{{ item.provider }}</strong><span>{{ item.review_status }}</span><span class="muted-text">Permissions: {{ item.permissions|default:'—' }}</span><span class="muted-text">Certificate expiry: {{ item.certificate_expires_at|default:'not applicable' }}</span><span class="spacer"></span><span class="subtle">Updated {{ item.updated_at }}</span></div>{% empty %}<p class="empty-copy">No provider review status recorded.</p>{% endfor %}
+          {% if role == 'owner' %}
+          <form method="post" action="/ops/operations/" class="form-grid" style="margin-top:22px">{% csrf_token %}
+            <div class="form-row">
+              <label>Provider <select name="provider"><option>instagram</option><option>whatsapp</option><option>messenger</option><option>telegram</option></select></label>
+              <label>Verified review status <input name="review_status" required maxlength="100"></label>
+            </div>
+            <div class="form-row">
+              <label>Verified permissions <input name="permissions" maxlength="1000"></label>
+              <label>mTLS certificate expiry (ISO datetime, only if applicable) <input name="certificate_expires_at"></label>
+            </div>
+            <div class="form-actions"><button class="button primary small">Record status</button></div>
+          </form>
+          {% endif %}
+        </section>
+      </div>
+      {% endif %}
 
-<section><h2>Pause controls</h2><p>Global pauses take precedence over workspace controls. In-flight external requests cannot be recalled.</p>{% for item in controls %}<p><strong>{{ item.scope|default:'Global' }} / {{ item.key }}</strong> — {{ item.reason }}</p>{% empty %}<p>No active pauses.</p>{% endfor %}{% if role != 'analyst' %}<form method="post" action="/ops/control/">{% csrf_token %}<label>Workspace UUID (blank = global; owner only) <input name="workspace"></label><label>Control <input name="key" list="controls" required></label><datalist id="controls"><option value="workspace"><option value="ai"><option value="messaging"><option value="automations"><option value="content"><option value="integration:instagram"><option value="integration:whatsapp"><option value="integration:telegram"><option value="integration:messenger"><option value="integration:google_calendar"><option value="integration:calcom"><option value="integration:slack"><option value="integration:stripe"><option value="integration:elevenlabs"><option value="integration:airtable"><option value="integration:notion"><option value="integration:attio"><option value="integration:gohighlevel"></datalist><p class="muted">For one flow: automation:&lt;automation UUID&gt;, with a workspace UUID.</p><label>Action <select name="disabled"><option value="true">Pause / suspend</option><option value="false">Resume / reinstate</option></select></label><label>Reason <input name="reason" required maxlength="300"></label><button>Apply control</button></form>{% endif %}</section>
+      {% if tab == 'controls' %}
+      <div class="page-heading"><div><span class="eyebrow">SAFETY</span><h1>Pause controls</h1><p>Global pauses take precedence over workspace controls. In-flight external requests cannot be recalled.</p></div></div>
+      <div class="two-col">
+        <section class="panel">
+          <div class="panel-title"><h2>Active pauses</h2><span class="subtle">{{ controls|length }} active</span></div>
+          {% for item in controls %}<div class="list-row"><span class="pill pill-warn">{{ item.scope|default:'Global' }}</span><strong>{{ item.key }}</strong><span class="spacer"></span><span class="muted-text">{{ item.reason }}</span></div>{% empty %}<p class="empty-copy">No active pauses.</p>{% endfor %}
+        </section>
+        {% if role != 'analyst' %}
+        <section class="panel">
+          <div class="panel-title"><h2>Apply a control</h2><span class="subtle">Audited</span></div>
+          <form method="post" action="/ops/control/" class="form-grid">{% csrf_token %}
+            <label>Workspace UUID (blank = global; owner only) <input name="workspace" placeholder="Leave blank for a global pause"></label>
+            <label>Control <input name="key" list="controls" required placeholder="ai, messaging, integration:slack …"></label>
+            <datalist id="controls"><option value="workspace"><option value="ai"><option value="messaging"><option value="automations"><option value="content"><option value="integration:instagram"><option value="integration:whatsapp"><option value="integration:telegram"><option value="integration:messenger"><option value="integration:google_calendar"><option value="integration:calcom"><option value="integration:slack"><option value="integration:stripe"><option value="integration:elevenlabs"><option value="integration:airtable"><option value="integration:notion"><option value="integration:attio"><option value="integration:gohighlevel"></datalist>
+            <p class="muted-text">For one flow: <span class="mono">automation:&lt;automation UUID&gt;</span>, with a workspace UUID.</p>
+            <label>Action <select name="disabled"><option value="true">Pause / suspend</option><option value="false">Resume / reinstate</option></select></label>
+            <label>Reason <input name="reason" required maxlength="300"></label>
+            <div class="form-actions"><button class="button primary small">Apply control</button></div>
+          </form>
+        </section>
+        {% endif %}
+      </div>
+      {% endif %}
 
-<section><h2>Platform team</h2><table><tr><th>User</th><th>Role</th><th>Active / MFA</th><th>Manage</th></tr>{% for item in staff %}<tr><td>{{ item.user.username }}</td><td>{{ item.role }}</td><td>{{ item.active }} / {{ item.otp_confirmed }}</td><td>{% if role == 'owner' %}<form method="post" action="/ops/staff/">{% csrf_token %}<input type="hidden" name="id" value="{{ item.pk }}"><select name="role"><option value="{{ item.role }}">{{ item.role }}</option><option>owner</option><option>support</option><option>analyst</option></select><select name="active"><option value="true">Active</option><option value="false">Revoke</option></select><button>Update</button></form>{% endif %}</td></tr>{% endfor %}</table>{% if role == 'owner' %}<h3>Pending invitations</h3>{% for item in invitations %}<form method="post" action="/ops/invite/revoke/">{% csrf_token %}<input type="hidden" name="id" value="{{ item.pk }}">{{ item.email }} / {{ item.role }} / expires {{ item.expires_at }} <button>Revoke invitation</button></form>{% empty %}<p>No pending invitations.</p>{% endfor %}<h3>Invite staff</h3><form method="post" action="/ops/invite/">{% csrf_token %}<label>Email <input name="email" type="email" required></label><label>Role <select name="role"><option>support</option><option>analyst</option><option>owner</option></select></label><button>Create private invitation</button></form>{% endif %}</section>
+      {% if tab == 'team' %}
+      <div class="page-heading"><div><span class="eyebrow">TEAM</span><h1>Platform team</h1><p>Staff roles, MFA enrollment and invitations.</p></div></div>
+      <div class="stack">
+        <section class="panel">
+          <div class="panel-title"><h2>Staff</h2><span class="subtle">{{ staff|length }} members</span></div>
+          <div class="table-scroll"><table>
+            <thead><tr><th>User</th><th>Role</th><th>Status</th><th>MFA</th>{% if role == 'owner' %}<th>Manage</th>{% endif %}</tr></thead>
+            <tbody>{% for item in staff %}<tr>
+              <td><strong>{{ item.user.username }}</strong></td>
+              <td><span class="pill">{{ item.role }}</span></td>
+              <td>{% if item.active %}<span class="pill pill-good">active</span>{% else %}<span class="pill pill-bad">revoked</span>{% endif %}</td>
+              <td>{% if item.otp_confirmed %}<span class="pill pill-good">enrolled</span>{% else %}<span class="pill pill-warn">pending</span>{% endif %}</td>
+              {% if role == 'owner' %}<td><form method="post" action="/ops/staff/" class="inline-form">{% csrf_token %}<input type="hidden" name="id" value="{{ item.pk }}"><label>Role<select name="role"><option value="{{ item.role }}">{{ item.role }}</option><option>owner</option><option>support</option><option>analyst</option></select></label><label>Status<select name="active"><option value="true">Active</option><option value="false">Revoke</option></select></label><button class="button secondary small">Update</button></form></td>{% endif %}
+            </tr>{% empty %}<tr><td colspan="5"><p class="empty-copy">No platform staff.</p></td></tr>{% endfor %}</tbody>
+          </table></div>
+        </section>
+        {% if role == 'owner' %}
+        <div class="two-col">
+          <section class="panel">
+            <div class="panel-title"><h2>Pending invitations</h2><span class="subtle">Single-use, 24 hours</span></div>
+            {% for item in invitations %}<div class="list-row"><strong>{{ item.email }}</strong><span class="pill">{{ item.role }}</span><span class="muted-text">expires {{ item.expires_at }}</span><span class="spacer"></span><form method="post" action="/ops/invite/revoke/">{% csrf_token %}<input type="hidden" name="id" value="{{ item.pk }}"><button class="button danger small">Revoke</button></form></div>{% empty %}<p class="empty-copy">No pending invitations.</p>{% endfor %}
+          </section>
+          <section class="panel">
+            <div class="panel-title"><h2>Invite staff</h2><span class="subtle">Invitees need an existing Nemio account</span></div>
+            <form method="post" action="/ops/invite/" class="form-grid">{% csrf_token %}
+              <label>Email <input name="email" type="email" required placeholder="name@company.com"></label>
+              <label>Role <select name="role"><option>support</option><option>analyst</option><option>owner</option></select></label>
+              <div class="form-actions"><button class="button primary small">Create private invitation</button></div>
+            </form>
+          </section>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
 
-<section><h2>Immutable platform audit</h2><p>Latest 100 actions; retained independently of workspace deletion.</p><table><tr><th>When</th><th>Actor</th><th>Action / workspace</th><th>Detail</th></tr>{% for item in logs %}<tr><td>{{ item.created_at }}</td><td>{{ item.actor_id }}</td><td>{{ item.action }}<br>{{ item.workspace_id }}</td><td>{{ item.detail }}</td></tr>{% endfor %}</table></section>{% endif %}
+      {% if tab == 'audit' %}
+      <div class="page-heading"><div><span class="eyebrow">AUDIT</span><h1>Audit log</h1><p>Latest 100 platform actions; retained independently of workspace deletion.</p></div></div>
+      <section class="panel">
+        <div class="table-scroll"><table>
+          <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Workspace</th><th>Detail</th></tr></thead>
+          <tbody>{% for item in logs %}<tr><td>{{ item.created_at }}</td><td class="mono">{{ item.actor_id }}</td><td><strong>{{ item.action }}</strong></td><td class="mono">{{ item.workspace_id|default:'—' }}</td><td>{{ item.detail }}</td></tr>{% empty %}<tr><td colspan="5"><p class="empty-copy">No audit entries.</p></td></tr>{% endfor %}</tbody>
+        </table></div>
+      </section>
+      {% endif %}
 
-</main></body></html>
-
+      {% endif %}
+    </main>
+    <footer class="app-footer"><span>Internal platform console. Every action is recorded.</span><span>Nemio</span></footer>
+  </div>
+</div>
+{% endif %}
+</body>
+</html>

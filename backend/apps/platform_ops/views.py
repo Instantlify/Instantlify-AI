@@ -27,6 +27,9 @@ from .models import (
 )
 from .security import new_secret, record, verify_otp
 
+# Dashboard sections. Each renders alone; the sidebar switches between them.
+TABS = ["overview", "workspaces", "revenue", "operations", "controls", "team", "audit"]
+
 
 def page(request, **context):
     return render(request, "platform_ops/console.html", context, status=context.pop("status", 200))
@@ -215,9 +218,13 @@ def dashboard(request):
         }
     except RedisError:
         bucket = {"unavailable": True}
+    tab = request.GET.get("tab", "overview")
+    if tab not in TABS:
+        tab = "overview"
     return page(
         request,
         screen="dashboard",
+        tab=tab,
         workspace_page=workspace_page,
         revenue=revenue_metrics(),
         billing_sync=cache.get("ops:billing_sync", "Not yet synchronized"),
@@ -246,7 +253,7 @@ def dashboard(request):
         else [],
         logs=PlatformAudit.objects.all()[:100],
         role=request.platform_role.role,
-        backlog=cache.get("operations:backlogs", {}),
+        backlog=backlog_summary(cache.get("operations:backlogs")),
     )
 
 
@@ -300,7 +307,7 @@ def control(request):
         scope=scope, key=key, defaults={"disabled": disabled, "reason": reason}
     )
     record(request.user, "control.changed", scope, key=key, disabled=disabled, reason=reason)
-    return redirect("/ops/")
+    return redirect("/ops/?tab=controls")
 
 
 @require_POST
@@ -328,7 +335,7 @@ def staff_change(request):
     target.version += 1
     target.save()
     record(request.user, "staff.changed", target=str(target.user_id), role=role, active=active)
-    return redirect("/ops/")
+    return redirect("/ops/?tab=team")
 
 
 @require_POST
@@ -369,7 +376,7 @@ def revoke_invite(request):
     item.expires_at = timezone.now()
     item.save(update_fields=["expires_at"])
     record(request.user, "staff.invite_revoked", target=str(item.pk))
-    return redirect("/ops/")
+    return redirect("/ops/?tab=team")
 
 
 def accept_invite(request):
@@ -448,7 +455,7 @@ def support(request, pk):
             session.ended_at = timezone.now()
             session.save()
             record(request.user, "support.ended", session.workspace_id, session=str(session.pk))
-        return redirect("/ops/")
+        return redirect("/ops/?tab=workspaces")
     record(request.user, "support.viewed", session.workspace_id, session=str(session.pk))
     return page(
         request,
@@ -497,4 +504,21 @@ def operation_status(request):
             permissions=request.POST.get("permissions", "")[:1000],
             certificate_expiry=raw_expiry,
         )
-    return redirect("/ops/")
+    return redirect("/ops/?tab=operations")
+
+
+BACKLOG_LABELS = {
+    "webhookevent": "Inbound events waiting over 5 minutes",
+    "delivery": "Deliveries waiting over 5 minutes",
+    "agentrun": "Agent runs waiting over 5 minutes",
+    "webhookevent_failed": "Inbound events failed in the last hour",
+}
+
+
+def backlog_summary(counts):
+    """Shape the worker-computed backlog counts for display: a total for the tile and
+    labelled rows for the breakdown. None means the check has not run recently."""
+    if not counts:
+        return {"known": False, "total": 0, "items": []}
+    items = [(BACKLOG_LABELS.get(key, key), value) for key, value in counts.items()]
+    return {"known": True, "total": sum(counts.values()), "items": items}

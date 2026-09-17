@@ -43,7 +43,10 @@ class ConsoleBoundary:
             increment("webhook." + result)
         if console:
             response["Cache-Control"] = "private, no-store"
-            response["Referrer-Policy"] = "no-referrer"
+            # "no-referrer" makes browsers send "Origin: null" on same-origin form posts,
+            # which Django's CSRF origin check rejects. same-origin still leaks nothing
+            # cross-site while letting the console's own forms submit.
+            response["Referrer-Policy"] = "same-origin"
             response["Content-Security-Policy"] = (
                 "default-src 'self'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; form-action 'self'"
             )

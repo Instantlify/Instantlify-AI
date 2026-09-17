@@ -485,3 +485,29 @@ def test_subscription_sync_and_churn_baseline(workspace, settings):
         status="active",
     )
     assert revenue_metrics()["churn"] == "0.0%"
+
+
+def test_console_forms_submit_with_a_real_origin(user):
+    """A `no-referrer` policy makes browsers send `Origin: null`, which the CSRF origin
+    check rejects. The console must send a policy that keeps same-origin form posts alive."""
+    client = Client(enforce_csrf_checks=True, HTTP_HOST="ops.localhost")
+    page = client.get("/ops/login/")
+    assert page["Referrer-Policy"] == "same-origin"
+    token = page.cookies["csrftoken"].value
+    body = {"username": "owner", "password": "wrong", "csrfmiddlewaretoken": token}
+    assert client.post("/ops/login/", body, HTTP_ORIGIN="null").status_code == 403
+    assert client.post("/ops/login/", body, HTTP_ORIGIN="http://ops.localhost").status_code != 403
+
+
+def test_dashboard_renders_one_tab_at_a_time(operator):
+    client = signed_client(operator)
+    with patch("redis.Redis.get", return_value=None), patch("redis.Redis.ttl", return_value=-2):
+        overview = client.get("/ops/")
+        team = client.get("/ops/?tab=team")
+        bogus = client.get("/ops/?tab=nope")
+    assert overview.context["tab"] == "overview" and bogus.context["tab"] == "overview"
+    assert b"Platform overview" in overview.content
+    assert b"Invite staff" not in overview.content
+    assert team.context["tab"] == "team"
+    assert b"Invite staff" in team.content and b"Platform overview" not in team.content
+    assert b'href="/ops/?tab=team" class="nav-item active"' in team.content
