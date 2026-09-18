@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import console_actions, views
 
 urlpatterns = [
     path("invite/revoke/", views.revoke_invite),
@@ -15,4 +15,32 @@ urlpatterns = [
     path("support/", views.start_support),
     path("support/<uuid:pk>/", views.support),
     path("operations/", views.operation_status),
+    path("tiers/", views.tier_save),
+    path("tiers/<int:pk>/", views.tier_save),
+    path("settings/", views.settings_save),
+    path("blog/", console_actions.blog_save),
+    path("blog/<int:pk>/", console_actions.blog_save),
+    path("blog/categories/", console_actions.blog_category_save),
+    path("blog/categories/<int:pk>/", console_actions.blog_category_save),
+    path("tickets/<int:pk>/", console_actions.ticket_update),
+    path("knowledge/", console_actions.knowledge_save),
+    path("knowledge/<int:pk>/", console_actions.knowledge_save),
+    path("promos/", console_actions.promo_save),
+    path("promos/<int:pk>/", console_actions.promo_save),
+    path("notices/", console_actions.announcement_save),
+    path("notices/<int:pk>/", console_actions.announcement_save),
+    path("emails/", console_actions.email_template_save),
+    path("emails/<int:pk>/", console_actions.email_template_save),
+    path("segments/", console_actions.segment_category_save),
+    path("billing-scan/", console_actions.billing_scan),
+    path("users/create/", console_actions.user_create),
+    path("credits/test/", console_actions.provider_test),
+    path("automations/<uuid:pk>/copy/", console_actions.automation_copy),
+    path("automations/<uuid:pk>/transfer/", console_actions.automation_transfer),
+    path("credits/rates/", console_actions.rate_save),
+    path("credits/rates/<int:pk>/", console_actions.rate_save),
+    path("users/<int:pk>/ban/", console_actions.user_ban),
+    path("users/<int:pk>/unban/", console_actions.user_unban),
+    path("users/<int:pk>/email/", console_actions.user_email),
+    path("users/<int:pk>/portal-link/", console_actions.user_portal_link),
 ]

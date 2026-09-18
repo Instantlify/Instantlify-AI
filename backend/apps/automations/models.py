@@ -56,3 +56,23 @@ class ConversationState(TenantModel):
     error_code = models.CharField(max_length=50, blank=True)
     experiment_id = models.UUIDField(null=True)
     variant = models.CharField(max_length=10, blank=True)
+
+
+class AutomationTransferLog(models.Model):
+    """Every move of an automation between workspaces. Deliberately not a TenantModel:
+    the row describes two tenants, and it must survive either workspace being deleted."""
+
+    automation_id = models.UUIDField()
+    automation_name = models.CharField(max_length=100)
+    from_workspace = models.ForeignKey(
+        "tenants.Workspace", null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    to_workspace = models.ForeignKey(
+        "tenants.Workspace", null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    operator = models.ForeignKey("tenants.User", null=True, on_delete=models.SET_NULL)
+    reason = models.CharField(max_length=300)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]

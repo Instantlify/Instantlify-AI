@@ -32,6 +32,7 @@ import {
   useFeedback,
 } from "@/components/ui";
 import { ActivityList } from "@/components/activity";
+import { ConnectPrompt } from "@/components/growth";
 
 export default function OverviewPage() {
   const { workspace, user, prefix, manager } = useWorkspace();
@@ -125,6 +126,7 @@ export default function OverviewPage() {
     funnel?.steps.find((s) => s.kind === kind)?.leads ?? 0;
   return (
     <>
+      <ConnectPrompt workspaceId={workspace.id} />
       <div className="page-heading">
         <div>
           <span className="eyebrow">{workspace.name.toUpperCase()}</span>

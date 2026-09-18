@@ -10,7 +10,7 @@ const EVENTS = [
   ["lead.created", "New Lead", "Triggers when a new lead is created."],
   ["lead.updated", "Updated Lead", "Triggers when a lead's details change."],
   ["lead.hot", "Hot Lead", "Triggers when a lead is classified as hot."],
-  ["message.received", "New Inbound Message", "Triggers on every inbound message."],
+  ["message.received", "New Inbound Message", "Triggers when a customer sends any inbound message."],
   ["message.sent", "Message Sent", "Triggers when a reply is delivered."],
   [
     "conversation.handoff",

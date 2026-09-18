@@ -81,20 +81,27 @@ def voice_asset(request, token):
     return response
 
 
+TRANSCRIPTION_MODEL = "whisper-1"
+
+
 def transcribe(message, config):
-    """Return the transcript of the message's voice attachment ("" if it has none)."""
+    """Return (transcript, audio seconds) for the message's voice attachment; ("", 0) if
+    it has none. The duration is Whisper's own measurement, which is what it bills."""
     attachments = json.loads(message.attachments)
     attachment = next(
         (a for a in attachments if isinstance(a, dict) and a.get("type") in {"audio", "voice"}),
         None,
     )
     if not attachment:
-        return ""
+        return "", 0.0
     connection = message.conversation.identity.connection
     if connection.is_test or config.is_test:
         if settings.CHANNEL_ADAPTER_MODE != "fake":
             raise ProviderError("test_transcription_disabled")
-        return str(attachment.get("transcript", "[Local test voice note]"))
+        return (
+            str(attachment.get("transcript", "[Local test voice note]")),
+            float(attachment.get("duration", 5)),
+        )
     filename = "voice.ogg"
     if connection.provider == "telegram":
         from apps.channels.providers import TelegramAdapter
@@ -135,7 +142,7 @@ def transcribe(message, config):
         "POST",
         "https://api.openai.com/v1/audio/transcriptions",
         headers={"Authorization": f"Bearer {config.api_key}"},
-        data={"model": "whisper-1"},
+        data={"model": TRANSCRIPTION_MODEL, "response_format": "verbose_json"},
         files={"file": (filename, audio, "application/octet-stream")},
     )
-    return str(result.get("text", ""))
+    return str(result.get("text", "")), float(result.get("duration") or 0)

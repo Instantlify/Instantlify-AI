@@ -289,8 +289,12 @@ class IntegrationList(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         member = workspace_membership(self.request, self.kwargs["workspace_id"], ["owner", "admin"])
-        data = serializer.validated_data
         from django.conf import settings
+
+        from apps.billing.gating import check_feature
+
+        check_feature(member.workspace_id, "integrations_unlocked")
+        data = serializer.validated_data
 
         if data.get("is_test") and settings.CHANNEL_ADAPTER_MODE != "fake":
             raise serializers.ValidationError("Test integrations are disabled.")

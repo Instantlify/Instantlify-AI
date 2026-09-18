@@ -143,3 +143,9 @@ def test_invalid_role_and_duplicate_membership_rejected(user, workspace):
     other = User.objects.create_user(username="other", email="other@example.com")
     with pytest.raises(IntegrityError), transaction.atomic():
         Membership.all_objects.create(workspace=workspace, user=other, role="superuser")
+
+
+def test_csrf_token_fetch_is_not_rate_limited():
+    # Every write fetches a token first; the anonymous per-IP rate must not apply here.
+    client = APIClient()
+    assert all(client.get("/api/auth/csrf/").status_code == 200 for _ in range(70))

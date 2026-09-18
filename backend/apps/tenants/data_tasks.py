@@ -40,7 +40,7 @@ def export_tables():
     from apps.agents.models import AgentConfig, KnowledgeDocument, ToolCall, UsageRecord
     from apps.analytics.models import Experiment, FunnelEvent
     from apps.automations.models import Automation
-    from apps.billing.models import Offer, Payment
+    from apps.billing.models import AICreditBalance, AICreditTransaction, Offer, Payment
     from apps.channels.models import ChannelConnection
     from apps.content.models import BioPage, ScheduledPost
     from apps.crm.models import (
@@ -53,7 +53,7 @@ def export_tables():
         Message,
     )
     from apps.marketplace.models import Template, TemplateInstall, TemplatePurchase
-    from apps.public_api.models import APIKey, WebhookSubscription
+    from apps.public_api.models import APIKey, MCPClient, WebhookSubscription
 
     from .models import AuditEvent, Membership, WorkspaceBranding
 
@@ -129,6 +129,31 @@ def export_tables():
             IntegrationJob,
             ["id", "integration_id", "operation", "status", "created_at"],
         ),
+        "ai_credit_balance": (
+            AICreditBalance,
+            [
+                "balance_cents",
+                "auto_topup_enabled",
+                "auto_topup_threshold_cents",
+                "auto_topup_amount_cents",
+            ],
+        ),
+        "ai_credit_transactions": (
+            AICreditTransaction,
+            [
+                "id",
+                "type",
+                "status",
+                "amount_cents",
+                "real_cost_cents",
+                "remaining_balance_cents",
+                "model",
+                "tokens_in",
+                "tokens_out",
+                "description",
+                "created_at",
+            ],
+        ),
         "offers": (Offer, ["id", "name", "description", "amount_cents", "currency", "active"]),
         "payments": (
             Payment,
@@ -196,6 +221,19 @@ def export_tables():
         "api_keys": (
             APIKey,
             ["id", "name", "prefix", "scopes", "created_at", "last_used_at", "revoked_at"],
+        ),
+        # Which MCP clients (Claude Desktop, agents) used this workspace's keys.
+        "mcp_clients": (
+            MCPClient,
+            [
+                "id",
+                "api_key_id",
+                "client_name",
+                "client_version",
+                "protocol_version",
+                "last_active_at",
+                "created_at",
+            ],
         ),
         "webhook_subscriptions": (
             WebhookSubscription,

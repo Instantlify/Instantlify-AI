@@ -3,6 +3,19 @@ from django.urls import include, path
 from apps.channels.ingress import meta_webhook, telegram_webhook
 from apps.channels.views import ConnectionListView, MetaOAuthCallbackView, MetaOAuthStartView
 from apps.dashboard_api.views import WorkspaceStatusView, live, ready
+from apps.platform_ops.public import (
+    AnnouncementListView,
+    AnnouncementSeenView,
+    BlogViewBeaconView,
+    FunnelEventView,
+    PageVisitView,
+    PromoView,
+    PublicBlogDetail,
+    PublicBlogList,
+    SupportChatView,
+    SupportTicketView,
+    WizardProgressView,
+)
 from apps.tenants.invitations import (
     AcceptInvitationView,
     InvitationDetailView,
@@ -57,4 +70,17 @@ urlpatterns = [
     path("api/workspaces/<uuid:workspace_id>/connections/", ConnectionListView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/meta/connect/", MetaOAuthStartView.as_view()),
     path("api/meta/callback/", MetaOAuthCallbackView.as_view()),
+    # Growth surfaces: written from the tenant app and the public marketing site,
+    # read only by the platform console.
+    path("api/growth/funnel/", FunnelEventView.as_view()),
+    path("api/growth/wizard/", WizardProgressView.as_view()),
+    path("api/growth/visit/", PageVisitView.as_view()),
+    path("api/growth/blog-view/", BlogViewBeaconView.as_view()),
+    path("api/growth/tickets/", SupportTicketView.as_view()),
+    path("api/growth/support-chat/", SupportChatView.as_view()),
+    path("api/growth/announcements/", AnnouncementListView.as_view()),
+    path("api/growth/announcements/<int:pk>/seen/", AnnouncementSeenView.as_view()),
+    path("api/growth/promo/", PromoView.as_view()),
+    path("api/blog/", PublicBlogList.as_view()),
+    path("api/blog/<slug:slug>/", PublicBlogDetail.as_view()),
 ]

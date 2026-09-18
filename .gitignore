@@ -20,3 +20,6 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 celerybeat-schedule*
+reference images/
+# Connector build output (connectors/scripts/publish.py)
+connectors/dist/

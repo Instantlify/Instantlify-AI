@@ -31,24 +31,104 @@ def reserve_usage(config, key, kind="generation"):
         .filter(kind="generation", created_at__gte=account.period_start)
         .count()
     )
-    if kind == "generation" and used >= account.usage_limit:
+    cap = account.usage_limit
+    if kind == "generation" and cap is not None and used >= cap:
         raise PermissionDenied("The AI message limit has been reached.")
+    if config.billing_mode == "platform_credits" and not config.is_test:
+        from .credits import ensure_credit
+
+        if not ensure_credit(config.workspace_id):
+            raise PermissionDenied("credits_exhausted")
     return UsageRecord.objects.for_workspace(config.workspace_id).create(
         workspace_id=config.workspace_id,
         key=key,
         provider=config.provider,
         model=config.model,
         kind=kind,
+        billing_mode=config.billing_mode,
     )
 
 
 def complete_usage(record, completion, config):
-    """Accumulates: a multi-round agent turn adds every model call to one record."""
+    """One record per turn, one credit ledger row per model call. BYO workspaces are
+    costed from their own configured prices and never debited."""
+    record.calls += 1
     record.input_tokens += completion.input_tokens
     record.output_tokens += completion.output_tokens
-    record.cost = (
-        Decimal(record.input_tokens) * config.input_cost_per_million
-        + Decimal(record.output_tokens) * config.output_cost_per_million
-    ) / Decimal(1000000)
+    if config.billing_mode == "platform_credits" and not config.is_test:
+        from .credits import charge
+
+        # After a provider fallback the answering model differs from the configured one;
+        # charge the rate of the model that actually did the work.
+        answered = getattr(completion, "model", "")
+        row = charge(
+            config.workspace_id,
+            key=f"usage:{record.id}:{record.calls}",
+            model=answered if isinstance(answered, str) and answered else config.model,
+            tokens_in=completion.input_tokens,
+            tokens_out=completion.output_tokens,
+            description=f"{record.kind} call {record.calls}",
+            usage_record=record,
+        )
+        record.cost += -row.amount_cents / Decimal(100)
+    else:
+        record.cost = (
+            Decimal(record.input_tokens) * config.input_cost_per_million
+            + Decimal(record.output_tokens) * config.output_cost_per_million
+        ) / Decimal(1000000)
     record.status = "complete"
     record.save()
+
+
+def charge_embedding(config, record, tokens):
+    """Embeddings are input-only usage; debited like any other call on prepaid credits."""
+    if config.billing_mode != "platform_credits" or config.is_test or not tokens:
+        return
+    from .credits import charge
+
+    row = charge(
+        config.workspace_id,
+        key=f"usage:{record.id}:embed",
+        model=config.embedding_model,
+        tokens_in=tokens,
+        description=f"{record.kind} ({tokens} tokens)",
+        usage_record=record,
+    )
+    UsageRecord.objects.for_workspace(config.workspace_id).filter(pk=record.pk).update(
+        cost=-row.amount_cents / Decimal(100), billing_mode=config.billing_mode
+    )
+
+
+def charge_transcription(config, record, seconds):
+    """Speech-to-text is billed per second of audio. The rate card holds it like any
+    model, in cents per million units, where a unit is one second (whisper-1 at
+    $0.006/min is 10,000 cents per million seconds). Prepaid workspaces are debited;
+    BYO-key workspaces get the provider's real cost recorded, since the charge lands on
+    their own OpenAI bill."""
+    import math
+
+    from apps.agents.voice import TRANSCRIPTION_MODEL
+
+    from .credits import charge, price, resolve_rate
+
+    billed = math.ceil(seconds) if seconds > 0 else 0
+    fields = {
+        "model": TRANSCRIPTION_MODEL,
+        "audio_seconds": Decimal(str(round(seconds, 2))),
+        "billing_mode": config.billing_mode,
+        "status": "complete",
+    }
+    if billed and config.billing_mode == "platform_credits" and not config.is_test:
+        row = charge(
+            config.workspace_id,
+            key=f"usage:{record.id}:transcribe",
+            model=TRANSCRIPTION_MODEL,
+            tokens_in=billed,
+            description=f"transcription ({billed} s audio)",
+            usage_record=record,
+        )
+        fields["cost"] = -row.amount_cents / Decimal(100)
+    elif billed and not config.is_test:
+        _, real = price(resolve_rate(TRANSCRIPTION_MODEL), tokens_in=billed)
+        fields["cost"] = real / Decimal(100)
+    UsageRecord.objects.for_workspace(config.workspace_id).filter(pk=record.pk).update(**fields)

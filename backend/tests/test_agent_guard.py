@@ -11,7 +11,6 @@ from apps.agents.models import AgentConfig, AgentRun, ToolCall
 from apps.agents.providers import Completion
 from apps.agents.tasks import process_run
 from apps.agents.tools import execute, propose, validate_args
-from apps.billing.services import account_for
 from apps.channels.models import ChannelConnection, Delivery, WebhookEvent
 from apps.crm.models import IntegrationConfig
 from apps.crm.services import receive
@@ -251,9 +250,9 @@ def test_unconnected_calendar_fails_the_tool_not_the_conversation(channel, confi
 
 
 def test_usage_limit_blocks_the_model_call(channel, config):
-    account = account_for(channel.workspace_id)
-    account.usage_limit = 0
-    account.save()
+    from tests.conftest import set_limits
+
+    set_limits(channel.workspace, max_ai_messages=0)
     message = inbound(channel, "hello")
     with llm(text="hi") as provider_for:
         process_run(str(message.workspace_id), str(run_for(message).id))

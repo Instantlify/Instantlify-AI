@@ -15,9 +15,11 @@ from apps.billing.payments import tenant_stripe_webhook
 from apps.billing.views import (
     BillingJobView,
     BillingView,
+    CreditsView,
     OfferDetail,
     OfferList,
     PaymentList,
+    PublicPlansView,
     SendPaymentLinkView,
     stripe_webhook,
 )
@@ -47,6 +49,7 @@ from apps.marketplace.views import (
     PurchaseDetail,
     PurchaseList,
 )
+from apps.public_api.mcp import MCPView
 from apps.public_api.views import (
     DeliveryLog,
     KeyDetail,
@@ -94,6 +97,7 @@ urlpatterns = [
     path(P + "documents/<uuid:pk>/", DocumentDetail.as_view()),
     path(P + "billing/", BillingView.as_view()),
     path(P + "billing/jobs/<uuid:job_id>/", BillingJobView.as_view()),
+    path(P + "billing/credits/", CreditsView.as_view()),
     path(P + "offers/", OfferList.as_view()),
     path(P + "offers/<uuid:pk>/", OfferDetail.as_view()),
     path(P + "payments/", PaymentList.as_view()),
@@ -126,6 +130,9 @@ urlpatterns = [
     path("api/public/templates/<slug:slug>/", PublicTemplateDetail.as_view()),
     path("api/public/bio/<slug:slug>/", PublicBioView.as_view()),
     path("api/public/branding/", PublicBrandingView.as_view()),
+    path("api/public/plans/", PublicPlansView.as_view()),
+    # Model Context Protocol server (Streamable HTTP, stateless JSON); same API keys.
+    path("api/mcp/", MCPView.as_view()),
     # Public API v1 (X-API-Key).
     path("api/v1/me/", V1Me.as_view()),
     path("api/v1/leads/", V1Leads.as_view()),

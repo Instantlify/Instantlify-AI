@@ -125,7 +125,7 @@ def live_exchange(code):
     profile = request(
         "GET",
         f"https://graph.instagram.com/{settings.META_API_VERSION}/me",
-        params={"fields": "user_id,username"},
+        params={"fields": "user_id,username,name,biography,website,followers_count"},
         headers={"Authorization": f"Bearer {long['access_token']}"},
     )
     account_id = str(profile.get("user_id") or profile.get("id") or "")
@@ -142,4 +142,10 @@ def live_exchange(code):
         profile.get("username", account_id),
         long["access_token"],
         timezone.now() + timedelta(seconds=int(long["expires_in"])),
+        profile={
+            "name": profile.get("name", ""),
+            "biography": profile.get("biography", ""),
+            "website": profile.get("website", ""),
+            "followers_count": profile.get("followers_count", 0),
+        },
     )

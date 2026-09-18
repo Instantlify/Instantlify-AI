@@ -42,6 +42,17 @@ const TOOL_HELP: Record<string, string> = {
   handoff_to_human: "Hand the conversation to a teammate",
 };
 const QUALIFYING = ["interest", "budget", "timeline", "company"];
+const PROVIDERS: Record<string, { label: string; model: string; key: string }> =
+  {
+    openai: { label: "OpenAI", model: "gpt-5.4-mini", key: "sk-…" },
+    anthropic: {
+      label: "Anthropic (Claude)",
+      model: "claude-sonnet-5",
+      key: "sk-ant-…",
+    },
+    gemini: { label: "Google Gemini", model: "", key: "Gemini API key" },
+    xai: { label: "xAI (Grok)", model: "", key: "xai-…" },
+  };
 
 type FormState = {
   name: string;
@@ -50,6 +61,9 @@ type FormState = {
   model: string;
   api_key: string;
   embedding_model: string;
+  embedding_api_key: string;
+  fallback_provider: string;
+  fallback_model: string;
   allowed_tools: string[];
   enabled: boolean;
   is_test: boolean;
@@ -58,6 +72,7 @@ type FormState = {
   handoff_keywords: string;
   max_tool_rounds: number;
   mode: "agent" | "simple";
+  billing_mode: "platform_credits" | "byo_key";
   input_cost_per_million: string;
   output_cost_per_million: string;
 };
@@ -70,6 +85,9 @@ const DEFAULTS: FormState = {
   model: "gpt-5.4-mini",
   api_key: "",
   embedding_model: "text-embedding-3-small",
+  embedding_api_key: "",
+  fallback_provider: "",
+  fallback_model: "",
   allowed_tools: [],
   enabled: false,
   is_test: false,
@@ -78,6 +96,7 @@ const DEFAULTS: FormState = {
   handoff_keywords: "",
   max_tool_rounds: 4,
   mode: "agent",
+  billing_mode: "platform_credits",
   input_cost_per_million: "0",
   output_cost_per_million: "0",
 };
@@ -90,6 +109,9 @@ function toForm(config: AgentConfig): FormState {
     model: config.model,
     api_key: "",
     embedding_model: config.embedding_model,
+    embedding_api_key: "",
+    fallback_provider: config.fallback_provider || "",
+    fallback_model: config.fallback_model || "",
     allowed_tools: config.allowed_tools,
     enabled: config.enabled,
     is_test: config.is_test,
@@ -98,6 +120,7 @@ function toForm(config: AgentConfig): FormState {
     handoff_keywords: config.handoff_keywords.join(", "),
     max_tool_rounds: config.max_tool_rounds,
     mode: config.mode || "agent",
+    billing_mode: config.billing_mode || "platform_credits",
     input_cost_per_million: config.input_cost_per_million,
     output_cost_per_million: config.output_cost_per_million,
   };
@@ -113,6 +136,7 @@ export default function AgentPage() {
   const { workspace, prefix, manager } = useWorkspace();
   const [form, setForm] = useState<FormState>(DEFAULTS);
   const [hasKey, setHasKey] = useState(false);
+  const [hasEmbeddingKey, setHasEmbeddingKey] = useState(false);
   const [configured, setConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
   const settings = useFeedback();
@@ -131,6 +155,7 @@ export default function AgentPage() {
         if (config.id) {
           setForm(toForm(config as AgentConfig));
           setHasKey(Boolean(config.has_key));
+          setHasEmbeddingKey(Boolean(config.has_embedding_key));
           setConfigured(true);
         }
       })
@@ -158,13 +183,16 @@ export default function AgentPage() {
           .filter(Boolean),
         max_tool_rounds: Number(form.max_tool_rounds),
         mode: form.mode,
+        billing_mode: form.billing_mode,
         input_cost_per_million: form.input_cost_per_million || "0",
         output_cost_per_million: form.output_cost_per_million || "0",
       };
       if (!form.api_key) delete payload.api_key;
+      if (!form.embedding_api_key) delete payload.embedding_api_key;
       const saved = await api<AgentConfig>(`${prefix}/agent/`, "PUT", payload);
       setForm(toForm(saved));
       setHasKey(saved.has_key);
+      setHasEmbeddingKey(saved.has_embedding_key);
       setConfigured(true);
     }, "Agent settings saved.");
   }
@@ -208,9 +236,25 @@ export default function AgentPage() {
                   <select
                     value={form.provider}
                     disabled={!manager}
-                    onChange={(e) => set("provider", e.target.value)}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      // A model name only means something to its own vendor.
+                      setForm((current) => ({
+                        ...current,
+                        provider: next,
+                        model: PROVIDERS[next]?.model ?? "",
+                        fallback_provider:
+                          current.fallback_provider === next
+                            ? ""
+                            : current.fallback_provider,
+                      }));
+                    }}
                   >
-                    <option value="openai">OpenAI</option>
+                    {Object.entries(PROVIDERS).map(([value, item]) => (
+                      <option key={value} value={value}>
+                        {item.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
               </div>
@@ -236,6 +280,7 @@ export default function AgentPage() {
                     maxLength={100}
                     required
                     disabled={!manager}
+                    placeholder="Model ID from the provider's docs"
                     onChange={(e) => set("model", e.target.value)}
                   />
                 </label>
@@ -245,7 +290,11 @@ export default function AgentPage() {
                     type="password"
                     value={form.api_key}
                     autoComplete="off"
-                    placeholder={hasKey ? "Leave blank to keep" : "sk-…"}
+                    placeholder={
+                      hasKey
+                        ? "Leave blank to keep"
+                        : (PROVIDERS[form.provider]?.key ?? "API key")
+                    }
                     disabled={!manager}
                     onChange={(e) => set("api_key", e.target.value)}
                   />
@@ -262,8 +311,75 @@ export default function AgentPage() {
                     disabled={!manager}
                     onChange={(e) => set("embedding_model", e.target.value)}
                   />
+                  <span className="hint">
+                    Knowledge search always uses OpenAI embeddings.
+                  </span>
                 </label>
               </div>
+              {form.billing_mode === "byo_key" &&
+                form.provider !== "openai" && (
+                  <label>
+                    OpenAI key for the knowledge base{" "}
+                    {hasEmbeddingKey && <Pill tone="good">Key saved</Pill>}
+                    <input
+                      type="password"
+                      value={form.embedding_api_key}
+                      autoComplete="off"
+                      placeholder={
+                        hasEmbeddingKey ? "Leave blank to keep" : "sk-…"
+                      }
+                      disabled={!manager}
+                      onChange={(e) => set("embedding_api_key", e.target.value)}
+                    />
+                    <span className="hint">
+                      Needed to index your documents: with your own key, Nemio
+                      does not pay for embeddings on your behalf.
+                    </span>
+                  </label>
+                )}
+              {form.billing_mode === "platform_credits" && (
+                <div className="two-col">
+                  <label>
+                    Fallback provider
+                    <select
+                      value={form.fallback_provider}
+                      disabled={!manager}
+                      onChange={(e) =>
+                        setForm((current) => ({
+                          ...current,
+                          fallback_provider: e.target.value,
+                          fallback_model:
+                            PROVIDERS[e.target.value]?.model ?? "",
+                        }))
+                      }
+                    >
+                      <option value="">None</option>
+                      {Object.entries(PROVIDERS)
+                        .filter(([value]) => value !== form.provider)
+                        .map(([value, item]) => (
+                          <option key={value} value={value}>
+                            {item.label}
+                          </option>
+                        ))}
+                    </select>
+                    <span className="hint">
+                      Used only when the main provider is rate-limited or down.
+                      Charged at the fallback model&apos;s rate.
+                    </span>
+                  </label>
+                  <label>
+                    Fallback model
+                    <input
+                      value={form.fallback_model}
+                      maxLength={100}
+                      required={Boolean(form.fallback_provider)}
+                      disabled={!manager || !form.fallback_provider}
+                      placeholder="Model ID"
+                      onChange={(e) => set("fallback_model", e.target.value)}
+                    />
+                  </label>
+                </div>
+              )}
               <div>
                 <span className="field" style={{ marginBottom: 8 }}>
                   Allowed tools
@@ -377,6 +493,26 @@ export default function AgentPage() {
                   />
                 </label>
               </div>
+              <label>
+                Billing
+                <select
+                  value={form.billing_mode}
+                  disabled={!manager}
+                  onChange={(e) =>
+                    set(
+                      "billing_mode",
+                      e.target.value as "platform_credits" | "byo_key",
+                    )
+                  }
+                >
+                  <option value="platform_credits">
+                    Nemio credits: prepaid balance, no API key needed
+                  </option>
+                  <option value="byo_key">
+                    Bring your own key: your provider bills you directly
+                  </option>
+                </select>
+              </label>
               <label>
                 Reply mode
                 <select

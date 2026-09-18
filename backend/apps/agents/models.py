@@ -14,6 +14,13 @@ class AgentConfig(TenantModel):
     model = models.CharField(max_length=100, default="gpt-5.4-mini")
     api_key = EncryptedTextField(blank=True)
     embedding_model = models.CharField(max_length=100, default="text-embedding-3-small")
+    # Knowledge-base vectors are always OpenAI embeddings. A BYO workspace whose chat
+    # provider is not OpenAI supplies an OpenAI key here for its documents.
+    embedding_api_key = EncryptedTextField(blank=True)
+    # Optional second provider for rate limits and outages, on platform credits only
+    # (a BYO key belongs to one vendor). Billed at the rate of the model that answered.
+    fallback_provider = models.CharField(max_length=20, blank=True)
+    fallback_model = models.CharField(max_length=100, blank=True)
     allowed_tools = models.JSONField(default=list)
     enabled = models.BooleanField(default=False)
     is_test = models.BooleanField(default=False)
@@ -25,6 +32,9 @@ class AgentConfig(TenantModel):
     triage_enabled = models.BooleanField(default=True)
     handoff_keywords = models.JSONField(default=list)
     max_tool_rounds = models.PositiveSmallIntegerField(default=4)
+    # platform_credits: Nemio's provider key, prepaid balance debited per call.
+    # byo_key: the workspace's own key, nothing debited. Explicit per workspace (2.10).
+    billing_mode = models.CharField(max_length=20, default="platform_credits")
     # agent: LangGraph sales agent with tools and stages. simple: one grounded
     # model call per message, no tools (see agents/simple.py).
     mode = models.CharField(max_length=10, default="agent")
@@ -93,6 +103,12 @@ class UsageRecord(TenantModel):
     reported_at = models.DateTimeField(null=True)
     report_attempts = models.PositiveIntegerField(default=0)
     report_after = models.DateTimeField(null=True)
+    # Model calls aggregated into this record; each is its own credit ledger row.
+    calls = models.PositiveIntegerField(default=0)
+    billing_mode = models.CharField(max_length=20, blank=True)
+    # Transcription is billed by audio length, not tokens; kept apart so token totals
+    # on the console never mix in seconds.
+    audio_seconds = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     class Meta:
         constraints = [

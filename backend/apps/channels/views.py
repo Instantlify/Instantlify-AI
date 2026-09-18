@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import secrets
 from datetime import timedelta
 from urllib.parse import urlencode
@@ -11,6 +12,8 @@ from rest_framework import generics, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.billing.gating import PlanLimitExceeded, check_within_limit
+from apps.platform_ops.tasks import classify_connection
 from apps.tenants.models import Workspace
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
@@ -21,13 +24,27 @@ from .transport import ProviderError
 
 
 class ConnectionSerializer(serializers.ModelSerializer):
+    # Soft-locked after a downgrade: still live, read-only for configuration.
+    locked = serializers.SerializerMethodField()
+
+    def get_locked(self, obj):
+        return obj.pk in self.context.get("locked", set())
+
     class Meta:
         model = ChannelConnection
-        fields = ["id", "provider", "display_name", "expires_at", "is_test", "status"]
+        fields = ["id", "provider", "display_name", "expires_at", "is_test", "status", "locked"]
 
 
 class ConnectionListView(generics.ListAPIView):
     serializer_class = ConnectionSerializer
+
+    def get_serializer_context(self):
+        from apps.billing.gating import locked_connection_ids
+
+        return {
+            **super().get_serializer_context(),
+            "locked": locked_connection_ids(self.kwargs["workspace_id"]),
+        }
 
     def get_queryset(self):
         member = workspace_membership(self.request, self.kwargs["workspace_id"])
@@ -37,6 +54,8 @@ class ConnectionListView(generics.ListAPIView):
 class MetaOAuthStartView(APIView):
     def post(self, request, workspace_id):
         member = workspace_membership(request, workspace_id, ["owner", "admin"])
+        # Gate before the OAuth dance, not after it.
+        check_within_limit(workspace_id, "max_instagram_accounts")
         if settings.CHANNEL_ADAPTER_MODE == "disabled" or (
             settings.CHANNEL_ADAPTER_MODE == "live"
             and not (settings.META_APP_ID and settings.META_APP_SECRET)
@@ -108,8 +127,6 @@ class MetaOAuthCallbackView(APIView):
                 request.query_params.get("code"), pending.workspace_id
             )
             with transaction.atomic():
-                from apps.billing.services import account_for
-
                 Workspace.objects.select_for_update().get(pk=pending.workspace_id)
                 already = (
                     ChannelConnection.objects.for_workspace(pending.workspace_id)
@@ -117,13 +134,11 @@ class MetaOAuthCallbackView(APIView):
                     .exclude(status="disconnected")
                     .exists()
                 )
-                active = (
-                    ChannelConnection.objects.for_workspace(pending.workspace_id)
-                    .exclude(status="disconnected")
-                    .count()
-                )
-                if not already and active >= account_for(pending.workspace_id).channel_limit:
-                    return HttpResponseRedirect("/?connection=limit")
+                if not already:
+                    try:
+                        check_within_limit(pending.workspace_id, "max_instagram_accounts")
+                    except PlanLimitExceeded:
+                        return HttpResponseRedirect("/?connection=limit")
                 connection, _ = ChannelConnection.objects.for_workspace(
                     pending.workspace_id
                 ).update_or_create(
@@ -136,9 +151,17 @@ class MetaOAuthCallbackView(APIView):
                         "expires_at": credentials.expires_at,
                         "is_test": settings.CHANNEL_ADAPTER_MODE == "fake",
                         "status": "active",
+                        "profile": credentials.profile,
                         "refresh_due_at": credentials.expires_at - timedelta(days=7),
                     },
                 )
+                # A bio changes, so the marketing segment derived from it is re-run on
+                # every reconnect, not only on first connect. Segmentation is reporting:
+                # a broker hiccup must never cost someone their connection.
+                try:
+                    classify_connection.delay(str(connection.pk))
+                except Exception:  # noqa: BLE001
+                    logging.getLogger(__name__).warning("segment classification not queued")
                 audit(
                     pending.workspace,
                     request.user,

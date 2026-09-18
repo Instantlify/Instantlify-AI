@@ -34,7 +34,20 @@ All settings load from process environment. Docker Compose injects the ignored r
 | `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` | Slack | Yes | Slack app for the hosted "Add to Slack" install (`chat:write`, `incoming-webhook`) |
 | `INTEGRATION_REDIRECT_BASE` | Hosted sign-in | No | Default `PUBLIC_APP_URL/api/integrations/callback/`; register `<base>google_calendar/` and `<base>slack/` with each provider |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Platform billing | Yes | Nemio's own subscriptions and metered AI usage |
-| `STRIPE_PRICES` | Platform billing | No | JSON `{plan: {base, meter}}` price IDs |
+| `STRIPE_PRICES` | Bootstrap only | No | Legacy JSON `{plan: {base, meter}}`; copied onto the monthly `PlanPrice` rows by the plans data migration. Prices now live in the database |
+| `PLATFORM_OPENAI_API_KEY` | Prepaid credits | Yes | Nemio's own OpenAI key, used for every workspace on `platform_credits` billing |
+| `PLATFORM_ANTHROPIC_API_KEY` / `PLATFORM_GEMINI_API_KEY` / `PLATFORM_XAI_API_KEY` | For those providers | Yes | Nemio's key for agents on `platform_credits` whose provider (or fallback provider) is Anthropic, Gemini or xAI. Knowledge-base embeddings always use `PLATFORM_OPENAI_API_KEY` |
+| `PLATFORM_<PROVIDER>_API_KEY_<LABEL>` | No | Yes | Extra named keys; each gets its own on-demand health card in the console. Not used by the agent runtime |
+| `UPTIME_PROBE_URL` | No | No | Public readiness URL (e.g. `https://app.nemio.ai/health/ready/`) probed every minute through DNS, TLS and the proxy. Unset: the ingress check is skipped |
+| `UPTIME_LATENCY_MS` | No | No | Default `2500`; a slower ingress response counts as a failure |
+| `ALERT_WEBHOOK_URL` | No | Yes | Slack-compatible incoming webhook (JSON `text`) for DOWN/RESOLVED pages |
+| `PAGERDUTY_ROUTING_KEY` | No | Yes | PagerDuty Events API v2 key; incidents trigger and resolve by check |
+| `EMAIL_HOST` | Production | No | SMTP host for transactional email. Production refuses to boot without it; locally mail prints to the console |
+| `EMAIL_PORT` / `EMAIL_USE_TLS` | No | No | Default `587` / `true` |
+| `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | With SMTP auth | Yes | SMTP credentials |
+| `DEFAULT_FROM_EMAIL` | Production | No | Sender, e.g. `Nemio <no-reply@nemio.app>` |
+| `STRIPE_TRIAL_DAYS` | No | No | Trial days on a workspace's first subscription (default 7; 0 disables) |
+| `DEFAULT_PLAN_SLUG` | No | No | Plan a workspace is on before subscribing. `free` in base settings, `dev` (unlimited) in local settings |
 | `STRIPE_METER_EVENT_NAME` | No | No | Meter event name, default `ai_messages` |
 | `MARKETPLACE_FEE_PERCENT` | Marketplace | No | Platform share of paid template sales (default 15); needs `STRIPE_SECRET_KEY` and the platform webhook to receive `checkout.session.*` events |
 | `PUBLIC_API_RATE` | No | No | Per-API-key throttle, default `600/min` |

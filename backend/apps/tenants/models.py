@@ -8,6 +8,11 @@ from django.db.models.functions import Lower
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
+    # Set only through `platform_ops.accounts.ban_user`, which also blocks sign-in and
+    # pauses every workspace the user owns. A flag on its own is not a ban.
+    is_banned = models.BooleanField(default=False)
+    banned_at = models.DateTimeField(null=True, blank=True)
+    ban_reason = models.CharField(max_length=300, blank=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(Lower("email"), name="user_email_ci_unique")]
@@ -26,7 +31,43 @@ class Workspace(models.Model):
         ordering = ["created_at", "id"]
 
 
-class TenantManager(models.Manager):
+def check_tenant_links(model, objs, fields=None):
+    """Every tenant FK on these rows must reference a row in the same workspace.
+    `save()` checks one row; bulk writes skip `save()`, so they come through here with
+    one query per FK field instead of one per row. PostgreSQL also enforces this with
+    triggers (tenants/isolation.py); this gives the same answer on SQLite and a clear
+    error before the write."""
+    from django.core.exceptions import ValidationError
+
+    objs = list(objs)
+    for field in model._meta.concrete_fields:
+        related = getattr(field, "related_model", None)
+        if field.name == "workspace" or not related or not issubclass(related, TenantModel):
+            continue
+        if fields is not None and field.name not in fields and "workspace" not in fields:
+            continue
+        values = {getattr(obj, field.attname) for obj in objs} - {None}
+        if not values:
+            continue
+        owners = dict(related.all_objects.filter(pk__in=values).values_list("pk", "workspace_id"))
+        for obj in objs:
+            value = getattr(obj, field.attname)
+            if value is not None and owners.get(value) != obj.workspace_id:
+                raise ValidationError("Related records must belong to this workspace.")
+    return objs
+
+
+class TenantQuerySet(models.QuerySet):
+    def bulk_create(self, objs, *args, **kwargs):
+        return super().bulk_create(check_tenant_links(self.model, objs), *args, **kwargs)
+
+    def bulk_update(self, objs, fields, *args, **kwargs):
+        return super().bulk_update(
+            check_tenant_links(self.model, objs, set(fields)), fields, *args, **kwargs
+        )
+
+
+class TenantManager(models.Manager.from_queryset(TenantQuerySet)):
     """Unqualified reads fail closed. Services explicitly select their tenant."""
 
     def get_queryset(self):
@@ -44,7 +85,7 @@ class TenantModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     objects = TenantManager()
     # Reserved for auth membership lookup, explicit operational fan-out, migrations.
-    all_objects = models.Manager()
+    all_objects = models.Manager.from_queryset(TenantQuerySet)()
 
     def save(self, *args, **kwargs):
         from django.core.exceptions import ValidationError

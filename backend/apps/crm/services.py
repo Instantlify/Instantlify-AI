@@ -125,6 +125,24 @@ def handle_inbound(msg, lead, payload):
     Lead.objects.for_workspace(msg.workspace_id).filter(
         pk=lead.pk, segment_due_at__isnull=True
     ).update(segment_due_at=timezone.now() + SEGMENT_DELAY)
+    from .triage import triage_inbound
+
+    triage = triage_inbound(msg)
+    if triage.escalate:
+        # Before any flow can start or resume: a human answers this one.
+        from apps.agents.runtime import HANDOFF_REPLY, hand_off
+        from apps.channels.transport import ProviderError
+
+        was_ai = conversation.ai_enabled
+        hand_off(conversation, reason=f"triage:{triage.matched}"[:60])
+        if was_ai:
+            # The customer was talking to the bot and expects an answer; say a person is
+            # coming. Flow-only conversations stay quiet until a teammate replies.
+            try:
+                queue_reply(conversation, HANDOFF_REPLY, f"handoff:{msg.id}")
+            except (ValidationError, ProviderError):
+                pass  # window closed, paused messaging: the page to the team still stands
+        return
     route_message(msg, payload)
 
 

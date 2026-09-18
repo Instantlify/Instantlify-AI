@@ -28,6 +28,8 @@ import {
   Table,
   useFeedback,
 } from "@/components/ui";
+import { TourMarker } from "@/components/growth";
+import { tourStep } from "@/lib/growth";
 
 type FieldSpec = { key: string; label: string; secret?: boolean };
 type ProviderSpec = {
@@ -356,6 +358,9 @@ export default function IntegrationsPage() {
         name: data.get("name"),
         scopes,
       });
+      // An API key is how an AI tool connector (Claude MCP and the like) plugs in,
+      // so creating one is the tour's last step.
+      tourStep(workspace.id, "claude-mcp", "completed");
       setKeys((list) => [created, ...list]);
       setNewKey(created.key || "");
       form.reset();
@@ -406,6 +411,7 @@ export default function IntegrationsPage() {
 
   return (
     <>
+      <TourMarker workspaceId={workspace.id} step="apps" />
       <PageHeading
         eyebrow="Integrations"
         title="Plug into your stack."
@@ -493,6 +499,12 @@ export default function IntegrationsPage() {
                           <div className="muted-text">
                             {connection.provider} · expires{" "}
                             {when(connection.expires_at)}
+                            {connection.locked && (
+                              <>
+                                {" "}
+                                · <Pill tone="warn">locked by plan</Pill>
+                              </>
+                            )}
                           </div>
                         </div>
                         <Pill

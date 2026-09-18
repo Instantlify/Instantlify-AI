@@ -13,7 +13,7 @@ from apps.agents.models import UsageRecord
 from apps.tenants.dispatch import enqueue_once
 from apps.tenants.services import audit
 
-from .models import BillingAccount, BillingEvent, BillingJob
+from .models import BillingAccount, BillingEvent, BillingJob, PlanPrice
 from .services import account_for
 
 MAX_REPORT_ATTEMPTS = 10
@@ -25,16 +25,21 @@ CLOSED_STATUSES = {"canceled", "incomplete_expired", "unpaid"}
 
 def reportable_usage():
     # Only usage inside a paid subscription period is metered; trial usage never is.
-    return UsageRecord.all_objects.filter(
-        status="complete",
-        kind="generation",
-        reported_at__isnull=True,
-        report_attempts__lt=MAX_REPORT_ATTEMPTS,
-        workspace__billingaccount__customer_id__isnull=False,
-        workspace__billingaccount__subscription_id__gt="",
-        workspace__billingaccount__status__in=METERED_STATUSES,
-        created_at__gte=F("workspace__billingaccount__period_start"),
-    ).filter(Q(report_after__isnull=True) | Q(report_after__lte=timezone.now()))
+    # Prepaid-credit workspaces are debited per call; metering them too would double bill.
+    return (
+        UsageRecord.all_objects.exclude(billing_mode="platform_credits")
+        .filter(
+            status="complete",
+            kind="generation",
+            reported_at__isnull=True,
+            report_attempts__lt=MAX_REPORT_ATTEMPTS,
+            workspace__billingaccount__customer_id__isnull=False,
+            workspace__billingaccount__subscription_id__gt="",
+            workspace__billingaccount__status__in=METERED_STATUSES,
+            created_at__gte=F("workspace__billingaccount__period_start"),
+        )
+        .filter(Q(report_after__isnull=True) | Q(report_after__lte=timezone.now()))
+    )
 
 
 @shared_task(ignore_result=True)
@@ -70,7 +75,11 @@ def process_job(workspace_id, job_id):
                 )
                 account.customer_id = customer.id
                 account.save()
-            if job.kind == "portal":
+            if job.kind == "credits":
+                from .credits import create_topup_session
+
+                session = create_topup_session(job, account)
+            elif job.kind == "portal":
                 session = stripe.billing_portal.Session.create(
                     api_key=settings.STRIPE_SECRET_KEY,
                     customer=account.customer_id,
@@ -78,23 +87,46 @@ def process_job(workspace_id, job_id):
                     idempotency_key=str(job.id),
                 )
             else:
-                prices = settings.STRIPE_PRICES.get(job.plan)
-                if not prices or not prices.get("base") or not prices.get("meter"):
+                price = (
+                    PlanPrice.objects.select_related("plan")
+                    .filter(
+                        plan__slug=job.plan,
+                        plan__is_active=True,
+                        billing_interval=job.interval or "monthly",
+                    )
+                    .first()
+                )
+                if not price or not price.stripe_price_id:
                     raise ValueError("price_not_configured")
+                line_items = [{"price": price.stripe_price_id, "quantity": 1}]
+                if price.stripe_meter_price_id:
+                    line_items.append({"price": price.stripe_meter_price_id})
+                subscription_data = {
+                    "metadata": {
+                        "workspace_id": workspace_id,
+                        "plan": job.plan,
+                        "interval": price.billing_interval,
+                    }
+                }
+                # One trial per workspace: never on a re-subscribe or an upgrade.
+                from apps.platform_ops.growth import coupon_for_checkout
+
+                promotion = coupon_for_checkout(workspace_id, price)
+                if promotion:
+                    subscription_data["metadata"]["promo_campaign"] = promotion["slug"]
+                first_subscription = not account.subscription_id and not account.trial_ends_at
+                if settings.STRIPE_TRIAL_DAYS and first_subscription:
+                    subscription_data["trial_period_days"] = settings.STRIPE_TRIAL_DAYS
                 session = stripe.checkout.Session.create(
                     api_key=settings.STRIPE_SECRET_KEY,
                     customer=account.customer_id,
                     mode="subscription",
-                    line_items=[
-                        {"price": prices["base"], "quantity": 1},
-                        {"price": prices["meter"]},
-                    ],
+                    line_items=line_items,
                     success_url=settings.PUBLIC_APP_URL + "?billing=success",
                     cancel_url=settings.PUBLIC_APP_URL + "?billing=cancelled",
-                    subscription_data={
-                        "metadata": {"workspace_id": workspace_id, "plan": job.plan}
-                    },
+                    subscription_data=subscription_data,
                     idempotency_key=str(job.id),
+                    **({"discounts": [{"coupon": promotion["coupon"]}]} if promotion else {}),
                 )
             job.result = json.dumps({"url": session.url})
             job.status = "complete"
@@ -136,24 +168,18 @@ def apply_subscription(account, obj):
     account.status = obj["status"]
     items = obj.get("items", {}).get("data", [])
     prices = {item["price"]["id"] for item in items}
-    plan = next(
-        (
-            name
-            for name, configured in settings.STRIPE_PRICES.items()
-            if configured.get("base") in prices
-        ),
-        None,
+    matched = (
+        PlanPrice.objects.select_related("plan").filter(stripe_price_id__in=prices).first()
+        if prices
+        else None
     )
-    if plan:
-        account.plan = plan
-        limits = settings.PLAN_LIMITS[plan]
-        account.seat_limit = limits["seats"]
-        account.channel_limit = limits["channels"]
-        account.usage_limit = limits["messages"]
+    if matched:
+        account.plan_price = matched
+        account.price_unmapped = False
     elif prices:
         # Configuration drift: Stripe bills prices this deployment does not map. Keep the
-        # current limits so a paying customer is not cut off, but make it visible.
-        account.plan = "unmapped"
+        # current plan so a paying customer is not cut off, but make it visible.
+        account.price_unmapped = True
         notes.append("billing.price_unmapped")
     start = obj.get("current_period_start") or (
         items[0].get("current_period_start") if items else None
@@ -187,6 +213,11 @@ def billing_interval(items):
 
 def apply_event(workspace_id, payload, event_id):
     if payload["type"].startswith("checkout.session."):
+        metadata = payload["data"]["object"].get("metadata") or {}
+        if metadata.get("nemio_credit_topup"):
+            from .credits import apply_checkout_event as apply_credit_checkout
+
+            return apply_credit_checkout(workspace_id, payload)
         from apps.marketplace.services import apply_checkout_event
 
         return apply_checkout_event(workspace_id, payload)
@@ -205,9 +236,23 @@ def apply_event(workspace_id, payload, event_id):
             # An older subscription ending after an upgrade replaced it says nothing
             # about the current one.
             return "ignored"
+        previous_price = account.plan_price_id
         notes = apply_subscription(account, obj)
         if event_type.endswith("deleted"):
             account.status = "canceled"
+        elif (
+            event_type.endswith("updated")
+            and previous_price
+            and (account.plan_price_id != previous_price)
+        ):
+            from .emails import send_plan_changed
+
+            transaction.on_commit(lambda: send_plan_changed.delay(str(workspace_id)))
+        campaign = (obj.get("metadata") or {}).get("promo_campaign")
+        if campaign and (obj.get("discount") or obj.get("discounts")):
+            from apps.platform_ops.growth import record_redemption
+
+            record_redemption(campaign, workspace_id, obj["id"])
     elif event_type in {"invoice.paid", "invoice.payment_failed"}:
         # Invoices only move the account when they bill the subscription we track and
         # that subscription is still open; a stray or late invoice cannot revive it.
@@ -231,10 +276,8 @@ def apply_event(workspace_id, payload, event_id):
 
 RECONCILED_FIELDS = [
     "status",
-    "plan",
-    "seat_limit",
-    "channel_limit",
-    "usage_limit",
+    "plan_price_id",
+    "price_unmapped",
     "period_start",
     "period_end",
     "billing_interval",

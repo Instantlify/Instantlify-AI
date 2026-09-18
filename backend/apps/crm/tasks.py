@@ -39,6 +39,13 @@ def process_integration(workspace_id, job_id):
             return
         if blocked(workspace_id, "integration:" + job.integration.provider):
             return
+        from apps.billing.gating import guard
+
+        if not guard(workspace_id, "integrations_unlocked"):
+            job.status = "needs_review"
+            job.result = json.dumps({"error": "plan_limit"})
+            job.save()
+            return
         job.status = "executing"
         job.save()
     try:
@@ -116,6 +123,14 @@ def reconcile_agent_runs():
             conversation_id=message.conversation_id, status__in=["running", "waiting"]
         ).exists():
             continue
+        # Already answered (by a flow, a teammate or the agent): switching AI on later
+        # must not make the agent reply to it a second time.
+        if Message.all_objects.filter(
+            conversation_id=message.conversation_id,
+            direction="outbound",
+            created_at__gt=message.created_at,
+        ).exists():
+            continue
         with transaction.atomic():
             run, created = AgentRun.objects.for_workspace(message.workspace_id).get_or_create(
                 message=message, defaults={"workspace_id": message.workspace_id}
@@ -129,7 +144,7 @@ def reconcile_agent_runs():
 def transcribe_message(workspace_id, message_id):
     from apps.agents.models import AgentConfig
     from apps.agents.voice import transcribe
-    from apps.billing.services import reserve_usage
+    from apps.billing.services import charge_transcription, reserve_usage
 
     with transaction.atomic():
         message = (
@@ -147,9 +162,9 @@ def transcribe_message(workspace_id, message_id):
         if not config:
             raise ValueError("transcription_unavailable")
         usage = reserve_usage(config, f"transcription:{message.id}", kind="transcription")
-        text = transcribe(message, config)[:10000]
-        usage.status = "complete"
-        usage.save(update_fields=["status"])
+        text, seconds = transcribe(message, config)
+        text = text[:10000]
+        charge_transcription(config, usage, seconds)
     except Exception as exc:
         Message.objects.for_workspace(workspace_id).filter(pk=message_id).update(
             transcription_status="failed"

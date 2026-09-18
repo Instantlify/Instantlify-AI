@@ -101,6 +101,8 @@ The agent config carries `mode`: `agent` (default; LangGraph sales agent with tr
 
 ## Payments, billing and content
 
+Plan gating: an action outside the workspace's plan returns **402** with `{detail, code: "plan_limit_exceeded", upgrade_required: <limit name>}`. Limit names: `max_instagram_accounts`, `max_contacts`, `team_seats`, `max_ai_messages`, `ai_agent_enabled`, `integrations_unlocked`, `content_scheduling_enabled`, `voice_notes_enabled`. `GET /{id}/billing/` returns `limits` (null = unlimited) and `catalog` (active public tiers with monthly/annual prices). Checkout takes `{kind: checkout, plan, interval: monthly|annual}`; a workspace's first subscription gets `STRIPE_TRIAL_DAYS` (default 7) of trial on any interval. `GET /api/public/plans/` is the anonymous catalog for the pricing page. `GET/PATCH /{id}/billing/credits/` returns the prepaid AI balance (cents, sub-cent precision), auto top-up settings and the last 50 ledger rows; `POST /{id}/billing/` with `{kind: credits, amount_cents}` starts a top-up checkout that also saves the card for auto top-ups. Connections carry `locked` when a downgrade left the workspace over its account limit: locked accounts keep receiving and replying but cannot be used for new posts or simulation until the workspace is within its limit again.
+
 | Method | Path | Notes |
 | --- | --- | --- |
 | GET, POST | `/{id}/offers/` · GET, PATCH `/{id}/offers/{pk}/` | In-chat offers (amount ≥ 0.50) |
@@ -123,3 +125,28 @@ The agent config carries `mode`: `agent` (default; LangGraph sales agent with tr
 ## Health
 
 `GET /health/live/` checks process liveness. `GET /health/ready/` returns 200 only when PostgreSQL, Redis and a recent Beat→worker heartbeat are present; otherwise 503.
+
+
+## Growth surfaces (platform-owned)
+
+Written from the tenant app and the public marketing site; read only by the console.
+Anonymous endpoints are write-only and return nothing readable.
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/growth/funnel/` | Session/JWT | Wizard or tour step `{flow, step, status, workspace_id?}`; unknown steps are 400 |
+| GET | `/api/growth/wizard/` | Session/JWT | Resume point `{step, completed, finished, steps}` |
+| POST | `/api/growth/visit/` | Anonymous | Marketing page visit `{page, source?, referrer?}` → 204 |
+| POST | `/api/growth/blog-view/` | Anonymous | Blog beacon `{slug, scroll_depth_pct, time_spent_seconds}` → 204 |
+| POST | `/api/growth/tickets/` | Optional | Open a support ticket `{subject, email, category, body?, name?}` |
+| POST | `/api/growth/support-chat/` | Anonymous | One support-assistant turn; the reply may be a `[[REQUEST_NAME_CARD]]` / `[[REQUEST_EMAIL_CARD]]` sentinel. `create_ticket: true` opens a ticket and refuses without name and email |
+| GET | `/api/growth/announcements/?page=&workspace_id=` | Session/JWT | Active strips and unseen popups for this viewer |
+| POST | `/api/growth/announcements/<id>/seen/` | Session/JWT | Mark a popup seen |
+| GET / POST | `/api/growth/promo/` | Session/JWT | Live campaign for a workspace (GET records `shown`); POST `{workspace_id, slug}` records `claimed` |
+| GET | `/api/blog/`, `/api/blog/<slug>/` | Anonymous | Published posts only |
+
+Console endpoints live under `/ops/` on the admin host, are POST-only, role-checked and
+audited: users (`ban`, `unban`, `email`, `portal-link`, `create`), AI credits
+(`credits/test`, `credits/rates`), automations (`copy`, `transfer`), blog (posts and
+categories), tickets, knowledge base, promos, notices, email templates, segments and
+`billing-scan`.

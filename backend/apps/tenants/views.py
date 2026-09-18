@@ -29,6 +29,10 @@ from .services import audit, create_workspace
 class CSRFView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
+    # The client fetches a token before every write, and with no authentication here
+    # each call would count against the per-IP anonymous rate: a busy signed-in user
+    # (or an office behind one IP) would be locked out of saving anything.
+    throttle_classes = []
 
     def get(self, request):
         return Response({"csrfToken": get_token(request)})
@@ -57,7 +61,20 @@ class SignupView(APIView):
             return Response(
                 {"detail": "Unable to create this account. Try signing in."}, status=400
             )
-        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+        login(request, user, backend="apps.tenants.auth.BanAwareBackend")
+        # Close the marketing loop: this signup belongs to the visit session that
+        # produced it, so a landing page's conversion is measurable end to end.
+        # Tracking must never be able to fail a signup.
+        try:
+            from apps.platform_ops import growth
+
+            growth.record_page_signup(
+                session_id=growth.session_key(request),
+                page=str(request.data.get("landing_page", "/"))[:200],
+                user=user,
+            )
+        except Exception:  # noqa: BLE001 - attribution is best effort, signup is not
+            pass
         return Response({"id": user.id, "name": user.first_name, "email": user.email}, status=201)
 
 

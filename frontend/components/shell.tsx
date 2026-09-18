@@ -26,8 +26,10 @@ import {
   X,
 } from "lucide-react";
 import { api, message, type Workspace } from "@/lib/api";
+import { Announcements } from "@/components/growth";
 import { useWorkspace } from "@/lib/workspace";
 import { ErrorNotice } from "./ui";
+import { UpgradePrompt } from "./plans";
 
 export const initials = (name: string) =>
   name.trim().slice(0, 2).toUpperCase() || "N";
@@ -212,9 +214,11 @@ export function Shell({ children }: { children: ReactNode }) {
           </button>
         </header>
         <main className="main-content">
+          <Announcements workspaceId={workspace.id} page={section} />
           <ErrorNotice error={error} />
           {children}
         </main>
+        <UpgradePrompt prefix={`/api/workspaces/${workspace.id}`} />
         {!branding.hide_platform_branding && (
           <footer className="app-footer">
             <span>Made for more meaningful conversations.</span>

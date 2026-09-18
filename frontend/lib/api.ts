@@ -43,6 +43,7 @@ export type Connection = {
   expires_at: string;
   is_test: boolean;
   status: string;
+  locked: boolean;
 };
 export type Status = { checks: Record<string, boolean>; pending_jobs: number };
 export type Page<T> = { results: T[]; count: number; next: string | null };
@@ -142,6 +143,9 @@ export type AgentConfig = {
   model: string;
   has_key: boolean;
   embedding_model: string;
+  has_embedding_key: boolean;
+  fallback_provider: string;
+  fallback_model: string;
   allowed_tools: string[];
   enabled: boolean;
   is_test: boolean;
@@ -152,6 +156,7 @@ export type AgentConfig = {
   handoff_keywords: string[];
   max_tool_rounds: number;
   mode: "agent" | "simple";
+  billing_mode: "platform_credits" | "byo_key";
 };
 export type KnowledgeDocument = {
   id: string;
@@ -320,13 +325,71 @@ export type Payment = {
 export type Billing = {
   plan: string;
   status: string;
+  interval: string;
+  trial_ends_at: string | null;
   used: number;
-  usage_limit: number;
-  seat_limit: number;
-  channel_limit: number;
+  usage_limit: number | null;
+  seat_limit: number | null;
+  channel_limit: number | null;
+  limits: PlanLimits;
   stripe_configured: boolean;
+  trial_days: number;
   period_start: string;
-  plans: Record<string, { seats: number; channels: number; messages: number }>;
+  plans: Record<
+    string,
+    { seats: number | null; channels: number | null; messages: number | null }
+  >;
+  catalog: PlanCard[];
+};
+export type PlanLimits = {
+  max_instagram_accounts: number | null;
+  max_contacts: number | null;
+  team_seats: number | null;
+  max_ai_messages: number | null;
+  ai_agent_enabled: boolean;
+  integrations_unlocked: boolean;
+  content_scheduling_enabled: boolean;
+  voice_notes_enabled: boolean;
+};
+export type PlanCard = {
+  slug: string;
+  name: string;
+  is_featured: boolean;
+  limits: PlanLimits;
+  prices: { interval: string; price_cents: number; configured: boolean }[];
+};
+/** Plan limits use null for unlimited. */
+export const limit = (value: number | null | undefined) =>
+  value === null || value === undefined ? "unlimited" : String(value);
+export type CreditTransaction = {
+  id: string;
+  type: string;
+  status: string;
+  amount_cents: string;
+  real_cost_cents: string;
+  remaining_balance_cents: string;
+  model: string;
+  tokens_in: number;
+  tokens_out: number;
+  description: string;
+  created_at: string;
+};
+export type Credits = {
+  billing_mode: string;
+  balance_cents: string;
+  auto_topup_enabled: boolean;
+  auto_topup_threshold_cents: number;
+  auto_topup_amount_cents: number;
+  has_payment_method: boolean;
+  auto_topup_failed_at: string | null;
+  topup_options: number[];
+  stripe_configured: boolean;
+  rate: {
+    model: string;
+    input_per_million_cents: string;
+    output_per_million_cents: string;
+  } | null;
+  transactions: CreditTransaction[];
 };
 export type BillingJob = {
   id: string;
@@ -418,9 +481,31 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    /** Set on 402 plan-gate responses: the limit or feature that blocked the action. */
+    public upgradeRequired?: string,
   ) {
     super(message);
   }
+}
+
+/** Fired on the window whenever the API blocks an action on plan grounds, so the
+ * shell can open the upgrade modal without every page wiring it up. */
+export const UPGRADE_EVENT = "nemio:upgrade-required";
+
+function failure(payload: unknown, status: number) {
+  const upgrade =
+    status === 402 && payload && typeof payload === "object"
+      ? String(
+          (payload as { upgrade_required?: string }).upgrade_required || "",
+        )
+      : "";
+  if (upgrade && typeof window !== "undefined")
+    window.dispatchEvent(new CustomEvent(UPGRADE_EVENT, { detail: upgrade }));
+  const detail =
+    upgrade && payload && typeof payload === "object"
+      ? String((payload as { detail?: string }).detail || "Upgrade required.")
+      : errorMessage(payload);
+  return new ApiError(detail, status, upgrade || undefined);
 }
 
 function errorMessage(data: unknown): string {
@@ -439,11 +524,15 @@ export const message = (error: unknown) =>
     ? error.message
     : "Something went wrong. Please try again.";
 
-async function csrfToken(signal?: AbortSignal) {
+/* Concurrent first requests must share one token fetch. With no csrftoken cookie yet,
+ * two parallel fetches are each issued a different secret; whichever cookie lands
+ * last wins, and the other request's token is then rejected as incorrect. */
+let pendingToken: Promise<string> | null = null;
+
+async function fetchCsrfToken() {
   const csrf = await fetch("/api/auth/csrf/", {
     credentials: "same-origin",
     cache: "no-store",
-    signal,
   });
   if (!csrf.ok)
     throw new ApiError(
@@ -451,6 +540,17 @@ async function csrfToken(signal?: AbortSignal) {
       csrf.status,
     );
   return (await csrf.json()).csrfToken as string;
+}
+
+async function csrfToken(signal?: AbortSignal) {
+  // The shared fetch ignores any one caller's signal, so aborting one request cannot
+  // fail the others waiting on the same token.
+  pendingToken ??= fetchCsrfToken().finally(() => {
+    pendingToken = null;
+  });
+  const token = await pendingToken;
+  signal?.throwIfAborted();
+  return token;
 }
 
 export async function api<T>(
@@ -477,7 +577,7 @@ export async function api<T>(
   const payload = await response.json().catch(() => ({
     detail: "The service is temporarily unavailable. Please try again.",
   }));
-  if (!response.ok) throw new ApiError(errorMessage(payload), response.status);
+  if (!response.ok) throw failure(payload, response.status);
   return payload as T;
 }
 
@@ -493,7 +593,7 @@ export async function upload<T>(path: string, form: FormData): Promise<T> {
   const payload = await response.json().catch(() => ({
     detail: "The service is temporarily unavailable. Please try again.",
   }));
-  if (!response.ok) throw new ApiError(errorMessage(payload), response.status);
+  if (!response.ok) throw failure(payload, response.status);
   return payload as T;
 }
 

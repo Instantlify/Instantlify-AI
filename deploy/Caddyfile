@@ -1,0 +1,74 @@
+# Production edge for Nemio. Caddy obtains and renews certificates itself.
+#
+#   APP_DOMAIN            app.nemio.ai        (the tenant app, API, webhooks, websockets)
+#   PLATFORM_ADMIN_HOST   ops.nemio.ai        (platform console; must match Django's setting)
+#   ACME_EMAIL            ops@nemio.ai        (certificate expiry notices)
+#
+# Django sets SECURE_PROXY_SSL_HEADER from X-Forwarded-Proto, which Caddy always sends.
+
+{
+	email {$ACME_EMAIL}
+	# Custom tenant domains (white label) get certificates on demand, but only for
+	# domains Nemio has verified. Enable together with the domain verification service:
+	# on_demand_tls {
+	# 	ask http://backend:8000/api/v1/tls/check-domain/
+	# }
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}
+
+{$APP_DOMAIN} {
+	import security_headers
+	encode zstd gzip
+
+	# Provider webhooks (Meta, Telegram, Stripe): small JSON bodies. Anything larger is
+	# not a real delivery. Django verifies signatures and throttles per connection.
+	handle /webhooks/* {
+		request_body {
+			max_size 1MB
+		}
+		reverse_proxy backend:8000
+	}
+
+	# Inbox live updates. Caddy upgrades WebSocket connections without extra config;
+	# the long read timeout keeps idle inbox tabs connected.
+	handle /ws/* {
+		reverse_proxy backend:8000 {
+			transport http {
+				read_timeout 1h
+			}
+		}
+	}
+
+	# Voice notes fetched by Meta and Telegram from a signed, expiring URL. Stream the
+	# response straight through rather than buffering it at the edge.
+	handle /media/voice/* {
+		reverse_proxy backend:8000 {
+			flush_interval -1
+		}
+	}
+
+	# API, MCP server and health checks.
+	@backend path /api/* /health/*
+	handle @backend {
+		reverse_proxy backend:8000
+	}
+
+	# Everything else is the Next.js app (which also proxies /api for SSR).
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
+
+{$PLATFORM_ADMIN_HOST} {
+	import security_headers
+	encode zstd gzip
+	reverse_proxy backend:8000
+}

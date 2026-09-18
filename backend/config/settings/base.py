@@ -123,18 +123,23 @@ CELERY_RESULT_EXPIRES = 3600
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 120}
 CELERY_BEAT_SCHEDULE = {
+    "billing-trial-reminders": {
+        "task": "apps.billing.emails.send_trial_reminders",
+        "schedule": 86400.0,
+    },
     "platform-billing-snapshot": {
         "task": "apps.platform_ops.tasks.sync_subscriptions",
         "schedule": 3600.0,
     },
     "worker-health": {"task": "apps.dashboard_api.tasks.health_check", "schedule": 30.0},
+    "uptime-probe": {"task": "apps.platform_ops.uptime.probe_uptime", "schedule": 60.0},
     "flush-audit-outbox": {"task": "apps.tenants.tasks.dispatch_outbox", "schedule": 5.0},
     "expire-auth-tokens": {"task": "apps.tenants.tasks.expire_tokens", "schedule": 86400.0},
 }
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.tenants.auth.BanAwareJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
@@ -146,6 +151,26 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
 }
+# Transactional email (the registry in platform_ops.growth sends through this).
+# Without EMAIL_HOST mail goes to the console backend; production refuses that, since
+# it would write customer emails, portal links included, into the logs.
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend"
+    if EMAIL_HOST
+    else "django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() != "false"
+EMAIL_TIMEOUT = 10
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Nemio <no-reply@localhost>")
+
+# Every password and session check goes through the ban-aware backend, so a banned
+# user cannot sign in and an open session of theirs resolves as anonymous.
+AUTHENTICATION_BACKENDS = ["apps.tenants.auth.BanAwareBackend"]
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
@@ -181,12 +206,26 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_METER_EVENT_NAME = os.environ.get("STRIPE_METER_EVENT_NAME", "ai_messages")
 import json  # noqa: E402
 
+# Legacy bootstrap only: the plans data migration copies these IDs onto PlanPrice rows.
+# Tiers, limits and prices live in the database (billing.Plan) from then on.
 STRIPE_PRICES = json.loads(os.environ.get("STRIPE_PRICES", "{}"))
-PLAN_LIMITS = {
-    "starter": {"seats": 3, "channels": 2, "messages": 1000},
-    "pro": {"seats": 10, "channels": 5, "messages": 10000},
-    "scale": {"seats": 50, "channels": 20, "messages": 100000},
-}
+# Plan a workspace is on until it subscribes. "dev" is the unlimited local plan.
+DEFAULT_PLAN_SLUG = os.environ.get("DEFAULT_PLAN_SLUG", "free")
+# Free trial on a workspace's first subscription, any interval. 0 disables.
+STRIPE_TRIAL_DAYS = int(os.environ.get("STRIPE_TRIAL_DAYS", "7"))
+# Nemio's own provider key for workspaces on prepaid credits (2.10).
+PLATFORM_OPENAI_API_KEY = os.environ.get("PLATFORM_OPENAI_API_KEY", "")
+PLATFORM_ANTHROPIC_API_KEY = os.environ.get("PLATFORM_ANTHROPIC_API_KEY", "")
+PLATFORM_GEMINI_API_KEY = os.environ.get("PLATFORM_GEMINI_API_KEY", "")
+PLATFORM_XAI_API_KEY = os.environ.get("PLATFORM_XAI_API_KEY", "")
+# Uptime paging (platform_ops/uptime.py). Each channel is optional.
+UPTIME_PROBE_URL = os.environ.get("UPTIME_PROBE_URL", "")
+UPTIME_LATENCY_MS = int(os.environ.get("UPTIME_LATENCY_MS", "2500"))
+ALERT_WEBHOOK_URL = os.environ.get("ALERT_WEBHOOK_URL", "")
+PAGERDUTY_ROUTING_KEY = os.environ.get("PAGERDUTY_ROUTING_KEY", "")
+AI_CREDIT_TOPUP_OPTIONS = [1000, 2500, 5000, 10000]
+AI_CREDIT_MIN_TOPUP_CENTS = 500
+AI_CREDIT_MAX_TOPUP_CENTS = 100000
 RETENTION_DAYS = int(os.environ.get("RETENTION_DAYS", "90"))
 # Platform share of paid marketplace templates (destination charges on Connect).
 MARKETPLACE_FEE_PERCENT = int(os.environ.get("MARKETPLACE_FEE_PERCENT", "15"))

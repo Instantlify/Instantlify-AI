@@ -141,6 +141,9 @@ class IntegrationOAuthStartView(APIView):
         member = workspace_membership(request, workspace_id, ["owner", "admin"])
         if provider not in PROVIDERS:
             return Response({"detail": "This integration has no hosted sign-in."}, status=404)
+        from apps.billing.gating import check_feature
+
+        check_feature(workspace_id, "integrations_unlocked")
         live = configured(provider)
         if not live and settings.CHANNEL_ADAPTER_MODE != "fake":
             return Response(

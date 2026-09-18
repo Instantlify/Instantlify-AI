@@ -66,3 +66,22 @@ class OutboundWebhook(TenantModel):
 
     class Meta:
         indexes = [models.Index(fields=["status", "available_at"])]
+
+
+class MCPClient(TenantModel):
+    """An MCP client (Claude Desktop, Claude Code, an agent) that has initialized a
+    session with a workspace API key. One row per key and client name; `last_active_at`
+    moves on every request, so "connected" means recently used, not merely configured."""
+
+    api_key = models.ForeignKey(APIKey, on_delete=models.CASCADE)
+    client_name = models.CharField(max_length=100)
+    client_version = models.CharField(max_length=50, blank=True)
+    protocol_version = models.CharField(max_length=20, blank=True)
+    last_active_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["api_key", "client_name"], name="one_mcp_client_per_key"
+            )
+        ]

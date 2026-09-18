@@ -30,10 +30,27 @@ test("sign up, create a workspace and connect a test channel", async ({
   await page
     .getByRole("button", { name: "Create account", exact: true })
     .click();
-  await page.getByLabel("Workspace name").fill("E2E Studio");
+  // The five-step setup wizard: skip the optional steps, name the workspace.
+  await expect(
+    page.getByRole("heading", { name: "Connect your Instagram" }),
+  ).toBeVisible();
   await page
-    .getByRole("button", { name: "Create workspace", exact: true })
+    .getByRole("button", { name: "I’ll connect my account later" })
     .click();
+  await page.getByLabel("Workspace name").fill("E2E Studio");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Invite your team" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Skip for now" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Connect an integration" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Skip for now" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Choose a plan" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "I’ll decide later" }).click();
   await expect(
     page.getByRole("heading", { name: "A fresh start, Alex." }),
   ).toBeVisible();
@@ -42,6 +59,8 @@ test("sign up, create a workspace and connect a test channel", async ({
   await expect(
     page.getByText("E2E Studio is ready for your team."),
   ).toBeVisible();
+  // Skipped the Instagram step, so the overview insists on it until connected.
+  await expect(page.getByText("Connect your Instagram account")).toBeVisible();
   await page.getByRole("button", { name: "Test connection setup" }).click();
   await expect(page.getByText("Local connection test completed")).toBeVisible();
 });
@@ -127,8 +146,14 @@ test("the AI agent answers with the local test provider", async ({ page }) => {
   });
   await nav(page, "Inbox");
   await page.getByRole("button", { name: /lead-one/ }).click();
+  // The toggle is optimistic; wait for the save itself so the reload cannot abort it.
+  const saved = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      response.url().includes("/conversations/"),
+  );
   await page.getByLabel("AI replies").check();
-  await expect(page.getByLabel("AI replies")).toBeChecked();
+  expect((await saved).ok()).toBeTruthy();
   // Reload so the assertion reflects the server, not the optimistic UI state.
   await page.reload();
   await page.getByRole("button", { name: /lead-one/ }).click();
@@ -149,7 +174,9 @@ test("the AI agent answers with the local test provider", async ({ page }) => {
 test("analytics, bio page, offers and invitations", async ({ page }) => {
   await signIn(page);
   await nav(page, "Analytics");
-  await expect(page.getByText("Pricing comment")).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "Pricing comment" }),
+  ).toBeVisible();
   await nav(page, "Link in bio");
   await page.getByLabel("Page address").fill(slug);
   await page.getByLabel("Title", { exact: true }).fill("E2E Studio");
@@ -222,3 +249,17 @@ async function signIn(page: Page) {
   if (!workspaceUrl)
     workspaceUrl = page.url().replace(/\/(overview|inbox).*$/, "");
 }
+
+test("the support assistant opens a ticket for a signed-in user", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto(`${workspaceUrl}/help`);
+  const chat = page.getByRole("region", { name: "Support chat" });
+  // Name and email come from the account, so no capture card is needed here.
+  await chat
+    .getByLabel("Message", { exact: true })
+    .fill("I need a support ticket please");
+  await chat.getByRole("button", { name: "Send message" }).click();
+  await expect(chat.getByText(/Ticket #\d+ is open/)).toBeVisible();
+});

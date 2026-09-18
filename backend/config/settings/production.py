@@ -31,3 +31,10 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 # Only a trusted reverse proxy may reach Django; it must overwrite this header.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+
+if not EMAIL_HOST:  # noqa: F405
+    raise ImproperlyConfigured(
+        "EMAIL_HOST is required in production: the console fallback would write "
+        "customer emails, billing-portal links included, into the logs."
+    )

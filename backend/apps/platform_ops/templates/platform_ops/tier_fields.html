@@ -1,0 +1,39 @@
+{% comment %}Shared tier form fields. `editable` is true for custom tiers (and creation);
+default tiers only expose Stripe wiring and the active flag.{% endcomment %}
+{% if editable %}
+<div class="form-row">
+  <label>Name <input name="name" maxlength="60" value="{{ plan.name|default:'' }}" required></label>
+  <label>Partner label <input name="partner_label" maxlength="60" value="{{ plan.partner_label|default:'' }}" placeholder="RocketHub, Lifetime…"></label>
+  <label>Sort order <input name="sort_order" inputmode="numeric" value="{{ plan.sort_order|default:'50' }}"></label>
+</div>
+<div class="form-row">
+  <label>Monthly price (cents) <input name="monthly_price_cents" inputmode="numeric" value="{{ prices.monthly.price_cents|default:'0' }}"></label>
+  <label>Yearly price (cents) <input name="annual_price_cents" inputmode="numeric" value="{{ prices.annual.price_cents|default:'0' }}"></label>
+</div>
+<div class="form-row">
+  <label>Connected accounts <input name="max_instagram_accounts" inputmode="numeric" value="{{ limits.max_instagram_accounts|default_if_none:'' }}" placeholder="blank = unlimited"></label>
+  <label>Contacts <input name="max_contacts" inputmode="numeric" value="{{ limits.max_contacts|default_if_none:'' }}" placeholder="blank = unlimited"></label>
+  <label>Team seats <input name="team_seats" inputmode="numeric" value="{{ limits.team_seats|default_if_none:'' }}" placeholder="blank = unlimited"></label>
+  <label>AI messages / period <input name="max_ai_messages" inputmode="numeric" value="{{ limits.max_ai_messages|default_if_none:'' }}" placeholder="blank = unlimited"></label>
+</div>
+<div class="checkbox-grid">
+  <label><input type="checkbox" name="ai_agent_enabled"{% if limits.ai_agent_enabled or limits is None %} checked{% endif %}> AI agent</label>
+  <label><input type="checkbox" name="integrations_unlocked"{% if limits.integrations_unlocked or limits is None %} checked{% endif %}> Integrations</label>
+  <label><input type="checkbox" name="content_scheduling_enabled"{% if limits.content_scheduling_enabled or limits is None %} checked{% endif %}> Content scheduling</label>
+  <label><input type="checkbox" name="voice_notes_enabled"{% if limits.voice_notes_enabled or limits is None %} checked{% endif %}> Voice notes</label>
+  <label><input type="checkbox" name="is_featured"{% if plan.is_featured %} checked{% endif %}> Featured ("Most popular")</label>
+</div>
+{% else %}
+<p class="muted-text">Prices and limits of a default tier are changed by migration. Stripe price IDs can be wired here.</p>
+{% endif %}
+<div class="form-row">
+  <label>Monthly Stripe price ID <input name="monthly_stripe_price_id" maxlength="100" value="{{ prices.monthly.stripe_price_id|default:'' }}" placeholder="price_…"></label>
+  <label>Monthly meter price ID <input name="monthly_stripe_meter_price_id" maxlength="100" value="{{ prices.monthly.stripe_meter_price_id|default:'' }}" placeholder="optional"></label>
+</div>
+<div class="form-row">
+  <label>Yearly Stripe price ID <input name="annual_stripe_price_id" maxlength="100" value="{{ prices.annual.stripe_price_id|default:'' }}" placeholder="price_…"></label>
+  <label>Yearly meter price ID <input name="annual_stripe_meter_price_id" maxlength="100" value="{{ prices.annual.stripe_meter_price_id|default:'' }}" placeholder="optional"></label>
+</div>
+<div class="checkbox-grid">
+  <label><input type="checkbox" name="is_active"{% if plan is None or plan.is_active %} checked{% endif %}> Active (sellable and shown on pricing)</label>
+</div>

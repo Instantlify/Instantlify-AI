@@ -26,6 +26,8 @@ class Credentials:
     display_name: str
     access_token: str = field(repr=False)
     expires_at: datetime
+    # Public profile facts, when the provider returns them. Never secret.
+    profile: dict = field(default_factory=dict)
 
 
 class ChannelAdapter(ABC):

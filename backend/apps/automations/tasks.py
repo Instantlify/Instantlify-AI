@@ -7,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 
 from apps.crm.services import queue_reply
 from apps.platform_ops.security import blocked, pause_guard
-from apps.tenants.dispatch import enqueue_once
+from apps.tenants.dispatch import enqueue_once, release
 
 from .models import ConversationState
 
@@ -84,3 +84,6 @@ def step(workspace_id, state_id):
             state.status = "failed"
             state.error_code = "invalid_transition_or_delivery_guard"
         state.save()
+        if state.status == "running":
+            # The next node is due now; do not make it wait out the dispatch marker.
+            transaction.on_commit(lambda: release(step, state_id))

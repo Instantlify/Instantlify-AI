@@ -15,6 +15,7 @@ import { api, ApiError, message, type Branding, type User } from "@/lib/api";
 import { lastWorkspaceId, loadWorkspaces } from "@/lib/workspace";
 import { Brand, WorkspaceForm } from "@/components/shell";
 import { ErrorNotice } from "@/components/ui";
+import { TrackVisit } from "@/components/growth";
 
 export default function Home() {
   const router = useRouter();
@@ -70,8 +71,10 @@ export default function Home() {
           }
         }
         const all = await loadWorkspaces(controller.signal);
+        // Nobody lands on an empty product. A first-time account goes through the
+        // setup wizard, which is also what produces the signup funnel.
         if (!all.length) {
-          setLoading(false);
+          router.replace("/onboarding");
           return;
         }
         const remembered = lastWorkspaceId();
@@ -183,6 +186,7 @@ function Auth({
       className="auth-layout"
       style={{ ["--green" as string]: branding?.primary_color || "#347359" }}
     >
+      <TrackVisit page="/" />
       <section className="auth-story">
         <Brand name={name} logo={branding?.logo_url} />
         <div className="story-copy">
