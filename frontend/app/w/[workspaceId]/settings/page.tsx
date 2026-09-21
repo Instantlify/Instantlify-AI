@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Check, Plus } from "lucide-react";
 import {
   api,
+  message,
   type Branding,
   type ClientWorkspace,
   type DataOperation,
@@ -66,6 +67,37 @@ export default function SettingsPage() {
         .catch(() => undefined);
     return () => controller.abort();
   }, [prefix, manager, owner, workspace.parent]);
+
+  const [verifyingDomain, setVerifyingDomain] = useState(false);
+  const [verifyNotice, setVerifyNotice] = useState<{
+    tone: "success" | "danger";
+    message: string;
+  } | null>(null);
+
+  async function triggerDomainVerification() {
+    setVerifyingDomain(true);
+    setVerifyNotice(null);
+    try {
+      const res = await api<{
+        verified: boolean;
+        message: string;
+        branding: Branding;
+      }>(`${prefix}/branding/verify-domain/`, "POST");
+      setBranding(await api<BrandingResponse>(`${prefix}/branding/`));
+      setVerifyNotice({
+        tone: res.verified ? "success" : "danger",
+        message: res.message,
+      });
+      await refresh();
+    } catch (err) {
+      setVerifyNotice({
+        tone: "danger",
+        message: message(err) || "Domain verification failed.",
+      });
+    } finally {
+      setVerifyingDomain(false);
+    }
+  }
 
   async function rename(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -250,6 +282,172 @@ export default function SettingsPage() {
                   maxLength={253}
                 />
               </label>
+
+              {own?.custom_domain && (
+                <div
+                  style={{
+                    padding: 16,
+                    borderRadius: 8,
+                    border: "1px solid var(--border, #e5e7eb)",
+                    background: "var(--surface-subtle, #f9fafb)",
+                    marginBottom: 16,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 8,
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontWeight: 600, marginRight: 8 }}>
+                        {own.custom_domain}
+                      </span>
+                      <Pill
+                        tone={
+                          own.custom_domain_status === "active"
+                            ? "good"
+                            : own.custom_domain_status === "failed"
+                              ? "bad"
+                              : "warn"
+                        }
+                      >
+                        {own.custom_domain_status === "active"
+                          ? "Domain Verified"
+                          : own.custom_domain_status === "failed"
+                            ? "Verification Failed"
+                            : "Pending Verification"}
+                      </Pill>{" "}
+                      <Pill
+                        tone={
+                          own.tls_status === "active"
+                            ? "good"
+                            : own.tls_status === "error"
+                              ? "bad"
+                              : own.tls_status === "issuing"
+                                ? "warn"
+                                : "neutral"
+                        }
+                      >
+                        {own.tls_status === "active"
+                          ? "TLS Active"
+                          : own.tls_status === "issuing"
+                            ? "TLS Issuing"
+                            : own.tls_status === "error"
+                              ? "TLS Error"
+                              : "TLS Inactive"}
+                      </Pill>
+                    </div>
+                    {own.custom_domain_status !== "active" && (
+                      <button
+                        type="button"
+                        className="button secondary"
+                        onClick={triggerDomainVerification}
+                        disabled={verifyingDomain}
+                        style={{ fontSize: "0.85rem", padding: "6px 12px" }}
+                      >
+                        {verifyingDomain ? "Verifying…" : "Verify domain now"}
+                      </button>
+                    )}
+                  </div>
+
+                  {verifyNotice && (
+                    <div
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: 6,
+                        fontSize: "0.875rem",
+                        background:
+                          verifyNotice.tone === "success" ? "#ecfdf5" : "#fef2f2",
+                        color:
+                          verifyNotice.tone === "success" ? "#065f46" : "#991b1b",
+                        border: `1px solid ${
+                          verifyNotice.tone === "success" ? "#a7f3d0" : "#fecaca"
+                        }`,
+                      }}
+                    >
+                      {verifyNotice.message}
+                    </div>
+                  )}
+
+                  {own.custom_domain_status !== "active" && (
+                    <div
+                      style={{
+                        fontSize: "0.85rem",
+                        color: "var(--text-muted, #4b5563)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                      }}
+                    >
+                      <p style={{ margin: 0 }}>
+                        Configure one of the following DNS records with your
+                        registrar to verify ownership and activate on-demand TLS:
+                      </p>
+                      <div
+                        style={{
+                          background: "var(--surface, #ffffff)",
+                          padding: 12,
+                          borderRadius: 6,
+                          border: "1px solid var(--border, #e5e7eb)",
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                          Option A: DNS TXT Record (Recommended)
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: "monospace",
+                            fontSize: "0.8rem",
+                            wordBreak: "break-all",
+                          }}
+                        >
+                          <div>
+                            <strong>Host:</strong> _nemio-challenge.
+                            {own.custom_domain}
+                          </div>
+                          <div>
+                            <strong>Value:</strong> nemio-verify=
+                            {own.verification_token || ""}
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          background: "var(--surface, #ffffff)",
+                          padding: 12,
+                          borderRadius: 6,
+                          border: "1px solid var(--border, #e5e7eb)",
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                          Option B: CNAME Record
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: "monospace",
+                            fontSize: "0.8rem",
+                          }}
+                        >
+                          <div>
+                            <strong>Host:</strong> {own.custom_domain}
+                          </div>
+                          <div>
+                            <strong>Points to:</strong> domains.nemio.ai
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <label className="inline">
                 <input
                   name="hide_platform_branding"
@@ -275,6 +473,19 @@ export default function SettingsPage() {
             </form>
           )}
         </Panel>
+
+        {workspace.parent && (
+          <Panel
+            title="Agency management"
+            aside="Managed client workspace"
+            className="settings-panel"
+          >
+            <p className="panel-subtitle">
+              This workspace is managed under an agency. Subscription plan tier,
+              limits, and prepaid AI credits roll up to your parent organization.
+            </p>
+          </Panel>
+        )}
 
         {!workspace.parent && manager && (
           <Panel

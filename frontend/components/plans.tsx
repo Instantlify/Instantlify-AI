@@ -84,6 +84,7 @@ export function IntervalToggle({
       <button
         type="button"
         className={interval === "monthly" ? "active" : ""}
+        aria-pressed={interval === "monthly"}
         onClick={() => onInterval("monthly")}
       >
         Monthly
@@ -91,6 +92,7 @@ export function IntervalToggle({
       <button
         type="button"
         className={interval === "annual" ? "active" : ""}
+        aria-pressed={interval === "annual"}
         onClick={() => onInterval("annual")}
       >
         Annual
@@ -185,14 +187,16 @@ export function PlanCards({
               <button
                 type="button"
                 className={`button ${current ? "secondary" : "primary"}`}
-                disabled={current || busySlug === plan.slug}
+                disabled={current || Boolean(busySlug) || cents === null}
                 onClick={() => onChoose(plan.slug, interval)}
               >
-                {current
-                  ? "Current plan"
-                  : busySlug === plan.slug
-                    ? "Opening checkout…"
-                    : cta}
+                {cents === null
+                  ? "Unavailable for this interval"
+                  : current
+                    ? "Current plan"
+                    : busySlug === plan.slug
+                      ? "Opening checkout…"
+                      : cta}
               </button>
               {trialDays > 0 && !current && (
                 <span className="plan-trial">{trialDays}-day free trial</span>
@@ -207,7 +211,13 @@ export function PlanCards({
 
 /** Opens whenever any API call is refused on plan grounds (402 with
  * `upgrade_required`). Same cards as the pricing page: one source of truth. */
-export function UpgradePrompt({ prefix }: { prefix: string }) {
+export function UpgradePrompt({
+  prefix,
+  agencyManaged,
+}: {
+  prefix: string;
+  agencyManaged?: boolean;
+}) {
   const [limitName, setLimitName] = useState("");
   const [billing, setBilling] = useState<Billing | null>(null);
   const [interval, setInterval] = useState<Interval>("monthly");
@@ -224,7 +234,7 @@ export function UpgradePrompt({ prefix }: { prefix: string }) {
   }, []);
 
   useEffect(() => {
-    if (!limitName) return;
+    if (!limitName || agencyManaged) return;
     const controller = new AbortController();
     api<Billing>(`${prefix}/billing/`, "GET", undefined, controller.signal)
       .then((data) => {
@@ -235,10 +245,21 @@ export function UpgradePrompt({ prefix }: { prefix: string }) {
         if (!controller.signal.aborted) setError(message(err));
       });
     return () => controller.abort();
-  }, [limitName, prefix]);
+  }, [limitName, prefix, agencyManaged]);
 
   if (!limitName) return null;
   const what = LIMIT_LABELS[limitName] || "this feature";
+  if (agencyManaged) {
+    return (
+      <Modal title="Plan limit reached" onClose={() => setLimitName("")}>
+        <p>Your workspace has reached the limit for {what}.</p>
+        <p style={{ marginTop: 12, color: "var(--muted)" }}>
+          This workspace is managed by your agency. Please contact your agency
+          administrator to adjust your plan limits or increase allocation.
+        </p>
+      </Modal>
+    );
+  }
   return (
     <Modal title="Upgrade your plan" onClose={() => setLimitName("")}>
       <p>

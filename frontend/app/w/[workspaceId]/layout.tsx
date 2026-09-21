@@ -21,7 +21,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
       .then(([me, all]) => {
         if (controller.signal.aborted) return;
         if (!all.some((item) => item.id === workspaceId)) {
-          router.replace("/");
+          router.replace("/auth");
           return;
         }
         setUser(me);
@@ -30,7 +30,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
       .catch((err) => {
         if (controller.signal.aborted) return;
         if (err instanceof ApiError && [401, 403].includes(err.status)) {
-          router.replace("/");
+          router.replace("/auth");
           return;
         }
         setError(message(err));

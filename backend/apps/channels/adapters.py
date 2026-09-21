@@ -151,16 +151,17 @@ def adapter_for(connection):
     if settings.CHANNEL_ADAPTER_MODE != "live":
         raise IntegrationUnavailable("Live connections are disabled")
     from .instagram import LiveInstagramAdapter
-    from .providers import MessengerAdapter, TelegramAdapter, WhatsAppAdapter
+    from .providers import LinkedInAdapter, MessengerAdapter, TelegramAdapter, WhatsAppAdapter
 
     return {
         "instagram": LiveInstagramAdapter,
         "whatsapp": WhatsAppAdapter,
         "telegram": TelegramAdapter,
         "messenger": MessengerAdapter,
+        "linkedin": LinkedInAdapter,
     }[connection.provider](connection)
 
 
-PROVIDERS = ["instagram", "whatsapp", "telegram", "messenger"]
+PROVIDERS = ["instagram", "whatsapp", "telegram", "messenger", "linkedin"]
 # Channels with a platform-enforced customer-service window for free-form replies.
 WINDOWED_PROVIDERS = {"instagram", "whatsapp", "messenger"}

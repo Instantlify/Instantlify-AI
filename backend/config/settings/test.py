@@ -7,7 +7,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
 from .base import *  # noqa: E402, F403
 
-ALLOWED_HOSTS = ["testserver", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = DynamicAllowedHosts(["testserver", "localhost", "127.0.0.1"])
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 CELERY_TASK_ALWAYS_EAGER = True

@@ -23,8 +23,72 @@ try:
         Fernet(encryption_key.strip().encode())
 except (ValueError, TypeError) as exc:
     raise ImproperlyConfigured("FIELD_ENCRYPTION_KEYS must contain valid Fernet keys") from exc
+
 DEBUG = False
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(",")
+
+
+class DynamicAllowedHosts(list):
+    """Allowed hosts collection that checks base hosts plus verified custom domains."""
+
+    def __init__(self, base_hosts=()):
+        super().__init__([h.strip() for h in base_hosts if h and h.strip()])
+        self._cached_domains = set()
+        self._last_checked = 0.0
+
+    def append(self, host):
+        if not super().__contains__(host):
+            super().append(host)
+
+    def extend(self, hosts):
+        for h in hosts:
+            self.append(h)
+
+    def clear_cache(self):
+        self._last_checked = 0.0
+        self._cached_domains = set()
+
+    def _get_active_domains(self):
+        import os
+        import time
+
+        now = time.time()
+        is_test = os.environ.get("DJANGO_SETTINGS_MODULE", "").endswith(".test")
+        cache_ttl = 0.0 if is_test else 5.0
+        if cache_ttl > 0 and (now - self._last_checked < cache_ttl):
+            return self._cached_domains
+        try:
+            from apps.tenants.models import WorkspaceBranding
+
+            domains = set(
+                WorkspaceBranding.all_objects.filter(
+                    custom_domain_status="active"
+                )
+                .exclude(custom_domain="")
+                .values_list("custom_domain", flat=True)
+            )
+            self._cached_domains = {d.strip().lower() for d in domains if d.strip()}
+            self._last_checked = now
+        except Exception:
+            pass
+        return self._cached_domains
+
+    def __iter__(self):
+        yield from super().__iter__()
+        yield from self._get_active_domains()
+
+    def __contains__(self, item):
+        if not item:
+            return False
+        clean = item.strip().lower().split(":")[0]
+        if super().__contains__(clean):
+            return True
+        return clean in self._get_active_domains()
+
+    def __len__(self):
+        return super().__len__() + len(self._get_active_domains())
+
+
+ALLOWED_HOSTS = DynamicAllowedHosts(os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(","))
 CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "http://localhost:3000").split(",")
 INSTALLED_APPS = [
     "apps.platform_ops",
@@ -185,6 +249,15 @@ META_REDIRECT_URI = os.environ.get("META_REDIRECT_URI", "http://localhost:3000/a
 META_SCOPES = os.environ.get(
     "META_SCOPES", "instagram_business_basic,instagram_business_manage_messages"
 )
+LINKEDIN_CLIENT_ID = os.environ.get("LINKEDIN_CLIENT_ID", "")
+LINKEDIN_CLIENT_SECRET = os.environ.get("LINKEDIN_CLIENT_SECRET", "")
+LINKEDIN_REDIRECT_URI = os.environ.get(
+    "LINKEDIN_REDIRECT_URI", "http://localhost:3000/api/linkedin/callback/"
+)
+LINKEDIN_SCOPES = os.environ.get(
+    "LINKEDIN_SCOPES", "r_organization_social,w_organization_social,r_messages,w_messages"
+)
+SNAPCHAT_WEBHOOK_SECRET = os.environ.get("SNAPCHAT_WEBHOOK_SECRET", "")
 CHANNEL_ADAPTER_MODE = os.environ.get("CHANNEL_ADAPTER_MODE", "disabled")
 CHANNEL_LAYERS = {
     "default": {
@@ -218,6 +291,10 @@ PLATFORM_OPENAI_API_KEY = os.environ.get("PLATFORM_OPENAI_API_KEY", "")
 PLATFORM_ANTHROPIC_API_KEY = os.environ.get("PLATFORM_ANTHROPIC_API_KEY", "")
 PLATFORM_GEMINI_API_KEY = os.environ.get("PLATFORM_GEMINI_API_KEY", "")
 PLATFORM_XAI_API_KEY = os.environ.get("PLATFORM_XAI_API_KEY", "")
+PLATFORM_ELEVENLABS_API_KEY = os.environ.get("PLATFORM_ELEVENLABS_API_KEY", "")
+PLATFORM_ELEVENLABS_DEFAULT_VOICE_ID = os.environ.get(
+    "PLATFORM_ELEVENLABS_DEFAULT_VOICE_ID", "21m00Tcm4TlvDq8ikWAM"
+)
 # Uptime paging (platform_ops/uptime.py). Each channel is optional.
 UPTIME_PROBE_URL = os.environ.get("UPTIME_PROBE_URL", "")
 UPTIME_LATENCY_MS = int(os.environ.get("UPTIME_LATENCY_MS", "2500"))

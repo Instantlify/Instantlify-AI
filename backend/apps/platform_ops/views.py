@@ -88,7 +88,7 @@ def funnel_dataset():
 
     wizard = funnel_report("wizard")
     tour = funnel_report("tour")
-    shades = ["#31708F", "#B04A35", "#5C93AD", "#8DB4C6", "#B6CFDA"]
+    shades = ["#4F46E5", "#0284C7", "#10B981", "#7C3AED", "#F59E0B"]
     for index, step in enumerate(wizard["steps"]):
         step["color"] = shades[index % len(shades)]
     paywall = next(
@@ -179,16 +179,16 @@ def analytics_dataset():
     )
     total_accounts = sum(row["total"] for row in tiers) or 1
     shades = [
-        "#347359",
-        "#31708F",
-        "#6B5CA5",
-        "#C07830",
-        "#2F8F7D",
-        "#B2872C",
-        "#3A8FA0",
-        "#7A6FB0",
-        "#B04A35",
-        "#5C93AD",
+        "#4F46E5",
+        "#0284C7",
+        "#10B981",
+        "#7C3AED",
+        "#EA580C",
+        "#0D9488",
+        "#D97706",
+        "#0891B2",
+        "#8B5CF6",
+        "#E11D48",
     ]
     months = (
         SubscriptionSnapshot.objects.filter(day__gte=today - timedelta(days=210))

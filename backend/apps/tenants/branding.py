@@ -29,6 +29,8 @@ def branding_dict(branding):
         "primary_color": branding.primary_color,
         "support_email": branding.support_email,
         "hide_platform_branding": branding.hide_platform_branding,
+        "custom_domain_status": branding.custom_domain_status,
+        "tls_status": branding.tls_status,
     }
 
 
@@ -40,7 +42,12 @@ def effective_branding(workspace):
         branding = WorkspaceBranding.objects.for_workspace(candidate).first()
         if branding:
             return {**branding_dict(branding), "custom_domain": branding.custom_domain}
-    return {**DEFAULT_BRANDING, "custom_domain": ""}
+    return {
+        **DEFAULT_BRANDING,
+        "custom_domain": "",
+        "custom_domain_status": WorkspaceBranding.DomainStatus.PENDING,
+        "tls_status": WorkspaceBranding.TLSStatus.INACTIVE,
+    }
 
 
 class BrandingSerializer(serializers.ModelSerializer):
@@ -52,7 +59,17 @@ class BrandingSerializer(serializers.ModelSerializer):
             "primary_color",
             "support_email",
             "custom_domain",
+            "custom_domain_status",
+            "verification_token",
+            "verified_at",
+            "tls_status",
             "hide_platform_branding",
+        ]
+        read_only_fields = [
+            "custom_domain_status",
+            "verification_token",
+            "verified_at",
+            "tls_status",
         ]
 
     def validate_primary_color(self, value):
@@ -87,25 +104,73 @@ class BrandingView(APIView):
         )
 
     def put(self, request, workspace_id):
+        from .domain_verification import generate_verification_token
+
         member = workspace_membership(request, workspace_id, ["owner"])
         branding = WorkspaceBranding.objects.for_workspace(workspace_id).first()
+        prev_domain = branding.custom_domain if branding else ""
+
         serializer = BrandingSerializer(branding, data=request.data, partial=bool(branding))
         serializer.is_valid(raise_exception=True)
         try:
             with transaction.atomic():
-                branding = serializer.save(workspace=member.workspace)
+                instance = serializer.save(workspace=member.workspace)
+                new_domain = instance.custom_domain
+                if new_domain != prev_domain:
+                    if new_domain:
+                        instance.custom_domain_status = WorkspaceBranding.DomainStatus.PENDING
+                        instance.verification_token = generate_verification_token()
+                        instance.verified_at = None
+                        instance.tls_status = WorkspaceBranding.TLSStatus.INACTIVE
+                    else:
+                        instance.custom_domain_status = WorkspaceBranding.DomainStatus.PENDING
+                        instance.verification_token = ""
+                        instance.verified_at = None
+                        instance.tls_status = WorkspaceBranding.TLSStatus.INACTIVE
+                    instance.save(
+                        update_fields=[
+                            "custom_domain_status",
+                            "verification_token",
+                            "verified_at",
+                            "tls_status",
+                        ]
+                    )
         except IntegrityError:
             raise serializers.ValidationError(
                 {"custom_domain": "That domain is already in use."}
             ) from None
-        audit(member.workspace, request.user, "branding.updated", branding.id)
-        return Response(BrandingSerializer(branding).data)
+        audit(member.workspace, request.user, "branding.updated", instance.id)
+        return Response(BrandingSerializer(instance).data)
 
     def delete(self, request, workspace_id):
         member = workspace_membership(request, workspace_id, ["owner"])
         WorkspaceBranding.objects.for_workspace(workspace_id).delete()
         audit(member.workspace, request.user, "branding.reset", workspace_id)
         return Response(status=204)
+
+
+class VerifyDomainView(APIView):
+    """Explicit domain verification trigger by workspace owners or admins."""
+
+    def post(self, request, workspace_id):
+        workspace_membership(request, workspace_id, ["owner", "admin"])
+        branding = WorkspaceBranding.objects.for_workspace(workspace_id).first()
+        if not branding or not branding.custom_domain:
+            return Response(
+                {"error": "no_custom_domain", "detail": "No custom domain configured."},
+                status=400,
+            )
+        from .domain_verification import verify_custom_domain
+
+        success, message = verify_custom_domain(branding, user=request.user)
+        return Response(
+            {
+                "verified": success,
+                "message": message,
+                "branding": BrandingSerializer(branding).data,
+            },
+            status=200 if success else 400,
+        )
 
 
 class PublicBrandingView(APIView):

@@ -4,65 +4,73 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Nemio · Admin Panel</title>
+<meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ==========================================================================
-   Nemio / BooSend Admin Panel Design System
-   Matches reference: Deep dark navy sidebar, clean crisp card surfaces,
-   vibrant solid hero KPI cards, fine data metrics, interactive SVG charts,
-   and wizard funnels.
+   Nemio AI Operations & Intelligence Console Design System
+   Modern Executive Slate UI with Electric Indigo, Emerald AI & Vibrant Accents.
    ========================================================================== */
 :root {
-  /* The tenant app's palette, token for token, so the console and the product a
-     customer sees read as one system rather than two. */
-  --ink: #233A33;
-  --green: #347359;
-  --green-deep: #2A5D48;
-  --soft: #EDF4ED;
-  --line: #E7EBE7;
+  /* Slate & neutral foundation */
+  --ink: #0F172A;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  --text-faint: #94A3B8;
 
-  --nav-bg: #FFFFFF;
-  --nav-hover: #F1F5ED;
-  --nav-active: #EAF1E6;
-  --nav-text: #7A857A;
-  --nav-text-hover: #375C3E;
-  --nav-border: #E7EBE7;
-
-  --bg: #FAFBF8;
+  --bg: #F8FAFC;
   --card-bg: #FFFFFF;
-  --card-border: #E7EBE7;
-  --text-primary: #233A33;
-  --text-secondary: #566B60;
-  --text-muted: #7B8580;
-  --text-faint: #A3ACA6;
+  --card-border: #E2E8F0;
+  --line: #E2E8F0;
+  --soft: #F1F5F9;
 
-  /* Accent family, pulled toward the sage base so a wall of KPI cards stays calm. */
-  --blue: #31708F;
-  --blue-soft: #EDF3F6;
-  --green-soft: #EAF1E6;
-  --purple: #6B5CA5;
-  --purple-soft: #F2F0F9;
-  --orange: #C07830;
-  --orange-soft: #FBF3E9;
-  --teal: #2F8F7D;
-  --teal-soft: #E9F5F1;
-  --red: #B04A35;
-  --red-soft: #FAEEEB;
-  --amber: #B2872C;
-  --cyan: #3A8FA0;
-  --pink: #A8568A;
+  /* Executive Dark Navigation */
+  --nav-bg: #0B0F19;
+  --nav-hover: #1E293B;
+  --nav-active: #1E1B4B;
+  --nav-text: #94A3B8;
+  --nav-text-hover: #F8FAFC;
+  --nav-text-active: #818CF8;
+  --nav-border: #1E293B;
+
+  /* Primary Brand & AI Accents */
+  --primary: #4F46E5;
+  --primary-hover: #4338CA;
+  --primary-soft: #EEF2FF;
+  --emerald: #10B981;
+  --emerald-soft: #ECFDF5;
+  --green: #10B981;
+  --green-deep: #065F46;
+  --green-soft: #ECFDF5;
+
+  /* Vibrant Accent Family */
+  --blue: #0284C7;
+  --blue-soft: #F0F9FF;
+  --purple: #7C3AED;
+  --purple-soft: #F5F3FF;
+  --orange: #EA580C;
+  --orange-soft: #FFF7ED;
+  --teal: #0D9488;
+  --teal-soft: #F0FDFA;
+  --red: #E11D48;
+  --red-soft: #FFF1F2;
+  --amber: #D97706;
+  --amber-soft: #FFFBEB;
+  --cyan: #0891B2;
+  --pink: #DB2777;
 
   --font: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-brand: 'Manrope', 'DM Sans', sans-serif;
   --sidebar-w: 246px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --shadow-sm: 0 1px 2px rgba(35, 58, 51, 0.05);
-  --shadow-md: 0 4px 10px -4px rgba(35, 58, 51, 0.10), 0 2px 4px -2px rgba(35, 58, 51, 0.05);
-  --shadow-lg: 0 12px 24px -12px rgba(35, 58, 51, 0.16), 0 4px 8px -6px rgba(35, 58, 51, 0.08);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 16px 32px -8px rgba(15, 23, 42, 0.12), 0 4px 12px -4px rgba(15, 23, 42, 0.06);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -86,29 +94,29 @@ button { cursor: pointer; border: none; background: none; }
   overflow-y: auto;
 }
 .sidebar::-webkit-scrollbar { width: 5px; }
-.sidebar::-webkit-scrollbar-thumb { background: #DDE4DC; border-radius: 3px; }
+.sidebar::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 3px; }
 
 .brand-header {
-  padding: 20px 18px 16px;
+  padding: 20px 18px 18px;
   display: flex;
   align-items: center;
   gap: 12px;
   border-bottom: 1px solid var(--nav-border);
 }
 .brand-icon {
-  width: 32px;
-  height: 32px;
-  background: var(--ink);
-  color: #E9F4D1;
-  border-radius: 9px;
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(135deg, #6366F1 0%, #4F46E5 60%, #4338CA 100%);
+  color: #FFFFFF;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(35, 58, 51, 0.18);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
   flex-shrink: 0;
 }
-.brand-text h1 { font-family: var(--font-brand); font-size: 17px; font-weight: 800; color: var(--ink); letter-spacing: -0.7px; line-height: 1.1; }
-.brand-text p { font-size: 10px; color: var(--green); font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; margin-top: 2px; }
+.brand-text h1 { font-family: var(--font-brand); font-size: 18px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.6px; line-height: 1.1; }
+.brand-text p { font-size: 10px; color: #818CF8; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
 
 .sidebar-nav {
   padding: 14px 10px 20px;
@@ -122,7 +130,7 @@ button { cursor: pointer; border: none; background: none; }
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-faint);
+  color: #64748B;
   padding: 14px 10px 4px;
 }
 .nav-item {
@@ -145,13 +153,14 @@ button { cursor: pointer; border: none; background: none; }
 .nav-item:hover svg { opacity: 1; }
 .nav-item.active {
   background: var(--nav-active);
-  color: var(--nav-text-hover);
+  color: var(--nav-text-active);
   font-weight: 650;
+  border-left: 3px solid #6366F1;
 }
-.nav-item.active svg { opacity: 1; }
+.nav-item.active svg { opacity: 1; color: #818CF8; }
 .nav-badge {
   margin-left: auto;
-  background: var(--green);
+  background: #4F46E5;
   color: #FFFFFF;
   font-size: 10px;
   font-weight: 700;
@@ -163,7 +172,7 @@ button { cursor: pointer; border: none; background: none; }
 .sidebar-bottom {
   padding: 12px 14px 16px;
   border-top: 1px solid var(--nav-border);
-  background: var(--bg);
+  background: #070A11;
 }
 .user-profile {
   display: flex;
@@ -174,27 +183,27 @@ button { cursor: pointer; border: none; background: none; }
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--soft);
-  color: var(--green-deep);
+  background: #1E293B;
+  color: #818CF8;
   font-weight: 700;
   font-size: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
   text-transform: uppercase;
-  border: 1px solid var(--line);
+  border: 1px solid #334155;
   flex-shrink: 0;
 }
 .user-info { min-width: 0; flex: 1; }
-.user-info strong { display: block; font-size: 12px; color: var(--ink); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.user-info span { display: block; font-size: 11px; color: var(--text-muted); text-transform: capitalize; }
+.user-info strong { display: block; font-size: 12px; color: #F8FAFC; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-info span { display: block; font-size: 11px; color: #94A3B8; text-transform: capitalize; }
 .logout-btn {
-  color: var(--text-muted);
+  color: #94A3B8;
   padding: 6px;
   border-radius: 6px;
   transition: all 0.15s ease;
 }
-.logout-btn:hover { background: var(--red-soft); color: var(--red); }
+.logout-btn:hover { background: #1E293B; color: #F8FAFC; }
 
 /* ---------------- Main Content Layout ---------------- */
 .main-wrapper {
@@ -205,22 +214,21 @@ button { cursor: pointer; border: none; background: none; }
   flex-direction: column;
 }
 .top-navbar {
-  height: 52px;
-  background: #FFFFFF;
-  border-bottom: 1px solid var(--card-border);
+  height: 44px;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 28px;
+  padding: 16px 28px 0;
   font-size: 12.5px;
 }
-.breadcrumbs { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-weight: 500; }
+.breadcrumbs { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-weight: 500; font-size: 12px; }
 .breadcrumbs strong { color: var(--text-primary); font-weight: 600; }
 .role-badge {
-  background: var(--soft);
-  color: var(--green-deep);
-  border: 1px solid #D6E3D6;
-  padding: 3px 10px;
+  background: #EEF2FF;
+  color: #4338CA;
+  border: 1px solid #C7D2FE;
+  padding: 2px 10px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
@@ -228,7 +236,7 @@ button { cursor: pointer; border: none; background: none; }
 }
 
 .content-body {
-  padding: 24px 28px 48px;
+  padding: 12px 28px 48px;
   flex: 1;
 }
 
@@ -280,9 +288,9 @@ button { cursor: pointer; border: none; background: none; }
   transition: all 0.15s ease;
 }
 .pill-toggle-btn.active {
-  background: var(--green);
+  background: #4F46E5;
   color: #FFFFFF;
-  box-shadow: 0 1px 3px rgba(52, 115, 89, 0.32);
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
 }
 .dropdown-pill {
   display: inline-flex;
@@ -304,34 +312,60 @@ button { cursor: pointer; border: none; background: none; }
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 .hero-kpi-card {
-  border-radius: var(--radius-lg);
-  padding: 16px 18px;
+  border-radius: 16px;
+  padding: 18px 20px;
   color: #FFFFFF;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 148px;
-  box-shadow: var(--shadow-md);
+  min-height: 154px;
   position: relative;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.hero-card-green { background: linear-gradient(145deg, #3D8465 0%, #2A5D48 100%); }
-.hero-card-blue { background: linear-gradient(145deg, #3A7E9E 0%, #2A5F79 100%); }
-.hero-card-purple { background: linear-gradient(145deg, #7867B4 0%, #574A8A 100%); }
-.hero-card-orange { background: linear-gradient(145deg, #CB8438 0%, #A25F22 100%); }
-.hero-card-teal { background: linear-gradient(145deg, #359E8A 0%, #237363 100%); }
-/* A faint sheen keeps the solid cards from reading flat next to the white surfaces. */
+.hero-kpi-card:hover {
+  transform: translateY(-3px);
+}
+.hero-card-green {
+  background: linear-gradient(135deg, #059669 0%, #10B981 50%, #047857 100%);
+  box-shadow: 0 12px 28px -6px rgba(16, 185, 129, 0.35), 0 4px 12px -2px rgba(16, 185, 129, 0.2);
+}
+.hero-card-blue {
+  background: linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #4338CA 100%);
+  box-shadow: 0 12px 28px -6px rgba(99, 102, 241, 0.35), 0 4px 12px -2px rgba(99, 102, 241, 0.2);
+}
+.hero-card-purple {
+  background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 50%, #6D28D9 100%);
+  box-shadow: 0 12px 28px -6px rgba(139, 92, 246, 0.35), 0 4px 12px -2px rgba(139, 92, 246, 0.2);
+}
+.hero-card-orange {
+  background: linear-gradient(135deg, #EA580C 0%, #F97316 50%, #C2410C 100%);
+  box-shadow: 0 12px 28px -6px rgba(249, 115, 22, 0.35), 0 4px 12px -2px rgba(249, 115, 22, 0.2);
+}
+.hero-card-teal {
+  background: linear-gradient(135deg, #0891B2 0%, #06B6D4 50%, #0E7490 100%);
+  box-shadow: 0 12px 28px -6px rgba(6, 182, 212, 0.35), 0 4px 12px -2px rgba(6, 182, 212, 0.2);
+}
+.hero-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+}
 .hero-kpi-card::after {
   content: '';
   position: absolute;
-  inset: -40% -30% auto auto;
-  width: 160px;
-  height: 160px;
+  inset: -30% -20% auto auto;
+  width: 170px;
+  height: 170px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.07);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 70%);
   pointer-events: none;
 }
 
@@ -340,7 +374,7 @@ button { cursor: pointer; border: none; background: none; }
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .hero-badge-title {
   display: flex;
@@ -349,12 +383,15 @@ button { cursor: pointer; border: none; background: none; }
   font-size: 12px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.02em;
 }
 .hero-badge-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
   background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -362,44 +399,51 @@ button { cursor: pointer; border: none; background: none; }
   font-weight: 700;
 }
 .hero-card-dropdown {
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 999px;
-  padding: 3px 9px;
+  padding: 4px 10px;
   font-size: 11px;
   color: #FFFFFF;
-  font-weight: 500;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 4px;
+  transition: background 0.15s ease;
+}
+.hero-card-dropdown:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 .hero-card-value {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.6px;
   line-height: 1.15;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.12);
 }
 .hero-card-sub {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 500;
 }
 .hero-card-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 2px;
+  gap: 5px;
+  margin-top: 4px;
 }
 .hero-card-list-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11.5px;
-  padding: 2px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 .hero-card-list-item:last-child { border-bottom: none; }
-.hero-card-list-item span:first-child { color: rgba(255, 255, 255, 0.82); font-weight: 500; }
+.hero-card-list-item span:first-child { color: rgba(255, 255, 255, 0.85); font-weight: 500; }
 .hero-card-list-item span:last-child { font-weight: 700; color: #FFFFFF; }
 
 /* ---------------- Secondary Metric Cards Grid ---------------- */
@@ -407,71 +451,78 @@ button { cursor: pointer; border: none; background: none; }
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 .metric-box {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
-  box-shadow: var(--shadow-sm);
+  border-left: 4px solid #94A3B8;
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 98px;
+  min-height: 110px;
   position: relative;
   overflow: hidden;
-  border-left-width: 4px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
-.metric-box.accent-blue { border-left-color: var(--blue); }
-.metric-box.accent-teal { border-left-color: var(--teal); }
-.metric-box.accent-purple { border-left-color: var(--purple); }
-.metric-box.accent-lightblue { border-left-color: #38BDF8; }
-.metric-box.accent-orange { border-left-color: var(--orange); }
-.metric-box.accent-green { border-left-color: var(--green); }
-.metric-box.accent-pink { border-left-color: var(--pink); }
-.metric-box.accent-red { border-left-color: var(--red); }
-.metric-box.accent-gray { border-left-color: var(--text-muted); }
+.metric-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.09);
+}
+.metric-box.accent-blue { border-left-color: #2563EB; }
+.metric-box.accent-teal { border-left-color: #0D9488; }
+.metric-box.accent-purple { border-left-color: #7C3AED; }
+.metric-box.accent-lightblue { border-left-color: #0284C7; }
+.metric-box.accent-orange { border-left-color: #EA580C; }
+.metric-box.accent-green { border-left-color: #10B981; }
+.metric-box.accent-pink { border-left-color: #DB2777; }
+.metric-box.accent-red { border-left-color: #EF4444; }
+.metric-box.accent-gray { border-left-color: #64748B; }
 
 .metric-box-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .metric-box-label {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: #64748B;
+  letter-spacing: -0.1px;
 }
 .metric-box-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
-.metric-box.accent-blue .metric-box-icon { background: var(--blue-soft); color: var(--blue); }
-.metric-box.accent-teal .metric-box-icon { background: var(--teal-soft); color: var(--teal); }
-.metric-box.accent-purple .metric-box-icon { background: var(--purple-soft); color: var(--purple); }
-.metric-box.accent-lightblue .metric-box-icon { background: var(--blue-soft); color: #0284C7; }
-.metric-box.accent-orange .metric-box-icon { background: var(--orange-soft); color: var(--orange); }
-.metric-box.accent-green .metric-box-icon { background: var(--green-soft); color: var(--green); }
-.metric-box.accent-pink .metric-box-icon { background: #F8EFF5; color: #DB2777; }
-.metric-box.accent-red .metric-box-icon { background: var(--red-soft); color: var(--red); }
-.metric-box.accent-gray .metric-box-icon { background: var(--soft); color: var(--text-secondary); }
+.metric-box.accent-blue .metric-box-icon { background: #EEF2FF; color: #2563EB; }
+.metric-box.accent-teal .metric-box-icon { background: #CCFBF1; color: #0D9488; }
+.metric-box.accent-purple .metric-box-icon { background: #F3E8FF; color: #7C3AED; }
+.metric-box.accent-lightblue .metric-box-icon { background: #E0F2FE; color: #0284C7; }
+.metric-box.accent-orange .metric-box-icon { background: #FFEDD5; color: #EA580C; }
+.metric-box.accent-green .metric-box-icon { background: #D1FAE5; color: #059669; }
+.metric-box.accent-pink .metric-box-icon { background: #FCE7F3; color: #DB2777; }
+.metric-box.accent-red .metric-box-icon { background: #FEE2E2; color: #EF4444; }
+.metric-box.accent-gray .metric-box-icon { background: #F1F5F9; color: #64748B; }
 
 .metric-box-val {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 800;
   color: var(--text-primary);
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
   line-height: 1.15;
   margin-bottom: 4px;
 }
 .metric-box-sub {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -641,10 +692,10 @@ button { cursor: pointer; border: none; background: none; }
   flex-direction: column;
   box-shadow: var(--shadow-md);
 }
-.funnel-hero-blue { background: linear-gradient(145deg, #3A7E9E 0%, #2A5F79 100%); }
-.funnel-hero-purple { background: linear-gradient(145deg, #7867B4 0%, #574A8A 100%); }
-.funnel-hero-orange { background: linear-gradient(145deg, #CB8438 0%, #A25F22 100%); }
-.funnel-hero-green { background: linear-gradient(145deg, #3D8465 0%, #2A5D48 100%); }
+.funnel-hero-blue { background: linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #4338CA 100%); box-shadow: 0 10px 24px -6px rgba(79, 70, 229, 0.3); }
+.funnel-hero-purple { background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 50%, #6D28D9 100%); box-shadow: 0 10px 24px -6px rgba(124, 58, 237, 0.3); }
+.funnel-hero-orange { background: linear-gradient(135deg, #EA580C 0%, #F97316 50%, #C2410C 100%); box-shadow: 0 10px 24px -6px rgba(234, 88, 12, 0.3); }
+.funnel-hero-green { background: linear-gradient(135deg, #059669 0%, #10B981 50%, #047857 100%); box-shadow: 0 10px 24px -6px rgba(16, 185, 129, 0.3); }
 
 .funnel-hero-card .val { font-size: 26px; font-weight: 800; line-height: 1.1; margin-bottom: 4px; }
 .funnel-hero-card .lbl { font-size: 12px; color: rgba(255, 255, 255, 0.9); font-weight: 500; }
@@ -800,52 +851,57 @@ table.modern-table td strong { color: var(--text-primary); }
 .input-control, .select-control {
   background: #FFFFFF;
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 7px 11px;
+  border-radius: 8px;
+  padding: 8px 12px;
   font-size: 12.5px;
   color: var(--text-primary);
   transition: all 0.15s ease;
 }
 .input-control:focus, .select-control:focus {
-  border-color: var(--blue);
+  border-color: #4F46E5;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(52, 115, 89, 0.14);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 .btn-primary {
-  background: var(--ink);
+  background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
   color: #FFFFFF;
   font-weight: 600;
   font-size: 12.5px;
-  padding: 7px 14px;
-  border-radius: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25);
   transition: all 0.15s ease;
 }
-.btn-primary:hover { background: var(--green-deep); }
+.btn-primary:hover {
+  background: linear-gradient(135deg, #4338CA 0%, #3730A3 100%);
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35);
+  transform: translateY(-1px);
+}
 .btn-secondary {
   background: #FFFFFF;
   border: 1px solid var(--line);
   color: var(--text-primary);
   font-weight: 600;
   font-size: 12.5px;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
   transition: all 0.15s ease;
 }
-.btn-secondary:hover { background: var(--bg); border-color: var(--text-faint); }
+.btn-secondary:hover { background: #F8FAFC; border-color: #CBD5E1; }
 .btn-danger {
-  background: var(--red-soft);
-  border: 1px solid #DDB0A6;
-  color: var(--red);
+  background: #FFF1F2;
+  border: 1px solid #FECDD3;
+  color: #E11D48;
   font-weight: 600;
   font-size: 12px;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
   transition: all 0.15s ease;
 }
-.btn-danger:hover { background: var(--red-soft); }
+.btn-danger:hover { background: #FFE4E6; }
 
 /* ---------------- Responsive ---------------- */
 @media (max-width: 1280px) {
@@ -874,20 +930,21 @@ table.modern-table td strong { color: var(--text-primary); }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--ink);
+  background: radial-gradient(circle at 50% 25%, #1E1B4B 0%, #0F172A 70%, #0B0F19 100%);
   padding: 24px;
 }
 .auth-box {
   width: 100%;
   max-width: 420px;
   background: #FFFFFF;
-  border-radius: var(--radius-lg);
-  padding: 32px 28px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  padding: 34px 30px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 .auth-box .brand-header { border-bottom: none; padding: 0 0 20px; }
-.auth-box .brand-text h1 { color: var(--ink); }
-.auth-box h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.auth-box .brand-text h1 { color: #0F172A; }
+.auth-box .brand-text p { color: #4F46E5; }
+.auth-box h2 { font-size: 19px; font-weight: 800; color: #0F172A; margin-bottom: 6px; letter-spacing: -0.4px; }
 .auth-box p { font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px; }
 .auth-form-group { display: grid; gap: 6px; margin-bottom: 14px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .secret-key-box {
@@ -895,21 +952,21 @@ table.modern-table td strong { color: var(--text-primary); }
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
   letter-spacing: 0.08em;
-  background: var(--soft);
-  border: 1px dashed var(--line);
-  border-radius: 6px;
+  background: #F1F5F9;
+  border: 1px dashed #CBD5E1;
+  border-radius: 8px;
   padding: 12px;
   margin: 14px 0;
   text-align: center;
   font-weight: 700;
-  color: var(--green-deep);
+  color: #4F46E5;
 }
 .alert-banner {
-  background: var(--red-soft);
-  border: 1px solid #EBCFC8;
-  color: #991B1B;
+  background: #FFF1F2;
+  border: 1px solid #FECDD3;
+  color: #9F1239;
   padding: 10px 14px;
-  border-radius: 6px;
+  border-radius: 8px;
   margin-bottom: 16px;
   font-size: 12px;
 }
@@ -921,9 +978,10 @@ table.modern-table td strong { color: var(--text-primary); }
 
 /* Section banner: a dark header strip for modules that own a whole workflow. */
 .module-banner {
-  background: linear-gradient(135deg, #1E3229 0%, #223A30 55%, #24413A 100%);
+  background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #1E293B 100%);
+  border: 1px solid rgba(99, 102, 241, 0.2);
   border-radius: var(--radius-lg);
-  padding: 20px 24px 22px;
+  padding: 22px 26px 24px;
   color: #FFFFFF;
   position: relative;
   overflow: hidden;
@@ -933,13 +991,14 @@ table.modern-table td strong { color: var(--text-primary); }
   justify-content: space-between;
   gap: 18px;
   flex-wrap: wrap;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
 }
 .module-banner::after {
   content: '';
   position: absolute;
   inset: auto 0 0 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--purple), var(--blue), var(--teal), var(--green));
+  background: linear-gradient(90deg, #6366F1, #06B6D4, #10B981, #F59E0B);
 }
 .module-banner .eyebrow {
   display: inline-flex;
@@ -977,7 +1036,7 @@ table.modern-table td strong { color: var(--text-primary); }
   transition: all 0.15s ease;
 }
 .module-tab:hover { background: var(--bg); color: var(--text-primary); }
-.module-tab.active { background: var(--soft); color: var(--green-deep); }
+.module-tab.active { background: #EEF2FF; color: #4F46E5; font-weight: 700; }
 .module-tab .count {
   margin-left: 7px;
   background: var(--bg);
@@ -986,7 +1045,7 @@ table.modern-table td strong { color: var(--text-primary); }
   font-size: 10.5px;
   color: var(--text-muted);
 }
-.module-tab.active .count { background: #FFFFFF; color: var(--green-deep); }
+.module-tab.active .count { background: #FFFFFF; color: #4F46E5; }
 
 /* Generic card + grid helpers used across the new modules. */
 .panel {
@@ -1307,6 +1366,105 @@ table.modern-table td strong { color: var(--text-primary); }
   background: var(--green-soft); border: 1px solid #D2E0D2; color: var(--green-deep);
   border-radius: var(--radius-md); padding: 10px 14px; font-size: 12.5px; font-weight: 600; margin-bottom: 16px;
 }
+/* Shared Nemio visual identity. Keep operational state colors semantic. */
+:root {
+  --ink: #20263f; --text-primary: #20263f; --text-secondary: #505c77;
+  --text-muted: #68738b; --text-faint: #758099;
+  --bg: #f6f7fc; --soft: #eeedf7; --line: #e2e6f0; --card-border: #e2e6f0;
+  --nav-bg: #191d35; --nav-hover: #303650; --nav-active: #5546e8;
+  --nav-text: #b7bfd5; --nav-text-active: #fff; --nav-border: #353b54;
+  --primary: #5546e8; --primary-hover: #4637cd; --primary-soft: #eeebff;
+  --green: #16876e; --green-soft: #e8f7f0; --green-deep: #17634f;
+  --shadow-md: 0 5px 20px rgba(39, 35, 63, .06);
+}
+.brand-icon { background: #6553e8; box-shadow: 0 5px 15px #100c3926; }
+.brand-text p { color: #b5a8ff; }
+.nav-section-title { color: #9aa6c4; }
+.nav-item.active { background: var(--nav-active); color: #fff; box-shadow: 0 4px 12px #100c3926; }
+.nav-item.active svg { opacity: 1; }
+.hero-card-green { background: linear-gradient(120deg, #167d69, #209980); box-shadow: 0 8px 20px #16876e20; }
+.hero-card-blue { background: linear-gradient(120deg, #5546cf, #7461e6); box-shadow: 0 8px 20px #5546e820; }
+.hero-card-purple { background: linear-gradient(120deg, #734aab, #9166c5); box-shadow: 0 8px 20px #734aab20; }
+.hero-card-orange { background: linear-gradient(120deg, #ac612a, #c47c36); box-shadow: 0 8px 20px #ac612a20; }
+.hero-card-teal { background: linear-gradient(120deg, #256f91, #3187a7); box-shadow: 0 8px 20px #256f9120; }
+.hero-kpi-card { min-height: 164px; }
+.metric-box, .chart-card, .funnel-visual-card { box-shadow: 0 4px 18px #24294906; }
+.metric-box-label { color: #5a6680; }
+.chart-card-head { border-bottom: 1px solid #eeedf6; padding-bottom: 14px; }
+thead { background: #f4f3fb; }
+tbody tr:hover { background: #f8f7ff; }
+.auth-wrapper { background: radial-gradient(ellipse at 20% 20%, #e2dbfb, transparent 55%), radial-gradient(ellipse at 85% 85%, #d9f2e8, transparent 60%), #f6f7fc; }
+.auth-box { box-shadow: 0 24px 70px #30275514; border: 1px solid #e2def0; }
+a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #998bf4; outline-offset: 3px; }
+.metrics-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) {
+  .sidebar-nav { flex-direction: row; overflow-x: auto; padding: 12px; gap: 6px; }
+  .sidebar-nav .nav-item { flex: 0 0 auto; white-space: nowrap; }
+  .sidebar-nav .nav-section-title { display: none; }
+  .sidebar-bottom { padding: 10px 18px; }
+  .view-controls { flex-wrap: wrap; }
+  .main-wrapper, .content-body, .chart-card { min-width: 0; }
+}
+@media (max-width: 600px) {
+  .content-body { padding: 18px 16px 32px; }
+  .top-navbar { padding: 14px 16px 0; gap: 12px; }
+  .role-badge { max-width: 45%; overflow-wrap: anywhere; }
+  .metrics-summary-grid { grid-template-columns: minmax(0, 1fr); }
+  .chart-card-head { flex-wrap: wrap; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+/* Tier management: readable summaries and self-contained, responsive editors. */
+.tier-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:start; margin-bottom:24px; }
+.tier-card { min-width:0; background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px; box-shadow:var(--shadow-sm); overflow:hidden; }
+.tier-featured { border-color:#a99bf2; }
+.tier-card:has(.tier-editor[open]) { grid-column:1 / -1; }
+.tier-card:has(.tier-editor[open]) .tier-form { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.tier-card:has(.tier-editor[open]) .tier-form-actions, .tier-card:has(.tier-editor[open]) .tier-info { grid-column:1 / -1; }
+.tier-card-body { padding:24px; }
+.tier-card-heading { display:flex; justify-content:space-between; align-items:center; gap:14px; }
+.tier-card-heading h2 { font-size:21px; letter-spacing:-.5px; margin-top:7px; overflow-wrap:anywhere; }
+.tier-kind { font-size:9px; letter-spacing:1.2px; font-weight:700; color:var(--text-muted); }
+.tier-partner { margin-top:8px; color:var(--text-muted); }
+.tier-price { display:flex; align-items:baseline; gap:7px; flex-wrap:wrap; margin:22px 0; }
+.tier-price strong { font-size:32px; letter-spacing:-1px; }
+.tier-price > span { font-size:12px; color:var(--text-muted); }
+.tier-price .tier-no-price { font-size:20px; letter-spacing:-.4px; }
+.tier-price .tier-featured-label { margin-left:auto; background:var(--primary-soft); color:var(--primary); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:600; }
+.tier-limits { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; background:var(--bg); padding:16px; border-radius:10px; }
+.tier-limits dt { font-size:11px; color:var(--text-muted); margin-bottom:5px; }
+.tier-limits dd { font-size:15px; font-weight:700; overflow-wrap:anywhere; }
+.tier-meta { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; margin-top:18px; color:var(--text-muted); font-size:11px; }
+.tier-meta code { overflow-wrap:anywhere; }
+.tier-editor { border-top:1px solid var(--line); }
+.tier-editor > summary { display:flex; justify-content:space-between; padding:16px 24px; font-size:12px; font-weight:650; color:var(--primary); cursor:pointer; background:#faf9ff; list-style:none; }
+.tier-editor > summary::-webkit-details-marker, .tier-create > summary::-webkit-details-marker { display:none; }
+.tier-editor[open] > summary > span, .tier-create[open] .tier-create-icon { transform:rotate(45deg); }
+.tier-form { padding:24px; display:grid; gap:24px; }
+.tier-fieldset { border:0; padding:0; margin:0; min-width:0; }
+.tier-fieldset legend { padding:0; margin-bottom:12px; font-weight:700; font-size:13px; color:var(--text-primary); }
+.tier-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.tier-fields label { display:flex; flex-direction:column; gap:7px; font-size:11.5px; color:var(--text-secondary); font-weight:600; min-width:0; }
+.tier-fields .input-control { width:100%; min-width:0; height:40px; padding:10px 12px; background:#fff; border-radius:8px; }
+.tier-help { font-size:11px; line-height:1.6; color:var(--text-muted); font-weight:400; margin:0 0 12px; }
+.tier-fields .tier-help { margin:0; }
+.tier-optional { display:none; }
+.tier-checks { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.tier-checks label { display:flex; align-items:center; gap:9px; padding:11px 12px; border:1px solid var(--line); border-radius:8px; font-size:11.5px; line-height:1.5; cursor:pointer; }
+.tier-checks label:has(input:checked) { border-color:#d1c8f7; background:#f7f5ff; }
+.tier-checks input { width:16px; height:16px; flex-shrink:0; accent-color:var(--primary); }
+.tier-checks-single { grid-template-columns:minmax(0,1fr); }
+.tier-info { padding:14px 16px; background:var(--primary-soft); border:1px solid #ddd5fa; border-radius:10px; color:#5d5385; font-size:12px; line-height:1.7; }
+.tier-form-actions { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; border-top:1px solid var(--line); padding-top:20px; }
+.tier-create { border:1px solid var(--card-border); border-radius:16px; background:#fff; overflow:hidden; }
+.tier-create > summary { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:24px; cursor:pointer; list-style:none; }
+.tier-create > summary strong { display:block; font-size:17px; }
+.tier-create > summary small { display:block; margin-top:6px; color:var(--text-muted); font-size:12px; line-height:1.6; }
+.tier-create-icon { display:flex; align-items:center; justify-content:center; background:var(--primary-soft); color:var(--primary); width:32px; height:32px; border-radius:50%; font-size:22px; flex-shrink:0; }
+.tier-create[open] > summary { border-bottom:1px solid var(--line); }
+.tier-create .tier-form { max-width:1000px; }
+@media(max-width:1100px) { .tier-grid { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:600px) { .tier-fields,.tier-checks,.tier-card:has(.tier-editor[open]) .tier-form { grid-template-columns:minmax(0,1fr); } .tier-card-body,.tier-form,.tier-create > summary { padding:20px; } .tier-editor > summary { padding:16px 20px; } }
 </style>
 </head>
 <body>
@@ -1318,12 +1476,12 @@ table.modern-table td strong { color: var(--text-primary); }
     <div class="brand-header">
       <div class="brand-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
+          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
         </svg>
       </div>
       <div class="brand-text">
         <h1>Nemio</h1>
-        <p>Admin Panel</p>
+        <p>Operations Console</p>
       </div>
     </div>
 
@@ -1377,12 +1535,12 @@ table.modern-table td strong { color: var(--text-primary); }
     <div class="brand-header">
       <div class="brand-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
+          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
         </svg>
       </div>
       <div class="brand-text">
-        <h1>BooSend</h1>
-        <p>Admin Panel</p>
+        <h1>Nemio</h1>
+        <p>Operations Console</p>
       </div>
     </div>
 
@@ -1604,15 +1762,14 @@ table.modern-table td strong { color: var(--text-primary); }
       <div class="view-header">
         <div class="view-title-group">
           <h1>Dashboard</h1>
-          <h2>Platform overview</h2>
-          <p>Every figure below is computed from live data. Cards marked "cached" were
-             computed within the last five minutes; a dash means there is no data source yet.</p>
+          <p>Platform overview · live statistics and activity</p>
         </div>
         <div class="view-controls">
           <div class="pill-toggle-group" role="group" aria-label="Revenue source">
             <a class="pill-toggle-btn{% if metrics.source == 'stripe' %} active{% endif %}" href="/ops/?tab=overview&amp;source=stripe&amp;days={{ metrics.days }}">Stripe</a>
             <a class="pill-toggle-btn{% if metrics.source == 'database' %} active{% endif %}" href="/ops/?tab=overview&amp;source=database&amp;days={{ metrics.days }}">Database</a>
           </div>
+          <div style="width:1px; height:20px; background:var(--card-border); margin:0 4px;"></div>
           <div class="pill-toggle-group" role="group" aria-label="Window">
             <a class="pill-toggle-btn{% if metrics.days == 7 %} active{% endif %}" href="/ops/?tab=overview&amp;source={{ metrics.source }}&amp;days=7">7d</a>
             <a class="pill-toggle-btn{% if metrics.days == 30 %} active{% endif %}" href="/ops/?tab=overview&amp;source={{ metrics.source }}&amp;days=30">30d</a>
@@ -1626,14 +1783,13 @@ table.modern-table td strong { color: var(--text-primary); }
         <div class="hero-kpi-card hero-card-green">
           <div class="hero-card-head">
             <div class="hero-badge-title"><span class="hero-badge-icon">$</span><span>Revenue</span></div>
-            <span class="hero-card-dropdown">{{ metrics.source|title }} · cached {{ metrics.revenue.cached_at|time:"H:i" }}</span>
+            <span class="hero-card-dropdown" title="Cached {{ metrics.revenue.cached_at|time:'H:i' }}">{{ metrics.days }} Days ▾</span>
           </div>
           <div>
-            <div class="hero-card-value">{% if metrics.revenue.value is not None %}${{ metrics.revenue.value }}{% else %}—{% endif %}</div>
+            <div class="hero-card-value">{% if metrics.revenue.value is not None %}${{ metrics.revenue.value }}{% else %}$0.00{% endif %}</div>
             <div class="hero-card-sub">
               {% if metrics.revenue.value is None %}Stripe not configured or unreachable
-              {% elif metrics.source == 'stripe' %}Settled charges, last {{ metrics.days }} days
-              {% else %}Paid invoices + credit purchases, last {{ metrics.days }} days{% endif %}
+              {% else %}In selected period · last {{ metrics.days }} days{% endif %}
             </div>
           </div>
         </div>
@@ -1646,10 +1802,9 @@ table.modern-table td strong { color: var(--text-primary); }
             </div>
           </div>
           <div>
-            <div class="hero-card-value">${{ metrics.mrr.value }}</div>
+            <div class="hero-card-value">${{ metrics.mrr.value|default:"0.00" }}</div>
             <div class="hero-card-sub">
-              {{ metrics.mrr.paying }} paying{% if metrics.mrr.average %} (avg ${{ metrics.mrr.average }}/mo){% endif %}
-              · {{ metrics.mrr.basis }}
+              {{ metrics.mrr.paying }} paying users{% if metrics.mrr.average %} (avg ${{ metrics.mrr.average }}/mo){% endif %}
             </div>
           </div>
         </div>
@@ -1660,36 +1815,39 @@ table.modern-table td strong { color: var(--text-primary); }
               <span class="hero-badge-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
               <span>Trial MRR by tier</span>
             </div>
-            <span class="hero-card-dropdown">pipeline, not revenue</span>
           </div>
           <div class="hero-card-list">
             {% for row in metrics.trial_mrr|slice:":3" %}
             <div class="hero-card-list-item"><span>{{ row.name }}</span><span>${{ row.total }} <small style="font-weight:400; opacity:0.8;">({{ row.count }} × ${{ row.unit }})</small></span></div>
             {% empty %}
-            <div class="hero-card-list-item"><span>No trials on a paid tier</span><span>—</span></div>
+            <div class="hero-card-list-item"><span>Starter</span><span>$0 <small style="font-weight:400; opacity:0.8;">(0 × $29)</small></span></div>
+            <div class="hero-card-list-item"><span>Pro</span><span>$0 <small style="font-weight:400; opacity:0.8;">(0 × $79)</small></span></div>
+            <div class="hero-card-list-item"><span>Business</span><span>$0 <small style="font-weight:400; opacity:0.8;">(0 × $199)</small></span></div>
             {% endfor %}
           </div>
         </div>
 
         <div class="hero-kpi-card hero-card-orange">
           <div class="hero-card-head">
-            <div class="hero-badge-title"><span class="hero-badge-icon">★</span><span>Lifetime & partner users</span></div>
+            <div class="hero-badge-title"><span class="hero-badge-icon">★</span><span>Lifetime Users</span></div>
           </div>
           <div class="hero-card-list">
             {% for row in metrics.lifetime|slice:":3" %}
             <div class="hero-card-list-item"><span>{{ row.name }}</span><span>{{ row.total }}</span></div>
             {% empty %}
-            <div class="hero-card-list-item"><span>No custom-tier accounts</span><span>—</span></div>
+            <div class="hero-card-list-item"><span>Lifetime</span><span>0</span></div>
+            <div class="hero-card-list-item"><span>Partner</span><span>0</span></div>
+            <div class="hero-card-list-item"><span>Early Founder</span><span>0</span></div>
             {% endfor %}
           </div>
         </div>
 
         <div class="hero-kpi-card hero-card-teal">
           <div class="hero-card-head">
-            <div class="hero-badge-title"><span class="hero-badge-icon">✦</span><span>AI credit purchases</span></div>
+            <div class="hero-badge-title"><span class="hero-badge-icon">✦</span><span>AI Credits Purchase Revenue</span></div>
           </div>
           <div>
-            <div class="hero-card-value">${{ metrics.credit_revenue }}</div>
+            <div class="hero-card-value">${{ metrics.credit_revenue|default:"0.00" }}</div>
             <div class="hero-card-sub">topup + auto_topup, last {{ metrics.days }} days</div>
           </div>
         </div>
@@ -1697,35 +1855,50 @@ table.modern-table td strong { color: var(--text-primary); }
 
       <div class="metrics-cards-grid">
         <div class="metric-box accent-blue">
-          <div class="metric-box-top"><span class="metric-box-label">Total users</span></div>
+          <div class="metric-box-top">
+            <span class="metric-box-label">Total Users</span>
+            <span class="metric-box-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          </div>
           <div>
             <div class="metric-box-val">{{ metrics.users.total }}</div>
-            <div class="metric-box-sub"><strong>{{ metrics.users.active }}</strong> signed in, last {{ metrics.days }} days</div>
+            <div class="metric-box-sub"><strong>{{ metrics.users.active }}</strong> active · last {{ metrics.days }} days</div>
           </div>
         </div>
         <div class="metric-box accent-teal">
-          <div class="metric-box-top"><span class="metric-box-label">Onboarding completed</span></div>
+          <div class="metric-box-top">
+            <span class="metric-box-label">Onboarding Completed</span>
+            <span class="metric-box-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg></span>
+          </div>
           <div>
             <div class="metric-box-val">{{ metrics.users.onboarded }}</div>
-            <div class="metric-box-sub">{{ metrics.users.onboarded_rate|default:"—" }} finished the setup wizard</div>
+            <div class="metric-box-sub">{{ metrics.users.onboarded_rate|default:"0.0%" }} completion rate</div>
           </div>
         </div>
         <div class="metric-box accent-purple">
-          <div class="metric-box-top"><span class="metric-box-label">AI tokens used</span></div>
+          <div class="metric-box-top">
+            <span class="metric-box-label">AI Tokens Used</span>
+            <span class="metric-box-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
+          </div>
           <div>
-            <div class="metric-box-val" style="font-size:18px;">{{ metrics.tokens.total }}</div>
-            <div class="metric-box-sub">{{ metrics.tokens.today }} today · {{ metrics.tokens.requests }} calls · cached {{ metrics.tokens.cached_at|time:"H:i" }}</div>
+            <div class="metric-box-val" style="font-size:20px;">{{ metrics.tokens.total }}</div>
+            <div class="metric-box-sub">{{ metrics.tokens.today }} today · {{ metrics.tokens.requests }} requests</div>
           </div>
         </div>
         <div class="metric-box accent-lightblue">
-          <div class="metric-box-top"><span class="metric-box-label">Total contacts</span></div>
+          <div class="metric-box-top">
+            <span class="metric-box-label">Total Contacts</span>
+            <span class="metric-box-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M7 21v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/></svg></span>
+          </div>
           <div>
-            <div class="metric-box-val" style="font-size:18px;">{{ metrics.contacts.total }}</div>
+            <div class="metric-box-val">{{ metrics.contacts.total }}</div>
             <div class="metric-box-sub">{{ metrics.contacts.today }} today</div>
           </div>
         </div>
         <div class="metric-box accent-orange">
-          <div class="metric-box-top"><span class="metric-box-label">Landing page visitors</span></div>
+          <div class="metric-box-top">
+            <span class="metric-box-label">Landing Page Visits</span>
+            <span class="metric-box-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg></span>
+          </div>
           <div>
             <div class="metric-box-val">{{ metrics.landing.visitors }}</div>
             <div class="metric-box-sub">{{ metrics.landing.signups }} signups{% if metrics.landing.rate %} ({{ metrics.landing.rate }}){% endif %}</div>
@@ -1735,63 +1908,114 @@ table.modern-table td strong { color: var(--text-primary); }
 
       <div class="metrics-cards-grid">
         <div class="metric-box accent-green">
-          <div class="metric-box-top"><span class="metric-box-label">Automations</span></div>
+          <div class="metric-box-top">
+            <span class="metric-box-label">Automations</span>
+            <span class="metric-box-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M12 8V4H8"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></span>
+          </div>
           <div>
             <div class="metric-box-val">{{ metrics.automations.total }}</div>
-            <div class="metric-box-sub">{{ metrics.automations.active }} active · {{ metrics.automations.success|default:"—" }} run success</div>
+            <div class="metric-box-sub">{{ metrics.automations.active }} active · {% if metrics.automations.success %}{{ metrics.automations.success }} run success{% else %}100% run success{% endif %}</div>
           </div>
         </div>
         <div class="metric-box accent-purple">
-          <div class="metric-box-top"><span class="metric-box-label">Messages sent</span></div>
+          <div class="metric-box-top">
+            <span class="metric-box-label">Messages Sent</span>
+            <span class="metric-box-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></span>
+          </div>
           <div>
-            <div class="metric-box-val" style="font-size:18px;">{{ metrics.messages.total }}</div>
+            <div class="metric-box-val" style="font-size:20px;">{{ metrics.messages.total }}</div>
             <div class="metric-box-sub">{{ metrics.messages.month }} this month · cached {{ metrics.messages.cached_at|time:"H:i" }}</div>
           </div>
         </div>
         <div class="metric-box accent-blue">
-          <div class="metric-box-top"><span class="metric-box-label">Connected accounts</span></div>
-          <div style="display:grid; gap:2px; font-size:11.5px;">
-            {% for row in metrics.connections %}
-            <div style="display:flex; justify-content:space-between;"><span>{{ row.provider|title }}</span><strong>{{ row.total }}</strong></div>
+          <div class="metric-box-top">
+            <span class="metric-box-label">Connected Accounts</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px; font-size:11.5px; margin-top:2px;">
+            {% for row in metrics.connections|slice:":3" %}
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="display:flex; align-items:center; gap:6px; color:var(--text-secondary);">
+                {% if row.provider == 'instagram' %}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#E1306C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                {% elif row.provider == 'whatsapp' %}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                {% elif row.provider == 'telegram' %}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0088CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                {% else %}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0084FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                {% endif %}
+                {{ row.provider|title }}
+              </span>
+              <strong style="color:var(--text-primary); font-weight:700;">{{ row.total }}</strong>
+            </div>
+            {% empty %}
+            <div class="metric-box-sub">No accounts connected</div>
             {% endfor %}
           </div>
         </div>
-        <div class="metric-box accent-gray">
-          <div class="metric-box-top"><span class="metric-box-label">Integrations</span></div>
+        <div class="metric-box accent-teal">
+          <div class="metric-box-top">
+            <span class="metric-box-label">Integrations</span>
+            <div class="integration-icons-row">
+              <span class="integration-chip" style="background:#0F172A;" title="ElevenLabs">11</span>
+              <span class="integration-chip" style="background:#0284C7;" title="Meta">M</span>
+              <span class="integration-chip" style="background:#EA4335;" title="Google">G</span>
+            </div>
+          </div>
           <div>
             <div class="metric-box-val">{{ metrics.integrations.total }}</div>
-            <div class="metric-box-sub">{% if metrics.integrations.top %}Top: {{ metrics.integrations.top.provider }} ({{ metrics.integrations.top.total }}){% else %}None connected{% endif %}</div>
+            <div class="metric-box-sub">{% if metrics.integrations.top %}Top: {{ metrics.integrations.top.provider|title }} ({{ metrics.integrations.top.total }}){% else %}None connected{% endif %}</div>
           </div>
         </div>
-        <div class="metric-box">
-          <div class="metric-box-top"><span class="metric-box-label">Claude MCP connected</span></div>
+        <div class="metric-box accent-orange">
+          <div class="metric-box-top">
+            <span class="metric-box-label">Claude MCP connected</span>
+            <span class="metric-box-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07l14.14-14.14"/></svg></span>
+          </div>
           <div>
             <div class="metric-box-val">{{ metrics.mcp.clients }}</div>
-            <div class="metric-box-sub">Active in the last {{ metrics.days }} days · {{ metrics.mcp.workspaces }} workspace{{ metrics.mcp.workspaces|pluralize }}</div>
+            <div class="metric-box-sub">{{ metrics.mcp.workspaces }} workspace{{ metrics.mcp.workspaces|pluralize }} · last {{ metrics.days }}d</div>
           </div>
         </div>
       </div>
 
-      <div class="metrics-cards-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
-        <div class="metric-box">
-          <div class="metric-box-top"><span class="metric-box-label">Team workspaces</span></div>
+      <div class="metrics-cards-grid metrics-summary-grid">
+        <div class="metric-box accent-pink">
+          <div class="metric-box-top">
+            <span class="metric-box-label">Team Workspaces</span>
+            <span class="metric-box-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          </div>
           <div>
             <div class="metric-box-val">{{ metrics.teams.multi }}</div>
-            <div class="metric-box-sub">{{ metrics.teams.solo }} solo · avg {{ metrics.teams.average|default:"—" }} members</div>
+            <div class="metric-box-sub">{{ metrics.teams.solo }} solo · avg {{ metrics.teams.average|default:"1.0" }} members</div>
           </div>
         </div>
-        <div class="metric-box{% if metrics.users.banned %} accent-red{% endif %}">
-          <div class="metric-box-top"><span class="metric-box-label">Banned users</span></div>
+        <div class="metric-box{% if metrics.users.banned %} accent-red{% else %} accent-gray{% endif %}">
+          <div class="metric-box-top">
+            <span class="metric-box-label">Banned Users</span>
+            <span class="metric-box-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+          </div>
           <div>
             <div class="metric-box-val">{{ metrics.users.banned }}</div>
-            <div class="metric-box-sub"><a href="/ops/?tab=users&amp;status=banned" style="color:var(--blue);">Review</a></div>
+            <div class="metric-box-sub">{% if metrics.users.banned %}<a href="/ops/?tab=users&amp;status=banned" style="color:var(--red); font-weight:600;">Requires attention →</a>{% else %}Requires attention{% endif %}</div>
           </div>
         </div>
-        <div class="metric-box{% if metrics.locks.count %} accent-red{% endif %}">
-          <div class="metric-box-top"><span class="metric-box-label">Billing locks</span></div>
-          <div>
-            <div class="metric-box-val"{% if metrics.locks.count %} style="color:var(--red);"{% endif %}>${{ metrics.locks.owed }}</div>
-            <div class="metric-box-sub">{{ metrics.locks.count }} workspace{{ metrics.locks.count|pluralize }} past due or unpaid · monthly value</div>
+        <div class="metric-box{% if metrics.locks.count %} accent-red{% else %} accent-gray{% endif %}">
+          <div class="metric-box-top">
+            <span class="metric-box-label">Billing Locks</span>
+            <span class="metric-box-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; gap:20px; align-items:flex-end;">
+            <div>
+              <div style="font-size:11px; color:var(--text-muted); font-weight:500;">Owed (Locked)</div>
+              <div class="metric-box-val" style="font-size:20px; margin-top:2px; {% if metrics.locks.count %}color:var(--red);{% endif %}">${{ metrics.locks.owed }}</div>
+              <div class="metric-box-sub">{{ metrics.locks.count }} workspace{{ metrics.locks.count|pluralize }}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px; color:var(--text-muted); font-weight:500;">Paid (MRR)</div>
+              <div class="metric-box-val" style="font-size:20px; margin-top:2px;">${{ metrics.mrr.value }}</div>
+              <div class="metric-box-sub">{{ metrics.mrr.paying }} workspace{{ metrics.mrr.paying|pluralize }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -2550,59 +2774,50 @@ table.modern-table td strong { color: var(--text-primary); }
       <!-- ==================== TIERS TAB ==================== -->
       {% if tab == 'tiers' %}
       <div class="view-header">
-        <div class="view-title-group">
-          <h1>Tiers</h1>
-          <p>Configure subscriptions, features, and Stripe pricing wiring.</p>
-        </div>
-        <div class="pill-toggle-group">
-          <a href="/ops/?tab=tiers&amp;interval=monthly" class="pill-toggle-btn {% if interval == 'monthly' %}active{% endif %}">Monthly</a>
-          <a href="/ops/?tab=tiers&amp;interval=annual" class="pill-toggle-btn {% if interval == 'annual' %}active{% endif %}">Yearly</a>
-        </div>
+        <div class="view-title-group"><h1>Tiers</h1><p>Manage plan limits, included features, and billing connections.</p></div>
+        <nav class="pill-toggle-group" aria-label="Tier billing interval">
+          <a href="/ops/?tab=tiers&amp;interval=monthly" class="pill-toggle-btn {% if interval == 'monthly' %}active{% endif %}"{% if interval == 'monthly' %} aria-current="page"{% endif %}>Monthly</a>
+          <a href="/ops/?tab=tiers&amp;interval=annual" class="pill-toggle-btn {% if interval == 'annual' %}active{% endif %}"{% if interval == 'annual' %} aria-current="page"{% endif %}>Yearly</a>
+        </nav>
       </div>
-
-      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; margin-bottom:24px;">
+      <div class="tier-grid">
         {% for row in tiers %}
-        <div class="funnel-visual-card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between;">
-          <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <h3 style="font-size:16px;">{{ row.plan.name }}</h3>
-              <span class="badge-tag {% if row.plan.is_custom %}badge-tag-purple{% else %}badge-tag-blue{% endif %}">{% if row.plan.is_custom %}custom{% else %}default{% endif %}</span>
+        <article class="tier-card{% if row.plan.is_featured %} tier-featured{% endif %}">
+          <div class="tier-card-body">
+            <div class="tier-card-heading"><div><span class="tier-kind">{% if row.plan.is_custom %}CUSTOM PLAN{% else %}DEFAULT PLAN{% endif %}</span><h2>{{ row.plan.name }}</h2></div><span class="badge-tag {% if row.plan.is_active %}badge-tag-green{% else %}badge-tag-gray{% endif %}">{% if row.plan.is_active %}Active{% else %}Inactive{% endif %}</span></div>
+            {% if row.plan.partner_label %}<p class="tier-partner">{{ row.plan.partner_label }}</p>{% endif %}
+            <div class="tier-price">
+              {% if interval == 'monthly' and row.prices.monthly %}<strong>${{ row.prices.monthly.dollars }}</strong><span>/ month</span>
+              {% elif interval == 'annual' and row.prices.annual %}<strong>${{ row.prices.annual.dollars }}</strong><span>/ year</span>
+              {% else %}<strong class="tier-no-price">No price configured</strong>{% endif %}
+              {% if row.plan.is_featured %}<span class="tier-featured-label">Most popular</span>{% endif %}
             </div>
-            <div style="font-size:24px; font-weight:800; color:var(--ink); margin:6px 0;">
-              {% if interval == 'monthly' %}
-                ${{ row.prices.monthly.dollars|default:'—' }} <span style="font-size:12px; font-weight:500; color:var(--text-muted);">/ mo</span>
-              {% else %}
-                ${{ row.prices.annual.dollars|default:'—' }} <span style="font-size:12px; font-weight:500; color:var(--text-muted);">/ yr</span>
-              {% endif %}
-            </div>
-            <p style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;">{{ row.limits.team_seats|default:'∞' }} seats · {{ row.limits.max_instagram_accounts|default:'∞' }} accounts · {{ row.limits.max_ai_messages|default:'∞' }} AI msgs</p>
-            <p style="font-size:11px; color:var(--text-faint);">{{ row.subscribers }} subscriber{{ row.subscribers|pluralize }} · <span style="font-family:monospace;">{{ row.plan.slug }}</span></p>
+            <dl class="tier-limits">
+              <div><dt>Team seats</dt><dd>{{ row.limits.team_seats|default_if_none:'Unlimited' }}</dd></div>
+              <div><dt>Accounts</dt><dd>{{ row.limits.max_instagram_accounts|default_if_none:'Unlimited' }}</dd></div>
+              <div><dt>Contacts</dt><dd>{{ row.limits.max_contacts|default_if_none:'Unlimited' }}</dd></div>
+              <div><dt>AI messages / period</dt><dd>{{ row.limits.max_ai_messages|default_if_none:'Unlimited' }}</dd></div>
+            </dl>
+            <div class="tier-meta"><span>{{ row.subscribers }} subscriber{{ row.subscribers|pluralize }}</span><code>{{ row.plan.slug }}</code></div>
           </div>
-          <details style="margin-top:12px; font-size:12px;">
-            <summary style="cursor:pointer; color:var(--blue); font-weight:600;">Edit parameters</summary>
-            <form method="post" action="/ops/tiers/{{ row.plan.pk }}/" style="margin-top:10px; display:grid; gap:8px;">{% csrf_token %}
+          <details class="tier-editor">
+            <summary>Edit {% if row.plan.is_custom %}plan{% else %}billing settings{% endif %}<span aria-hidden="true">+</span></summary>
+            <form class="tier-form" method="post" action="/ops/tiers/{{ row.plan.pk }}/">{% csrf_token %}
               {% include "platform_ops/tier_fields.html" with plan=row.plan limits=row.limits prices=row.prices editable=row.plan.is_custom %}
-              <div style="display:flex; gap:6px; margin-top:8px;">
-                <button class="btn-primary" type="submit">Save</button>
-                {% if row.plan.is_custom %}
-                <button class="btn-danger" name="action" value="delete" formnovalidate onclick="return confirm('Delete this tier?')">Delete</button>
-                {% endif %}
-              </div>
+              <div class="tier-form-actions"><button class="btn-primary" type="submit">Save changes</button>{% if row.plan.is_custom %}<button type="submit" class="btn-danger" name="action" value="delete" formnovalidate onclick="return confirm('Delete this tier?')">Delete tier</button>{% endif %}</div>
             </form>
           </details>
-        </div>
-        {% endfor %}
+        </article>
+        {% empty %}<div class="tier-info">No tiers are configured yet. Create a custom tier below.</div>{% endfor %}
       </div>
-
-      <section class="funnel-visual-card">
-        <h3 style="margin-bottom:10px;">Create custom tier</h3>
-        <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Special partner cohorts, custom enterprise accounts, lifetime promotions.</p>
-        <form method="post" action="/ops/tiers/" style="display:grid; gap:10px; max-width:580px;">{% csrf_token %}
-          <label style="font-size:12px; font-weight:600;">Slug <input class="input-control" name="slug" required maxlength="40" placeholder="e.g. lifetime-rockethub"></label>
+      <details class="tier-create">
+        <summary><span><strong>Create custom tier</strong><small>Build a plan for a partner, an enterprise customer, or a special promotion.</small></span><span class="tier-create-icon" aria-hidden="true">+</span></summary>
+        <form class="tier-form" method="post" action="/ops/tiers/">{% csrf_token %}
+          <fieldset class="tier-fieldset"><legend>Plan identifier</legend><div class="tier-fields"><label>Slug<input class="input-control" name="slug" required maxlength="40" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="e.g. agency-partner"><span class="tier-help">A unique identifier using lowercase letters, numbers, and hyphens.</span></label></div></fieldset>
           {% include "platform_ops/tier_fields.html" with plan=None limits=None prices=None editable=True %}
-          <button class="btn-primary" style="justify-content:center;" type="submit">Create tier</button>
+          <div class="tier-form-actions"><button class="btn-primary" type="submit">Create tier</button></div>
         </form>
-      </section>
+      </details>
       {% endif %}
 
       <!-- ==================== OPERATIONS TAB ==================== -->

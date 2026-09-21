@@ -19,6 +19,7 @@ import {
   type AgentConfig,
   type KnowledgeDocument,
   type Page,
+  type PlatformModel,
 } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import {
@@ -42,17 +43,53 @@ const TOOL_HELP: Record<string, string> = {
   handoff_to_human: "Hand the conversation to a teammate",
 };
 const QUALIFYING = ["interest", "budget", "timeline", "company"];
-const PROVIDERS: Record<string, { label: string; model: string; key: string }> =
+
+const DEFAULT_PLATFORM_MODELS: PlatformModel[] = [
   {
-    openai: { label: "OpenAI", model: "gpt-5.4-mini", key: "sk-…" },
-    anthropic: {
-      label: "Anthropic (Claude)",
-      model: "claude-sonnet-5",
-      key: "sk-ant-…",
-    },
-    gemini: { label: "Google Gemini", model: "", key: "Gemini API key" },
-    xai: { label: "xAI (Grok)", model: "", key: "xai-…" },
-  };
+    id: "gpt-5.4-mini",
+    provider: "openai",
+    label: "GPT-5.4 Mini",
+    badge: "Recommended · Fast",
+    description:
+      "High accuracy and low latency. Ideal for instant lead qualification, sales objection handling, and customer support.",
+    input_rate: "$0.60",
+    output_rate: "$2.40",
+    rate_summary: "$0.60 in / $2.40 out per 1M tokens",
+  },
+  {
+    id: "claude-sonnet-5",
+    provider: "anthropic",
+    label: "Claude Sonnet 5",
+    badge: "Deep Reasoning",
+    description:
+      "State-of-the-art conversational nuance, empathetic tone, and complex multi-step reasoning for high-ticket sales.",
+    input_rate: "$3.00",
+    output_rate: "$15.00",
+    rate_summary: "$3.00 in / $15.00 out per 1M tokens",
+  },
+  {
+    id: "gemini-2.5-flash",
+    provider: "gemini",
+    label: "Gemini 2.5 Flash",
+    badge: "Ultra Fast",
+    description:
+      "Google's high-speed multimodal powerhouse. Instantaneous replies keep customers hooked without lag.",
+    input_rate: "$0.30",
+    output_rate: "$1.20",
+    rate_summary: "$0.30 in / $1.20 out per 1M tokens",
+  },
+  {
+    id: "grok-beta",
+    provider: "xai",
+    label: "xAI Grok",
+    badge: "Direct & Punchy",
+    description:
+      "Punchy, modern conversational style. Well suited for creator brands, direct response, and dynamic social DMs.",
+    input_rate: "$0.80",
+    output_rate: "$3.20",
+    rate_summary: "$0.80 in / $3.20 out per 1M tokens",
+  },
+];
 
 type FormState = {
   name: string;
@@ -135,8 +172,7 @@ function toggle(list: string[], value: string) {
 export default function AgentPage() {
   const { workspace, prefix, manager } = useWorkspace();
   const [form, setForm] = useState<FormState>(DEFAULTS);
-  const [hasKey, setHasKey] = useState(false);
-  const [hasEmbeddingKey, setHasEmbeddingKey] = useState(false);
+  const [platformModels, setPlatformModels] = useState<PlatformModel[]>(DEFAULT_PLATFORM_MODELS);
   const [configured, setConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
   const settings = useFeedback();
@@ -152,10 +188,11 @@ export default function AgentPage() {
       .then((data) => {
         if (controller.signal.aborted) return;
         const config = data as Partial<AgentConfig>;
+        if (config.available_models?.length) {
+          setPlatformModels(config.available_models);
+        }
         if (config.id) {
           setForm(toForm(config as AgentConfig));
-          setHasKey(Boolean(config.has_key));
-          setHasEmbeddingKey(Boolean(config.has_embedding_key));
           setConfigured(true);
         }
       })
@@ -191,8 +228,6 @@ export default function AgentPage() {
       if (!form.embedding_api_key) delete payload.embedding_api_key;
       const saved = await api<AgentConfig>(`${prefix}/agent/`, "PUT", payload);
       setForm(toForm(saved));
-      setHasKey(saved.has_key);
-      setHasEmbeddingKey(saved.has_embedding_key);
       setConfigured(true);
     }, "Agent settings saved.");
   }
@@ -220,44 +255,16 @@ export default function AgentPage() {
             aside={configured ? "Configured" : "Not configured yet"}
           >
             <form className="form-grid" onSubmit={save}>
-              <div className="two-col">
-                <label>
-                  Name
-                  <input
-                    value={form.name}
-                    maxLength={100}
-                    required
-                    disabled={!manager}
-                    onChange={(e) => set("name", e.target.value)}
-                  />
-                </label>
-                <label>
-                  Provider
-                  <select
-                    value={form.provider}
-                    disabled={!manager}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      // A model name only means something to its own vendor.
-                      setForm((current) => ({
-                        ...current,
-                        provider: next,
-                        model: PROVIDERS[next]?.model ?? "",
-                        fallback_provider:
-                          current.fallback_provider === next
-                            ? ""
-                            : current.fallback_provider,
-                      }));
-                    }}
-                  >
-                    {Object.entries(PROVIDERS).map(([value, item]) => (
-                      <option key={value} value={value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
+              <label>
+                Agent name
+                <input
+                  value={form.name}
+                  maxLength={100}
+                  required
+                  disabled={!manager}
+                  onChange={(e) => set("name", e.target.value)}
+                />
+              </label>
               <label>
                 System prompt
                 <textarea
@@ -272,114 +279,129 @@ export default function AgentPage() {
                   instructions.
                 </span>
               </label>
-              <div className="three-col">
+
+              <div style={{ marginTop: 8, marginBottom: 8 }}>
+                <span className="field" style={{ marginBottom: 6, display: "block" }}>
+                  Select AI Model & Rate
+                </span>
+                <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
+                  All models are hosted and executed by Nemio. Usage is charged per token directly to your prepaid Nemio credit balance. No API keys or external developer accounts required.
+                </p>
+                <div className="card-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 14 }}>
+                  {platformModels.map((m) => {
+                    const isSelected = form.model === m.id;
+                    return (
+                      <div
+                        key={m.id}
+                        className="card"
+                        onClick={() =>
+                          manager &&
+                          setForm((cur) => ({
+                            ...cur,
+                            model: m.id,
+                            provider: m.provider,
+                            fallback_model: cur.fallback_model === m.id ? "" : cur.fallback_model,
+                            fallback_provider: cur.fallback_model === m.id ? "" : cur.fallback_provider,
+                          }))
+                        }
+                        style={{
+                          cursor: manager ? "pointer" : "default",
+                          border: isSelected ? "2px solid var(--primary, #6366f1)" : "1px solid var(--border)",
+                          background: isSelected ? "var(--active-card-bg, rgba(99, 102, 241, 0.08))" : "var(--card-bg)",
+                          padding: 16,
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <div>
+                          <div className="row between" style={{ alignItems: "flex-start", marginBottom: 8 }}>
+                            <div>
+                              <strong style={{ fontSize: "1rem" }}>{m.label}</strong>
+                              <div style={{ marginTop: 2 }}>
+                                <Pill tone="neutral">
+                                  {m.provider}
+                                </Pill>
+                              </div>
+                            </div>
+                            {isSelected ? (
+                              <Pill tone="good">Selected</Pill>
+                            ) : (
+                              <Pill tone="neutral">
+                                {m.badge}
+                              </Pill>
+                            )}
+                          </div>
+                          <p className="muted-text" style={{ fontSize: "0.85rem", lineHeight: 1.4, margin: "8px 0 14px" }}>
+                            {m.description}
+                          </p>
+                        </div>
+                        <div
+                          style={{
+                            padding: "8px 10px",
+                            borderRadius: 6,
+                            background: "var(--muted-bg, rgba(255,255,255,0.04))",
+                            border: "1px solid var(--border)",
+                            fontSize: "0.8rem",
+                            fontWeight: 500,
+                          }}
+                        >
+                          <span style={{ color: "var(--muted)" }}>Rate: </span>
+                          <strong>{m.rate_summary}</strong>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="two-col" style={{ marginTop: 10 }}>
                 <label>
-                  Model
-                  <input
-                    value={form.model}
-                    maxLength={100}
-                    required
+                  Fallback model (optional)
+                  <select
+                    value={form.fallback_model}
                     disabled={!manager}
-                    placeholder="Model ID from the provider's docs"
-                    onChange={(e) => set("model", e.target.value)}
-                  />
+                    onChange={(e) => {
+                      const selected = platformModels.find((m) => m.id === e.target.value);
+                      setForm((cur) => ({
+                        ...cur,
+                        fallback_model: selected ? selected.id : "",
+                        fallback_provider: selected ? selected.provider : "",
+                      }));
+                    }}
+                  >
+                    <option value="">None (no fallback)</option>
+                    {platformModels
+                      .filter((m) => m.id !== form.model)
+                      .map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label} ({m.provider}) — {m.rate_summary}
+                        </option>
+                      ))}
+                  </select>
+                  <span className="hint">
+                    Automatic failover if the primary vendor is temporarily rate-limited or unavailable.
+                  </span>
                 </label>
                 <label>
-                  API key {hasKey && <Pill tone="good">Key saved</Pill>}
-                  <input
-                    type="password"
-                    value={form.api_key}
-                    autoComplete="off"
-                    placeholder={
-                      hasKey
-                        ? "Leave blank to keep"
-                        : (PROVIDERS[form.provider]?.key ?? "API key")
+                  Reply mode
+                  <select
+                    value={form.mode}
+                    disabled={!manager}
+                    onChange={(e) =>
+                      set("mode", e.target.value as "agent" | "simple")
                     }
-                    disabled={!manager}
-                    onChange={(e) => set("api_key", e.target.value)}
-                  />
-                  <span className="hint">
-                    Stored encrypted. Never shown again.
-                  </span>
-                </label>
-                <label>
-                  Embedding model
-                  <input
-                    value={form.embedding_model}
-                    maxLength={100}
-                    required
-                    disabled={!manager}
-                    onChange={(e) => set("embedding_model", e.target.value)}
-                  />
-                  <span className="hint">
-                    Knowledge search always uses OpenAI embeddings.
-                  </span>
+                  >
+                    <option value="agent">
+                      Sales agent: stages, tools, triage, bookings and payments
+                    </option>
+                    <option value="simple">
+                      Simple replies: one grounded answer per message, no tools
+                    </option>
+                  </select>
                 </label>
               </div>
-              {form.billing_mode === "byo_key" &&
-                form.provider !== "openai" && (
-                  <label>
-                    OpenAI key for the knowledge base{" "}
-                    {hasEmbeddingKey && <Pill tone="good">Key saved</Pill>}
-                    <input
-                      type="password"
-                      value={form.embedding_api_key}
-                      autoComplete="off"
-                      placeholder={
-                        hasEmbeddingKey ? "Leave blank to keep" : "sk-…"
-                      }
-                      disabled={!manager}
-                      onChange={(e) => set("embedding_api_key", e.target.value)}
-                    />
-                    <span className="hint">
-                      Needed to index your documents: with your own key, Nemio
-                      does not pay for embeddings on your behalf.
-                    </span>
-                  </label>
-                )}
-              {form.billing_mode === "platform_credits" && (
-                <div className="two-col">
-                  <label>
-                    Fallback provider
-                    <select
-                      value={form.fallback_provider}
-                      disabled={!manager}
-                      onChange={(e) =>
-                        setForm((current) => ({
-                          ...current,
-                          fallback_provider: e.target.value,
-                          fallback_model:
-                            PROVIDERS[e.target.value]?.model ?? "",
-                        }))
-                      }
-                    >
-                      <option value="">None</option>
-                      {Object.entries(PROVIDERS)
-                        .filter(([value]) => value !== form.provider)
-                        .map(([value, item]) => (
-                          <option key={value} value={value}>
-                            {item.label}
-                          </option>
-                        ))}
-                    </select>
-                    <span className="hint">
-                      Used only when the main provider is rate-limited or down.
-                      Charged at the fallback model&apos;s rate.
-                    </span>
-                  </label>
-                  <label>
-                    Fallback model
-                    <input
-                      value={form.fallback_model}
-                      maxLength={100}
-                      required={Boolean(form.fallback_provider)}
-                      disabled={!manager || !form.fallback_provider}
-                      placeholder="Model ID"
-                      onChange={(e) => set("fallback_model", e.target.value)}
-                    />
-                  </label>
-                </div>
-              )}
               <div>
                 <span className="field" style={{ marginBottom: 8 }}>
                   Allowed tools
@@ -465,71 +487,7 @@ export default function AgentPage() {
                   />
                 </label>
               </div>
-              <div className="two-col">
-                <label>
-                  Input cost per million tokens
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.000001"
-                    value={form.input_cost_per_million}
-                    disabled={!manager}
-                    onChange={(e) =>
-                      set("input_cost_per_million", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  Output cost per million tokens
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.000001"
-                    value={form.output_cost_per_million}
-                    disabled={!manager}
-                    onChange={(e) =>
-                      set("output_cost_per_million", e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-              <label>
-                Billing
-                <select
-                  value={form.billing_mode}
-                  disabled={!manager}
-                  onChange={(e) =>
-                    set(
-                      "billing_mode",
-                      e.target.value as "platform_credits" | "byo_key",
-                    )
-                  }
-                >
-                  <option value="platform_credits">
-                    Nemio credits: prepaid balance, no API key needed
-                  </option>
-                  <option value="byo_key">
-                    Bring your own key: your provider bills you directly
-                  </option>
-                </select>
-              </label>
-              <label>
-                Reply mode
-                <select
-                  value={form.mode}
-                  disabled={!manager}
-                  onChange={(e) =>
-                    set("mode", e.target.value as "agent" | "simple")
-                  }
-                >
-                  <option value="agent">
-                    Sales agent: stages, tools, triage, bookings and payments
-                  </option>
-                  <option value="simple">
-                    Simple replies: one grounded answer per message, no tools
-                  </option>
-                </select>
-              </label>
+
               <div className="checkbox-grid">
                 <label>
                   <input

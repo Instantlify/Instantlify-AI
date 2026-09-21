@@ -10,8 +10,11 @@ from .models import BillingAccount
 
 
 def account_for(workspace_id):
-    return BillingAccount.objects.for_workspace(workspace_id).get_or_create(
-        workspace_id=workspace_id
+    from .reseller import effective_billing_workspace_id
+
+    target_id = effective_billing_workspace_id(workspace_id)
+    return BillingAccount.objects.for_workspace(target_id).get_or_create(
+        workspace_id=target_id
     )[0]
 
 

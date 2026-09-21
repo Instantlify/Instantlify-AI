@@ -6,6 +6,10 @@ export type Branding = {
   support_email: string;
   hide_platform_branding: boolean;
   custom_domain: string;
+  custom_domain_status?: "pending" | "active" | "failed";
+  verification_token?: string;
+  verified_at?: string | null;
+  tls_status?: "inactive" | "issuing" | "active" | "error";
 };
 export type Workspace = {
   id: string;
@@ -157,6 +161,18 @@ export type AgentConfig = {
   max_tool_rounds: number;
   mode: "agent" | "simple";
   billing_mode: "platform_credits" | "byo_key";
+  available_models?: PlatformModel[];
+};
+
+export type PlatformModel = {
+  id: string;
+  provider: string;
+  label: string;
+  badge: string;
+  description: string;
+  input_rate: string;
+  output_rate: string;
+  rate_summary: string;
 };
 export type KnowledgeDocument = {
   id: string;

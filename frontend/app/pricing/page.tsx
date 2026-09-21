@@ -44,8 +44,8 @@ export default function PricingPage() {
         <span className="eyebrow">PRICING</span>
         <h1>Simple plans that grow with your DMs.</h1>
         <p>
-          Every plan starts with a free trial and includes the visual flow
-          builder, the unified inbox and the CRM. Pick the limits you need.
+          Compare the current features and limits, then choose the plan that
+          fits your business.
         </p>
       </div>
       <ErrorNotice error={error} />
@@ -55,9 +55,11 @@ export default function PricingPage() {
           interval={interval}
           onInterval={setInterval}
           trialDays={catalog.trial_days}
-          cta="Start free trial"
+          cta="Get started"
           onChoose={(slug, chosen) =>
-            router.push(`/?plan=${slug}&interval=${chosen}`)
+            router.push(
+              `/auth?mode=signup&plan=${encodeURIComponent(slug)}&interval=${chosen}`,
+            )
           }
         />
       ) : (

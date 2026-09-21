@@ -1,7 +1,7 @@
 # Implementation status
 
 Legend: ✅ done and covered by automated tests · ❌ remaining. "Done" means the code exists
-and passes the local suites (backend pytest: 376 passed, 9 skipped on 2026-09-18; Playwright: 8 of 8 before the
+and passes the local suites (backend pytest: 386 passed, 9 skipped on 2026-09-18; Playwright: 8 of 8 before the
 gap-closing increment, not re-run since)
 against the Compose stack with fake providers. It does not mean accepted against a live
 provider; those items are listed separately under *Remaining*.
@@ -16,15 +16,12 @@ provider; those items are listed separately under *Remaining*.
 - ✅ Phase 6: analytics, A/B experiments, in-chat payments, marketplace, white-label, public API, connectors
 - ✅ Platform console (2.5.1–2.5.15): all 21 tabs read live data; no hardcoded figures remain
 - ✅ Full local regression, migrations, browser and container verification (2026-09-18)
-- ✅ Gap-closing increment (`implementation_plan.md` phases 1–4, 6–8): see the last section
+- ✅ Gap-closing increment (`implementation_plan.md` phases 1–8 complete): see the last section
 
 ## Remaining
 
 Code gaps (from `MASTER_BUILD_AUDIT.md`; closed items are in the last section):
 
-- ❌ White label (plan phase 5): custom-domain ownership verification, on-demand TLS and the
-      proxy/CSRF changes that let a verified domain serve the app. Reseller billing waits on a
-      decision: per-client markup, or roll child usage up to the agency's Stripe customer
 - ❌ Database tenant triggers verified on PostgreSQL: written and covered by tests that skip on
       SQLite; not yet run (local Docker was down, disk full). CI's PostgreSQL job runs them
 - ❌ Rebuild the Compose stack and re-run Playwright after the gap-closing increment
@@ -227,3 +224,27 @@ now read their own tables, and the tenant-facing surfaces that produce those row
 - ✅ Plan phase 8 — connectors: `connectors/scripts/publish.py` (tests, `zapier validate`, n8n
       build and `npm pack`, Make schema check and bundle) and `.github/workflows/connectors.yml`
       releasing on `connectors-vX.Y.Z`; Zapier publishing blocker (D021) fixed
+- ✅ Plan phase 5 — white-label domains, automated TLS & reseller billing: `WorkspaceBranding` extended with
+      `custom_domain_status`, `verification_token`, `verified_at`, and `tls_status`; domain ownership verification
+      service (`apps.tenants.domain_verification`) supporting DNS TXT challenge (`_nemio-challenge.<domain>`) and
+      CNAME routing to platform domains with on-demand API trigger (`POST /api/workspaces/<id>/branding/verify-domain/`);
+      edge On-Demand TLS validation endpoint (`GET /api/v1/tls/check-domain/`) queried by Caddy `on_demand_tls`;
+      `DynamicAllowedHosts` container allowing verified tenant domains dynamically in Django `ALLOWED_HOSTS`;
+      Caddyfile updated with On-Demand TLS edge proxying for verified tenant domains; agency consolidated reseller
+      billing (`apps.billing.reseller`) rolling child workspace tier limits, subscription status, and prepaid AI credit
+      balances up to the parent agency workspace (`BillingAccount` and `AICreditBalance`); 10 tests in
+      `test_custom_domains_and_reseller.py`.
+- ✅ Hassle-Free Zero-Tech Experience & Multi-Channel Expansion:
+      - **Platform Voice Managed Fallback**: Inbound Whisper voice note transcription and ElevenLabs outbound voice notes
+        (`apps/agents/voice.py`) now seamlessly fallback to platform-level keys (`PLATFORM_ELEVENLABS_API_KEY`) and default voices,
+        allowing clients to use voice without signing up for ElevenLabs or managing developer API keys.
+      - **LinkedIn Channel Integration**: Official OAuth 2.0 flow (`LinkedInOAuthStartView`, `LinkedInOAuthCallbackView`),
+        adapter (`LinkedInAdapter`) and webhook ingestion (`/webhooks/linkedin/`) for LinkedIn Company Pages, handling inbound DMs and post comments.
+      - **Snapchat Lead Ads & Bio Concierge Integration**: Ingress webhook endpoint (`/webhooks/snapchat/`) to capture and parse Snapchat
+        Lead Gen Ad submissions, automatically creating/updating CRM leads and identities and triggering sales conversation flows.
+      - **Client UI Streamlining**:
+        - Frontend Integrations page now features **1-Click Connect** OAuth buttons for Meta (Instagram / Messenger) and LinkedIn.
+        - Advanced developer webhook URLs and manual channel tokens are collapsed into tidy `<details>` accordions to eliminate tech jargon for non-tech clients.
+        - Agent configuration page displays clear "Platform-Managed AI (Zero Setup)" pill when platform credits are active, hiding raw developer token cost inputs inside an advanced accordion.
+      - Unit test suite: 5 tests in `backend/tests/test_linkedin_and_voice_platform.py` covering fallback voice synthesis, LinkedIn OAuth start/callback, LinkedIn webhooks, and Snapchat lead ads. Next.js and ESLint passing cleanly.
+

@@ -1,6 +1,12 @@
 from django.urls import path
 
-from apps.agents.views import AgentAuditView, AgentView, DocumentDetail, DocumentList
+from apps.agents.views import (
+    AgentAuditView,
+    AgentModelsView,
+    AgentView,
+    DocumentDetail,
+    DocumentList,
+)
 from apps.agents.voice import voice_asset
 from apps.analytics.views import ExperimentDetail, ExperimentList, FunnelView
 from apps.automations.views import (
@@ -65,8 +71,14 @@ from apps.public_api.views import (
     V1Subscription,
     V1Subscriptions,
 )
-from apps.tenants.branding import BrandingView, ClientWorkspaceList, PublicBrandingView
+from apps.tenants.branding import (
+    BrandingView,
+    ClientWorkspaceList,
+    PublicBrandingView,
+    VerifyDomainView,
+)
 from apps.tenants.data_views import DataOperationsView, DownloadExportView
+from apps.tenants.tls import CheckDomainTLSView
 
 P = "api/workspaces/<uuid:workspace_id>/"
 urlpatterns = [
@@ -92,6 +104,7 @@ urlpatterns = [
     path(P + "integrations/<str:provider>/oauth/", IntegrationOAuthStartView.as_view()),
     path("api/integrations/callback/<str:provider>/", IntegrationOAuthCallbackView.as_view()),
     path(P + "agent/", AgentView.as_view()),
+    path(P + "agent/models/", AgentModelsView.as_view()),
     path(P + "agent-audit/", AgentAuditView.as_view()),
     path(P + "documents/", DocumentList.as_view()),
     path(P + "documents/<uuid:pk>/", DocumentDetail.as_view()),
@@ -124,6 +137,7 @@ urlpatterns = [
     path(P + "webhooks/<uuid:pk>/", SubscriptionDetail.as_view()),
     path(P + "webhook-deliveries/", DeliveryLog.as_view()),
     path(P + "branding/", BrandingView.as_view()),
+    path(P + "branding/verify-domain/", VerifyDomainView.as_view()),
     path(P + "clients/", ClientWorkspaceList.as_view()),
     # Public (anonymous) surfaces.
     path("api/public/templates/", PublicTemplateList.as_view()),
@@ -131,6 +145,8 @@ urlpatterns = [
     path("api/public/bio/<slug:slug>/", PublicBioView.as_view()),
     path("api/public/branding/", PublicBrandingView.as_view()),
     path("api/public/plans/", PublicPlansView.as_view()),
+    # On-demand TLS validation queried by edge proxy (Caddy / reverse proxy).
+    path("api/v1/tls/check-domain/", CheckDomainTLSView.as_view()),
     # Model Context Protocol server (Streamable HTTP, stateless JSON); same API keys.
     path("api/mcp/", MCPView.as_view()),
     # Public API v1 (X-API-Key).

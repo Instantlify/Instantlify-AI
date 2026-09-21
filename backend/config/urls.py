@@ -1,7 +1,18 @@
 from django.urls import include, path
 
-from apps.channels.ingress import meta_webhook, telegram_webhook
-from apps.channels.views import ConnectionListView, MetaOAuthCallbackView, MetaOAuthStartView
+from apps.channels.ingress import (
+    linkedin_webhook,
+    meta_webhook,
+    snapchat_webhook,
+    telegram_webhook,
+)
+from apps.channels.views import (
+    ConnectionListView,
+    LinkedInOAuthCallbackView,
+    LinkedInOAuthStartView,
+    MetaOAuthCallbackView,
+    MetaOAuthStartView,
+)
 from apps.dashboard_api.views import WorkspaceStatusView, live, ready
 from apps.platform_ops.public import (
     AnnouncementListView,
@@ -40,8 +51,10 @@ from apps.tenants.views import (
 urlpatterns = [
     path("ops/", include("apps.platform_ops.urls")),
     path("", include("config.feature_urls")),
-    path("webhooks/<str:provider>/", meta_webhook),
     path("webhooks/telegram/<uuid:connection_id>/", telegram_webhook),
+    path("webhooks/linkedin/", linkedin_webhook),
+    path("webhooks/snapchat/", snapchat_webhook),
+    path("webhooks/<str:provider>/", meta_webhook),
     path("health/live/", live),
     path("health/ready/", ready),
     path("api/auth/csrf/", CSRFView.as_view()),
@@ -70,6 +83,8 @@ urlpatterns = [
     path("api/workspaces/<uuid:workspace_id>/connections/", ConnectionListView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/meta/connect/", MetaOAuthStartView.as_view()),
     path("api/meta/callback/", MetaOAuthCallbackView.as_view()),
+    path("api/workspaces/<uuid:workspace_id>/linkedin/connect/", LinkedInOAuthStartView.as_view()),
+    path("api/linkedin/callback/", LinkedInOAuthCallbackView.as_view()),
     # Growth surfaces: written from the tenant app and the public marketing site,
     # read only by the platform console.
     path("api/growth/funnel/", FunnelEventView.as_view()),

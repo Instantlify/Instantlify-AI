@@ -308,3 +308,34 @@ def test_settings_api_validates_providers_and_fallbacks(client, workspace, confi
     client.put(url, {"embedding_api_key": ""}, format="json")  # blank keeps the key
     config.refresh_from_db()
     assert config.embedding_api_key == "sk-embed"
+
+
+def test_platform_models_catalog_and_endpoint(client, workspace, config):
+    # Test catalog function
+    from apps.agents.catalog import get_platform_models
+
+    models = get_platform_models()
+    assert len(models) >= 4
+    model_ids = [m["id"] for m in models]
+    assert "gpt-5.4-mini" in model_ids
+    assert "claude-sonnet-5" in model_ids
+    assert "gemini-2.5-flash" in model_ids
+    assert "grok-beta" in model_ids
+
+    # Each model exposes rates and labels for client UI
+    first = models[0]
+    assert "label" in first and "badge" in first and "description" in first
+    assert "rate_summary" in first and "in /" in first["rate_summary"]
+
+    # Test AgentView GET returns available_models
+    res = client.get(f"/api/workspaces/{workspace.pk}/agent/")
+    assert res.status_code == 200
+    data = res.json()
+    assert "available_models" in data
+    assert len(data["available_models"]) >= 4
+
+    # Test dedicated models endpoint
+    res_models = client.get(f"/api/workspaces/{workspace.pk}/agent/models/")
+    assert res_models.status_code == 200
+    assert len(res_models.json()) >= 4
+

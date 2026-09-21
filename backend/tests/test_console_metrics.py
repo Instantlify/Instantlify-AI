@@ -137,7 +137,7 @@ def test_unknown_source_and_window_fall_back_safely():
 
 
 def test_overview_renders_no_screenshot_figures(operator):
-    """The overview once showed fixed BooSend numbers. None of them may come back."""
+    """The overview once showed fixed legacy numbers. None of them may come back."""
     client = console(operator)
     with patch("redis.Redis.get", return_value=None), patch("redis.Redis.ttl", return_value=-2):
         body = client.get("/ops/?tab=overview").content.decode()

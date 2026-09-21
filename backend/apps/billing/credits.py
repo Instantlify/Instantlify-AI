@@ -29,13 +29,16 @@ class NoPricingRate(Exception):
 
 
 def balance_for(workspace_id, *, lock=False):
-    query = AICreditBalance.objects.for_workspace(workspace_id)
+    from .reseller import effective_billing_workspace_id
+
+    target_id = effective_billing_workspace_id(workspace_id)
+    query = AICreditBalance.objects.for_workspace(target_id)
     if lock:
         query = query.select_for_update()
     balance = query.first()
     if balance is None:
-        balance, _ = AICreditBalance.objects.for_workspace(workspace_id).get_or_create(
-            workspace_id=workspace_id
+        balance, _ = AICreditBalance.objects.for_workspace(target_id).get_or_create(
+            workspace_id=target_id
         )
         if lock:
             balance = query.get(pk=balance.pk)

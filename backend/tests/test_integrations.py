@@ -151,3 +151,31 @@ def test_api_credentials_are_not_cacheable(client):
     response = client.get("/api/auth/me/")
     assert response["Cache-Control"] == "no-store, private"
     assert response["Referrer-Policy"] == "no-referrer"
+
+
+def test_onboarding_instagram_returns_to_wizard_with_plan(client, workspace):
+    url = client.post(
+        f"/api/workspaces/{workspace.pk}/meta/connect/",
+        {"onboarding": True, "plan": "pro", "interval": "annual"},
+        format="json",
+    ).json()["authorization_url"]
+    response = client.get(url)
+    assert response.status_code == 302
+    target = urlparse(response.url)
+    assert target.path == "/onboarding/"
+    assert parse_qs(target.query)["plan"] == ["pro"]
+    assert parse_qs(target.query)["interval"] == ["annual"]
+    assert "connect-instagram" in client.get("/api/growth/wizard/").json()["completed"]
+
+
+def test_cancelled_onboarding_instagram_does_not_complete_step(client, workspace):
+    url = client.post(
+        f"/api/workspaces/{workspace.pk}/meta/connect/",
+        {"onboarding": True},
+        format="json",
+    ).json()["authorization_url"]
+    response = client.get(url + "&error=access_denied")
+    assert response.status_code == 302
+    assert response.url.startswith("/onboarding/?")
+    assert "connection=cancelled" in response.url
+    assert client.get("/api/growth/wizard/").json()["step"] == "connect-instagram"

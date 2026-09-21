@@ -113,11 +113,26 @@ export default function Onboarding() {
           });
         }
         setWorkspace(current);
+        const connection = new URLSearchParams(window.location.search).get(
+          "connection",
+        );
+        if (connection === "cancelled")
+          setError(
+            "Instagram connection was cancelled. Try again or connect later.",
+          );
+        if (connection === "limit")
+          setError(
+            "Your plan's connected-account limit has been reached. You can connect later.",
+          );
         if (progress.finished) {
           router.replace(`/w/${current.id}/overview`);
           return;
         }
-        setStep(progress.step ?? STEPS[0]);
+        setStep(
+          connection === "connected" || connection === "test-connected"
+            ? "workspace"
+            : (progress.step ?? STEPS[0]),
+        );
       } catch (err) {
         if (!controller.signal.aborted) setError(message(err));
       }
@@ -130,6 +145,8 @@ export default function Onboarding() {
   }, [step, track]);
 
   function advance(from: Step, status: "completed" | "skipped") {
+    setBusy(false);
+    setError("");
     track(from, status);
     const next = STEPS[STEPS.indexOf(from) + 1];
     if (next) {
@@ -253,15 +270,26 @@ function ConnectStep({
     setBusy(true);
     setError("");
     try {
-      const started = await api<{ url?: string; connected?: boolean }>(
-        `/api/workspaces/${workspaceId}/meta/connect/`,
-        "POST",
-      );
-      if (started.url) {
-        window.location.href = started.url;
+      const query = new URLSearchParams(window.location.search);
+      const started = await api<{
+        authorization_url?: string;
+        connected?: boolean;
+      }>(`/api/workspaces/${workspaceId}/meta/connect/`, "POST", {
+        onboarding: true,
+        plan: query.get("plan") || "",
+        interval: query.get("interval") || "monthly",
+      });
+      if (started.authorization_url) {
+        window.location.assign(started.authorization_url);
         return;
       }
-      onDone();
+      if (started.connected === true) {
+        onDone();
+        return;
+      }
+      throw new Error(
+        "Instagram did not provide a connection link. Please try again or connect later.",
+      );
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 503
@@ -504,19 +532,32 @@ function PaymentStep({
   const [plans, setPlans] = useState<PlanCard[]>([]);
   const [interval, setInterval] = useState<Interval>("monthly");
   const [chosen, setChosen] = useState("");
+  const [preferredPlan, setPreferredPlan] = useState("");
+  const [trialDays, setTrialDays] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
-    api<{ plans: PlanCard[] }>(
+    api<{ plans: PlanCard[]; trial_days: number }>(
       "/api/public/plans/",
       "GET",
       undefined,
       controller.signal,
     )
-      .then((body) => setPlans(body.plans))
-      .catch(() => undefined);
+      .then((body) => {
+        const query = new URLSearchParams(window.location.search);
+        const preferred = query.get("plan");
+        setPlans(body.plans);
+        setTrialDays(body.trial_days);
+        if (query.get("interval") === "annual") setInterval("annual");
+        setPreferredPlan(
+          body.plans.find((plan) => plan.slug === preferred)?.name || "",
+        );
+      })
+      .catch((err) => {
+        if (!controller.signal.aborted) setError(message(err));
+      });
     return () => controller.abort();
-  }, []);
+  }, [setError]);
 
   async function choose(slug: string, chosenInterval: Interval) {
     setBusy(true);
@@ -542,15 +583,19 @@ function PaymentStep({
         <CreditCard size={24} />
       </span>
       <h1>{TITLES.payment}</h1>
-      <p>Every plan starts with a 7-day free trial. Cancel any time.</p>
+      <p>
+        {preferredPlan
+          ? `You selected ${preferredPlan}. Review your plan below before continuing.`
+          : "Choose the plan that fits your business. Review the current features and billing interval below."}
+      </p>
       <PlanCards
-        plans={plans}
+        plans={plans.filter((plan) => plan.slug !== "free")}
         interval={interval}
         onInterval={setInterval}
         onChoose={choose}
         busySlug={chosen}
-        cta="Start free trial"
-        trialDays={7}
+        cta="Choose plan"
+        trialDays={trialDays}
       />
       <div className="wizard-footer">
         <button className="button link" onClick={onSkip} disabled={busy}>

@@ -23,7 +23,7 @@ test("sign up, create a workspace and connect a test channel", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Create an account" }).click();
+  await page.getByRole("link", { name: "Get started", exact: true }).click();
   await page.getByLabel("Your name").fill("Alex");
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
@@ -201,6 +201,10 @@ test("analytics, bio page, offers and invitations", async ({ page }) => {
 test("sign out, sign in, and the mobile layout", async ({ page }) => {
   await signIn(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Sign in", exact: true })
+    .first()
+    .click();
   await expect(
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();
@@ -227,13 +231,17 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
     fullPage: true,
   });
   await page.getByRole("button", { name: "Sign out on mobile" }).click();
+  await page
+    .getByRole("link", { name: "Sign in", exact: true })
+    .first()
+    .click();
   await expect(
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();
 });
 
 async function signIn(page: Page) {
-  await page.goto("/");
+  await page.goto("/auth");
   // Either the sign-in form appears, or a live session redirects straight into a workspace.
   const heading = page.getByRole("heading", { name: "Welcome back." });
   const needsLogin = await heading

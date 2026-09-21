@@ -120,7 +120,12 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <div
       className="app-shell"
-      style={{ ["--green" as string]: branding.primary_color }}
+      style={{
+        ["--green" as string]:
+          branding.primary_color === "#347359"
+            ? "#5546e8"
+            : branding.primary_color,
+      }}
     >
       <aside className="sidebar">
         <Brand name={branding.brand_name} logo={branding.logo_url} />
@@ -202,6 +207,18 @@ export function Shell({ children }: { children: ReactNode }) {
                 section.charAt(0).toUpperCase() + section.slice(1)}
             </strong>
           </div>
+          {workspace.parent && (
+            <span
+              className="private-badge"
+              style={{
+                borderColor: "rgba(59, 130, 246, 0.35)",
+                color: "#93c5fd",
+                backgroundColor: "rgba(59, 130, 246, 0.08)",
+              }}
+            >
+              Agency Managed
+            </span>
+          )}
           <span className="private-badge">
             <ShieldCheck size={14} /> {workspace.role}
           </span>
@@ -218,7 +235,10 @@ export function Shell({ children }: { children: ReactNode }) {
           <ErrorNotice error={error} />
           {children}
         </main>
-        <UpgradePrompt prefix={`/api/workspaces/${workspace.id}`} />
+        <UpgradePrompt
+          prefix={`/api/workspaces/${workspace.id}`}
+          agencyManaged={Boolean(workspace.parent)}
+        />
         {!branding.hide_platform_branding && (
           <footer className="app-footer">
             <span>Made for more meaningful conversations.</span>

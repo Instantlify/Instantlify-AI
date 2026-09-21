@@ -105,9 +105,13 @@ class AgentSerializer(serializers.ModelSerializer):
 
 class AgentView(APIView):
     def get(self, request, workspace_id):
+        from .catalog import get_platform_models
+
         workspace_membership(request, workspace_id, ["owner", "admin"])
         config = AgentConfig.objects.for_workspace(workspace_id).first()
-        return Response(AgentSerializer(config).data if config else {})
+        data = AgentSerializer(config).data if config else {}
+        data["available_models"] = get_platform_models()
+        return Response(data)
 
     def put(self, request, workspace_id):
         member = workspace_membership(request, workspace_id, ["owner", "admin"])
@@ -117,7 +121,21 @@ class AgentView(APIView):
         serializer.is_valid(raise_exception=True)
         config = serializer.save(workspace=member.workspace)
         audit(member.workspace, request.user, "agent.configured", config.id)
-        return Response(serializer.data)
+        data = serializer.data
+        from .catalog import get_platform_models
+
+        data["available_models"] = get_platform_models()
+        return Response(data)
+
+
+class AgentModelsView(APIView):
+    """List curated platform models with live pricing rates from the rate card."""
+
+    def get(self, request, workspace_id):
+        from .catalog import get_platform_models
+
+        workspace_membership(request, workspace_id, ["owner", "admin"])
+        return Response(get_platform_models())
 
 
 class DocumentSerializer(serializers.ModelSerializer):

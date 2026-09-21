@@ -57,6 +57,7 @@ export default function PaymentsPage() {
   );
   const [pendingPlan, setPendingPlan] = useState("");
   const [interval, setInterval] = useState<Interval>("monthly");
+  const [preferredPlan, setPreferredPlan] = useState("");
   const feedback = useFeedback();
 
   const load = useCallback(
@@ -76,6 +77,12 @@ export default function PaymentsPage() {
         ]);
         setBilling(plan);
         setCredits(credit);
+        const query = new URLSearchParams(window.location.search);
+        setPreferredPlan(
+          plan.catalog.find((item) => item.slug === query.get("plan"))?.name ||
+            "",
+        );
+        if (query.get("interval") === "annual") setInterval("annual");
       }
     },
     [prefix, manager, owner],
@@ -336,6 +343,24 @@ export default function PaymentsPage() {
                 <Pill tone={statusTone(billing.status)}>{billing.status}</Pill>
               }
             >
+              {workspace.parent && (
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 6,
+                    background: "var(--surface-subtle, #f0fdf4)",
+                    border: "1px solid var(--border, #bbf7d0)",
+                    color: "var(--text, #166534)",
+                    fontSize: "0.875rem",
+                    marginBottom: 16,
+                  }}
+                >
+                  <strong>Agency-managed plan:</strong> This workspace is
+                  managed under a parent agency. Subscription tiers, feature
+                  gates, and prepaid AI credits roll up to and are covered by
+                  your managing agency.
+                </div>
+              )}
               <div className="three-col">
                 <div className="card">
                   <span className="muted-text">Plan</span>
@@ -366,9 +391,20 @@ export default function PaymentsPage() {
                   </span>
                 </div>
               </div>
-              {billing.stripe_configured ? (
+              {workspace.parent ? (
+                <p className="muted-text" style={{ marginTop: 16 }}>
+                  Subscription changes, upgrades, and billing management for
+                  this workspace are administered by your parent agency account.
+                </p>
+              ) : billing.stripe_configured ? (
                 <>
                   <div style={{ marginTop: 18 }}>
+                    {preferredPlan && (
+                      <p style={{ marginBottom: 16 }}>
+                        You selected {preferredPlan}. Review your plan below
+                        before continuing.
+                      </p>
+                    )}
                     <PlanCards
                       plans={billing.catalog.filter((p) => p.slug !== "free")}
                       interval={interval}

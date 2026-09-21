@@ -128,11 +128,30 @@ class Membership(TenantModel):
 
 
 class WorkspaceBranding(TenantModel):
+    class DomainStatus(models.TextChoices):
+        PENDING = "pending", "Pending"
+        ACTIVE = "active", "Active"
+        FAILED = "failed", "Failed"
+
+    class TLSStatus(models.TextChoices):
+        INACTIVE = "inactive", "Inactive"
+        ISSUING = "issuing", "Issuing"
+        ACTIVE = "active", "Active"
+        ERROR = "error", "Error"
+
     brand_name = models.CharField(max_length=60)
     logo_url = models.URLField(max_length=2000, blank=True)
     primary_color = models.CharField(max_length=7, default="#347359")
     support_email = models.EmailField(blank=True)
     custom_domain = models.CharField(max_length=253, blank=True)
+    custom_domain_status = models.CharField(
+        max_length=20, choices=DomainStatus.choices, default=DomainStatus.PENDING
+    )
+    verification_token = models.CharField(max_length=64, blank=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    tls_status = models.CharField(
+        max_length=20, choices=TLSStatus.choices, default=TLSStatus.INACTIVE
+    )
     hide_platform_branding = models.BooleanField(default=False)
 
     class Meta:
