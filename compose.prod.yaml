@@ -1,0 +1,85 @@
+# Production overlay. Always used together with compose.yaml:
+#
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+#
+# compose.yaml alone is the local stack: it publishes ports on loopback and has no
+# edge, no certificates and no backups. This file adds the three things that make it
+# a deployment, and nothing here is useful locally.
+name: nemio
+
+services:
+  # The only service the internet reaches. Terminates TLS, obtains and renews
+  # certificates itself, and is what writes the X-Forwarded-For entry Django trusts
+  # (see TRUSTED_PROXY_DEPTH).
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set the public app domain, e.g. app.nemio.ai}
+      PLATFORM_ADMIN_HOST: ${PLATFORM_ADMIN_HOST:?Must match Django PLATFORM_ADMIN_HOST}
+      ACME_EMAIL: ${ACME_EMAIL:?Set an address for certificate expiry notices}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and ACME account keys. Losing this volume means re-issuing every
+      # certificate, including the on-demand ones for white-label domains.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+
+  backend:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      # One proxy (Caddy) in front of Django. Production refuses to start at 0.
+      TRUSTED_PROXY_DEPTH: ${TRUSTED_PROXY_DEPTH:-1}
+
+  worker:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      TRUSTED_PROXY_DEPTH: ${TRUSTED_PROXY_DEPTH:-1}
+
+  beat:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      TRUSTED_PROXY_DEPTH: ${TRUSTED_PROXY_DEPTH:-1}
+
+  migrate:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      TRUSTED_PROXY_DEPTH: ${TRUSTED_PROXY_DEPTH:-1}
+
+  # Flower exposes queue contents and is unauthenticated, so production keeps it off.
+  # Reach it through an SSH tunnel with the local stack when it is actually needed.
+  flower:
+    profiles: [debug]
+
+  backup:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    entrypoint: ['/bin/sh', '/backup.sh']
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${POSTGRES_DB:?Run bootstrap first}
+      PGUSER: ${POSTGRES_USER:?Run bootstrap first}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Run bootstrap first}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+    volumes:
+      - ./deploy/backup.sh:/backup.sh:ro
+      - ./deploy/restore.sh:/restore.sh:ro
+      - backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  caddy_data:
+  caddy_config:
+  backups:

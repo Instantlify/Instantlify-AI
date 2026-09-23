@@ -132,6 +132,12 @@ PLATFORM_ADMIN_NETWORKS = [
 # Everything that rate-limits or allow-lists by address reads this through
 # apps.tenants.client_ip, and DRF throttles read it as NUM_PROXIES below.
 TRUSTED_PROXY_DEPTH = int(os.environ.get("TRUSTED_PROXY_DEPTH", "0"))
+# Welcome AI credits, in cents, granted once per workspace when its owner confirms
+# their email address. Nemio pays the provider for these, so the confirmation is what
+# keeps the grant from funding throwaway signups. 0 disables it.
+SIGNUP_CREDIT_CENTS = int(os.environ.get("SIGNUP_CREDIT_CENTS", "200"))
+# How long an unconfirmed signup may hold an email address before it is released.
+UNVERIFIED_SIGNUP_DAYS = int(os.environ.get("UNVERIFIED_SIGNUP_DAYS", "14"))
 if PLATFORM_ADMIN_HOST not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(PLATFORM_ADMIN_HOST)
 WSGI_APPLICATION = "config.wsgi.application"
@@ -204,6 +210,10 @@ CELERY_BEAT_SCHEDULE = {
     "uptime-probe": {"task": "apps.platform_ops.uptime.probe_uptime", "schedule": 60.0},
     "flush-audit-outbox": {"task": "apps.tenants.tasks.dispatch_outbox", "schedule": 5.0},
     "expire-auth-tokens": {"task": "apps.tenants.tasks.expire_tokens", "schedule": 86400.0},
+    "purge-unverified-signups": {
+        "task": "apps.tenants.tasks.purge_unverified_signups",
+        "schedule": 86400.0,
+    },
 }
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -257,6 +267,12 @@ META_REDIRECT_URI = os.environ.get("META_REDIRECT_URI", "http://localhost:3000/a
 META_SCOPES = os.environ.get(
     "META_SCOPES", "instagram_business_basic,instagram_business_manage_messages"
 )
+# LinkedIn messaging is not a self-serve API: the adapter posts to /v2/messages, which
+# an ordinary app is not granted. Credentials alone therefore do not mean sends will be
+# accepted, so the channel stays off until someone confirms this app really was granted
+# that access against a real account. Advertising it before then sells a channel that
+# accepts a connection and then silently fails to deliver.
+LINKEDIN_MESSAGING_APPROVED = os.environ.get("LINKEDIN_MESSAGING_APPROVED", "") == "true"
 LINKEDIN_CLIENT_ID = os.environ.get("LINKEDIN_CLIENT_ID", "")
 LINKEDIN_CLIENT_SECRET = os.environ.get("LINKEDIN_CLIENT_SECRET", "")
 LINKEDIN_REDIRECT_URI = os.environ.get(
