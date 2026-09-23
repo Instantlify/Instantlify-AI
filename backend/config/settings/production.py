@@ -23,6 +23,14 @@ if CHANNEL_ADAPTER_MODE == "fake":  # noqa: F405
     raise ImproperlyConfigured("Fake channel adapters are forbidden in production")
 if "localhost" in ALLOWED_HOSTS or "*" in ALLOWED_HOSTS:  # noqa: F405
     raise ImproperlyConfigured("Set explicit production ALLOWED_HOSTS")
+if TRUSTED_PROXY_DEPTH < 1:  # noqa: F405
+    raise ImproperlyConfigured(
+        "Set TRUSTED_PROXY_DEPTH to the number of reverse proxies in front of Django. "
+        "Production always runs behind the edge proxy, and at 0 every request appears "
+        "to come from it: the console IP allow-list matches everyone or no one, the "
+        "console login lockout becomes one global bucket, and DRF keys anonymous "
+        "throttles on the caller's own X-Forwarded-For header."
+    )
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_SSL_REDIRECT = True
@@ -31,3 +39,10 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 # Only a trusted reverse proxy may reach Django; it must overwrite this header.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+
+if not EMAIL_HOST:  # noqa: F405
+    raise ImproperlyConfigured(
+        "EMAIL_HOST is required in production: the console fallback would write "
+        "customer emails, billing-portal links included, into the logs."
+    )

@@ -39,6 +39,9 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
         raw = request.headers.get("X-API-Key", "")
         if not raw:
             return None
+        return self.verify(raw)
+
+    def verify(self, raw):
         if not raw.startswith(PREFIX) or len(raw) > 120:
             raise exceptions.AuthenticationFailed("Invalid API key.")
         key = (

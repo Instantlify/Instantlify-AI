@@ -3,6 +3,8 @@ import ipaddress
 from django.conf import settings
 from django.http import HttpResponse
 
+from apps.tenants.client_ip import client_ip
+
 
 class ConsoleBoundary:
     def __init__(self, get_response):
@@ -18,7 +20,7 @@ class ConsoleBoundary:
             return HttpResponse(status=404)
         if console and settings.PLATFORM_ADMIN_NETWORKS:
             try:
-                ip = ipaddress.ip_address(request.META.get("REMOTE_ADDR", ""))
+                ip = ipaddress.ip_address(client_ip(request))
                 allowed = any(
                     ip in ipaddress.ip_network(net) for net in settings.PLATFORM_ADMIN_NETWORKS
                 )

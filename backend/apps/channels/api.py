@@ -10,7 +10,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.billing.services import account_for
+from apps.billing.gating import check_within_limit
 from apps.tenants.models import Workspace
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
@@ -46,14 +46,7 @@ class ConnectView(APIView):
         if not data["is_test"] and data["provider"] == "instagram":
             raise serializers.ValidationError("Connect Instagram using its OAuth flow.")
         Workspace.objects.select_for_update().get(pk=workspace_id)
-        account = account_for(workspace_id)
-        if (
-            ChannelConnection.objects.for_workspace(workspace_id)
-            .exclude(status="disconnected")
-            .count()
-            >= account.channel_limit
-        ):
-            raise serializers.ValidationError("Your connected-account limit has been reached.")
+        check_within_limit(workspace_id, "max_instagram_accounts")
         try:
             with transaction.atomic():
                 item = ChannelConnection.objects.for_workspace(workspace_id).create(
@@ -85,6 +78,9 @@ class SimulateView(APIView):
         )
         if settings.CHANNEL_ADAPTER_MODE != "fake":
             raise serializers.ValidationError("Local simulation is disabled.")
+        from apps.billing.gating import check_connection_unlocked
+
+        check_connection_unlocked(connection)
         text = request.data.get("text", "")
         if not isinstance(text, str) or not 1 <= len(text) <= 2000:
             raise serializers.ValidationError("Provide 1–2000 characters.")

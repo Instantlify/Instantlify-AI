@@ -29,12 +29,6 @@ def open_invitations(workspace_id):
     )
 
 
-def seat_limit(workspace_id):
-    from apps.billing.services import account_for
-
-    return account_for(workspace_id).seat_limit
-
-
 class InvitationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invitation
@@ -70,10 +64,9 @@ class InvitationListView(generics.ListCreateAPIView):
             open_invitations(workspace_id).filter(email__iexact=email).update(
                 revoked_at=timezone.now()
             )
-            if members.count() + open_invitations(workspace_id).count() >= seat_limit(workspace_id):
-                raise serializers.ValidationError(
-                    "Your plan's seat limit has been reached. Upgrade to add teammates."
-                )
+            from apps.billing.gating import check_within_limit
+
+            check_within_limit(workspace_id, "team_seats")
             invitation = Invitation.objects.for_workspace(workspace_id).create(
                 workspace=member.workspace,
                 email=email,
@@ -131,8 +124,10 @@ class AcceptInvitationView(APIView):
             members = Membership.objects.for_workspace(workspace)
             if members.filter(user=request.user).exists():
                 raise serializers.ValidationError("You are already a member of this workspace.")
-            if members.count() >= seat_limit(workspace.pk):
-                raise serializers.ValidationError("This workspace has no seats available.")
+            from apps.billing.gating import check_within_limit
+
+            # The invitation itself holds one of the open slots, so count members only.
+            check_within_limit(workspace.pk, "team_seats", current=members.count())
             membership = members.create(
                 workspace=workspace, user=request.user, role=invitation.role
             )

@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useWorkspace } from "@/lib/workspace";
 import { PageHeading } from "@/components/ui";
+import { SupportChat } from "@/components/growth";
 
 export default function HelpPage() {
-  const { workspace } = useWorkspace();
+  const { workspace, user } = useWorkspace();
   const w = `/w/${workspace.id}`;
   return (
     <>
+      <SupportChat defaultName={user.name} defaultEmail={user.email} />
       <PageHeading
         eyebrow="Getting started"
         title="Start with the essentials."

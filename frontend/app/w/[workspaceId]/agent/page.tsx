@@ -1,4 +1,5 @@
 "use client";
+import { AgentPreview } from "@/components/agent-preview";
 
 import Link from "next/link";
 import {
@@ -19,6 +20,7 @@ import {
   type AgentConfig,
   type KnowledgeDocument,
   type Page,
+  type PlatformModel,
 } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import {
@@ -43,6 +45,53 @@ const TOOL_HELP: Record<string, string> = {
 };
 const QUALIFYING = ["interest", "budget", "timeline", "company"];
 
+const DEFAULT_PLATFORM_MODELS: PlatformModel[] = [
+  {
+    id: "gpt-5.4-mini",
+    provider: "openai",
+    label: "GPT-5.4 Mini",
+    badge: "Recommended · Fast",
+    description:
+      "High accuracy and low latency. Ideal for instant lead qualification, sales objection handling, and customer support.",
+    input_rate: "$0.60",
+    output_rate: "$2.40",
+    rate_summary: "$0.60 in / $2.40 out per 1M tokens",
+  },
+  {
+    id: "claude-sonnet-5",
+    provider: "anthropic",
+    label: "Claude Sonnet 5",
+    badge: "Deep Reasoning",
+    description:
+      "State-of-the-art conversational nuance, empathetic tone, and complex multi-step reasoning for high-ticket sales.",
+    input_rate: "$3.00",
+    output_rate: "$15.00",
+    rate_summary: "$3.00 in / $15.00 out per 1M tokens",
+  },
+  {
+    id: "gemini-2.5-flash",
+    provider: "gemini",
+    label: "Gemini 2.5 Flash",
+    badge: "Ultra Fast",
+    description:
+      "Google's high-speed multimodal powerhouse. Instantaneous replies keep customers hooked without lag.",
+    input_rate: "$0.30",
+    output_rate: "$1.20",
+    rate_summary: "$0.30 in / $1.20 out per 1M tokens",
+  },
+  {
+    id: "grok-beta",
+    provider: "xai",
+    label: "xAI Grok",
+    badge: "Direct & Punchy",
+    description:
+      "Punchy, modern conversational style. Well suited for creator brands, direct response, and dynamic social DMs.",
+    input_rate: "$0.80",
+    output_rate: "$3.20",
+    rate_summary: "$0.80 in / $3.20 out per 1M tokens",
+  },
+];
+
 type FormState = {
   name: string;
   system_prompt: string;
@@ -50,6 +99,9 @@ type FormState = {
   model: string;
   api_key: string;
   embedding_model: string;
+  embedding_api_key: string;
+  fallback_provider: string;
+  fallback_model: string;
   allowed_tools: string[];
   enabled: boolean;
   is_test: boolean;
@@ -58,6 +110,7 @@ type FormState = {
   handoff_keywords: string;
   max_tool_rounds: number;
   mode: "agent" | "simple";
+  billing_mode: "platform_credits" | "byo_key";
   input_cost_per_million: string;
   output_cost_per_million: string;
 };
@@ -70,6 +123,9 @@ const DEFAULTS: FormState = {
   model: "gpt-5.4-mini",
   api_key: "",
   embedding_model: "text-embedding-3-small",
+  embedding_api_key: "",
+  fallback_provider: "",
+  fallback_model: "",
   allowed_tools: [],
   enabled: false,
   is_test: false,
@@ -78,6 +134,7 @@ const DEFAULTS: FormState = {
   handoff_keywords: "",
   max_tool_rounds: 4,
   mode: "agent",
+  billing_mode: "platform_credits",
   input_cost_per_million: "0",
   output_cost_per_million: "0",
 };
@@ -90,6 +147,9 @@ function toForm(config: AgentConfig): FormState {
     model: config.model,
     api_key: "",
     embedding_model: config.embedding_model,
+    embedding_api_key: "",
+    fallback_provider: config.fallback_provider || "",
+    fallback_model: config.fallback_model || "",
     allowed_tools: config.allowed_tools,
     enabled: config.enabled,
     is_test: config.is_test,
@@ -98,6 +158,7 @@ function toForm(config: AgentConfig): FormState {
     handoff_keywords: config.handoff_keywords.join(", "),
     max_tool_rounds: config.max_tool_rounds,
     mode: config.mode || "agent",
+    billing_mode: config.billing_mode || "platform_credits",
     input_cost_per_million: config.input_cost_per_million,
     output_cost_per_million: config.output_cost_per_million,
   };
@@ -112,7 +173,9 @@ function toggle(list: string[], value: string) {
 export default function AgentPage() {
   const { workspace, prefix, manager } = useWorkspace();
   const [form, setForm] = useState<FormState>(DEFAULTS);
-  const [hasKey, setHasKey] = useState(false);
+  const [platformModels, setPlatformModels] = useState<PlatformModel[]>(
+    DEFAULT_PLATFORM_MODELS,
+  );
   const [configured, setConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
   const settings = useFeedback();
@@ -128,9 +191,11 @@ export default function AgentPage() {
       .then((data) => {
         if (controller.signal.aborted) return;
         const config = data as Partial<AgentConfig>;
+        if (config.available_models?.length) {
+          setPlatformModels(config.available_models);
+        }
         if (config.id) {
           setForm(toForm(config as AgentConfig));
-          setHasKey(Boolean(config.has_key));
           setConfigured(true);
         }
       })
@@ -158,13 +223,14 @@ export default function AgentPage() {
           .filter(Boolean),
         max_tool_rounds: Number(form.max_tool_rounds),
         mode: form.mode,
+        billing_mode: form.billing_mode,
         input_cost_per_million: form.input_cost_per_million || "0",
         output_cost_per_million: form.output_cost_per_million || "0",
       };
       if (!form.api_key) delete payload.api_key;
+      if (!form.embedding_api_key) delete payload.embedding_api_key;
       const saved = await api<AgentConfig>(`${prefix}/agent/`, "PUT", payload);
       setForm(toForm(saved));
-      setHasKey(saved.has_key);
       setConfigured(true);
     }, "Agent settings saved.");
   }
@@ -192,28 +258,16 @@ export default function AgentPage() {
             aside={configured ? "Configured" : "Not configured yet"}
           >
             <form className="form-grid" onSubmit={save}>
-              <div className="two-col">
-                <label>
-                  Name
-                  <input
-                    value={form.name}
-                    maxLength={100}
-                    required
-                    disabled={!manager}
-                    onChange={(e) => set("name", e.target.value)}
-                  />
-                </label>
-                <label>
-                  Provider
-                  <select
-                    value={form.provider}
-                    disabled={!manager}
-                    onChange={(e) => set("provider", e.target.value)}
-                  >
-                    <option value="openai">OpenAI</option>
-                  </select>
-                </label>
-              </div>
+              <label>
+                Agent name
+                <input
+                  value={form.name}
+                  maxLength={100}
+                  required
+                  disabled={!manager}
+                  onChange={(e) => set("name", e.target.value)}
+                />
+              </label>
               <label>
                 System prompt
                 <textarea
@@ -228,40 +282,164 @@ export default function AgentPage() {
                   instructions.
                 </span>
               </label>
-              <div className="three-col">
+
+              <div style={{ marginTop: 8, marginBottom: 8 }}>
+                <span
+                  className="field"
+                  style={{ marginBottom: 6, display: "block" }}
+                >
+                  Select AI Model & Rate
+                </span>
+                <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
+                  All models are hosted and executed by Nemio. Usage is charged
+                  per token directly to your prepaid Nemio credit balance. No
+                  API keys or external developer accounts required.
+                </p>
+                <div
+                  className="card-grid"
+                  style={{
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(270px, 1fr))",
+                    gap: 14,
+                  }}
+                >
+                  {platformModels.map((m) => {
+                    const isSelected = form.model === m.id;
+                    return (
+                      <div
+                        key={m.id}
+                        className="card"
+                        onClick={() =>
+                          manager &&
+                          setForm((cur) => ({
+                            ...cur,
+                            model: m.id,
+                            provider: m.provider,
+                            fallback_model:
+                              cur.fallback_model === m.id
+                                ? ""
+                                : cur.fallback_model,
+                            fallback_provider:
+                              cur.fallback_model === m.id
+                                ? ""
+                                : cur.fallback_provider,
+                          }))
+                        }
+                        style={{
+                          cursor: manager ? "pointer" : "default",
+                          border: isSelected
+                            ? "2px solid var(--primary, #6366f1)"
+                            : "1px solid var(--border)",
+                          background: isSelected
+                            ? "var(--active-card-bg, rgba(99, 102, 241, 0.08))"
+                            : "var(--card-bg)",
+                          padding: 16,
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <div>
+                          <div
+                            className="row between"
+                            style={{
+                              alignItems: "flex-start",
+                              marginBottom: 8,
+                            }}
+                          >
+                            <div>
+                              <strong style={{ fontSize: "1rem" }}>
+                                {m.label}
+                              </strong>
+                              <div style={{ marginTop: 2 }}>
+                                <Pill tone="neutral">{m.provider}</Pill>
+                              </div>
+                            </div>
+                            {isSelected ? (
+                              <Pill tone="good">Selected</Pill>
+                            ) : (
+                              <Pill tone="neutral">{m.badge}</Pill>
+                            )}
+                          </div>
+                          <p
+                            className="muted-text"
+                            style={{
+                              fontSize: "0.85rem",
+                              lineHeight: 1.4,
+                              margin: "8px 0 14px",
+                            }}
+                          >
+                            {m.description}
+                          </p>
+                        </div>
+                        <div
+                          style={{
+                            padding: "8px 10px",
+                            borderRadius: 6,
+                            background:
+                              "var(--muted-bg, rgba(255,255,255,0.04))",
+                            border: "1px solid var(--border)",
+                            fontSize: "0.8rem",
+                            fontWeight: 500,
+                          }}
+                        >
+                          <span style={{ color: "var(--muted)" }}>Rate: </span>
+                          <strong>{m.rate_summary}</strong>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="two-col" style={{ marginTop: 10 }}>
                 <label>
-                  Model
-                  <input
-                    value={form.model}
-                    maxLength={100}
-                    required
+                  Fallback model (optional)
+                  <select
+                    value={form.fallback_model}
                     disabled={!manager}
-                    onChange={(e) => set("model", e.target.value)}
-                  />
-                </label>
-                <label>
-                  API key {hasKey && <Pill tone="good">Key saved</Pill>}
-                  <input
-                    type="password"
-                    value={form.api_key}
-                    autoComplete="off"
-                    placeholder={hasKey ? "Leave blank to keep" : "sk-…"}
-                    disabled={!manager}
-                    onChange={(e) => set("api_key", e.target.value)}
-                  />
+                    onChange={(e) => {
+                      const selected = platformModels.find(
+                        (m) => m.id === e.target.value,
+                      );
+                      setForm((cur) => ({
+                        ...cur,
+                        fallback_model: selected ? selected.id : "",
+                        fallback_provider: selected ? selected.provider : "",
+                      }));
+                    }}
+                  >
+                    <option value="">None (no fallback)</option>
+                    {platformModels
+                      .filter((m) => m.id !== form.model)
+                      .map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label} ({m.provider}) — {m.rate_summary}
+                        </option>
+                      ))}
+                  </select>
                   <span className="hint">
-                    Stored encrypted. Never shown again.
+                    Automatic failover if the primary vendor is temporarily
+                    rate-limited or unavailable.
                   </span>
                 </label>
                 <label>
-                  Embedding model
-                  <input
-                    value={form.embedding_model}
-                    maxLength={100}
-                    required
+                  Reply mode
+                  <select
+                    value={form.mode}
                     disabled={!manager}
-                    onChange={(e) => set("embedding_model", e.target.value)}
-                  />
+                    onChange={(e) =>
+                      set("mode", e.target.value as "agent" | "simple")
+                    }
+                  >
+                    <option value="agent">
+                      Sales agent: stages, tools, triage, bookings and payments
+                    </option>
+                    <option value="simple">
+                      Simple replies: one grounded answer per message, no tools
+                    </option>
+                  </select>
                 </label>
               </div>
               <div>
@@ -349,51 +527,7 @@ export default function AgentPage() {
                   />
                 </label>
               </div>
-              <div className="two-col">
-                <label>
-                  Input cost per million tokens
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.000001"
-                    value={form.input_cost_per_million}
-                    disabled={!manager}
-                    onChange={(e) =>
-                      set("input_cost_per_million", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  Output cost per million tokens
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.000001"
-                    value={form.output_cost_per_million}
-                    disabled={!manager}
-                    onChange={(e) =>
-                      set("output_cost_per_million", e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-              <label>
-                Reply mode
-                <select
-                  value={form.mode}
-                  disabled={!manager}
-                  onChange={(e) =>
-                    set("mode", e.target.value as "agent" | "simple")
-                  }
-                >
-                  <option value="agent">
-                    Sales agent: stages, tools, triage, bookings and payments
-                  </option>
-                  <option value="simple">
-                    Simple replies: one grounded answer per message, no tools
-                  </option>
-                </select>
-              </label>
+
               <div className="checkbox-grid">
                 <label>
                   <input
@@ -434,6 +568,7 @@ export default function AgentPage() {
             </form>
           </Panel>
           <Knowledge />
+          {manager && <AgentPreview prefix={prefix} />}
           <AuditPanel />
         </div>
       )}

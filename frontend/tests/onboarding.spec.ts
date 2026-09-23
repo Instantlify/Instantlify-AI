@@ -13,6 +13,17 @@ const slug = `e2e-${Date.now().toString(36)}`;
 let workspaceUrl = "";
 
 async function nav(page: Page, label: string) {
+  if (!["Overview", "Inbox", "Automations", "AI agent"].includes(label)) {
+    const tools = page.locator(".nav-tools");
+    if (!(await tools.getAttribute("open"))) {
+      if (
+        !(await tools.evaluate(
+          (element) => (element as HTMLDetailsElement).open,
+        ))
+      )
+        await tools.locator("summary").click();
+    }
+  }
   await page
     .getByRole("navigation", { name: "Workspace navigation" })
     .getByRole("link", { name: label, exact: true })
@@ -23,26 +34,37 @@ test("sign up, create a workspace and connect a test channel", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Create an account" }).click();
+  await page.getByRole("link", { name: "Get started", exact: true }).click();
   await page.getByLabel("Your name").fill("Alex");
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page
     .getByRole("button", { name: "Create account", exact: true })
     .click();
+  // Short setup: optionally connect Instagram, then name the workspace.
+  await expect(
+    page.getByRole("heading", { name: "Connect your Instagram" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "I’ll connect my account later" })
+    .click();
   await page.getByLabel("Workspace name").fill("E2E Studio");
   await page
-    .getByRole("button", { name: "Create workspace", exact: true })
+    .getByRole("button", { name: "Open my workspace", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A fresh start, Alex." }),
+    page.getByRole("heading", { name: "Your business at a glance, Alex." }),
   ).toBeVisible();
   await expect(page).toHaveURL(/\/w\/[0-9a-f-]+\/overview/);
   workspaceUrl = page.url().replace(/\/overview.*$/, "");
   await expect(
     page.getByText("E2E Studio is ready for your team."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Test connection setup" }).click();
+  // Skipped the Instagram step, so the overview insists on it until connected.
+  await expect(page.getByText("Connect your Instagram account")).toBeVisible();
+  await page.getByRole("button", { name: "Connect Instagram" }).click();
+  await expect(page).toHaveURL(/integrations/);
+  await nav(page, "Overview");
   await expect(page.getByText("Local connection test completed")).toBeVisible();
 });
 
@@ -127,8 +149,14 @@ test("the AI agent answers with the local test provider", async ({ page }) => {
   });
   await nav(page, "Inbox");
   await page.getByRole("button", { name: /lead-one/ }).click();
+  // The toggle is optimistic; wait for the save itself so the reload cannot abort it.
+  const saved = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      response.url().includes("/conversations/"),
+  );
   await page.getByLabel("AI replies").check();
-  await expect(page.getByLabel("AI replies")).toBeChecked();
+  expect((await saved).ok()).toBeTruthy();
   // Reload so the assertion reflects the server, not the optimistic UI state.
   await page.reload();
   await page.getByRole("button", { name: /lead-one/ }).click();
@@ -149,7 +177,9 @@ test("the AI agent answers with the local test provider", async ({ page }) => {
 test("analytics, bio page, offers and invitations", async ({ page }) => {
   await signIn(page);
   await nav(page, "Analytics");
-  await expect(page.getByText("Pricing comment")).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "Pricing comment" }),
+  ).toBeVisible();
   await nav(page, "Link in bio");
   await page.getByLabel("Page address").fill(slug);
   await page.getByLabel("Title", { exact: true }).fill("E2E Studio");
@@ -174,6 +204,10 @@ test("analytics, bio page, offers and invitations", async ({ page }) => {
 test("sign out, sign in, and the mobile layout", async ({ page }) => {
   await signIn(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Sign in", exact: true })
+    .first()
+    .click();
   await expect(
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();
@@ -181,6 +215,8 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
   await expect(
     page.getByRole("combobox", { name: "Current workspace" }),
   ).toContainText("E2E Studio Updated");
+  await expect(page).toHaveURL(/integrations/);
+  await nav(page, "Overview");
   await expect(page.getByText("Local connection test completed")).toBeVisible();
   await page.screenshot({
     path: "test-results/dashboard-desktop.png",
@@ -200,13 +236,17 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
     fullPage: true,
   });
   await page.getByRole("button", { name: "Sign out on mobile" }).click();
+  await page
+    .getByRole("link", { name: "Sign in", exact: true })
+    .first()
+    .click();
   await expect(
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();
 });
 
 async function signIn(page: Page) {
-  await page.goto("/");
+  await page.goto("/auth");
   // Either the sign-in form appears, or a live session redirects straight into a workspace.
   const heading = page.getByRole("heading", { name: "Welcome back." });
   const needsLogin = await heading
@@ -222,3 +262,17 @@ async function signIn(page: Page) {
   if (!workspaceUrl)
     workspaceUrl = page.url().replace(/\/(overview|inbox).*$/, "");
 }
+
+test("the support assistant opens a ticket for a signed-in user", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto(`${workspaceUrl}/help`);
+  const chat = page.getByRole("region", { name: "Support chat" });
+  // Name and email come from the account, so no capture card is needed here.
+  await chat
+    .getByLabel("Message", { exact: true })
+    .fill("I need a support ticket please");
+  await chat.getByRole("button", { name: "Send message" }).click();
+  await expect(chat.getByText(/Ticket #\d+ is open/)).toBeVisible();
+});

@@ -230,8 +230,10 @@ def test_malformed_billing_event_fails_instead_of_looping(workspace):
     assert event.status == "failed"
 
 
-def test_billing_event_updates_plan_limits(workspace, settings):
-    settings.STRIPE_PRICES = {"starter": {"base": "price_base", "meter": "price_meter"}}
+def test_billing_event_updates_plan_limits(workspace):
+    from tests.conftest import price_for
+
+    price_for("starter", stripe_price_id="price_base")
     account_for(workspace.pk)
     now = int(timezone.now().timestamp())
     payload = {

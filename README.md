@@ -22,7 +22,7 @@ sh scripts/bootstrap.sh
 docker compose up --build -d --wait --wait-timeout 240
 ```
 
-Open [Nemio](http://localhost:3000). Create an account (password of at least 12 characters) and a workspace. A good first tour with no external keys:
+Open [Nemio](http://localhost:3000) for the public homepage, product information and current pricing. Choose **Get started** to create an account (password of at least 12 characters), or **Sign in** to return to your workspace. Authentication is at `/auth/`; existing invitation links remain supported. A good first tour with no external keys:
 
 1. **Overview → Test connection setup** creates a local Instagram test channel.
 2. **Automations → Create** opens the flow builder with a starter “comment *price* → DM with a button” flow; press **Publish**.
@@ -98,6 +98,43 @@ npm run test:e2e
 The browser test expects the Compose app running on `http://127.0.0.1:3000`; override with `E2E_BASE_URL`. It signs up, creates a workspace and test channel, publishes an automation, fires it with a simulated comment, replies from the inbox, enables the test AI agent, checks analytics, publishes a bio page, creates an offer and an invitation, and verifies the mobile layout. It writes real local data and never contacts Meta.
 
 For frontend hot reload against Compose: stop the frontend container with `docker compose stop frontend`, then run `npm run dev` from `frontend/`. The default local proxy target is `http://127.0.0.1:8000`. Set `BACKEND_INTERNAL_URL` before starting/building if you change the backend address. This address is embedded at build time in standalone output.
+
+## Deploying
+
+`compose.yaml` on its own is the local stack: loopback ports, no edge, no certificates,
+no backups. Production adds those through an overlay:
+
+```sh
+docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+```
+
+The overlay puts Caddy in front as the only service the internet reaches, switches the
+Django services to production settings, drops Flower behind the `debug` profile, and
+runs a `backup` service that keeps timestamped `pg_dump`s in the `backups` volume.
+
+Set these in the environment before the first deploy, on top of `.env`:
+
+| Variable | Why |
+| --- | --- |
+| `APP_DOMAIN` | Public app hostname Caddy gets a certificate for |
+| `PLATFORM_ADMIN_HOST` | Console hostname; must match Django's setting and differ from the app |
+| `ACME_EMAIL` | Certificate expiry notices |
+| `TRUSTED_PROXY_DEPTH` | Proxies in front of Django. `1` behind this Caddy; production refuses to start at `0` |
+| `NEMIO_PRIVACY_URL`, `NEMIO_TERMS_URL`, `NEMIO_SUPPORT_EMAIL` | Published policies and support contact; the frontend must be rebuilt after a change |
+
+**A backup you have not restored is not a backup.** Copy dumps off the host, and
+rehearse a restore before you need one:
+
+```sh
+docker compose -f compose.yaml -f compose.prod.yaml stop backend worker beat
+docker compose -f compose.yaml -f compose.prod.yaml run --rm   -e CONFIRM_RESTORE=yes backup /restore.sh /backups/nemio-<stamp>.sql.gz
+docker compose -f compose.yaml -f compose.prod.yaml up -d
+```
+
+`restore.sh` drops and recreates the schema, so everything written since that dump is
+lost; it refuses to run without `CONFIRM_RESTORE=yes`. The database dump does not
+contain `FIELD_ENCRYPTION_KEYS`: restoring without those keys leaves every stored
+credential undecryptable, so back the key ring up separately.
 
 ## Operational notes
 

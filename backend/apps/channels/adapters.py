@@ -26,6 +26,8 @@ class Credentials:
     display_name: str
     access_token: str = field(repr=False)
     expires_at: datetime
+    # Public profile facts, when the provider returns them. Never secret.
+    profile: dict = field(default_factory=dict)
 
 
 class ChannelAdapter(ABC):
@@ -148,17 +150,22 @@ def adapter_for(connection):
         return FakeChannelAdapter()
     if settings.CHANNEL_ADAPTER_MODE != "live":
         raise IntegrationUnavailable("Live connections are disabled")
+    if connection.provider == "linkedin" and not settings.LINKEDIN_MESSAGING_APPROVED:
+        raise IntegrationUnavailable(
+            "LinkedIn messaging access for this app has not been confirmed"
+        )
     from .instagram import LiveInstagramAdapter
-    from .providers import MessengerAdapter, TelegramAdapter, WhatsAppAdapter
+    from .providers import LinkedInAdapter, MessengerAdapter, TelegramAdapter, WhatsAppAdapter
 
     return {
         "instagram": LiveInstagramAdapter,
         "whatsapp": WhatsAppAdapter,
         "telegram": TelegramAdapter,
         "messenger": MessengerAdapter,
+        "linkedin": LinkedInAdapter,
     }[connection.provider](connection)
 
 
-PROVIDERS = ["instagram", "whatsapp", "telegram", "messenger"]
+PROVIDERS = ["instagram", "whatsapp", "telegram", "messenger", "linkedin"]
 # Channels with a platform-enforced customer-service window for free-form replies.
 WINDOWED_PROVIDERS = {"instagram", "whatsapp", "messenger"}

@@ -173,10 +173,12 @@ def test_deleting_a_replaced_subscription_is_ignored(workspace):
     assert account_for(workspace.pk).status == "canceled"
 
 
-def test_unmapped_price_is_flagged_without_cutting_limits(workspace, settings):
-    settings.STRIPE_PRICES = {"starter": {"base": "price_base", "meter": "price_meter"}}
+def test_unmapped_price_is_flagged_without_cutting_limits(workspace):
+    from tests.conftest import price_for
+
     account = account_for(workspace.pk)
-    account.customer_id, account.plan, account.usage_limit = "cus_1", "starter", 1000
+    account.customer_id = "cus_1"
+    account.plan_price = price_for("starter", stripe_price_id="price_base")
     account.save()
     obj = {"id": "sub_1", "status": "active", "items": {"data": [{"price": {"id": "price_x"}}]}}
     assert billing_event(workspace, "customer.subscription.updated", obj) == "processed"
@@ -190,9 +192,10 @@ def test_unmapped_price_is_flagged_without_cutting_limits(workspace, settings):
 def test_sync_reconciles_drift_and_stops_metering_closed_subscriptions(workspace, settings):
     from apps.agents.models import UsageRecord
     from apps.platform_ops.tasks import sync_subscriptions
+    from tests.conftest import price_for
 
     settings.STRIPE_SECRET_KEY = "sk_test_x"
-    settings.STRIPE_PRICES = {"pro": {"base": "price_pro", "meter": "price_meter"}}
+    price_for("pro", stripe_price_id="price_pro")
     account = account_for(workspace.pk)
     account.customer_id, account.subscription_id, account.status = "cus_1", "sub_1", "active"
     account.period_start = timezone.now() - timedelta(days=1)
@@ -515,8 +518,11 @@ def test_dead_google_grant_marks_reconnect_required(client, workspace):
     assert response.status_code == 201 and response.json()["status"] == "active"
 
 
-def test_subscription_events_record_interval_and_trial_end(workspace, settings):
-    settings.STRIPE_PRICES = {"pro": {"base": "price_pro_year", "meter": "price_meter"}}
+def test_subscription_events_record_interval_and_trial_end(workspace):
+    from tests.conftest import price_for
+
+    price_for("pro", "annual", stripe_price_id="price_pro_year")
+    price_for("pro", "monthly", stripe_price_id="price_pro_month")
     account = account_for(workspace.pk)
     account.customer_id = "cus_1"
     account.save()
@@ -534,7 +540,7 @@ def test_subscription_events_record_interval_and_trial_end(workspace, settings):
     assert (account.plan, account.billing_interval, account.status) == ("pro", "annual", "trialing")
     assert int(account.trial_ends_at.timestamp()) == trial_end
     obj.update(status="active", trial_end=None)
-    base["recurring"] = {"interval": "month", "interval_count": 1}
+    base.update(id="price_pro_month", recurring={"interval": "month", "interval_count": 1})
     assert billing_event(workspace, "customer.subscription.updated", obj) == "processed"
     account = account_for(workspace.pk)
     assert (account.billing_interval, account.trial_ends_at) == ("monthly", None)

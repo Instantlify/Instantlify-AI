@@ -5,7 +5,7 @@ from django.db import transaction
 from pgvector.django import CosineDistance
 
 from .models import KnowledgeChunk, KnowledgeDocument, UsageRecord
-from .providers import provider_for
+from .providers import embedder_for
 
 
 def split_text(text, size=1800, overlap=200):
@@ -28,7 +28,7 @@ def ingest(document, config):
     if not source.strip() or len(source) > 250000:
         raise ValueError("document_size_or_empty")
     chunks = split_text(source)
-    provider = provider_for(config)
+    provider = embedder_for(config)
     vectors = []
     tokens = 0
     for start in range(0, len(chunks), 16):
@@ -50,7 +50,7 @@ def ingest(document, config):
         KnowledgeDocument.objects.for_workspace(document.workspace_id).filter(
             pk=document.pk
         ).update(status="ready", embedding_model=config.embedding_model)
-        UsageRecord.objects.for_workspace(document.workspace_id).get_or_create(
+        record, created = UsageRecord.objects.for_workspace(document.workspace_id).get_or_create(
             key=f"document:{document.id}",
             defaults={
                 "workspace_id": document.workspace_id,
@@ -61,6 +61,10 @@ def ingest(document, config):
                 "status": "complete",
             },
         )
+        if created:
+            from apps.billing.services import charge_embedding
+
+            charge_embedding(config, record, tokens)
 
 
 def retrieve(config, question, key):
@@ -69,8 +73,8 @@ def retrieve(config, question, key):
     )
     if not chunks.exists():
         return []
-    vectors, tokens = provider_for(config).embed([question[:10000]])
-    UsageRecord.objects.for_workspace(config.workspace_id).get_or_create(
+    vectors, tokens = embedder_for(config).embed([question[:10000]])
+    record, created = UsageRecord.objects.for_workspace(config.workspace_id).get_or_create(
         key=key,
         defaults={
             "workspace_id": config.workspace_id,
@@ -81,4 +85,8 @@ def retrieve(config, question, key):
             "status": "complete",
         },
     )
+    if created:
+        from apps.billing.services import charge_embedding
+
+        charge_embedding(config, record, tokens)
     return list(chunks.order_by(CosineDistance("embedding", vectors[0]))[:5])

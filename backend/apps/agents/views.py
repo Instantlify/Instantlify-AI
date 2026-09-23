@@ -7,6 +7,7 @@ from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.billing.gating import check_feature
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
 
@@ -17,15 +18,36 @@ from .tools import SCHEMAS
 class AgentSerializer(serializers.ModelSerializer):
     api_key = serializers.CharField(write_only=True, required=False, allow_blank=True)
     has_key = serializers.SerializerMethodField()
+    embedding_api_key = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    has_embedding_key = serializers.SerializerMethodField()
 
     def get_has_key(self, obj):
         return bool(obj.api_key)
 
+    def get_has_embedding_key(self, obj):
+        return bool(obj.embedding_api_key)
+
     def validate(self, attrs):
-        if attrs.get("provider", "openai") != "openai":
-            raise serializers.ValidationError(
-                "This release supports OpenAI and the local test provider."
-            )
+        from .providers import PROVIDERS
+
+        def current(name, default):
+            # Partial updates validate against the saved value for anything not sent.
+            return attrs.get(name, getattr(self.instance, name, default))
+
+        if not attrs.get("embedding_api_key"):
+            attrs.pop("embedding_api_key", None)  # blank means "keep the saved key"
+        provider = current("provider", "openai")
+        if provider not in PROVIDERS:
+            raise serializers.ValidationError("Provider must be OpenAI, Anthropic, Gemini or xAI.")
+        fallback = current("fallback_provider", "")
+        if fallback:
+            if fallback not in PROVIDERS or fallback == provider:
+                raise serializers.ValidationError("The fallback must be a different provider.")
+            if not current("fallback_model", "").strip():
+                raise serializers.ValidationError("Choose a model for the fallback provider.")
+            if current("billing_mode", "platform_credits") != "platform_credits":
+                # A BYO key covers one vendor; a fallback would run on Nemio's key.
+                raise serializers.ValidationError("A fallback provider needs Nemio credits.")
         if attrs.get("is_test") and settings.CHANNEL_ADAPTER_MODE != "fake":
             raise serializers.ValidationError("Test providers are disabled.")
         if any(name not in SCHEMAS for name in attrs.get("allowed_tools", [])):
@@ -47,6 +69,8 @@ class AgentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Tool rounds must be 1–8.")
         if attrs.get("mode", "agent") not in {"agent", "simple"}:
             raise serializers.ValidationError("Mode must be agent or simple.")
+        if attrs.get("billing_mode", "platform_credits") not in {"platform_credits", "byo_key"}:
+            raise serializers.ValidationError("Billing mode must be platform_credits or byo_key.")
         return attrs
 
     class Meta:
@@ -60,6 +84,10 @@ class AgentSerializer(serializers.ModelSerializer):
             "api_key",
             "has_key",
             "embedding_model",
+            "embedding_api_key",
+            "has_embedding_key",
+            "fallback_provider",
+            "fallback_model",
             "allowed_tools",
             "enabled",
             "is_test",
@@ -70,24 +98,44 @@ class AgentSerializer(serializers.ModelSerializer):
             "handoff_keywords",
             "max_tool_rounds",
             "mode",
+            "billing_mode",
         ]
-        read_only_fields = ["id", "has_key"]
+        read_only_fields = ["id", "has_key", "has_embedding_key"]
 
 
 class AgentView(APIView):
     def get(self, request, workspace_id):
+        from .catalog import get_platform_models
+
         workspace_membership(request, workspace_id, ["owner", "admin"])
         config = AgentConfig.objects.for_workspace(workspace_id).first()
-        return Response(AgentSerializer(config).data if config else {})
+        data = AgentSerializer(config).data if config else {}
+        data["available_models"] = get_platform_models()
+        return Response(data)
 
     def put(self, request, workspace_id):
         member = workspace_membership(request, workspace_id, ["owner", "admin"])
+        check_feature(workspace_id, "ai_agent_enabled")
         config = AgentConfig.objects.for_workspace(workspace_id).first()
         serializer = AgentSerializer(config, data=request.data, partial=bool(config))
         serializer.is_valid(raise_exception=True)
         config = serializer.save(workspace=member.workspace)
         audit(member.workspace, request.user, "agent.configured", config.id)
-        return Response(serializer.data)
+        data = serializer.data
+        from .catalog import get_platform_models
+
+        data["available_models"] = get_platform_models()
+        return Response(data)
+
+
+class AgentModelsView(APIView):
+    """List curated platform models with live pricing rates from the rate card."""
+
+    def get(self, request, workspace_id):
+        from .catalog import get_platform_models
+
+        workspace_membership(request, workspace_id, ["owner", "admin"])
+        return Response(get_platform_models())
 
 
 class DocumentSerializer(serializers.ModelSerializer):

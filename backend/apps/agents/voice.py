@@ -33,27 +33,49 @@ def bounded_bytes(method, url, **kwargs):
 def queue_voice(conversation, text, key):
     from apps.platform_ops.security import assert_enabled
 
-    assert_enabled(conversation.workspace_id, "ai", "integration:elevenlabs")
+    assert_enabled(conversation.workspace_id, "ai")
     integration = (
         IntegrationConfig.objects.for_workspace(conversation.workspace_id)
         .filter(provider="elevenlabs", enabled=True)
         .first()
     )
-    if not integration:
-        raise ValueError("voice_not_configured")
-    if integration.is_test:
+    if integration and integration.is_test:
         if settings.CHANNEL_ADAPTER_MODE != "fake":
             raise ValueError("test_voice_disabled")
         item = queue_reply(conversation, "[Local voice test] " + text, f"voice:{key}")
         return {"delivery_id": str(item.id), "test": True}
-    credentials = json.loads(integration.credentials)
+
+    api_key = ""
+    voice_id = ""
+    model_id = "eleven_multilingual_v2"
+
+    if integration:
+        credentials = json.loads(integration.credentials) if integration.credentials else {}
+        api_key = credentials.get("api_key", "")
+        voice_id = integration.options.get("voice_id", "")
+        model_id = integration.options.get("model", "eleven_multilingual_v2")
+
+    if not api_key:
+        api_key = getattr(settings, "PLATFORM_ELEVENLABS_API_KEY", "")
+        if not voice_id:
+            voice_id = getattr(
+                settings, "PLATFORM_ELEVENLABS_DEFAULT_VOICE_ID", "21m00Tcm4TlvDq8ikWAM"
+            )
+
+    if settings.CHANNEL_ADAPTER_MODE == "fake":
+        item = queue_reply(conversation, "[Local voice test] " + text, f"voice:{key}")
+        return {"delivery_id": str(item.id), "test": True}
+
+    if not api_key:
+        raise ValueError("voice_not_configured")
+
     audio = bounded_bytes(
         "POST",
-        f"https://api.elevenlabs.io/v1/text-to-speech/{quote(integration.options['voice_id'], safe='')}",
-        headers={"xi-api-key": credentials["api_key"]},
+        f"https://api.elevenlabs.io/v1/text-to-speech/{quote(voice_id, safe='')}",
+        headers={"xi-api-key": api_key},
         json={
             "text": text[:2000],
-            "model_id": integration.options.get("model", "eleven_multilingual_v2"),
+            "model_id": model_id,
         },
     )
     asset = VoiceAsset.objects.for_workspace(conversation.workspace_id).create(
@@ -81,20 +103,27 @@ def voice_asset(request, token):
     return response
 
 
+TRANSCRIPTION_MODEL = "whisper-1"
+
+
 def transcribe(message, config):
-    """Return the transcript of the message's voice attachment ("" if it has none)."""
+    """Return (transcript, audio seconds) for the message's voice attachment; ("", 0) if
+    it has none. The duration is Whisper's own measurement, which is what it bills."""
     attachments = json.loads(message.attachments)
     attachment = next(
         (a for a in attachments if isinstance(a, dict) and a.get("type") in {"audio", "voice"}),
         None,
     )
     if not attachment:
-        return ""
+        return "", 0.0
     connection = message.conversation.identity.connection
     if connection.is_test or config.is_test:
         if settings.CHANNEL_ADAPTER_MODE != "fake":
             raise ProviderError("test_transcription_disabled")
-        return str(attachment.get("transcript", "[Local test voice note]"))
+        return (
+            str(attachment.get("transcript", "[Local test voice note]")),
+            float(attachment.get("duration", 5)),
+        )
     filename = "voice.ogg"
     if connection.provider == "telegram":
         from apps.channels.providers import TelegramAdapter
@@ -135,7 +164,7 @@ def transcribe(message, config):
         "POST",
         "https://api.openai.com/v1/audio/transcriptions",
         headers={"Authorization": f"Bearer {config.api_key}"},
-        data={"model": "whisper-1"},
+        data={"model": TRANSCRIPTION_MODEL, "response_format": "verbose_json"},
         files={"file": (filename, audio, "application/octet-stream")},
     )
-    return str(result.get("text", ""))
+    return str(result.get("text", "")), float(result.get("duration") or 0)

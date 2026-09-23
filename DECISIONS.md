@@ -89,3 +89,121 @@ Safety contracts for signatures and state transitions were written first. Unit/A
 **Template sales run on Stripe Connect with Nemio as merchant of record.** Authors onboard a Connect *recipient* account (Accounts v2: `dashboard=express`, `fees_collector`/`losses_collector=application`, only `stripe_transfers` requested) through Stripe-hosted onboarding. Buyers pay a Checkout Session on the platform account with a destination charge and `application_fee_amount` (`MARKETPLACE_FEE_PERCENT`, rounded up, capped at the price). Only the account ID and the last observed `stripe_transfers` capability status are stored; the status is re-read from Stripe when older than an hour before any checkout references the author, and every 12 hours by Beat. Publishing a paid template requires an active capability. The purchase is buyer-side (`TemplatePurchase`), idempotent per key, and a template paid for once is never charged again. Fulfilment happens only from the platform webhook (`checkout.session.completed` / `async_payment_succeeded` with `payment_status=paid`, routed by purchase metadata that must match the buyer workspace) or from an authenticated re-read of the session; nothing about payment is trusted from the browser. Refunds and disputes are handled in Stripe, not in the app (the platform absorbs losses, as Stripe requires for destination charges). The `marketplace` kill switch pauses new checkouts.
 
 **Connectors are packages over the public API, not special server code.** `connectors/zapier` (Zapier Platform CLI app, REST hooks with HMAC verification in `perform`, `send_message`/`update_lead` creates, `find_lead` search), `connectors/n8n` (community node package: credential test, trigger node that subscribes/unsubscribes and verifies signatures with the stored secret, CRUD node) both target `/api/v1/`. The only server additions were `GET /api/v1/me/` (auth test / connection label) and an `email` filter on leads. Each connector rejects unsigned, stale (>5 min) or mismatched deliveries rather than trusting the transport.
+
+
+## Plans are data, and there is one gate (2026-09-18)
+
+Tiers, their monthly and annual prices and their limits live in `billing.Plan`,
+`PlanPrice` and `PlanLimits`, seeded by a data migration (free, starter, pro, scale,
+plus an unlimited `dev` plan that local settings default to). `BillingAccount` is the
+workspace's subscription record and points at a `PlanPrice`; it stores no limits, so a
+tier edit reaches every subscriber and a Stripe price maps to a tier by lookup, not by
+environment variable. Every plan check goes through `billing.gating`: `require_feature`
+and `require_within_limit` for views, `guard` for tasks, one `PlanLimitExceeded` that
+renders as 402 with `upgrade_required`. A Stripe price we do not map flags the account
+(`price_unmapped`) instead of changing its limits. Tiers are retired with
+`is_active=False`, never deleted, because `plan_price` is PROTECTed.
+
+
+## AI billing is prepaid credits with a margin (2026-09-18)
+
+Workspaces default to `billing_mode="platform_credits"`: Nemio's provider key is used, and
+every model call and embedding batch debits a prepaid `AICreditBalance` at the rate in
+`ModelPricingRate` (cents per million tokens, `%` wildcards, most specific pattern wins,
+one mandatory fallback row so an unknown model never bills at zero). Each debit is one
+`AICreditTransaction` row with the charged amount, the real cost and the balance after
+it. Balances keep sub-cent precision. When the balance is empty the agent run is parked
+as `needs_payment` and the workspace is told; the lead's message is never dropped.
+Auto top-up charges the card saved by a manual top-up off-session and switches itself
+off after a single failure. `byo_key` remains an explicit per-workspace choice for
+customers with their own provider agreement; those workspaces are never debited and are
+the only ones still reported to the Stripe usage meter.
+
+## Platform growth tables live in `platform_ops`, not `analytics`
+
+`apps.analytics` is tenant-scoped: every row is a `TenantModel` describing one
+workspace's funnel. The signup funnel, marketing-site visits, segments, tickets,
+blog, promos and announcements describe *Nemio's* business, not a tenant's, so they
+sit in `platform_ops` as plain models with no workspace scoping. Tenant apps already
+import `platform_ops` (`security.assert_enabled`, `metrics`), so the dependency
+direction is unchanged.
+
+The practical consequence: there is no tenant API that can read any of it, and a
+console aggregate can never accidentally leak into a workspace dashboard.
+
+## Nemio's support agent is a separate system from the tenant agent
+
+Two agents, two knowledge bases, two tables. `apps.agents` answers a tenant's leads
+about a tenant's business, grounded in `KnowledgeDocument`, billed to that
+workspace's credit balance. `platform_ops.support_agent` answers our prospects about
+Nemio, grounded in `PlatformKnowledgeDocument`, on our platform key, billed to us.
+
+They are not parameterisations of one system. Sharing a model would make it possible
+for a tenant's private knowledge to be retrieved into an answer we give a stranger,
+and that risk is not worth the deduplication.
+
+## The ticket gate is enforced in code, not in the prompt
+
+The support agent's system prompt states that a name and an email must both be
+collected before a ticket is opened, using sentinel tokens the chat client renders as
+real input fields. The prompt is the interaction design; it is not the enforcement.
+`support_agent.create_ticket` re-checks both details and returns the missing-detail
+sentinel instead of creating anything.
+
+A model can be argued out of an instruction. A function signature cannot.
+
+## Transactional email is a registry, never a literal
+
+Copy lives in `EmailTemplate` rows keyed by a stable name, and
+`send_transactional_email(name, to, context)` is the only send path. Changing an
+email's wording is a content edit in the console, not a deploy.
+
+Two deliberate behaviours: a `draft` row raises rather than sends, so an unfinished
+rewrite cannot reach a customer; and an unknown `{{ placeholder }}` is left visible in
+the output rather than blanked, so a typo shows up as a typo instead of silently
+dropping a value.
+
+## Segment classification declines to guess
+
+A classifier that must always return a label will label a three-word bio. Those rows
+then flow into every category count, every percentage and every targeting decision
+downstream. `classify_account` returns nothing below a confidence threshold, and the
+console reports that population separately as "insufficient evidence" rather than
+folding it into a category.
+
+Classification also deletes an account's previous verdict before writing a new one, so
+a rebranded account cannot accumulate contradictory categories over time.
+
+
+## The console uses the tenant app's sage palette, not the brief's navy (amends 2.11)
+
+Section 2.11 of the brief specifies a near-black navy sidebar and Inter. The console
+instead uses the tenant app's tokens (`--ink #233A33`, `--green #347359`, DM Sans), at
+the product owner's request, so the two surfaces read as one product. Everything else in
+2.11 still holds: one card anatomy, a fixed badge colour mapping, density over
+whitespace, colour only where it encodes meaning.
+
+## Bans are enforced by the auth backend, and switching to it logs everyone out once
+
+`AUTHENTICATION_BACKENDS` is `apps.tenants.auth.BanAwareBackend`, and JWT goes through
+`BanAwareJWTAuthentication`. That covers password sign-in, every existing session (Django
+re-resolves the user through the backend on each request) and bearer tokens.
+
+Side effect: sessions created before this change stored the old backend path, so each is
+resolved as anonymous once after deploy and the user signs in again. That is accepted
+rather than keeping `ModelBackend` in the list, which would let a banned user through it.
+
+## A transferred automation arrives disabled
+
+`transfer()` moves the automation and its graph rows atomically, drops in-flight
+conversation state (those conversations belong to the old tenant) and leaves the
+automation disabled, so it never starts firing on an account whose owner has not
+reviewed it. Transfer is refused while the automation is part of an A/B experiment,
+which would otherwise leave a cross-tenant foreign key.
+
+## Promo coupons carry the discount in their id
+
+The Stripe coupon for a campaign is `nemio-promo-<slug>-<percent>`. Editing a campaign's
+discount therefore mints a new coupon instead of silently changing one already attached
+to live subscriptions. Any Stripe error while preparing the coupon means full price,
+never a failed checkout.

@@ -265,8 +265,46 @@ def test_support_session_banner_expiry_and_operator_binding(operator, workspace)
 
 def test_ip_network_uses_remote_addr_not_forwarded_header(operator, settings):
     settings.PLATFORM_ADMIN_NETWORKS = ["10.0.0.0/8"]
+    settings.TRUSTED_PROXY_DEPTH = 0
     client = signed_client(operator)
     assert client.get("/ops/", HTTP_X_FORWARDED_FOR="10.1.2.3").status_code == 403
+
+
+def test_ip_network_reads_the_hop_the_proxy_wrote(operator, settings):
+    """Behind one proxy REMOTE_ADDR is the proxy, so the allow-list has to read the
+    entry the proxy appended. Anything the caller put in front of it is ignored."""
+    settings.PLATFORM_ADMIN_NETWORKS = ["10.0.0.0/8"]
+    settings.TRUSTED_PROXY_DEPTH = 1
+    client = signed_client(operator)
+    assert client.get("/ops/", HTTP_X_FORWARDED_FOR="10.1.2.3").status_code == 200
+    # The rightmost entry is the only one the proxy wrote; a prepended office address
+    # must not get an outside caller through.
+    assert client.get("/ops/", HTTP_X_FORWARDED_FOR="10.1.2.3, 203.0.113.9").status_code == 403
+    assert client.get("/ops/", HTTP_X_FORWARDED_FOR="203.0.113.9").status_code == 403
+
+
+def test_login_lockout_is_per_client_not_per_proxy(settings):
+    """At depth 0 every proxied request shares one bucket, so ten failures from anywhere
+    lock every operator out. Counting the forwarded hop keeps the bucket per caller."""
+    settings.TRUSTED_PROXY_DEPTH = 1
+    client = Client(HTTP_HOST="ops.localhost")
+    attacker = {"HTTP_X_FORWARDED_FOR": "203.0.113.9"}
+    for _ in range(11):
+        client.post("/ops/login/", {"username": "missing", "password": "wrong"}, **attacker)
+    assert (
+        client.post(
+            "/ops/login/", {"username": "missing", "password": "wrong"}, **attacker
+        ).status_code
+        == 429
+    )
+    assert (
+        client.post(
+            "/ops/login/",
+            {"username": "other", "password": "wrong"},
+            HTTP_X_FORWARDED_FOR="198.51.100.4",
+        ).status_code
+        == 200
+    )
 
 
 def test_csrf_protects_controls(operator):
@@ -516,13 +554,16 @@ def test_dashboard_renders_one_tab_at_a_time(operator):
 def test_revenue_tab_lists_plan_distribution_trials_and_past_due(operator, workspace):
     from apps.billing.services import account_for
     from apps.tenants.services import create_workspace
+    from tests.conftest import price_for
 
     trial = account_for(workspace.pk)
-    trial.plan, trial.billing_interval, trial.status = "pro", "annual", "trialing"
+    trial.plan_price = price_for("pro", "annual")
+    trial.billing_interval, trial.status = "annual", "trialing"
     trial.trial_ends_at = timezone.now() + timedelta(days=3)
     trial.save()
     late = account_for(create_workspace(operator.user, "Late payer").pk)
-    late.plan, late.billing_interval, late.status = "starter", "monthly", "past_due"
+    late.plan_price = price_for("starter")
+    late.billing_interval, late.status = "monthly", "past_due"
     late.save()
     client = signed_client(operator)
     with patch("redis.Redis.get", return_value=None), patch("redis.Redis.ttl", return_value=-2):
@@ -533,3 +574,86 @@ def test_revenue_tab_lists_plan_distribution_trials_and_past_due(operator, works
     assert list(response.context["trials"]) == [trial]
     assert list(response.context["past_due"]) == [late]
     assert "Trials ending" in body and "Late payer" in body
+
+
+def test_every_console_tab_renders(operator, workspace):
+    """Each sidebar entry, and each sub-section within a module, renders its own body
+    rather than falling through to a placeholder."""
+    from apps.platform_ops.views import TABS
+
+    client = signed_client(operator)
+    for tab in TABS:
+        response = client.get(f"/ops/?tab={tab}")
+        assert response.status_code == 200, tab
+        body = response.content.decode()
+        assert f'href="/ops/?tab={tab}" class="nav-item active"' in body or tab in {
+            "billing_audit"
+        }, tab
+        assert "Return to Dashboard" not in body, tab
+    for tab, subs in {
+        "ai_credits": ["transactions", "balances", "usage", "pricing"],
+        "segments": ["multi"],
+        "blog": ["analytics"],
+        "support": ["support_queue", "bugs"],
+        "notifications": ["popups", "strips"],
+    }.items():
+        for sub in subs:
+            assert client.get(f"/ops/?tab={tab}&sub={sub}").status_code == 200, f"{tab}/{sub}"
+
+
+def test_settings_endpoint_stores_https_url_only(operator):
+    from apps.platform_ops.models import PlatformSetting
+
+    client = signed_client(operator)
+    assert (
+        client.post("/ops/settings/", {"email_automation_url": "http://plain.example"}).status_code
+        == 403
+    )
+    assert client.post("/ops/settings/", {"email_automation_url": "notaurl"}).status_code == 403
+    response = client.post("/ops/settings/", {"email_automation_url": "https://hooks.example/send"})
+    assert response.url == "/ops/?tab=settings&saved=1"
+    assert PlatformSetting.get("email_automation_url") == "https://hooks.example/send"
+    assert "https://hooks.example/send" in client.get("/ops/?tab=settings").content.decode()
+
+
+def test_ai_credits_tab_reports_dollars_from_a_cent_ledger(operator, workspace):
+    """Balances and the rate card are stored in cents; the console must not print a cent
+    figure with a dollar sign in front of it."""
+    from apps.billing.models import AICreditBalance, AICreditTransaction, ModelPricingRate
+
+    AICreditBalance.objects.create(
+        workspace=workspace, balance_cents=Decimal("12000"), auto_topup_enabled=True
+    )
+    rate = ModelPricingRate.objects.create(
+        model_pattern="gpt-5%", label="OpenAI (GPT-5)", our_input=1250, real_input=125
+    )
+    AICreditTransaction.objects.create(
+        workspace=workspace,
+        key="topup-1",
+        type="topup",
+        amount_cents=Decimal("1000"),
+        remaining_balance_cents=Decimal("12000"),
+        description="Manual top-up",
+    )
+    AICreditTransaction.objects.create(
+        workspace=workspace,
+        key="usage-1",
+        type="usage",
+        amount_cents=Decimal("-22"),
+        real_cost_cents=Decimal("2"),
+        remaining_balance_cents=Decimal("11978"),
+        model="gpt-5",
+        tokens_in=17654,
+        tokens_out=18,
+        rate=rate,
+    )
+    client = signed_client(operator)
+    overview = client.get("/ops/?tab=ai_credits").content.decode()
+    assert "$10.00" in overview  # 1000 cents purchased
+    assert "$119.78" in overview  # remaining balance after usage
+    balances = client.get("/ops/?tab=ai_credits&sub=balances").content.decode()
+    assert "$120.00" in balances
+    pricing = client.get("/ops/?tab=ai_credits&sub=pricing").content.decode()
+    assert "$12.5" in pricing and "10.0x" in pricing
+    usage = client.get("/ops/?tab=ai_credits&sub=usage").content.decode()
+    assert "gpt-5" in usage and "17672 tokens" in usage.replace(",", "")

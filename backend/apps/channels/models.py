@@ -13,6 +13,10 @@ class ChannelConnection(TenantModel):
     expires_at = models.DateTimeField()
     is_test = models.BooleanField(default=False)
     status = models.CharField(max_length=20, default="active")
+    # Public profile facts (biography, website, follower count) as the provider
+    # returns them. Read by segment classification, which re-runs on every
+    # reconnect because a bio changes.
+    profile = models.JSONField(default=dict, blank=True)
     webhook_secret = EncryptedTextField(blank=True)
     last_refreshed_at = models.DateTimeField(null=True)
     refresh_due_at = models.DateTimeField(null=True)

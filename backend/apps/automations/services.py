@@ -134,6 +134,29 @@ def keyword_matches(keyword, text):
     )
 
 
+def start_flow(conversation, automation, *, message, comment_id=None, experiment=None, variant=""):
+    """Run `automation`'s published graph on this conversation from its start node.
+    `message` is the inbound message the flow answers (its text seeds `last_text`)."""
+    graph = automation.published
+    return ConversationState.objects.for_workspace(conversation.workspace_id).update_or_create(
+        conversation=conversation,
+        defaults={
+            "workspace_id": conversation.workspace_id,
+            "automation": automation,
+            "graph": graph,
+            "node_id": graph["start"],
+            "status": "running",
+            "steps": 0,
+            "variables": {"last_text": message.text if message else "", "comment_id": comment_id},
+            "available_at": timezone.now(),
+            "last_message_id": message.id if message else None,
+            "cooldown_until": timezone.now() + timedelta(hours=1),
+            "experiment_id": experiment.pk if experiment else None,
+            "variant": variant,
+        },
+    )[0]
+
+
 def route_message(message, payload):
     state = (
         ConversationState.objects.for_workspace(message.workspace_id)
@@ -171,26 +194,13 @@ def route_message(message, payload):
 
             lead_id = message.conversation.identity.lead_id
             automation, experiment, arm = choose_automation(trigger.automation, lead_id)
-            graph = automation.published
-            ConversationState.objects.for_workspace(message.workspace_id).update_or_create(
-                conversation=message.conversation,
-                defaults={
-                    "workspace_id": message.workspace_id,
-                    "automation": automation,
-                    "graph": graph,
-                    "node_id": graph["start"],
-                    "status": "running",
-                    "steps": 0,
-                    "variables": {
-                        "last_text": message.text,
-                        "comment_id": payload.get("comment_id"),
-                    },
-                    "available_at": timezone.now(),
-                    "last_message_id": message.id,
-                    "cooldown_until": timezone.now() + timedelta(hours=1),
-                    "experiment_id": experiment.pk if experiment else None,
-                    "variant": arm,
-                },
+            start_flow(
+                message.conversation,
+                automation,
+                message=message,
+                comment_id=payload.get("comment_id"),
+                experiment=experiment,
+                variant=arm,
             )
             record(
                 message.workspace_id,
@@ -212,3 +222,50 @@ def route_message(message, payload):
         )
         if created:
             audit(message.conversation.workspace, None, "agent.run_queued", run.id)
+
+
+def duplicate(automation, target_workspace, actor):
+    """Copy an automation's full graph into another (or the same) workspace. The copy
+    is a disabled draft with its own rows, so editing either never touches the other,
+    and it never fires until someone in the target workspace publishes it."""
+    from .templates import export_automation, import_automation
+
+    return import_automation(
+        target_workspace, export_automation(automation), actor, name=f"{automation.name} (copy)"
+    )
+
+
+def transfer(automation, target_workspace, *, operator, reason):
+    """Move an automation, its triggers, nodes and edges to another workspace in one
+    transaction. In-flight conversation state is dropped: those conversations belong
+    to the old workspace and cannot continue a graph the new tenant now owns. The
+    moved automation lands disabled, so it never starts firing on an account whose
+    owner has not reviewed it."""
+    from django.db import transaction
+
+    from .models import AutomationTransferLog, ConversationState, Edge, Node, Trigger
+
+    reason = (reason or "").strip()[:300]
+    if not reason:
+        raise ValueError("A transfer needs a reason.")
+    if str(automation.workspace_id) == str(target_workspace.pk):
+        raise ValueError("The automation already belongs to that workspace.")
+    if automation.experiments_as_control.exists() or automation.experiments_as_variant.exists():
+        raise ValueError("End the A/B experiment using this automation before moving it.")
+    with transaction.atomic():
+        source = automation.workspace_id
+        for model in (Trigger, Node, Edge):
+            model.all_objects.filter(automation=automation).update(workspace=target_workspace)
+        ConversationState.all_objects.filter(automation=automation).delete()
+        automation.workspace = target_workspace
+        automation.enabled = False
+        automation.save(update_fields=["workspace", "enabled", "updated_at"])
+        AutomationTransferLog.objects.create(
+            automation_id=automation.pk,
+            automation_name=automation.name,
+            from_workspace_id=source,
+            to_workspace=target_workspace,
+            operator=operator,
+            reason=reason,
+        )
+    return automation

@@ -33,6 +33,7 @@ import {
   SuccessNotice,
   useFeedback,
 } from "@/components/ui";
+import { TourMarker } from "@/components/growth";
 
 const STAGES = ["new", "qualified", "interested", "booked", "won", "lost"];
 
@@ -248,6 +249,7 @@ export default function InboxPage() {
 
   return (
     <>
+      <TourMarker workspaceId={workspace.id} step="crm" />
       <div className="page-heading">
         <div>
           <span className="eyebrow">INBOX</span>

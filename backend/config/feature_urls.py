@@ -1,6 +1,13 @@
 from django.urls import path
 
-from apps.agents.views import AgentAuditView, AgentView, DocumentDetail, DocumentList
+from apps.agents.preview import AgentPreviewView
+from apps.agents.views import (
+    AgentAuditView,
+    AgentModelsView,
+    AgentView,
+    DocumentDetail,
+    DocumentList,
+)
 from apps.agents.voice import voice_asset
 from apps.analytics.views import ExperimentDetail, ExperimentList, FunnelView
 from apps.automations.views import (
@@ -15,9 +22,11 @@ from apps.billing.payments import tenant_stripe_webhook
 from apps.billing.views import (
     BillingJobView,
     BillingView,
+    CreditsView,
     OfferDetail,
     OfferList,
     PaymentList,
+    PublicPlansView,
     SendPaymentLinkView,
     stripe_webhook,
 )
@@ -47,6 +56,7 @@ from apps.marketplace.views import (
     PurchaseDetail,
     PurchaseList,
 )
+from apps.public_api.mcp import MCPView
 from apps.public_api.views import (
     DeliveryLog,
     KeyDetail,
@@ -62,11 +72,18 @@ from apps.public_api.views import (
     V1Subscription,
     V1Subscriptions,
 )
-from apps.tenants.branding import BrandingView, ClientWorkspaceList, PublicBrandingView
+from apps.tenants.branding import (
+    BrandingView,
+    ClientWorkspaceList,
+    PublicBrandingView,
+    VerifyDomainView,
+)
 from apps.tenants.data_views import DataOperationsView, DownloadExportView
+from apps.tenants.tls import CheckDomainTLSView
 
 P = "api/workspaces/<uuid:workspace_id>/"
 urlpatterns = [
+    path(P + "agent/preview/", AgentPreviewView.as_view()),
     path(P + "data-operations/", DataOperationsView.as_view()),
     path(P + "data-operations/<uuid:pk>/download/", DownloadExportView.as_view()),
     path(P + "automations/", AutomationList.as_view()),
@@ -89,11 +106,13 @@ urlpatterns = [
     path(P + "integrations/<str:provider>/oauth/", IntegrationOAuthStartView.as_view()),
     path("api/integrations/callback/<str:provider>/", IntegrationOAuthCallbackView.as_view()),
     path(P + "agent/", AgentView.as_view()),
+    path(P + "agent/models/", AgentModelsView.as_view()),
     path(P + "agent-audit/", AgentAuditView.as_view()),
     path(P + "documents/", DocumentList.as_view()),
     path(P + "documents/<uuid:pk>/", DocumentDetail.as_view()),
     path(P + "billing/", BillingView.as_view()),
     path(P + "billing/jobs/<uuid:job_id>/", BillingJobView.as_view()),
+    path(P + "billing/credits/", CreditsView.as_view()),
     path(P + "offers/", OfferList.as_view()),
     path(P + "offers/<uuid:pk>/", OfferDetail.as_view()),
     path(P + "payments/", PaymentList.as_view()),
@@ -120,12 +139,18 @@ urlpatterns = [
     path(P + "webhooks/<uuid:pk>/", SubscriptionDetail.as_view()),
     path(P + "webhook-deliveries/", DeliveryLog.as_view()),
     path(P + "branding/", BrandingView.as_view()),
+    path(P + "branding/verify-domain/", VerifyDomainView.as_view()),
     path(P + "clients/", ClientWorkspaceList.as_view()),
     # Public (anonymous) surfaces.
     path("api/public/templates/", PublicTemplateList.as_view()),
     path("api/public/templates/<slug:slug>/", PublicTemplateDetail.as_view()),
     path("api/public/bio/<slug:slug>/", PublicBioView.as_view()),
     path("api/public/branding/", PublicBrandingView.as_view()),
+    path("api/public/plans/", PublicPlansView.as_view()),
+    # On-demand TLS validation queried by edge proxy (Caddy / reverse proxy).
+    path("api/v1/tls/check-domain/", CheckDomainTLSView.as_view()),
+    # Model Context Protocol server (Streamable HTTP, stateless JSON); same API keys.
+    path("api/mcp/", MCPView.as_view()),
     # Public API v1 (X-API-Key).
     path("api/v1/me/", V1Me.as_view()),
     path("api/v1/leads/", V1Leads.as_view()),

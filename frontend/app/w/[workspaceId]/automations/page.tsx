@@ -1,4 +1,5 @@
 "use client";
+import { AutomationStarter } from "@/components/automation-starter";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -136,6 +137,7 @@ export default function AutomationsPage() {
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
       <div className="stack">
+        <AutomationStarter workspaceId={workspace.id} prefix={prefix} />
         <Panel title="Your flows" aside={`${items.length} automation(s)`}>
           <form
             onSubmit={create}

@@ -2,6 +2,7 @@
 
 import json
 from datetime import timedelta
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -13,7 +14,6 @@ from apps.agents.models import AgentConfig, UsageRecord
 from apps.agents.providers import Completion
 from apps.automations.models import Automation, ConversationState
 from apps.automations.services import publish
-from apps.billing.services import account_for
 from apps.channels.models import ChannelConnection, WebhookEvent
 from apps.crm.models import Conversation, IntegrationConfig, IntegrationJob, Lead, Message
 from apps.crm.services import receive
@@ -31,9 +31,9 @@ def as_user(user):
 
 
 def seats(workspace, count):
-    account = account_for(workspace.pk)
-    account.seat_limit = count
-    account.save()
+    from tests.conftest import set_limits
+
+    set_limits(workspace, team_seats=count)
 
 
 def invite(client, workspace, email, role="agent"):
@@ -74,10 +74,10 @@ def test_invite_accept_flow_respects_email_and_single_use(client, workspace):
 
 def test_seat_limit_counts_members_and_open_invitations(client, workspace):
     seats(workspace, 1)
-    assert invite(client, workspace, "a@example.com").status_code == 400
+    assert invite(client, workspace, "a@example.com").status_code == 402
     seats(workspace, 2)
     assert invite(client, workspace, "a@example.com").status_code == 201
-    assert invite(client, workspace, "b@example.com").status_code == 400
+    assert invite(client, workspace, "b@example.com").status_code == 402
     # Reissuing to the same person replaces the old link instead of taking a new seat.
     assert invite(client, workspace, "a@example.com").status_code == 201
     assert Invitation.objects.for_workspace(workspace).filter(revoked_at__isnull=True).count() == 1
@@ -88,7 +88,7 @@ def test_seat_limit_is_rechecked_on_accept(client, workspace):
     token = token_from(invite(client, workspace, "late@example.com"))
     seats(workspace, 1)  # plan downgraded after the invite was sent
     late = new_user("late@example.com")
-    assert as_user(late).post("/api/invitations/accept/", {"token": token}).status_code == 400
+    assert as_user(late).post("/api/invitations/accept/", {"token": token}).status_code == 402
     assert not Membership.objects.for_workspace(workspace).filter(user=late).exists()
 
 
@@ -219,7 +219,9 @@ def test_voice_note_is_transcribed_then_routed_like_text(channel, config, worksp
     assert message.transcription_status == "pending"
     assert not ConversationState.objects.for_workspace(workspace).exists()
 
-    with patch("apps.agents.voice.transcribe", return_value="what's the price?") as transcribe:
+    with patch(
+        "apps.agents.voice.transcribe", return_value=("what's the price?", 4.2)
+    ) as transcribe:
         with patch.object(transcribe_message, "delay") as delay:
             dispatch_inbound_jobs()
             delay.assert_called_once_with(str(workspace.pk), str(message.id))
@@ -232,6 +234,8 @@ def test_voice_note_is_transcribed_then_routed_like_text(channel, config, worksp
     assert ConversationState.objects.for_workspace(workspace).get().status == "running"
     record = UsageRecord.objects.for_workspace(workspace).get(kind="transcription")
     assert record.status == "complete"
+    # Measured audio length is stored apart from tokens; a test config is never charged.
+    assert (record.model, record.audio_seconds, record.cost) == ("whisper-1", Decimal("4.2"), 0)
     assert Lead.objects.for_workspace(workspace).get().segment_due_at is not None
 
 
@@ -322,3 +326,66 @@ def test_reconciliation_queues_agent_runs_for_ai_conversations(channel, config, 
     reconcile_agent_runs()
     reconcile_agent_runs()
     assert AgentRun.objects.for_workspace(workspace).filter(message=message).count() == 1
+
+
+def test_reconciliation_skips_messages_that_were_already_answered(channel, config, workspace):
+    from apps.agents.models import AgentRun
+    from apps.crm.tasks import reconcile_agent_runs
+
+    answered = inbound(channel, "hello?")
+    conversation = answered.conversation
+    reply = Message.objects.for_workspace(workspace).create(
+        workspace=workspace, conversation=conversation, direction="outbound", text="Hi there!"
+    )
+    Message.all_objects.filter(pk=reply.pk).update(
+        created_at=answered.created_at + timedelta(seconds=1)
+    )
+    conversation.ai_enabled = True
+    conversation.save()
+    reconcile_agent_runs()
+    # A teammate already replied; switching AI on later must not answer it again.
+    assert not AgentRun.objects.for_workspace(workspace).filter(message=answered).exists()
+
+
+def test_flow_advances_on_consecutive_ticks(
+    channel, workspace, user, django_capture_on_commit_callbacks
+):
+    from apps.automations.tasks import dispatch_runs, step
+
+    dm_flow(workspace, user)
+    inbound(channel, "price")
+    state = ConversationState.objects.for_workspace(workspace).get()
+    with patch.object(step, "delay") as delay:
+        dispatch_runs()
+        with django_capture_on_commit_callbacks(execute=True):
+            step(str(workspace.pk), str(state.pk))
+        # The flow is still running on its next node: the marker must not hold it back.
+        dispatch_runs()
+        assert delay.call_count == 2
+        step(str(workspace.pk), str(state.pk))
+        dispatch_runs()
+        assert delay.call_count == 2  # completed: nothing left to enqueue
+    state.refresh_from_db()
+    assert state.status == "completed"
+
+
+def test_run_deferred_behind_another_is_retried_on_the_next_tick(channel, config, workspace):
+    from apps.agents.models import AgentRun
+    from apps.agents.tasks import dispatch_agents, process_run
+
+    first = inbound(channel, "hello?")
+    conversation = first.conversation
+    conversation.ai_enabled = True
+    conversation.save()
+    second = inbound(channel, "anyone there?")
+    runs = AgentRun.objects.for_workspace(workspace)
+    runs.filter(message=first).delete()
+    runs.create(workspace=workspace, message=first, status="running", started_at=timezone.now())
+    waiting = runs.get(message=second)
+    with patch.object(process_run, "delay") as delay:
+        dispatch_agents()
+        process_run(str(workspace.pk), str(waiting.pk))
+        dispatch_agents()
+        assert delay.call_count == 2
+    waiting.refresh_from_db()
+    assert waiting.status == "pending"

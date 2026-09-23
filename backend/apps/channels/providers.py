@@ -102,3 +102,35 @@ class TelegramAdapter(InstagramAdapter):
                 "allowed_updates": ["message", "callback_query"],
             },
         )
+
+
+class LinkedInAdapter:
+    """Unproven against a real account. LinkedIn does not hand out messaging access to
+    ordinary apps, so `adapters.adapter_for` refuses this provider unless
+    LINKEDIN_MESSAGING_APPROVED says the grant was confirmed. Verify the endpoint and
+    payload below against the app's own documentation before turning that on.
+    """
+
+    def __init__(self, connection):
+        self.connection = connection
+
+    def send_message(self, *, recipient_id, text, idempotency_key):
+        if settings.CHANNEL_ADAPTER_MODE == "fake":
+            return f"fake-li-msg-{idempotency_key}"
+        # Live LinkedIn Organization messages / comment replies
+        body = request(
+            "POST",
+            "https://api.linkedin.com/v2/messages",
+            headers={
+                "Authorization": f"Bearer {self.connection.access_token}",
+                "X-Restli-Protocol-Version": "2.0.0",
+            },
+            json={
+                "recipients": [recipient_id],
+                "body": text,
+            },
+        )
+        return str(body.get("id") or f"li-{idempotency_key}")
+
+    def send_voice_note(self, *, recipient_id, media_url, idempotency_key):
+        raise ProviderError("unsupported_media_type")

@@ -1,0 +1,55 @@
+{% comment %}Shared tier fields. Default tiers allow Stripe wiring and availability only.{% endcomment %}
+{% if editable %}
+<fieldset class="tier-fieldset">
+  <legend>Plan details</legend>
+  <div class="tier-fields">
+    <label>Name<input class="input-control" name="name" maxlength="60" value="{{ plan.name|default:'' }}" placeholder="e.g. Agency Partner" required></label>
+    <label>Partner label <span class="tier-optional">Optional</span><input class="input-control" name="partner_label" maxlength="60" value="{{ plan.partner_label|default:'' }}" placeholder="e.g. RocketHub"></label>
+    <label>Sort order<input class="input-control" name="sort_order" type="number" min="0" step="1" value="{{ plan.sort_order|default_if_none:'50' }}"></label>
+  </div>
+</fieldset>
+<fieldset class="tier-fieldset">
+  <legend>Pricing</legend>
+  <p class="tier-help">Amounts are in USD cents. For example, 2500 = $25.00.</p>
+  <div class="tier-fields">
+    <label>Monthly price (cents)<input class="input-control" name="monthly_price_cents" type="number" min="0" step="1" value="{{ prices.monthly.price_cents|default:'0' }}" required></label>
+    <label>Yearly price (cents)<input class="input-control" name="annual_price_cents" type="number" min="0" step="1" value="{{ prices.annual.price_cents|default:'0' }}" required></label>
+  </div>
+</fieldset>
+<fieldset class="tier-fieldset">
+  <legend>Usage limits</legend>
+  <p class="tier-help">Leave a limit blank for unlimited usage. Enter 0 to allow none.</p>
+  <div class="tier-fields">
+    <label>Connected accounts<input class="input-control" name="max_instagram_accounts" type="number" min="0" step="1" value="{{ limits.max_instagram_accounts|default_if_none:'' }}" placeholder="Unlimited"></label>
+    <label>Contacts<input class="input-control" name="max_contacts" type="number" min="0" step="1" value="{{ limits.max_contacts|default_if_none:'' }}" placeholder="Unlimited"></label>
+    <label>Team seats<input class="input-control" name="team_seats" type="number" min="0" step="1" value="{{ limits.team_seats|default_if_none:'' }}" placeholder="Unlimited"></label>
+    <label>AI messages per period<input class="input-control" name="max_ai_messages" type="number" min="0" step="1" value="{{ limits.max_ai_messages|default_if_none:'' }}" placeholder="Unlimited"></label>
+  </div>
+</fieldset>
+<fieldset class="tier-fieldset">
+  <legend>Included features</legend>
+  <div class="tier-checks">
+    <label><input type="checkbox" name="ai_agent_enabled"{% if limits.ai_agent_enabled or limits is None %} checked{% endif %}> AI agent</label>
+    <label><input type="checkbox" name="integrations_unlocked"{% if limits.integrations_unlocked or limits is None %} checked{% endif %}> Integrations</label>
+    <label><input type="checkbox" name="content_scheduling_enabled"{% if limits.content_scheduling_enabled or limits is None %} checked{% endif %}> Content scheduling</label>
+    <label><input type="checkbox" name="voice_notes_enabled"{% if limits.voice_notes_enabled or limits is None %} checked{% endif %}> Voice notes</label>
+    <label><input type="checkbox" name="is_featured"{% if plan.is_featured %} checked{% endif %}> Featured as “Most popular”</label>
+  </div>
+</fieldset>
+{% else %}
+<p class="tier-info">This is a default plan. Its prices and limits are managed through migrations. You can update Stripe connections and availability below.</p>
+{% endif %}
+<fieldset class="tier-fieldset">
+  <legend>Stripe connection</legend>
+  <p class="tier-help">Use the recurring price IDs from your Stripe catalog. Meter price IDs are optional.</p>
+  <div class="tier-fields">
+    <label>Monthly Stripe price ID<input class="input-control" name="monthly_stripe_price_id" maxlength="100" value="{{ prices.monthly.stripe_price_id|default:'' }}" placeholder="price_…" spellcheck="false"></label>
+    <label>Monthly meter price ID<input class="input-control" name="monthly_stripe_meter_price_id" maxlength="100" value="{{ prices.monthly.stripe_meter_price_id|default:'' }}" placeholder="Optional" spellcheck="false"></label>
+    <label>Yearly Stripe price ID<input class="input-control" name="annual_stripe_price_id" maxlength="100" value="{{ prices.annual.stripe_price_id|default:'' }}" placeholder="price_…" spellcheck="false"></label>
+    <label>Yearly meter price ID<input class="input-control" name="annual_stripe_meter_price_id" maxlength="100" value="{{ prices.annual.stripe_meter_price_id|default:'' }}" placeholder="Optional" spellcheck="false"></label>
+  </div>
+</fieldset>
+<fieldset class="tier-fieldset">
+  <legend>Availability</legend>
+  <div class="tier-checks tier-checks-single"><label><input type="checkbox" name="is_active"{% if plan is None or plan.is_active %} checked{% endif %}> Active — available for new subscriptions</label></div>
+</fieldset>

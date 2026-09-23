@@ -88,6 +88,10 @@ class PostList(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         member = workspace_membership(self.request, self.kwargs["workspace_id"], ["owner", "admin"])
+        from apps.billing.gating import check_connection_unlocked, check_feature
+
+        check_feature(member.workspace_id, "content_scheduling_enabled")
+        check_connection_unlocked(serializer.validated_data["connection"])
         item = serializer.save(workspace=member.workspace)
         audit(member.workspace, self.request.user, "post.scheduled", item.id)
 

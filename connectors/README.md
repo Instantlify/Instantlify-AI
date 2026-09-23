@@ -42,3 +42,22 @@ Make cannot recompute an HMAC over the raw request body, so the Make webhook use
 ## Payload shape
 
 Deliveries are `{event, workspace_id, occurred_at, data}`. Zapier flattens `data` into the record and keeps the delivery ID as `id` (the record's own ID becomes `resource_id`); n8n does the same with `delivery_id`; Make exposes `data` as a collection.
+
+## Releasing
+
+`connectors/scripts/publish.py` runs the same checks locally and in CI (`.github/workflows/connectors.yml`):
+
+```sh
+python connectors/scripts/publish.py check                       # tests, zapier validate, n8n build + npm pack, Make schema
+python connectors/scripts/publish.py n8n --version 1.1.0 --publish    # needs NPM_TOKEN
+python connectors/scripts/publish.py zapier --version 1.1.0 --push    # needs ZAPIER_DEPLOY_KEY and .zapierapprc
+python connectors/scripts/publish.py make                        # writes connectors/dist/nemio-make-app.zip
+```
+
+Without `--publish` / `--push` nothing leaves the machine. Pushing a tag `connectors-vX.Y.Z` runs the release job: n8n goes to npm, Zapier gets a new *private* version, and the Make bundle is attached to the GitHub release. Three steps stay manual on purpose:
+
+- **Zapier**: run `zapier register "Nemio"` once and commit `.zapierapprc`; after each push, `zapier promote X.Y.Z` moves users over. The public App Directory listing goes through Zapier's review.
+- **n8n**: the npm package installs by name immediately; the "verified" badge is n8n's own review.
+- **Make**: there is no publishing CLI. Upload the bundle in Make's developer platform, then request review for public listing.
+
+The release job runs in the `connectors-release` GitHub environment, which holds `NPM_TOKEN` and `ZAPIER_DEPLOY_KEY`; add required reviewers there so a tag alone cannot publish.

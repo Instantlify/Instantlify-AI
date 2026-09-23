@@ -63,6 +63,16 @@ def publish_post(workspace_id, post_id):
             post.error_code = "connection_unavailable"
             post.save()
             return
+        from apps.billing.gating import guard, locked_connection_ids
+
+        if not guard(
+            workspace_id, "content_scheduling_enabled"
+        ) or connection.pk in locked_connection_ids(workspace_id):
+            post.status = "failed"
+            post.error_code = "plan_limit"
+            post.save()
+            audit(connection.workspace, None, "post.failed", post.id)
+            return
         wait = rate_limit_wait(connection)
         if wait:
             post.scheduled_at = timezone.now() + timedelta(seconds=wait)

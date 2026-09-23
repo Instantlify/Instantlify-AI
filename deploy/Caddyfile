@@ -1,0 +1,106 @@
+# Production edge for Nemio. Caddy obtains and renews certificates itself.
+#
+#   APP_DOMAIN            app.nemio.ai        (the tenant app, API, webhooks, websockets)
+#   PLATFORM_ADMIN_HOST   ops.nemio.ai        (platform console; must match Django's setting)
+#   ACME_EMAIL            ops@nemio.ai        (certificate expiry notices)
+#
+# Django sets SECURE_PROXY_SSL_HEADER from X-Forwarded-Proto, which Caddy always sends.
+
+{
+	email {$ACME_EMAIL}
+	# Custom tenant domains (white label) get certificates on demand, but only for
+	# domains Nemio has verified.
+	on_demand_tls {
+		ask http://backend:8000/api/v1/tls/check-domain/
+	}
+}
+
+# Caddy appends the client to any X-Forwarded-For that arrived, so a caller who sends
+# one keeps their own entries in front. Django counts TRUSTED_PROXY_DEPTH entries back
+# from the right, so every proxy block overwrites the header with the real peer: one
+# hop in front of Django, one entry, written here. Import this in every reverse_proxy.
+(real_ip) {
+	header_up X-Forwarded-For {http.request.remote.host}
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}
+
+(app_routes) {
+	import security_headers
+	encode zstd gzip
+
+	# Provider webhooks (Meta, Telegram, Stripe): small JSON bodies. Anything larger is
+	# not a real delivery. Django verifies signatures and throttles per connection.
+	handle /webhooks/* {
+		request_body {
+			max_size 1MB
+		}
+		reverse_proxy backend:8000 {
+			import real_ip
+		}
+	}
+
+	# Inbox live updates. Caddy upgrades WebSocket connections without extra config;
+	# the long read timeout keeps idle inbox tabs connected.
+	handle /ws/* {
+		reverse_proxy backend:8000 {
+			import real_ip
+			transport http {
+				read_timeout 1h
+			}
+		}
+	}
+
+	# Voice notes fetched by Meta and Telegram from a signed, expiring URL. Stream the
+	# response straight through rather than buffering it at the edge.
+	handle /media/voice/* {
+		reverse_proxy backend:8000 {
+			import real_ip
+			flush_interval -1
+		}
+	}
+
+	# API, MCP server and health checks.
+	@backend path /api/* /health/*
+	handle @backend {
+		reverse_proxy backend:8000 {
+			import real_ip
+		}
+	}
+
+	# Everything else is the Next.js app. It rewrites /api to the backend for SSR too,
+	# but @backend above claims those paths first, so Django is never two hops from the
+	# client and TRUSTED_PROXY_DEPTH stays 1.
+	handle {
+		reverse_proxy frontend:3000 {
+			import real_ip
+		}
+	}
+}
+
+{$APP_DOMAIN} {
+	import app_routes
+}
+
+# White-label custom domains: on-demand TLS for verified domains, forwarding to the tenant app
+:443 {
+	tls {
+		on_demand
+	}
+	import app_routes
+}
+
+{$PLATFORM_ADMIN_HOST} {
+	import security_headers
+	encode zstd gzip
+	reverse_proxy backend:8000 {
+		import real_ip
+	}
+}

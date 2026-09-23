@@ -26,8 +26,11 @@ import {
   X,
 } from "lucide-react";
 import { api, message, type Workspace } from "@/lib/api";
+import { Announcements } from "@/components/growth";
+import { VerifyBanner } from "@/components/verify-banner";
 import { useWorkspace } from "@/lib/workspace";
 import { ErrorNotice } from "./ui";
+import { UpgradePrompt } from "./plans";
 
 export const initials = (name: string) =>
   name.trim().slice(0, 2).toUpperCase() || "N";
@@ -114,11 +117,17 @@ export function Shell({ children }: { children: ReactNode }) {
       setError(message(err));
     }
   }
+  const primary = ["overview", "inbox", "automations", "agent"];
   const active = items.find((item) => item.id === section);
   return (
     <div
       className="app-shell"
-      style={{ ["--green" as string]: branding.primary_color }}
+      style={{
+        ["--green" as string]:
+          branding.primary_color === "#347359"
+            ? "#5546e8"
+            : branding.primary_color,
+      }}
     >
       <aside className="sidebar">
         <Brand name={branding.brand_name} logo={branding.logo_url} />
@@ -144,18 +153,39 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
         <div className="nav-label">WORKSPACE</div>
         <nav aria-label="Workspace navigation">
-          {items.map(({ id, label, icon: Icon }) => (
-            <Link
-              key={id}
-              href={`/w/${workspace.id}/${id}`}
-              className={`nav-item ${section === id ? "active" : ""}`}
-              aria-current={section === id ? "page" : undefined}
-            >
-              <Icon size={18} />
-              {label}
-              {section === id && <span className="nav-dot" />}
-            </Link>
-          ))}
+          {items
+            .filter((item) => primary.includes(item.id))
+            .map(({ id, label, icon: Icon }) => (
+              <Link
+                key={id}
+                href={`/w/${workspace.id}/${id}`}
+                className={`nav-item ${section === id ? "active" : ""}`}
+                aria-current={section === id ? "page" : undefined}
+              >
+                <Icon size={18} />
+                {label}
+                {section === id && <span className="nav-dot" />}
+              </Link>
+            ))}
+          <details className="nav-tools" open={!primary.includes(section)}>
+            <summary className="nav-item">
+              Business tools <ChevronDown size={15} />
+            </summary>
+            {items
+              .filter((item) => !primary.includes(item.id))
+              .map(({ id, label, icon: Icon }) => (
+                <Link
+                  key={id}
+                  href={`/w/${workspace.id}/${id}`}
+                  className={`nav-item ${section === id ? "active" : ""}`}
+                  aria-current={section === id ? "page" : undefined}
+                >
+                  <Icon size={18} />
+                  {label}
+                  {section === id && <span className="nav-dot" />}
+                </Link>
+              ))}
+          </details>
         </nav>
         <div className="sidebar-bottom">
           <div className="foundation-card">
@@ -200,6 +230,18 @@ export function Shell({ children }: { children: ReactNode }) {
                 section.charAt(0).toUpperCase() + section.slice(1)}
             </strong>
           </div>
+          {workspace.parent && (
+            <span
+              className="private-badge"
+              style={{
+                borderColor: "rgba(59, 130, 246, 0.35)",
+                color: "#93c5fd",
+                backgroundColor: "rgba(59, 130, 246, 0.08)",
+              }}
+            >
+              Agency Managed
+            </span>
+          )}
           <span className="private-badge">
             <ShieldCheck size={14} /> {workspace.role}
           </span>
@@ -212,9 +254,15 @@ export function Shell({ children }: { children: ReactNode }) {
           </button>
         </header>
         <main className="main-content">
+          <VerifyBanner user={user} />
+          <Announcements workspaceId={workspace.id} page={section} />
           <ErrorNotice error={error} />
           {children}
         </main>
+        <UpgradePrompt
+          prefix={`/api/workspaces/${workspace.id}`}
+          agencyManaged={Boolean(workspace.parent)}
+        />
         {!branding.hide_platform_branding && (
           <footer className="app-footer">
             <span>Made for more meaningful conversations.</span>

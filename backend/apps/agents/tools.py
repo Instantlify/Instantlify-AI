@@ -83,6 +83,11 @@ def propose(run, name, args, config):
     try:
         if name not in config.allowed_tools:
             raise ValueError("tool_not_allowed")
+        if name == "send_voice_note":
+            from apps.billing.gating import guard
+
+            if not guard(run.workspace_id, "voice_notes_enabled"):
+                raise ValueError("plan_voice_notes")
         validate_args(name, args)
     except (ValueError, ValidationError) as exc:
         # Rejected model intents are part of the audit trail, not silently dropped.

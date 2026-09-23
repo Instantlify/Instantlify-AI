@@ -28,6 +28,8 @@ import {
   Table,
   useFeedback,
 } from "@/components/ui";
+import { TourMarker } from "@/components/growth";
+import { tourStep } from "@/lib/growth";
 
 type FieldSpec = { key: string; label: string; secret?: boolean };
 type ProviderSpec = {
@@ -99,11 +101,27 @@ const PROVIDERS: Record<string, ProviderSpec> = {
   },
   elevenlabs: {
     label: "ElevenLabs",
-    blurb: "Outbound AI voice notes.",
-    credentials: [{ key: "api_key", label: "API key", secret: true }],
+    blurb:
+      "Outbound AI voice notes. Powered by Nemio Voice credits by default, or provide your own key.",
+    credentials: [
+      {
+        key: "api_key",
+        label: "API key (leave blank to use platform credits)",
+        secret: true,
+      },
+    ],
     options: [
-      { key: "voice_id", label: "Voice ID" },
+      { key: "voice_id", label: "Voice ID (default: Rachel)" },
       { key: "model", label: "Model (default: eleven_multilingual_v2)" },
+    ],
+  },
+  snapchat: {
+    label: "Snapchat (Lead Ads & Bio)",
+    blurb:
+      "Sync Snapchat Lead Ads into CRM and link to your interactive Bio Concierge.",
+    credentials: [],
+    options: [
+      { key: "ad_account_id", label: "Snapchat Ad Account ID (optional)" },
     ],
   },
   stripe: {
@@ -121,9 +139,19 @@ const PROVIDERS: Record<string, ProviderSpec> = {
 };
 
 const CHANNEL_PROVIDERS = [
-  { id: "whatsapp", label: "WhatsApp", account: "Phone number ID" },
-  { id: "messenger", label: "Messenger", account: "Page ID" },
-  { id: "telegram", label: "Telegram", account: "Bot user ID" },
+  { id: "whatsapp", label: "WhatsApp Business", account: "Phone number ID" },
+  { id: "telegram", label: "Telegram Bot", account: "Bot user ID" },
+  {
+    id: "snapchat",
+    label: "Snapchat Lead Ads",
+    account: "Ad Account or Form ID",
+  },
+  {
+    id: "linkedin",
+    label: "LinkedIn Company Page",
+    account: "Organization URN",
+  },
+  { id: "messenger", label: "Facebook Messenger", account: "Page ID" },
 ];
 
 function integrationLabel(item: Integration) {
@@ -228,19 +256,39 @@ export default function IntegrationsPage() {
   const integrationFor = (provider: string) =>
     integrations.find((item) => item.provider === provider);
 
-  // Hosted sign-in returns here with ?integration=<result>&provider=<id>.
+  // Hosted sign-in returns here with ?integration=<result>&provider=<id> or ?connection=<result>.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const result = params.get("integration");
-    if (!result) return;
-    const label =
-      PROVIDERS[params.get("provider") || ""]?.label || "Integration";
-    const text = `${label} ${OAUTH_RESULTS[result] || "sign-in finished."}`;
-    if (result === "cancelled" || result === "failed") feedback.setError(text);
-    else feedback.setNotice(text);
     const url = new URL(window.location.href);
-    url.searchParams.delete("integration");
-    url.searchParams.delete("provider");
+    const params = url.searchParams;
+    const conn = params.get("connection");
+    const result = params.get("integration");
+    if (conn) {
+      if (conn === "connected")
+        feedback.setNotice("Channel connected successfully.");
+      else if (conn === "test-connected")
+        feedback.setNotice(
+          "Channel connected in local test mode (CHANNEL_ADAPTER_MODE=fake).",
+        );
+      else if (conn === "limit")
+        feedback.setError(
+          "Your plan's connected-account limit has been reached.",
+        );
+      else if (conn === "cancelled")
+        feedback.setError("Channel connection was cancelled.");
+      url.searchParams.delete("connection");
+      // The initial load above already refreshes connections after this redirect.
+    }
+    if (!result && !conn) return;
+    if (result) {
+      const label =
+        PROVIDERS[params.get("provider") || ""]?.label || "Integration";
+      const text = `${label} ${OAUTH_RESULTS[result] || "sign-in finished."}`;
+      if (result === "cancelled" || result === "failed")
+        feedback.setError(text);
+      else feedback.setNotice(text);
+      url.searchParams.delete("integration");
+      url.searchParams.delete("provider");
+    }
     window.history.replaceState(null, "", url.toString());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -302,6 +350,26 @@ export default function IntegrationsPage() {
     }, `${spec.label} saved.`);
   }
 
+  async function connectMeta() {
+    await feedback.run(async () => {
+      const result = await api<{ authorization_url: string }>(
+        `${prefix}/meta/connect/`,
+        "POST",
+      );
+      window.location.assign(result.authorization_url);
+    });
+  }
+
+  async function connectLinkedIn() {
+    await feedback.run(async () => {
+      const result = await api<{ authorization_url: string }>(
+        `${prefix}/linkedin/connect/`,
+        "POST",
+      );
+      window.location.assign(result.authorization_url);
+    });
+  }
+
   async function connectChannel(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -356,6 +424,9 @@ export default function IntegrationsPage() {
         name: data.get("name"),
         scopes,
       });
+      // An API key is how an AI tool connector (Claude MCP and the like) plugs in,
+      // so creating one is the tour's last step.
+      tourStep(workspace.id, "claude-mcp", "completed");
       setKeys((list) => [created, ...list]);
       setNewKey(created.key || "");
       form.reset();
@@ -406,6 +477,7 @@ export default function IntegrationsPage() {
 
   return (
     <>
+      <TourMarker workspaceId={workspace.id} step="apps" />
       <PageHeading
         eyebrow="Integrations"
         title="Plug into your stack."
@@ -493,6 +565,12 @@ export default function IntegrationsPage() {
                           <div className="muted-text">
                             {connection.provider} · expires{" "}
                             {when(connection.expires_at)}
+                            {connection.locked && (
+                              <>
+                                {" "}
+                                · <Pill tone="warn">locked by plan</Pill>
+                              </>
+                            )}
                           </div>
                         </div>
                         <Pill
@@ -566,75 +644,151 @@ export default function IntegrationsPage() {
                   channels are added here.
                 </Empty>
               )}
-              <div style={{ marginTop: 16 }}>
-                <p className="muted-text">
-                  Register these webhook URLs in your Meta app. Telegram
-                  registers its webhook automatically.
-                </p>
-                {["instagram", "whatsapp", "messenger"].map((provider) => (
-                  <CopyField
-                    key={provider}
-                    label={`${provider} webhook URL`}
-                    value={`${origin}/webhooks/${provider}/`}
-                  />
-                ))}
-              </div>
+              <details style={{ marginTop: 20 }}>
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    color: "var(--muted)",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  Advanced: Webhook URLs for Custom Apps & Verification
+                </summary>
+                <div style={{ marginTop: 12 }}>
+                  <p className="muted-text">
+                    For custom apps or developers hosting their own webhook
+                    subscriptions. Telegram and LinkedIn register webhooks
+                    automatically.
+                  </p>
+                  {[
+                    "instagram",
+                    "whatsapp",
+                    "messenger",
+                    "linkedin",
+                    "snapchat",
+                  ].map((provider) => (
+                    <CopyField
+                      key={provider}
+                      label={`${provider} webhook URL`}
+                      value={`${origin}/webhooks/${provider}/`}
+                    />
+                  ))}
+                </div>
+              </details>
             </Panel>
             <div className="stack">
               <Panel title="Connect a channel">
-                <form className="form-grid" onSubmit={connectChannel}>
-                  <label>
-                    Provider
-                    <select name="provider" defaultValue="whatsapp">
-                      {CHANNEL_PROVIDERS.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="hint">
-                      {CHANNEL_PROVIDERS.map(
-                        (item) => `${item.label}: ${item.account}`,
-                      ).join(" · ")}
-                    </span>
-                  </label>
-                  <label>
-                    Account ID
-                    <input
-                      name="external_account_id"
-                      maxLength={200}
-                      pattern="[A-Za-z0-9_\-]{1,200}"
-                      required
-                    />
-                  </label>
-                  <label>
-                    Display name
-                    <input name="display_name" maxLength={150} required />
-                  </label>
-                  <label>
-                    Access token
-                    <input
-                      name="access_token"
-                      type="password"
-                      autoComplete="off"
-                      maxLength={4000}
-                    />
-                    <span className="hint">
-                      Required for live connections; leave empty for a test
-                      channel.
-                    </span>
-                  </label>
-                  <label className="inline">
-                    <input type="checkbox" name="is_test" />
-                    Create a local test channel (no provider calls)
-                  </label>
-                  <div className="form-actions">
-                    <button className="button primary" disabled={feedback.busy}>
-                      Connect
-                      <Plus size={16} />
+                <div style={{ marginBottom: 20 }}>
+                  <p className="muted-text" style={{ marginBottom: 12 }}>
+                    Connect your business accounts with one click. No developer
+                    tokens or technical setup required.
+                  </p>
+                  <div className="row wrap" style={{ gap: 10 }}>
+                    <button
+                      type="button"
+                      className="button primary"
+                      disabled={feedback.busy}
+                      onClick={connectMeta}
+                    >
+                      <Plug size={16} />
+                      Connect Instagram & Messenger
+                    </button>
+                    <button
+                      type="button"
+                      className="button primary"
+                      disabled={feedback.busy}
+                      onClick={connectLinkedIn}
+                    >
+                      <Plug size={16} />
+                      Connect LinkedIn Page
                     </button>
                   </div>
-                </form>
+                  <p className="muted-text" style={{ marginTop: 8 }}>
+                    LinkedIn needs granted messaging access on your LinkedIn
+                    app. Until that is confirmed, connecting is declined rather
+                    than accepted and left unable to deliver.
+                  </p>
+                </div>
+
+                <details
+                  style={{
+                    marginTop: 16,
+                    borderTop: "1px solid var(--border)",
+                    paddingTop: 14,
+                  }}
+                >
+                  <summary
+                    style={{
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      color: "var(--muted)",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    Advanced: Manual Credentials & Developer Channels
+                  </summary>
+                  <form
+                    className="form-grid"
+                    onSubmit={connectChannel}
+                    style={{ marginTop: 14 }}
+                  >
+                    <label>
+                      Provider
+                      <select name="provider" defaultValue="whatsapp">
+                        {CHANNEL_PROVIDERS.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="hint">
+                        {CHANNEL_PROVIDERS.map(
+                          (item) => `${item.label}: ${item.account}`,
+                        ).join(" · ")}
+                      </span>
+                    </label>
+                    <label>
+                      Account ID
+                      <input
+                        name="external_account_id"
+                        maxLength={200}
+                        pattern="[A-Za-z0-9_\-]{1,200}"
+                        required
+                      />
+                    </label>
+                    <label>
+                      Display name
+                      <input name="display_name" maxLength={150} required />
+                    </label>
+                    <label>
+                      Access token
+                      <input
+                        name="access_token"
+                        type="password"
+                        autoComplete="off"
+                        maxLength={4000}
+                      />
+                      <span className="hint">
+                        Required for live connections; leave empty for a test
+                        channel.
+                      </span>
+                    </label>
+                    <label className="inline">
+                      <input type="checkbox" name="is_test" />
+                      Create a local test channel (no provider calls)
+                    </label>
+                    <div className="form-actions">
+                      <button
+                        className="button primary"
+                        disabled={feedback.busy}
+                      >
+                        Connect
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </form>
+                </details>
               </Panel>
               <Panel title="Recent deliveries" aside={`${deliveries.length}`}>
                 {deliveries.length ? (

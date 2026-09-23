@@ -230,9 +230,17 @@ def test_keyword_handoff_is_deterministic_and_pauses_everything(channel, config,
         },
         user,
     )
-    message = inbound(channel, "I want a REFUND now")
-    provider = run(message, saying("should not be called"))
-    provider.complete.assert_not_called()
+    inbound(channel, "hi")  # opens the conversation with AI on
+    event = WebhookEvent.objects.for_workspace(workspace).create(
+        workspace=workspace,
+        connection=channel,
+        event_id="refund",
+        payload="{}",
+        available_at=timezone.now(),
+    )
+    # Escalation is decided at intake, before any flow or agent run: no model is asked.
+    message = receive(event, {"sender_id": "lead-1", "text": "I want a REFUND now"})
+    assert not AgentRun.objects.for_workspace(workspace).filter(message=message).exists()
     conversation = Conversation.objects.for_workspace(workspace).get()
     assert (conversation.status, conversation.ai_enabled) == ("needs_human", False)
     assert replies(channel)[-1].startswith("I'm bringing a team member")

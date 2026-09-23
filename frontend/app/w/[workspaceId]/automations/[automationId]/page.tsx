@@ -41,6 +41,7 @@ import {
 } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import { ErrorNotice, Pill, SuccessNotice, useFeedback } from "@/components/ui";
+import { TourMarker } from "@/components/growth";
 
 type FlowNode = Node<
   FlowNodeData & { isStart?: boolean; label?: string },
@@ -391,6 +392,7 @@ export default function BuilderPage() {
 
   return (
     <>
+      <TourMarker workspaceId={workspace.id} step="editor" />
       <div className="page-heading">
         <div>
           <span className="eyebrow">

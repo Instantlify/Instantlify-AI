@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, serializers
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -15,7 +16,16 @@ from apps.agents.models import UsageRecord
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
 
-from .models import BillingAccount, BillingEvent, BillingJob, Offer, Payment
+from .models import (
+    AICreditBalance,
+    AICreditTransaction,
+    BillingAccount,
+    BillingEvent,
+    BillingJob,
+    Offer,
+    Payment,
+    Plan,
+)
 from .services import account_for
 
 
@@ -48,6 +58,15 @@ def event_workspace(event):
     obj = event["data"]["object"]
     if event["type"].startswith("checkout.session."):
         metadata = obj.get("metadata") or {}
+        topup_id = metadata.get("nemio_credit_topup")
+        if topup_id:
+            try:
+                pending = AICreditTransaction.all_objects.filter(pk=topup_id).first()
+            except (ValueError, ValidationError):
+                return None
+            if pending and str(pending.workspace_id) == metadata.get("workspace"):
+                return pending.workspace_id
+            return None
         purchase_id = metadata.get("nemio_template_purchase")
         if purchase_id:
             from apps.marketplace.models import TemplatePurchase
@@ -64,6 +83,38 @@ def event_workspace(event):
     return account.workspace_id if account else None
 
 
+def plan_catalog():
+    """Public tiers with both prices: one source of truth for the pricing page, the
+    Payments page and the in-app upgrade modal."""
+    return [
+        {
+            "slug": plan.slug,
+            "name": plan.name,
+            "is_featured": plan.is_featured,
+            "limits": plan.limits.as_dict(),
+            "prices": [
+                {
+                    "interval": price.billing_interval,
+                    "price_cents": price.price_cents,
+                    "configured": bool(price.stripe_price_id),
+                }
+                for price in plan.prices.all()
+            ],
+        }
+        for plan in Plan.objects.filter(is_active=True, is_custom=False).prefetch_related("prices")
+    ]
+
+
+class PublicPlansView(APIView):
+    """Anonymous catalog for the marketing pricing page."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        return Response({"plans": plan_catalog(), "trial_days": settings.STRIPE_TRIAL_DAYS})
+
+
 class BillingView(APIView):
     def get(self, request, workspace_id):
         workspace_membership(request, workspace_id, ["owner", "admin"])
@@ -71,17 +122,33 @@ class BillingView(APIView):
         usage = UsageRecord.objects.for_workspace(workspace_id).filter(
             created_at__gte=account.period_start, kind="generation"
         )
+        limits = account.limits
+        catalog = plan_catalog()
         return Response(
             {
                 "plan": account.plan,
+                "interval": account.billing_interval,
                 "status": account.status,
+                "trial_ends_at": account.trial_ends_at,
                 "used": usage.count(),
-                "usage_limit": account.usage_limit,
-                "seat_limit": account.seat_limit,
-                "channel_limit": account.channel_limit,
+                "usage_limit": limits.max_ai_messages,
+                "seat_limit": limits.team_seats,
+                "channel_limit": limits.max_instagram_accounts,
+                "limits": limits.as_dict(),
                 "stripe_configured": bool(settings.STRIPE_SECRET_KEY),
                 "period_start": account.period_start,
-                "plans": settings.PLAN_LIMITS,
+                "trial_days": settings.STRIPE_TRIAL_DAYS,
+                # Compatibility shape for older clients.
+                "plans": {
+                    plan["slug"]: {
+                        "seats": plan["limits"]["team_seats"],
+                        "channels": plan["limits"]["max_instagram_accounts"],
+                        "messages": plan["limits"]["max_ai_messages"],
+                    }
+                    for plan in catalog
+                    if plan["slug"] != settings.DEFAULT_PLAN_SLUG
+                },
+                "catalog": catalog,
             }
         )
 
@@ -89,19 +156,124 @@ class BillingView(APIView):
         workspace_membership(request, workspace_id, ["owner"])
         kind = request.data.get("kind", "checkout")
         plan = request.data.get("plan", "")
+        interval = request.data.get("interval", "monthly")
         key = request.headers.get("Idempotency-Key", "")
+        sellable = Plan.objects.filter(
+            slug=plan, is_active=True, prices__billing_interval=interval
+        ).exists()
+        try:
+            amount = int(request.data.get("amount_cents", 0) or 0)
+        except (TypeError, ValueError):
+            amount = 0
+        valid_topup = (
+            settings.AI_CREDIT_MIN_TOPUP_CENTS <= amount <= settings.AI_CREDIT_MAX_TOPUP_CENTS
+        )
         if (
-            kind not in {"checkout", "portal"}
-            or (kind == "checkout" and plan not in settings.PLAN_LIMITS)
+            kind not in {"checkout", "portal", "credits"}
+            or interval not in {"monthly", "annual"}
+            or (kind == "checkout" and not sellable)
+            or (kind == "credits" and not valid_topup)
             or not 1 <= len(key) <= 100
         ):
             raise serializers.ValidationError("Supply a valid plan, action and Idempotency-Key.")
         job, _ = BillingJob.objects.for_workspace(workspace_id).get_or_create(
-            request_key=key, defaults={"workspace_id": workspace_id, "kind": kind, "plan": plan}
+            request_key=key,
+            defaults={
+                "workspace_id": workspace_id,
+                "kind": kind,
+                "plan": plan,
+                "interval": interval,
+                "amount_cents": amount if kind == "credits" else 0,
+            },
         )
         return Response(
             {"id": job.id, "status": job.status, "result": json.loads(job.result)}, status=202
         )
+
+
+class CreditsView(APIView):
+    """Prepaid AI credit balance, auto top-up settings and the recent ledger."""
+
+    def get(self, request, workspace_id):
+        from apps.agents.models import AgentConfig
+
+        from .credits import balance_for, resolve_rate
+
+        workspace_membership(request, workspace_id, ["owner", "admin"])
+        balance = balance_for(workspace_id)
+        config = AgentConfig.objects.for_workspace(workspace_id).first()
+        rate = None
+        if config:
+            try:
+                matched = resolve_rate(config.model)
+                rate = {
+                    "model": config.model,
+                    "input_per_million_cents": matched.our_input,
+                    "output_per_million_cents": matched.our_output,
+                }
+            except Exception:  # NoPricingRate: the console has not configured a fallback
+                rate = None
+        return Response(
+            {
+                "billing_mode": config.billing_mode if config else "platform_credits",
+                "balance_cents": balance.balance_cents,
+                "auto_topup_enabled": balance.auto_topup_enabled,
+                "auto_topup_threshold_cents": balance.auto_topup_threshold_cents,
+                "auto_topup_amount_cents": balance.auto_topup_amount_cents,
+                "has_payment_method": bool(balance.payment_method_id),
+                "auto_topup_failed_at": balance.auto_topup_failed_at,
+                "topup_options": settings.AI_CREDIT_TOPUP_OPTIONS,
+                "stripe_configured": bool(settings.STRIPE_SECRET_KEY),
+                "rate": rate,
+                "transactions": list(
+                    AICreditTransaction.objects.for_workspace(workspace_id).values(
+                        "id",
+                        "type",
+                        "status",
+                        "amount_cents",
+                        "real_cost_cents",
+                        "remaining_balance_cents",
+                        "model",
+                        "tokens_in",
+                        "tokens_out",
+                        "description",
+                        "created_at",
+                    )[:50]
+                ),
+            }
+        )
+
+    def patch(self, request, workspace_id):
+        from .credits import balance_for
+
+        member = workspace_membership(request, workspace_id, ["owner"])
+        balance = balance_for(workspace_id)
+        enabled = bool(request.data.get("auto_topup_enabled", balance.auto_topup_enabled))
+        try:
+            threshold = int(
+                request.data.get("auto_topup_threshold_cents", balance.auto_topup_threshold_cents)
+            )
+            amount = int(
+                request.data.get("auto_topup_amount_cents", balance.auto_topup_amount_cents)
+            )
+        except (TypeError, ValueError):
+            raise serializers.ValidationError("Amounts must be whole cents.") from None
+        if not 0 <= threshold <= settings.AI_CREDIT_MAX_TOPUP_CENTS:
+            raise serializers.ValidationError("Choose a threshold up to the top-up maximum.")
+        if not settings.AI_CREDIT_MIN_TOPUP_CENTS <= amount <= settings.AI_CREDIT_MAX_TOPUP_CENTS:
+            raise serializers.ValidationError("Choose a top-up amount within the allowed range.")
+        if enabled and not balance.payment_method_id:
+            raise serializers.ValidationError(
+                "Make one manual top-up first so a card is on file for automatic top-ups."
+            )
+        AICreditBalance.objects.for_workspace(workspace_id).filter(pk=balance.pk).update(
+            auto_topup_enabled=enabled,
+            auto_topup_threshold_cents=threshold,
+            auto_topup_amount_cents=amount,
+            auto_topup_failed_at=None if enabled else balance.auto_topup_failed_at,
+        )
+        audit(member.workspace, request.user, "ai.auto_topup_configured", balance.pk)
+        return self.get(request, workspace_id)
 
 
 class OfferSerializer(serializers.ModelSerializer):

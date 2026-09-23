@@ -23,8 +23,72 @@ try:
         Fernet(encryption_key.strip().encode())
 except (ValueError, TypeError) as exc:
     raise ImproperlyConfigured("FIELD_ENCRYPTION_KEYS must contain valid Fernet keys") from exc
+
 DEBUG = False
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(",")
+
+
+class DynamicAllowedHosts(list):
+    """Allowed hosts collection that checks base hosts plus verified custom domains."""
+
+    def __init__(self, base_hosts=()):
+        super().__init__([h.strip() for h in base_hosts if h and h.strip()])
+        self._cached_domains = set()
+        self._last_checked = 0.0
+
+    def append(self, host):
+        if not super().__contains__(host):
+            super().append(host)
+
+    def extend(self, hosts):
+        for h in hosts:
+            self.append(h)
+
+    def clear_cache(self):
+        self._last_checked = 0.0
+        self._cached_domains = set()
+
+    def _get_active_domains(self):
+        import os
+        import time
+
+        now = time.time()
+        is_test = os.environ.get("DJANGO_SETTINGS_MODULE", "").endswith(".test")
+        cache_ttl = 0.0 if is_test else 5.0
+        if cache_ttl > 0 and (now - self._last_checked < cache_ttl):
+            return self._cached_domains
+        try:
+            from apps.tenants.models import WorkspaceBranding
+
+            domains = set(
+                WorkspaceBranding.all_objects.filter(custom_domain_status="active")
+                .exclude(custom_domain="")
+                .values_list("custom_domain", flat=True)
+            )
+            self._cached_domains = {d.strip().lower() for d in domains if d.strip()}
+            self._last_checked = now
+        except Exception:
+            pass
+        return self._cached_domains
+
+    def __iter__(self):
+        yield from super().__iter__()
+        yield from self._get_active_domains()
+
+    def __contains__(self, item):
+        if not item:
+            return False
+        clean = item.strip().lower().split(":")[0]
+        if super().__contains__(clean):
+            return True
+        return clean in self._get_active_domains()
+
+    def __len__(self):
+        return super().__len__() + len(self._get_active_domains())
+
+
+ALLOWED_HOSTS = DynamicAllowedHosts(
+    os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(",")
+)
 CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "http://localhost:3000").split(",")
 INSTALLED_APPS = [
     "apps.platform_ops",
@@ -63,6 +127,17 @@ PLATFORM_ADMIN_HOST = os.environ.get("PLATFORM_ADMIN_HOST", "ops.localhost").low
 PLATFORM_ADMIN_NETWORKS = [
     s.strip() for s in os.environ.get("PLATFORM_ADMIN_NETWORKS", "").split(",") if s.strip()
 ]
+# Reverse proxies between the internet and Django. 0 means Django sees the client
+# directly; production sits behind the edge proxy in deploy/ and must set at least 1.
+# Everything that rate-limits or allow-lists by address reads this through
+# apps.tenants.client_ip, and DRF throttles read it as NUM_PROXIES below.
+TRUSTED_PROXY_DEPTH = int(os.environ.get("TRUSTED_PROXY_DEPTH", "0"))
+# Welcome AI credits, in cents, granted once per workspace when its owner confirms
+# their email address. Nemio pays the provider for these, so the confirmation is what
+# keeps the grant from funding throwaway signups. 0 disables it.
+SIGNUP_CREDIT_CENTS = int(os.environ.get("SIGNUP_CREDIT_CENTS", "200"))
+# How long an unconfirmed signup may hold an email address before it is released.
+UNVERIFIED_SIGNUP_DAYS = int(os.environ.get("UNVERIFIED_SIGNUP_DAYS", "14"))
 if PLATFORM_ADMIN_HOST not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(PLATFORM_ADMIN_HOST)
 WSGI_APPLICATION = "config.wsgi.application"
@@ -123,18 +198,27 @@ CELERY_RESULT_EXPIRES = 3600
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 120}
 CELERY_BEAT_SCHEDULE = {
+    "billing-trial-reminders": {
+        "task": "apps.billing.emails.send_trial_reminders",
+        "schedule": 86400.0,
+    },
     "platform-billing-snapshot": {
         "task": "apps.platform_ops.tasks.sync_subscriptions",
         "schedule": 3600.0,
     },
     "worker-health": {"task": "apps.dashboard_api.tasks.health_check", "schedule": 30.0},
+    "uptime-probe": {"task": "apps.platform_ops.uptime.probe_uptime", "schedule": 60.0},
     "flush-audit-outbox": {"task": "apps.tenants.tasks.dispatch_outbox", "schedule": 5.0},
     "expire-auth-tokens": {"task": "apps.tenants.tasks.expire_tokens", "schedule": 86400.0},
+    "purge-unverified-signups": {
+        "task": "apps.tenants.tasks.purge_unverified_signups",
+        "schedule": 86400.0,
+    },
 }
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.tenants.auth.BanAwareJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
@@ -143,9 +227,32 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {"anon": "60/min", "user": "300/min", "auth": "10/min"},
+    # Without this DRF keys anonymous throttles on the caller's own X-Forwarded-For
+    # header, so a fresh value per request buys an unlimited login/signup/reset rate.
+    "NUM_PROXIES": TRUSTED_PROXY_DEPTH,
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
 }
+# Transactional email (the registry in platform_ops.growth sends through this).
+# Without EMAIL_HOST mail goes to the console backend; production refuses that, since
+# it would write customer emails, portal links included, into the logs.
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend"
+    if EMAIL_HOST
+    else "django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() != "false"
+EMAIL_TIMEOUT = 10
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Nemio <no-reply@localhost>")
+
+# Every password and session check goes through the ban-aware backend, so a banned
+# user cannot sign in and an open session of theirs resolves as anonymous.
+AUTHENTICATION_BACKENDS = ["apps.tenants.auth.BanAwareBackend"]
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
@@ -160,6 +267,21 @@ META_REDIRECT_URI = os.environ.get("META_REDIRECT_URI", "http://localhost:3000/a
 META_SCOPES = os.environ.get(
     "META_SCOPES", "instagram_business_basic,instagram_business_manage_messages"
 )
+# LinkedIn messaging is not a self-serve API: the adapter posts to /v2/messages, which
+# an ordinary app is not granted. Credentials alone therefore do not mean sends will be
+# accepted, so the channel stays off until someone confirms this app really was granted
+# that access against a real account. Advertising it before then sells a channel that
+# accepts a connection and then silently fails to deliver.
+LINKEDIN_MESSAGING_APPROVED = os.environ.get("LINKEDIN_MESSAGING_APPROVED", "") == "true"
+LINKEDIN_CLIENT_ID = os.environ.get("LINKEDIN_CLIENT_ID", "")
+LINKEDIN_CLIENT_SECRET = os.environ.get("LINKEDIN_CLIENT_SECRET", "")
+LINKEDIN_REDIRECT_URI = os.environ.get(
+    "LINKEDIN_REDIRECT_URI", "http://localhost:3000/api/linkedin/callback/"
+)
+LINKEDIN_SCOPES = os.environ.get(
+    "LINKEDIN_SCOPES", "r_organization_social,w_organization_social,r_messages,w_messages"
+)
+SNAPCHAT_WEBHOOK_SECRET = os.environ.get("SNAPCHAT_WEBHOOK_SECRET", "")
 CHANNEL_ADAPTER_MODE = os.environ.get("CHANNEL_ADAPTER_MODE", "disabled")
 CHANNEL_LAYERS = {
     "default": {
@@ -181,12 +303,30 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_METER_EVENT_NAME = os.environ.get("STRIPE_METER_EVENT_NAME", "ai_messages")
 import json  # noqa: E402
 
+# Legacy bootstrap only: the plans data migration copies these IDs onto PlanPrice rows.
+# Tiers, limits and prices live in the database (billing.Plan) from then on.
 STRIPE_PRICES = json.loads(os.environ.get("STRIPE_PRICES", "{}"))
-PLAN_LIMITS = {
-    "starter": {"seats": 3, "channels": 2, "messages": 1000},
-    "pro": {"seats": 10, "channels": 5, "messages": 10000},
-    "scale": {"seats": 50, "channels": 20, "messages": 100000},
-}
+# Plan a workspace is on until it subscribes. "dev" is the unlimited local plan.
+DEFAULT_PLAN_SLUG = os.environ.get("DEFAULT_PLAN_SLUG", "free")
+# Free trial on a workspace's first subscription, any interval. 0 disables.
+STRIPE_TRIAL_DAYS = int(os.environ.get("STRIPE_TRIAL_DAYS", "7"))
+# Nemio's own provider key for workspaces on prepaid credits (2.10).
+PLATFORM_OPENAI_API_KEY = os.environ.get("PLATFORM_OPENAI_API_KEY", "")
+PLATFORM_ANTHROPIC_API_KEY = os.environ.get("PLATFORM_ANTHROPIC_API_KEY", "")
+PLATFORM_GEMINI_API_KEY = os.environ.get("PLATFORM_GEMINI_API_KEY", "")
+PLATFORM_XAI_API_KEY = os.environ.get("PLATFORM_XAI_API_KEY", "")
+PLATFORM_ELEVENLABS_API_KEY = os.environ.get("PLATFORM_ELEVENLABS_API_KEY", "")
+PLATFORM_ELEVENLABS_DEFAULT_VOICE_ID = os.environ.get(
+    "PLATFORM_ELEVENLABS_DEFAULT_VOICE_ID", "21m00Tcm4TlvDq8ikWAM"
+)
+# Uptime paging (platform_ops/uptime.py). Each channel is optional.
+UPTIME_PROBE_URL = os.environ.get("UPTIME_PROBE_URL", "")
+UPTIME_LATENCY_MS = int(os.environ.get("UPTIME_LATENCY_MS", "2500"))
+ALERT_WEBHOOK_URL = os.environ.get("ALERT_WEBHOOK_URL", "")
+PAGERDUTY_ROUTING_KEY = os.environ.get("PAGERDUTY_ROUTING_KEY", "")
+AI_CREDIT_TOPUP_OPTIONS = [1000, 2500, 5000, 10000]
+AI_CREDIT_MIN_TOPUP_CENTS = 500
+AI_CREDIT_MAX_TOPUP_CENTS = 100000
 RETENTION_DAYS = int(os.environ.get("RETENTION_DAYS", "90"))
 # Platform share of paid marketplace templates (destination charges on Connect).
 MARKETPLACE_FEE_PERCENT = int(os.environ.get("MARKETPLACE_FEE_PERCENT", "15"))
@@ -268,3 +408,6 @@ LOGGING = {
         for name in ["django.request", "django.server", "httpx", "httpcore"]
     },
 }
+
+# Password recovery links expire after one hour.
+PASSWORD_RESET_TIMEOUT = 3600
