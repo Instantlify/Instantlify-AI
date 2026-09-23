@@ -149,3 +149,24 @@ def test_csrf_token_fetch_is_not_rate_limited():
     # Every write fetches a token first; the anonymous per-IP rate must not apply here.
     client = APIClient()
     assert all(client.get("/api/auth/csrf/").status_code == 200 for _ in range(70))
+
+
+def test_auth_throttle_ignores_a_spoofed_forwarded_header(settings):
+    """The auth scope is what stands between a stranger and unlimited login, signup and
+    password-reset attempts. DRF keys it on X-Forwarded-For, so unless the trusted depth
+    is set, a fresh header value per request buys a fresh bucket every time."""
+    settings.TRUSTED_PROXY_DEPTH = 1
+    client = APIClient()
+    rate = int(settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["auth"].split("/")[0])
+    body = {"name": "Sam", "email": "sam@example.com", "password": "Saffron!River42Cloud"}
+    for attempt in range(rate):
+        spoofed = f"203.0.113.{attempt}, 10.0.0.1"
+        assert (
+            client.post("/api/auth/signup/", body, HTTP_X_FORWARDED_FOR=spoofed).status_code != 429
+        )
+    assert (
+        client.post(
+            "/api/auth/signup/", body, HTTP_X_FORWARDED_FOR="203.0.113.250, 10.0.0.1"
+        ).status_code
+        == 429
+    )

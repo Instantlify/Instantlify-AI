@@ -13,6 +13,8 @@ from datetime import timedelta
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.tenants.client_ip import client_ip
+
 from .models import (
     Announcement,
     AnnouncementView,
@@ -507,7 +509,7 @@ def session_key(request):
     if existing and re.fullmatch(r"[A-Za-z0-9_-]{8,64}", existing):
         return existing
     seed = (
-        request.META.get("REMOTE_ADDR", "")
+        client_ip(request)
         + request.META.get("HTTP_USER_AGENT", "")[:120]
         + timezone.now().strftime("%Y-%m-%d")
     )

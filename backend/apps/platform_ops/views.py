@@ -16,6 +16,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from apps.tenants.client_ip import client_ip
 from apps.tenants.models import Workspace
 
 from .models import (
@@ -777,7 +778,7 @@ def login_allowed(request, identifier):
         "ops-login:" + hashlib.sha256(value.encode()).hexdigest()
         for value in [
             "account:" + identifier.casefold()[:254],
-            "ip:" + request.META.get("REMOTE_ADDR", ""),
+            "ip:" + client_ip(request),
         ]
     ]
     for key in keys:

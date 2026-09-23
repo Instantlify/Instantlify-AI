@@ -60,9 +60,7 @@ class DynamicAllowedHosts(list):
             from apps.tenants.models import WorkspaceBranding
 
             domains = set(
-                WorkspaceBranding.all_objects.filter(
-                    custom_domain_status="active"
-                )
+                WorkspaceBranding.all_objects.filter(custom_domain_status="active")
                 .exclude(custom_domain="")
                 .values_list("custom_domain", flat=True)
             )
@@ -88,7 +86,9 @@ class DynamicAllowedHosts(list):
         return super().__len__() + len(self._get_active_domains())
 
 
-ALLOWED_HOSTS = DynamicAllowedHosts(os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(","))
+ALLOWED_HOSTS = DynamicAllowedHosts(
+    os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(",")
+)
 CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "http://localhost:3000").split(",")
 INSTALLED_APPS = [
     "apps.platform_ops",
@@ -127,6 +127,11 @@ PLATFORM_ADMIN_HOST = os.environ.get("PLATFORM_ADMIN_HOST", "ops.localhost").low
 PLATFORM_ADMIN_NETWORKS = [
     s.strip() for s in os.environ.get("PLATFORM_ADMIN_NETWORKS", "").split(",") if s.strip()
 ]
+# Reverse proxies between the internet and Django. 0 means Django sees the client
+# directly; production sits behind the edge proxy in deploy/ and must set at least 1.
+# Everything that rate-limits or allow-lists by address reads this through
+# apps.tenants.client_ip, and DRF throttles read it as NUM_PROXIES below.
+TRUSTED_PROXY_DEPTH = int(os.environ.get("TRUSTED_PROXY_DEPTH", "0"))
 if PLATFORM_ADMIN_HOST not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(PLATFORM_ADMIN_HOST)
 WSGI_APPLICATION = "config.wsgi.application"
@@ -212,6 +217,9 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {"anon": "60/min", "user": "300/min", "auth": "10/min"},
+    # Without this DRF keys anonymous throttles on the caller's own X-Forwarded-For
+    # header, so a fresh value per request buys an unlimited login/signup/reset rate.
+    "NUM_PROXIES": TRUSTED_PROXY_DEPTH,
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
 }

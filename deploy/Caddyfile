@@ -15,6 +15,14 @@
 	}
 }
 
+# Caddy appends the client to any X-Forwarded-For that arrived, so a caller who sends
+# one keeps their own entries in front. Django counts TRUSTED_PROXY_DEPTH entries back
+# from the right, so every proxy block overwrites the header with the real peer: one
+# hop in front of Django, one entry, written here. Import this in every reverse_proxy.
+(real_ip) {
+	header_up X-Forwarded-For {http.request.remote.host}
+}
+
 (security_headers) {
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
@@ -34,13 +42,16 @@
 		request_body {
 			max_size 1MB
 		}
-		reverse_proxy backend:8000
+		reverse_proxy backend:8000 {
+			import real_ip
+		}
 	}
 
 	# Inbox live updates. Caddy upgrades WebSocket connections without extra config;
 	# the long read timeout keeps idle inbox tabs connected.
 	handle /ws/* {
 		reverse_proxy backend:8000 {
+			import real_ip
 			transport http {
 				read_timeout 1h
 			}
@@ -51,6 +62,7 @@
 	# response straight through rather than buffering it at the edge.
 	handle /media/voice/* {
 		reverse_proxy backend:8000 {
+			import real_ip
 			flush_interval -1
 		}
 	}
@@ -58,12 +70,18 @@
 	# API, MCP server and health checks.
 	@backend path /api/* /health/*
 	handle @backend {
-		reverse_proxy backend:8000
+		reverse_proxy backend:8000 {
+			import real_ip
+		}
 	}
 
-	# Everything else is the Next.js app (which also proxies /api for SSR).
+	# Everything else is the Next.js app. It rewrites /api to the backend for SSR too,
+	# but @backend above claims those paths first, so Django is never two hops from the
+	# client and TRUSTED_PROXY_DEPTH stays 1.
 	handle {
-		reverse_proxy frontend:3000
+		reverse_proxy frontend:3000 {
+			import real_ip
+		}
 	}
 }
 
@@ -82,5 +100,7 @@
 {$PLATFORM_ADMIN_HOST} {
 	import security_headers
 	encode zstd gzip
-	reverse_proxy backend:8000
+	reverse_proxy backend:8000 {
+		import real_ip
+	}
 }

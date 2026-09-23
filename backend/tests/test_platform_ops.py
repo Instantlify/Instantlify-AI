@@ -265,8 +265,46 @@ def test_support_session_banner_expiry_and_operator_binding(operator, workspace)
 
 def test_ip_network_uses_remote_addr_not_forwarded_header(operator, settings):
     settings.PLATFORM_ADMIN_NETWORKS = ["10.0.0.0/8"]
+    settings.TRUSTED_PROXY_DEPTH = 0
     client = signed_client(operator)
     assert client.get("/ops/", HTTP_X_FORWARDED_FOR="10.1.2.3").status_code == 403
+
+
+def test_ip_network_reads_the_hop_the_proxy_wrote(operator, settings):
+    """Behind one proxy REMOTE_ADDR is the proxy, so the allow-list has to read the
+    entry the proxy appended. Anything the caller put in front of it is ignored."""
+    settings.PLATFORM_ADMIN_NETWORKS = ["10.0.0.0/8"]
+    settings.TRUSTED_PROXY_DEPTH = 1
+    client = signed_client(operator)
+    assert client.get("/ops/", HTTP_X_FORWARDED_FOR="10.1.2.3").status_code == 200
+    # The rightmost entry is the only one the proxy wrote; a prepended office address
+    # must not get an outside caller through.
+    assert client.get("/ops/", HTTP_X_FORWARDED_FOR="10.1.2.3, 203.0.113.9").status_code == 403
+    assert client.get("/ops/", HTTP_X_FORWARDED_FOR="203.0.113.9").status_code == 403
+
+
+def test_login_lockout_is_per_client_not_per_proxy(settings):
+    """At depth 0 every proxied request shares one bucket, so ten failures from anywhere
+    lock every operator out. Counting the forwarded hop keeps the bucket per caller."""
+    settings.TRUSTED_PROXY_DEPTH = 1
+    client = Client(HTTP_HOST="ops.localhost")
+    attacker = {"HTTP_X_FORWARDED_FOR": "203.0.113.9"}
+    for _ in range(11):
+        client.post("/ops/login/", {"username": "missing", "password": "wrong"}, **attacker)
+    assert (
+        client.post(
+            "/ops/login/", {"username": "missing", "password": "wrong"}, **attacker
+        ).status_code
+        == 429
+    )
+    assert (
+        client.post(
+            "/ops/login/",
+            {"username": "other", "password": "wrong"},
+            HTTP_X_FORWARDED_FOR="198.51.100.4",
+        ).status_code
+        == 200
+    )
 
 
 def test_csrf_protects_controls(operator):
