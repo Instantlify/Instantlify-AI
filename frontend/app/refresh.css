@@ -901,3 +901,35 @@ summary:focus-visible {
     gap: 25px;
   }
 }
+.nav-tools > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.nav-tools > summary::-webkit-details-marker {
+  display: none;
+}
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+@media (max-width: 760px) {
+  .sidebar nav {
+    flex-wrap: wrap;
+  }
+  .sidebar nav > .nav-item {
+    width: calc(50% - 3px);
+  }
+  .nav-tools {
+    flex-basis: 100%;
+  }
+  .nav-tools > a.nav-item {
+    display: inline-flex;
+    width: 50%;
+    justify-content: flex-start;
+  }
+  .nav-tools > summary {
+    justify-content: flex-start;
+  }
+}

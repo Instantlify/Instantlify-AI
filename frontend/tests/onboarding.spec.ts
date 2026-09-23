@@ -13,6 +13,17 @@ const slug = `e2e-${Date.now().toString(36)}`;
 let workspaceUrl = "";
 
 async function nav(page: Page, label: string) {
+  if (!["Overview", "Inbox", "Automations", "AI agent"].includes(label)) {
+    const tools = page.locator(".nav-tools");
+    if (!(await tools.getAttribute("open"))) {
+      if (
+        !(await tools.evaluate(
+          (element) => (element as HTMLDetailsElement).open,
+        ))
+      )
+        await tools.locator("summary").click();
+    }
+  }
   await page
     .getByRole("navigation", { name: "Workspace navigation" })
     .getByRole("link", { name: label, exact: true })
@@ -30,7 +41,7 @@ test("sign up, create a workspace and connect a test channel", async ({
   await page
     .getByRole("button", { name: "Create account", exact: true })
     .click();
-  // The five-step setup wizard: skip the optional steps, name the workspace.
+  // Short setup: optionally connect Instagram, then name the workspace.
   await expect(
     page.getByRole("heading", { name: "Connect your Instagram" }),
   ).toBeVisible();
@@ -38,21 +49,11 @@ test("sign up, create a workspace and connect a test channel", async ({
     .getByRole("button", { name: "I’ll connect my account later" })
     .click();
   await page.getByLabel("Workspace name").fill("E2E Studio");
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Open my workspace", exact: true })
+    .click();
   await expect(
-    page.getByRole("heading", { name: "Invite your team" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Skip for now" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Connect an integration" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Skip for now" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Choose a plan" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "I’ll decide later" }).click();
-  await expect(
-    page.getByRole("heading", { name: "A fresh start, Alex." }),
+    page.getByRole("heading", { name: "Your business at a glance, Alex." }),
   ).toBeVisible();
   await expect(page).toHaveURL(/\/w\/[0-9a-f-]+\/overview/);
   workspaceUrl = page.url().replace(/\/overview.*$/, "");
@@ -61,7 +62,9 @@ test("sign up, create a workspace and connect a test channel", async ({
   ).toBeVisible();
   // Skipped the Instagram step, so the overview insists on it until connected.
   await expect(page.getByText("Connect your Instagram account")).toBeVisible();
-  await page.getByRole("button", { name: "Test connection setup" }).click();
+  await page.getByRole("button", { name: "Connect Instagram" }).click();
+  await expect(page).toHaveURL(/integrations/);
+  await nav(page, "Overview");
   await expect(page.getByText("Local connection test completed")).toBeVisible();
 });
 
@@ -212,6 +215,8 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
   await expect(
     page.getByRole("combobox", { name: "Current workspace" }),
   ).toContainText("E2E Studio Updated");
+  await expect(page).toHaveURL(/integrations/);
+  await nav(page, "Overview");
   await expect(page.getByText("Local connection test completed")).toBeVisible();
   await page.screenshot({
     path: "test-results/dashboard-desktop.png",

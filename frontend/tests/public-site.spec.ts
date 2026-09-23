@@ -48,7 +48,7 @@ test("public homepage has metadata, live plan controls and signup navigation", a
   await page.goto("/");
   await expect(page).toHaveTitle("Nemio · Turn conversations into customers");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Good conversations.",
+    "Turn enquiries into",
   );
   await expect(page.locator(".plan-price")).toContainText("$49");
   await page.getByRole("button", { name: "Annual", exact: true }).click();
@@ -155,10 +155,13 @@ test("signup preserves the selected plan through onboarding", async ({
     .click();
   await expect(page).toHaveURL(/onboarding\/\?plan=pro&interval=annual/);
   await expect(
-    page.getByText("You selected Pro.", { exact: false }),
+    page.getByRole("heading", { name: "Name your workspace" }),
   ).toBeVisible();
-  await expect(page.locator(".plan-price")).toContainText("$490");
-  await expect(page.locator(".plan-trial")).toHaveText("10-day free trial");
+  await page.route("**/api/workspaces/test-workspace/", (route) =>
+    route.fulfill({ json: workspace }),
+  );
+  await page.getByRole("button", { name: "Open my workspace" }).click();
+  await expect(page).toHaveURL(/payments\/\?plan=pro&interval=annual/);
 });
 
 test("workspace navigation remains usable on desktop and mobile", async ({
@@ -186,7 +189,9 @@ test("workspace navigation remains usable on desktop and mobile", async ({
       return route.fulfill({ json: { results: [workspace] } });
     if (path.includes("/announcements/")) return route.fulfill({ json: [] });
     if (path.includes("/analytics/funnel/"))
-      return route.fulfill({ json: { steps: [], revenue_cents: 0 } });
+      return route.fulfill({
+        json: { unique_leads: 0, steps: [], revenue_cents: 0 },
+      });
     if (path.endsWith("/status/"))
       return route.fulfill({
         json: {
@@ -213,13 +218,14 @@ test("workspace navigation remains usable on desktop and mobile", async ({
   });
   await page.goto("/w/design-review/overview");
   await expect(
-    page.getByRole("heading", { name: "A fresh start, Alex." }),
+    page.getByRole("heading", { name: "Your business at a glance, Alex." }),
   ).toBeVisible();
   await expect(page.locator(".welcome-banner")).toBeVisible();
   await page.screenshot({
     path: "test-results/nemio-workspace-desktop.png",
     fullPage: true,
   });
+  await page.locator(".nav-tools > summary").click();
   await page
     .getByRole("navigation", { name: "Workspace navigation" })
     .getByRole("link", { name: "Team", exact: true })
@@ -304,13 +310,13 @@ test("Instagram connection follows the API redirect and workspace Continue stays
     page.getByRole("heading", { name: "Name your workspace" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Continue", exact: true }),
+    page.getByRole("button", { name: "Open my workspace", exact: true }),
   ).toBeEnabled();
   await page.getByLabel("Workspace name").fill("Connected Studio");
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "Invite your team" }),
-  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Open my workspace", exact: true })
+    .click();
+  await expect(page).toHaveURL(/onboarding-check\/overview/);
 });
 
 test("Instagram immediate completion clears busy state for the workspace step", async ({
@@ -339,6 +345,6 @@ test("Instagram immediate completion clears busy state for the workspace step", 
     page.getByRole("heading", { name: "Name your workspace" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Continue", exact: true }),
+    page.getByRole("button", { name: "Open my workspace", exact: true }),
   ).toBeEnabled();
 });

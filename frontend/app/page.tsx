@@ -18,6 +18,7 @@ import {
 import { Brand } from "@/components/shell";
 import { TrackVisit } from "@/components/growth";
 import { PublicPricing } from "@/components/public-pricing";
+import { PublicHelpLinks } from "@/components/public-help-links";
 
 export const metadata: Metadata = {
   title: "Nemio · Turn conversations into customers",
@@ -101,21 +102,21 @@ export default async function Home({
         <section className="landing-hero">
           <div className="hero-copy">
             <span className="hero-kicker">
-              <span /> YOUR NEXT CHAPTER OF GROWTH
+              <span /> FOR BUSINESSES THAT SELL THROUGH CONVERSATION
             </span>
             <h1>
-              Good conversations.
+              Turn enquiries into
               <br />
-              <span>Great business.</span>
+              <span>booked appointments.</span>
             </h1>
             <p>
-              Turn the messages you already get into the customers you want.
-              Meet the AI-powered workspace that brings your conversations, team
-              and sales together.
+              Answer common questions, qualify interested customers and help
+              them book. Your AI assistant handles the first conversation; your
+              team stays in control.
             </p>
             <div className="hero-actions">
               <Link href="/auth?mode=signup" className="button primary">
-                Let’s get started <ArrowRight size={18} />
+                Set up my assistant <ArrowRight size={18} />
               </Link>
               <a href="#how-it-works" className="button hero-secondary">
                 See how it works <ChevronRight size={17} />
@@ -230,8 +231,8 @@ export default async function Home({
               One connected workspace.
             </h2>
             <p>
-              For growing brands, service businesses and agencies that want to
-              spend more time building relationships.
+              Built for service businesses turning customer enquiries into
+              consultations and appointments.
             </p>
           </div>
           <div className="feature-grid">
@@ -257,17 +258,17 @@ export default async function Home({
               [
                 "01",
                 "Make yourself at home",
-                "Create your account and workspace. Invite the people who help your business grow.",
+                "Create your workspace and choose the first customer enquiry you want to automate.",
               ],
               [
                 "02",
                 "Connect the conversation",
-                "Connect your channels, add your business knowledge and build your first automation.",
+                "Add your services, prices and FAQs. Preview your assistant’s answers before enabling replies.",
               ],
               [
                 "03",
                 "Give every lead a next step",
-                "Let AI handle routine questions while your team focuses on the conversations that need a human.",
+                "Connect your account, activate your workflow and keep your team available for questions that need a human.",
               ],
             ].map(([number, title, copy]) => (
               <article key={number}>
@@ -342,6 +343,7 @@ export default async function Home({
         </Link>
         <p>More connection. More possibility.</p>
         <nav aria-label="Footer navigation">
+          <PublicHelpLinks />
           <Link href="/pricing">Pricing</Link>
           <Link href="/blog">Blog</Link>
           <Link href="/auth">Sign in</Link>

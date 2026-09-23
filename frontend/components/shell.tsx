@@ -116,6 +116,7 @@ export function Shell({ children }: { children: ReactNode }) {
       setError(message(err));
     }
   }
+  const primary = ["overview", "inbox", "automations", "agent"];
   const active = items.find((item) => item.id === section);
   return (
     <div
@@ -151,18 +152,39 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
         <div className="nav-label">WORKSPACE</div>
         <nav aria-label="Workspace navigation">
-          {items.map(({ id, label, icon: Icon }) => (
-            <Link
-              key={id}
-              href={`/w/${workspace.id}/${id}`}
-              className={`nav-item ${section === id ? "active" : ""}`}
-              aria-current={section === id ? "page" : undefined}
-            >
-              <Icon size={18} />
-              {label}
-              {section === id && <span className="nav-dot" />}
-            </Link>
-          ))}
+          {items
+            .filter((item) => primary.includes(item.id))
+            .map(({ id, label, icon: Icon }) => (
+              <Link
+                key={id}
+                href={`/w/${workspace.id}/${id}`}
+                className={`nav-item ${section === id ? "active" : ""}`}
+                aria-current={section === id ? "page" : undefined}
+              >
+                <Icon size={18} />
+                {label}
+                {section === id && <span className="nav-dot" />}
+              </Link>
+            ))}
+          <details className="nav-tools" open={!primary.includes(section)}>
+            <summary className="nav-item">
+              Business tools <ChevronDown size={15} />
+            </summary>
+            {items
+              .filter((item) => !primary.includes(item.id))
+              .map(({ id, label, icon: Icon }) => (
+                <Link
+                  key={id}
+                  href={`/w/${workspace.id}/${id}`}
+                  className={`nav-item ${section === id ? "active" : ""}`}
+                  aria-current={section === id ? "page" : undefined}
+                >
+                  <Icon size={18} />
+                  {label}
+                  {section === id && <span className="nav-dot" />}
+                </Link>
+              ))}
+          </details>
         </nav>
         <div className="sidebar-bottom">
           <div className="foundation-card">

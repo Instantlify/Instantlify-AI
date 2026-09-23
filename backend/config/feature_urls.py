@@ -1,5 +1,6 @@
 from django.urls import path
 
+from apps.agents.preview import AgentPreviewView
 from apps.agents.views import (
     AgentAuditView,
     AgentModelsView,
@@ -82,6 +83,7 @@ from apps.tenants.tls import CheckDomainTLSView
 
 P = "api/workspaces/<uuid:workspace_id>/"
 urlpatterns = [
+    path(P + "agent/preview/", AgentPreviewView.as_view()),
     path(P + "data-operations/", DataOperationsView.as_view()),
     path(P + "data-operations/<uuid:pk>/download/", DownloadExportView.as_view()),
     path(P + "automations/", AutomationList.as_view()),

@@ -1,4 +1,5 @@
 "use client";
+import { AgentPreview } from "@/components/agent-preview";
 
 import Link from "next/link";
 import {
@@ -172,7 +173,9 @@ function toggle(list: string[], value: string) {
 export default function AgentPage() {
   const { workspace, prefix, manager } = useWorkspace();
   const [form, setForm] = useState<FormState>(DEFAULTS);
-  const [platformModels, setPlatformModels] = useState<PlatformModel[]>(DEFAULT_PLATFORM_MODELS);
+  const [platformModels, setPlatformModels] = useState<PlatformModel[]>(
+    DEFAULT_PLATFORM_MODELS,
+  );
   const [configured, setConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
   const settings = useFeedback();
@@ -281,13 +284,25 @@ export default function AgentPage() {
               </label>
 
               <div style={{ marginTop: 8, marginBottom: 8 }}>
-                <span className="field" style={{ marginBottom: 6, display: "block" }}>
+                <span
+                  className="field"
+                  style={{ marginBottom: 6, display: "block" }}
+                >
                   Select AI Model & Rate
                 </span>
                 <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
-                  All models are hosted and executed by Nemio. Usage is charged per token directly to your prepaid Nemio credit balance. No API keys or external developer accounts required.
+                  All models are hosted and executed by Nemio. Usage is charged
+                  per token directly to your prepaid Nemio credit balance. No
+                  API keys or external developer accounts required.
                 </p>
-                <div className="card-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 14 }}>
+                <div
+                  className="card-grid"
+                  style={{
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(270px, 1fr))",
+                    gap: 14,
+                  }}
+                >
                   {platformModels.map((m) => {
                     const isSelected = form.model === m.id;
                     return (
@@ -300,14 +315,24 @@ export default function AgentPage() {
                             ...cur,
                             model: m.id,
                             provider: m.provider,
-                            fallback_model: cur.fallback_model === m.id ? "" : cur.fallback_model,
-                            fallback_provider: cur.fallback_model === m.id ? "" : cur.fallback_provider,
+                            fallback_model:
+                              cur.fallback_model === m.id
+                                ? ""
+                                : cur.fallback_model,
+                            fallback_provider:
+                              cur.fallback_model === m.id
+                                ? ""
+                                : cur.fallback_provider,
                           }))
                         }
                         style={{
                           cursor: manager ? "pointer" : "default",
-                          border: isSelected ? "2px solid var(--primary, #6366f1)" : "1px solid var(--border)",
-                          background: isSelected ? "var(--active-card-bg, rgba(99, 102, 241, 0.08))" : "var(--card-bg)",
+                          border: isSelected
+                            ? "2px solid var(--primary, #6366f1)"
+                            : "1px solid var(--border)",
+                          background: isSelected
+                            ? "var(--active-card-bg, rgba(99, 102, 241, 0.08))"
+                            : "var(--card-bg)",
                           padding: 16,
                           display: "flex",
                           flexDirection: "column",
@@ -316,24 +341,35 @@ export default function AgentPage() {
                         }}
                       >
                         <div>
-                          <div className="row between" style={{ alignItems: "flex-start", marginBottom: 8 }}>
+                          <div
+                            className="row between"
+                            style={{
+                              alignItems: "flex-start",
+                              marginBottom: 8,
+                            }}
+                          >
                             <div>
-                              <strong style={{ fontSize: "1rem" }}>{m.label}</strong>
+                              <strong style={{ fontSize: "1rem" }}>
+                                {m.label}
+                              </strong>
                               <div style={{ marginTop: 2 }}>
-                                <Pill tone="neutral">
-                                  {m.provider}
-                                </Pill>
+                                <Pill tone="neutral">{m.provider}</Pill>
                               </div>
                             </div>
                             {isSelected ? (
                               <Pill tone="good">Selected</Pill>
                             ) : (
-                              <Pill tone="neutral">
-                                {m.badge}
-                              </Pill>
+                              <Pill tone="neutral">{m.badge}</Pill>
                             )}
                           </div>
-                          <p className="muted-text" style={{ fontSize: "0.85rem", lineHeight: 1.4, margin: "8px 0 14px" }}>
+                          <p
+                            className="muted-text"
+                            style={{
+                              fontSize: "0.85rem",
+                              lineHeight: 1.4,
+                              margin: "8px 0 14px",
+                            }}
+                          >
                             {m.description}
                           </p>
                         </div>
@@ -341,7 +377,8 @@ export default function AgentPage() {
                           style={{
                             padding: "8px 10px",
                             borderRadius: 6,
-                            background: "var(--muted-bg, rgba(255,255,255,0.04))",
+                            background:
+                              "var(--muted-bg, rgba(255,255,255,0.04))",
                             border: "1px solid var(--border)",
                             fontSize: "0.8rem",
                             fontWeight: 500,
@@ -363,7 +400,9 @@ export default function AgentPage() {
                     value={form.fallback_model}
                     disabled={!manager}
                     onChange={(e) => {
-                      const selected = platformModels.find((m) => m.id === e.target.value);
+                      const selected = platformModels.find(
+                        (m) => m.id === e.target.value,
+                      );
                       setForm((cur) => ({
                         ...cur,
                         fallback_model: selected ? selected.id : "",
@@ -381,7 +420,8 @@ export default function AgentPage() {
                       ))}
                   </select>
                   <span className="hint">
-                    Automatic failover if the primary vendor is temporarily rate-limited or unavailable.
+                    Automatic failover if the primary vendor is temporarily
+                    rate-limited or unavailable.
                   </span>
                 </label>
                 <label>
@@ -528,6 +568,7 @@ export default function AgentPage() {
             </form>
           </Panel>
           <Knowledge />
+          {manager && <AgentPreview prefix={prefix} />}
           <AuditPanel />
         </div>
       )}

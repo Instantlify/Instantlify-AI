@@ -1,6 +1,7 @@
 """Curated platform models and live rate card resolution for client workspaces."""
 
 from decimal import Decimal
+
 from apps.billing.models import ModelPricingRate
 
 PLATFORM_MODELS = [

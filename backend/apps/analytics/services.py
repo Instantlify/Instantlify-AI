@@ -2,7 +2,7 @@ import hashlib
 from datetime import timedelta
 
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Exists, OuterRef, Q, Sum
 from django.utils import timezone
 
 from apps.automations.models import Automation
@@ -80,9 +80,36 @@ def funnel(workspace_id, *, period="30d", automation_id=None, provider=""):
     }
     revenue = events.filter(kind="paid").aggregate(total=Sum("amount_cents"))["total"] or 0
     steps = [{"kind": kind, "leads": counts.get(kind, 0)} for kind in STEPS]
-    for index, step in enumerate(steps):
-        previous = steps[index - 1]["leads"] if index else step["leads"]
-        step["conversion"] = round(step["leads"] / previous, 4) if previous else 0.0
+    unique_leads = (
+        events.filter(kind__in=["comment", "dm"])
+        .exclude(lead_id=None)
+        .values("lead_id")
+        .distinct()
+        .count()
+    )
+    for step in steps:
+        # Comments and DMs are alternative entry points, not sequential stages.
+        previous_kinds = {
+            "triggered": ["comment", "dm"],
+            "replied": ["triggered"],
+            "booked": ["replied"],
+            "paid": ["booked"],
+        }.get(step["kind"])
+        step["conversion"] = None
+        if previous_kinds:
+            previous = events.filter(kind__in=previous_kinds).exclude(lead_id=None)
+            denominator = previous.values("lead_id").distinct().count()
+            earlier = previous.filter(
+                lead_id=OuterRef("lead_id"), created_at__lte=OuterRef("created_at")
+            )
+            converted = (
+                events.filter(kind=step["kind"])
+                .filter(Exists(earlier))
+                .values("lead_id")
+                .distinct()
+                .count()
+            )
+            step["conversion"] = round(converted / denominator, 4) if denominator else None
     by_automation = list(
         events.exclude(automation_id=None)
         .values("automation_id")
@@ -116,6 +143,7 @@ def funnel(workspace_id, *, period="30d", automation_id=None, provider=""):
         "period": period,
         "since": since,
         "steps": steps,
+        "unique_leads": unique_leads,
         "revenue_cents": revenue,
         "automations": by_automation,
         "channels": by_channel,

@@ -1,13 +1,10 @@
-import json
-from unittest.mock import patch
 import hashlib
+import json
 
 import pytest
 from django.utils import timezone
 
-from apps.agents.models import VoiceAsset
 from apps.agents.voice import queue_voice
-from apps.channels.ingress import linkedin_webhook, snapchat_webhook
 from apps.channels.models import ChannelConnection, OAuthState, WebhookEvent
 from apps.crm.models import ChannelIdentity, Conversation, Lead, Message
 
@@ -71,7 +68,7 @@ def test_linkedin_oauth_callback(client, workspace, user):
 
 @pytest.mark.django_db
 def test_linkedin_webhook(client, workspace):
-    conn = ChannelConnection.objects.for_workspace(workspace).create(
+    ChannelConnection.objects.for_workspace(workspace).create(
         workspace=workspace,
         provider="linkedin",
         external_account_id="urn:li:organization:123456",

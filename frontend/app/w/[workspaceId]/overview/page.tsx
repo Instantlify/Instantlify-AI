@@ -10,7 +10,8 @@ import {
   MessageCircle,
   ShieldCheck,
   Sparkles,
-  Users,
+  CalendarCheck,
+  CreditCard,
 } from "lucide-react";
 import {
   api,
@@ -39,13 +40,12 @@ export default function OverviewPage() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [status, setStatus] = useState<Status | null>(null);
   const [events, setEvents] = useState<Audit[]>([]);
-  const [members, setMembers] = useState(0);
   const [funnel, setFunnel] = useState<Funnel | null>(null);
   const [loading, setLoading] = useState(true);
   const feedback = useFeedback();
   const load = useCallback(
     async (signal?: AbortSignal) => {
-      const [channels, health, team] = await Promise.all([
+      const [channels, health] = await Promise.all([
         api<Page<Connection>>(
           `${prefix}/connections/`,
           "GET",
@@ -53,16 +53,9 @@ export default function OverviewPage() {
           signal,
         ),
         api<Status>(`${prefix}/status/`, "GET", undefined, signal),
-        api<Page<{ id: string }>>(
-          `${prefix}/members/`,
-          "GET",
-          undefined,
-          signal,
-        ),
       ]);
       setConnections(channels.results);
       setStatus(health);
-      setMembers(team.count);
       if (manager) {
         const [audit, report] = await Promise.all([
           api<Page<Audit>>(`${prefix}/audit/`, "GET", undefined, signal),
@@ -130,10 +123,10 @@ export default function OverviewPage() {
       <div className="page-heading">
         <div>
           <span className="eyebrow">{workspace.name.toUpperCase()}</span>
-          <h1>A fresh start, {user.name.split(" ")[0] || "welcome"}.</h1>
-          <p>
-            Your business has a new home. Let’s get it ready for conversation.
-          </p>
+          <h1>
+            Your business at a glance, {user.name.split(" ")[0] || "welcome"}.
+          </h1>
+          <p>Track new enquiries, see results and keep conversations moving.</p>
         </div>
         <span className="role-pill">{workspace.role}</span>
       </div>
@@ -143,63 +136,72 @@ export default function OverviewPage() {
         <p className="loading-text">Loading workspace details…</p>
       ) : (
         <>
-          <section className="welcome-banner">
-            <div>
-              <span className="banner-kicker">
-                <span className="small-dot" /> YOUR WORKSPACE IS READY
-              </span>
-              <h2>
-                Big things start with
-                <br />a simple hello.
-              </h2>
-              <p>
-                Connect a channel, build your first automation, then let the AI
-                agent qualify and book while your team handles the rest.
-              </p>
-              <Link
-                href={`/w/${workspace.id}/automations`}
-                className="button dark"
-              >
-                Build an automation
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-            <div className="banner-art" aria-hidden="true">
-              <div className="orbit orbit-one" />
-              <div className="orbit orbit-two" />
-              <span className="floating-icon ig">
-                <Instagram size={30} />
-              </span>
-              <span className="floating-icon msg">
-                <MessageCircle size={28} />
-              </span>
-              <span className="floating-icon sparkle">
-                <Sparkles size={34} />
-              </span>
-              <span className="hello-card">
-                <span className="hello-dot" />
-                <span>Hello, possibilities.</span>
-                <Check size={16} />
-              </span>
-              <span className="art-star">✳</span>
-            </div>
-          </section>
+          {manager && !funnel?.unique_leads && (
+            <section className="welcome-banner">
+              <div>
+                <span className="banner-kicker">
+                  <span className="small-dot" /> YOUR NEXT STEP
+                </span>
+                <h2>
+                  Make your first
+                  <br />
+                  enquiry count.
+                </h2>
+                <p>
+                  Start with a pricing reply, a qualifying question or your
+                  booking link. Add your business knowledge and preview AI
+                  answers before turning them on.
+                </p>
+                <Link
+                  href={`/w/${workspace.id}/automations`}
+                  className="button dark"
+                >
+                  Choose a starter workflow
+                  <ArrowRight size={16} />
+                </Link>
+                <p>
+                  <Link href={`/w/${workspace.id}/agent`}>
+                    Set up and test your AI assistant →
+                  </Link>
+                </p>
+              </div>
+              <div className="banner-art" aria-hidden="true">
+                <div className="orbit orbit-one" />
+                <div className="orbit orbit-two" />
+                <span className="floating-icon ig">
+                  <Instagram size={30} />
+                </span>
+                <span className="floating-icon msg">
+                  <MessageCircle size={28} />
+                </span>
+                <span className="floating-icon sparkle">
+                  <Sparkles size={34} />
+                </span>
+                <span className="hello-card">
+                  <span className="hello-dot" />
+                  <span>Hello, possibilities.</span>
+                  <Check size={16} />
+                </span>
+                <span className="art-star">✳</span>
+              </div>
+            </section>
+          )}
           <div className="stats-grid">
             <Stat
-              icon={<Users size={19} />}
-              value={String(members)}
-              label="Workspace members"
-              detail="A shared home for your team"
+              icon={<CalendarCheck size={19} />}
+              value={funnel ? String(step("booked")) : "—"}
+              label="Leads booked"
+              detail={manager ? "This week" : "Visible to workspace admins"}
             />
             <Stat
-              icon={<MessageCircle size={19} />}
-              value={String(live.length)}
-              label="Live channels"
-              detail={`${connections.length - live.length} test or pending`}
+              icon={<CreditCard size={19} />}
+              value={funnel ? String(step("paid")) : "—"}
+              label="Paying leads"
+              detail={manager ? "This week" : "Visible to workspace admins"}
             />
             <Stat
               icon={<ShieldCheck size={19} />}
-              value={funnel ? String(step("dm") + step("comment")) : "Private"}
+              value={funnel ? String(funnel.unique_leads ?? "—") : "Private"}
               label={funnel ? "Leads this week" : "Workspace access"}
               detail={
                 funnel
@@ -256,8 +258,9 @@ export default function OverviewPage() {
               </div>
               <div className="channel-note">
                 <p>
-                  Live messaging needs Meta app credentials and review. Other
-                  channels are connected under Settings → Channels.
+                  Connect your Instagram account to receive enquiries. Manage
+                  other channels and reconnect accounts under Business tools →
+                  Integrations.
                 </p>
                 {manager && (
                   <button
@@ -265,7 +268,7 @@ export default function OverviewPage() {
                     onClick={connect}
                     disabled={feedback.busy}
                   >
-                    {feedback.busy ? "Connecting…" : "Test connection setup"}
+                    {feedback.busy ? "Connecting…" : "Connect Instagram"}
                     <ArrowRight size={15} />
                   </button>
                 )}
@@ -289,38 +292,43 @@ export default function OverviewPage() {
                 </div>
               )}
             </Panel>
-            <Panel
-              title="Workspace pulse"
-              aside={
-                <span className="pulse-icon">
-                  <Activity size={17} />
-                </span>
-              }
-              className="health-panel"
-            >
-              <p className="panel-subtitle">A live check on the essentials.</p>
-              {Object.entries(status?.checks || {}).map(([name, ok]) => (
-                <div className="health-row" key={name}>
-                  <span>
-                    {name === "database"
-                      ? "Data storage"
-                      : name === "redis"
-                        ? "Queue connection"
-                        : "Background worker"}
+            <details className="panel" style={{ alignSelf: "start" }}>
+              <summary>Connection and service status</summary>
+              <Panel
+                title="Workspace pulse"
+                aside={
+                  <span className="pulse-icon">
+                    <Activity size={17} />
                   </span>
-                  <span className={ok ? "health-ok" : "health-wait"}>
-                    <i />
-                    {ok ? "Connected" : "Waiting"}
-                  </span>
+                }
+                className="health-panel"
+              >
+                <p className="panel-subtitle">
+                  A live check on the essentials.
+                </p>
+                {Object.entries(status?.checks || {}).map(([name, ok]) => (
+                  <div className="health-row" key={name}>
+                    <span>
+                      {name === "database"
+                        ? "Data storage"
+                        : name === "redis"
+                          ? "Queue connection"
+                          : "Background worker"}
+                    </span>
+                    <span className={ok ? "health-ok" : "health-wait"}>
+                      <i />
+                      {ok ? "Connected" : "Waiting"}
+                    </span>
+                  </div>
+                ))}
+                <div className="health-foot">
+                  {status?.pending_jobs
+                    ? `${status.pending_jobs} background job(s) pending`
+                    : "No pending setup jobs"}
+                  <span>Refreshes every 15 seconds</span>
                 </div>
-              ))}
-              <div className="health-foot">
-                {status?.pending_jobs
-                  ? `${status.pending_jobs} background job(s) pending`
-                  : "No pending setup jobs"}
-                <span>Refreshes every 15 seconds</span>
-              </div>
-            </Panel>
+              </Panel>
+            </details>
           </div>
           <Panel
             title="Recent activity"

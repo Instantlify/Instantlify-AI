@@ -384,3 +384,6 @@ LOGGING = {
         for name in ["django.request", "django.server", "httpx", "httpcore"]
     },
 }
+
+# Password recovery links expire after one hour.
+PASSWORD_RESET_TIMEOUT = 3600

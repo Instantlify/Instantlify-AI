@@ -1,18 +1,6 @@
 "use client";
 
-/**
- * The five-step signup wizard: connect-instagram → workspace → team → integrations
- * → payment.
- *
- * Two things here are deliberate rather than incidental:
- *
- * 1. Every step transition reports itself to the funnel the console reads, from the
- *    same STEPS list the backend validates against — so the wizard and its funnel
- *    can never quietly drift apart.
- * 2. Progress is resumed from the server, not from local state. A wizard that
- *    restarts at step one whenever someone closes the tab reports worse funnel
- *    numbers than the product actually deserves.
- */
+/** Short setup; team, integrations and billing remain available in the workspace. */
 
 import { useRouter } from "next/navigation";
 import {
@@ -22,24 +10,8 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import {
-  ArrowRight,
-  Check,
-  CreditCard,
-  Instagram,
-  Plug,
-  ShieldCheck,
-  Users,
-} from "lucide-react";
-import {
-  api,
-  ApiError,
-  message,
-  type PlanCard,
-  type Workspace,
-} from "@/lib/api";
-import { startCheckout } from "@/lib/billing";
-import { PlanCards, type Interval } from "@/components/plans";
+import { ArrowRight, Check, Instagram, ShieldCheck } from "lucide-react";
+import { api, ApiError, message, type Workspace } from "@/lib/api";
 import { Brand } from "@/components/shell";
 import { ErrorNotice } from "@/components/ui";
 
@@ -131,7 +103,9 @@ export default function Onboarding() {
         setStep(
           connection === "connected" || connection === "test-connected"
             ? "workspace"
-            : (progress.step ?? STEPS[0]),
+            : progress.step === "connect-instagram"
+              ? "connect-instagram"
+              : "workspace",
         );
       } catch (err) {
         if (!controller.signal.aborted) setError(message(err));
@@ -144,10 +118,40 @@ export default function Onboarding() {
     if (step) track(step, "reached");
   }, [step, track]);
 
-  function advance(from: Step, status: "completed" | "skipped") {
+  async function advance(from: Step, status: "completed" | "skipped") {
     setBusy(false);
     setError("");
-    track(from, status);
+    if (from !== "workspace") track(from, status);
+    if (from === "workspace" && workspace) {
+      setBusy(true);
+      try {
+        // Persist completion before navigating; retain legacy funnel compatibility.
+        for (const name of [
+          "workspace",
+          "team",
+          "integrations",
+          "payment",
+        ] as const) {
+          await api("/api/growth/funnel/", "POST", {
+            flow: "wizard",
+            step: name,
+            status: name === "workspace" ? "completed" : "skipped",
+            workspace_id: workspace.id,
+          });
+        }
+        const query = new URLSearchParams(window.location.search);
+        const plan = query.get("plan");
+        router.replace(
+          plan
+            ? `/w/${workspace.id}/payments?plan=${encodeURIComponent(plan)}&interval=${query.get("interval") === "annual" ? "annual" : "monthly"}`
+            : `/w/${workspace.id}/overview`,
+        );
+      } catch (err) {
+        setError(message(err));
+        setBusy(false);
+      }
+      return;
+    }
     const next = STEPS[STEPS.indexOf(from) + 1];
     if (next) {
       setStep(next);
@@ -173,13 +177,14 @@ export default function Onboarding() {
       </div>
     );
 
-  const index = STEPS.indexOf(step);
+  const visibleSteps = STEPS.slice(0, 2);
+  const index = visibleSteps.indexOf(step);
   return (
     <div className="setup-screen">
       <Brand />
       <section className="setup-card wizard">
         <ol className="wizard-rail" aria-label="Setup progress">
-          {STEPS.map((name, position) => (
+          {visibleSteps.map((name, position) => (
             <li
               key={name}
               className={
@@ -212,35 +217,10 @@ export default function Onboarding() {
             busy={busy}
             setBusy={setBusy}
             setError={setError}
-            onDone={(saved) => {
+            onDone={async (saved) => {
               setWorkspace(saved);
-              advance("workspace", "completed");
+              await advance("workspace", "completed");
             }}
-          />
-        )}
-        {step === "team" && (
-          <TeamStep
-            workspaceId={workspace.id}
-            busy={busy}
-            setBusy={setBusy}
-            setError={setError}
-            onDone={() => advance("team", "completed")}
-            onSkip={() => advance("team", "skipped")}
-          />
-        )}
-        {step === "integrations" && (
-          <IntegrationsStep
-            workspaceId={workspace.id}
-            onSkip={() => advance("integrations", "skipped")}
-          />
-        )}
-        {step === "payment" && (
-          <PaymentStep
-            workspaceId={workspace.id}
-            busy={busy}
-            setBusy={setBusy}
-            setError={setError}
-            onSkip={() => advance("payment", "skipped")}
           />
         )}
       </section>
@@ -308,8 +288,9 @@ function ConnectStep({
         </span>
         <h1>{TITLES["connect-instagram"]}</h1>
         <p>
-          Connect an Instagram business account so your automations have
-          something to listen to.
+          Connect an Instagram business account so your automations have a
+          channel for customer enquiries. You can also connect later and explore
+          first.
         </p>
         <ol className="wizard-steps">
           <li>
@@ -336,14 +317,14 @@ function ConnectStep({
         </ol>
       </div>
       <div className="wizard-action">
-        <h2>One click and you&rsquo;re listening</h2>
+        <h2>Connect when you&rsquo;re ready</h2>
         <button className="button primary" onClick={connect} disabled={busy}>
           {busy ? "Opening Instagram…" : "Add Instagram account"}
           <ArrowRight size={15} />
         </button>
         <p className="wizard-trust">
-          <ShieldCheck size={14} /> Your tokens are encrypted at rest and never
-          shown again after connecting.
+          <ShieldCheck size={14} /> You stay in control of your connected
+          account and can disconnect it later.
         </p>
         <button className="button link" onClick={onSkip} disabled={busy}>
           I&rsquo;ll connect my account later
@@ -361,7 +342,7 @@ function WorkspaceStep({
   onDone,
 }: StepProps & {
   workspace: Workspace;
-  onDone: (saved: Workspace) => void;
+  onDone: (saved: Workspace) => Promise<void>;
 }) {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -374,7 +355,7 @@ function WorkspaceStep({
         "PATCH",
         { name },
       );
-      onDone(saved);
+      await onDone(saved);
     } catch (err) {
       setError(message(err));
     } finally {
@@ -389,8 +370,9 @@ function WorkspaceStep({
       </span>
       <h1>{TITLES.workspace}</h1>
       <p>
-        This is where your team, connected accounts and conversations live. You
-        can rename it at any time.
+        Name your business, then choose a starter workflow or test your AI
+        assistant. Team invitations, integrations and plans can wait until you
+        need them.
       </p>
       <form onSubmit={save}>
         <label>
@@ -405,203 +387,10 @@ function WorkspaceStep({
           />
         </label>
         <button className="button primary" disabled={busy}>
-          {busy ? "Saving…" : "Continue"}
+          {busy ? "Saving…" : "Open my workspace"}
           <ArrowRight size={15} />
         </button>
       </form>
-    </>
-  );
-}
-
-function TeamStep({
-  workspaceId,
-  busy,
-  setBusy,
-  setError,
-  onDone,
-  onSkip,
-}: StepProps & {
-  workspaceId: string;
-  onDone: () => void;
-  onSkip: () => void;
-}) {
-  const [invited, setInvited] = useState<string[]>([]);
-
-  async function invite(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const email = String(new FormData(form).get("email") ?? "");
-    setBusy(true);
-    setError("");
-    try {
-      await api(`/api/workspaces/${workspaceId}/invitations/`, "POST", {
-        email,
-        role: "agent",
-      });
-      setInvited((current) => [...current, email]);
-      form.reset();
-    } catch (err) {
-      setError(message(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <>
-      <span className="section-icon">
-        <Users size={24} />
-      </span>
-      <h1>{TITLES.team}</h1>
-      <p>
-        Teammates share this workspace&rsquo;s subscription and connected
-        accounts. Most people skip this and come back later.
-      </p>
-      <form onSubmit={invite}>
-        <label>
-          Teammate email
-          <input name="email" type="email" placeholder="teammate@company.com" />
-        </label>
-        <button className="button" disabled={busy}>
-          {busy ? "Sending…" : "Send invite"}
-        </button>
-      </form>
-      {invited.length > 0 && (
-        <ul className="wizard-invited">
-          {invited.map((email) => (
-            <li key={email}>
-              <Check size={13} /> {email}
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="wizard-footer">
-        <button className="button link" onClick={onSkip} disabled={busy}>
-          Skip for now
-        </button>
-        <button className="button primary" onClick={onDone} disabled={busy}>
-          Continue
-          <ArrowRight size={15} />
-        </button>
-      </div>
-    </>
-  );
-}
-
-function IntegrationsStep({
-  workspaceId,
-  onSkip,
-}: {
-  workspaceId: string;
-  onSkip: () => void;
-}) {
-  return (
-    <>
-      <span className="section-icon">
-        <Plug size={24} />
-      </span>
-      <h1>{TITLES.integrations}</h1>
-      <p>
-        Calendars, CRMs and Slack let your automations book calls and record
-        what happened. You can add these whenever you need them.
-      </p>
-      <div className="wizard-footer">
-        <button className="button link" onClick={onSkip}>
-          Skip for now
-        </button>
-        <a
-          className="button primary"
-          href={`/w/${workspaceId}/integrations`}
-          onClick={onSkip}
-        >
-          Browse integrations
-          <ArrowRight size={15} />
-        </a>
-      </div>
-    </>
-  );
-}
-
-function PaymentStep({
-  workspaceId,
-  busy,
-  setBusy,
-  setError,
-  onSkip,
-}: StepProps & { workspaceId: string; onSkip: () => void }) {
-  const [plans, setPlans] = useState<PlanCard[]>([]);
-  const [interval, setInterval] = useState<Interval>("monthly");
-  const [chosen, setChosen] = useState("");
-  const [preferredPlan, setPreferredPlan] = useState("");
-  const [trialDays, setTrialDays] = useState(0);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    api<{ plans: PlanCard[]; trial_days: number }>(
-      "/api/public/plans/",
-      "GET",
-      undefined,
-      controller.signal,
-    )
-      .then((body) => {
-        const query = new URLSearchParams(window.location.search);
-        const preferred = query.get("plan");
-        setPlans(body.plans);
-        setTrialDays(body.trial_days);
-        if (query.get("interval") === "annual") setInterval("annual");
-        setPreferredPlan(
-          body.plans.find((plan) => plan.slug === preferred)?.name || "",
-        );
-      })
-      .catch((err) => {
-        if (!controller.signal.aborted) setError(message(err));
-      });
-    return () => controller.abort();
-  }, [setError]);
-
-  async function choose(slug: string, chosenInterval: Interval) {
-    setBusy(true);
-    setChosen(slug);
-    setError("");
-    try {
-      const url = await startCheckout(`/api/workspaces/${workspaceId}`, {
-        kind: "checkout",
-        plan: slug,
-        interval: chosenInterval,
-      });
-      window.location.href = url;
-    } catch (err) {
-      setError(message(err));
-      setBusy(false);
-      setChosen("");
-    }
-  }
-
-  return (
-    <>
-      <span className="section-icon">
-        <CreditCard size={24} />
-      </span>
-      <h1>{TITLES.payment}</h1>
-      <p>
-        {preferredPlan
-          ? `You selected ${preferredPlan}. Review your plan below before continuing.`
-          : "Choose the plan that fits your business. Review the current features and billing interval below."}
-      </p>
-      <PlanCards
-        plans={plans.filter((plan) => plan.slug !== "free")}
-        interval={interval}
-        onInterval={setInterval}
-        onChoose={choose}
-        busySlug={chosen}
-        cta="Choose plan"
-        trialDays={trialDays}
-      />
-      <div className="wizard-footer">
-        <button className="button link" onClick={onSkip} disabled={busy}>
-          I&rsquo;ll decide later
-        </button>
-      </div>
     </>
   );
 }

@@ -209,8 +209,13 @@ export type AgentAudit = {
   }[];
 };
 
-export type FunnelStep = { kind: string; leads: number; conversion: number };
+export type FunnelStep = {
+  kind: string;
+  leads: number;
+  conversion: number | null;
+};
 export type Funnel = {
+  unique_leads: number;
   period: string;
   since: string;
   steps: FunnelStep[];

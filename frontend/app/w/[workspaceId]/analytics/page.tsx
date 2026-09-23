@@ -107,7 +107,7 @@ export default function AnalyticsPage() {
     );
 
   const step = (kind: string) => funnel?.steps.find((s) => s.kind === kind);
-  const leads = (step("comment")?.leads ?? 0) + (step("dm")?.leads ?? 0);
+  const leads = funnel?.unique_leads ?? 0;
   const maxLeads = Math.max(1, ...(funnel?.steps.map((s) => s.leads) ?? [1]));
 
   return (
@@ -162,19 +162,27 @@ export default function AnalyticsPage() {
               icon={<Users size={19} />}
               value={String(leads)}
               label="Leads"
-              detail="Comments and DMs"
+              detail="Unique people across comments and DMs"
             />
             <Stat
               icon={<CalendarCheck size={19} />}
               value={String(step("booked")?.leads ?? 0)}
               label="Calls booked"
-              detail={`${percent(step("booked")?.conversion ?? 0)} of replied`}
+              detail={
+                step("booked")?.conversion == null
+                  ? "No earlier replied leads in this period"
+                  : `${percent(step("booked")!.conversion!)} of replied leads later booked`
+              }
             />
             <Stat
               icon={<CreditCard size={19} />}
               value={String(step("paid")?.leads ?? 0)}
               label="Paid"
-              detail={`${percent(step("paid")?.conversion ?? 0)} of booked`}
+              detail={
+                step("paid")?.conversion == null
+                  ? "No earlier booked leads in this period"
+                  : `${percent(step("paid")!.conversion!)} of booked leads later paid`
+              }
             />
             <Stat
               icon={<Coins size={19} />}
@@ -184,6 +192,11 @@ export default function AnalyticsPage() {
             />
           </div>
           <Panel title="Funnel" aside={`Period: ${funnel.period}`}>
+            <p className="panel-subtitle">
+              Counts show unique people at each stage. Percentages track people
+              who reached the preceding stage first, within this period.
+              Comments and DMs are separate entry points.
+            </p>
             <div className="funnel">
               {funnel.steps.map((item) => (
                 <div className="funnel-step" key={item.kind}>
@@ -195,7 +208,9 @@ export default function AnalyticsPage() {
                     {item.leads}
                     <span className="muted-text">
                       {" "}
-                      · {percent(item.conversion)}
+                      {item.conversion == null
+                        ? ""
+                        : `· ${percent(item.conversion)}`}
                     </span>
                   </strong>
                 </div>

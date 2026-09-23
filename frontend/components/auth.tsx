@@ -316,6 +316,11 @@ function Auth({
               <ArrowRight size={17} />
             </button>
           </form>
+          {!signup && (
+            <p>
+              <Link href="/auth/reset/">Forgot your password?</Link>
+            </p>
+          )}
           <div className="secure-note">
             <ShieldCheck size={15} /> A secure home for your team and
             conversations.
