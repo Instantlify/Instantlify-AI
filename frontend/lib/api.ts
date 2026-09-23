@@ -1,4 +1,9 @@
-export type User = { id: number; name: string; email: string };
+export type User = {
+  id: number;
+  name: string;
+  email: string;
+  email_verified?: boolean;
+};
 export type Branding = {
   brand_name: string;
   logo_url: string;

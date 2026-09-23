@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { api, message, type Workspace } from "@/lib/api";
 import { Announcements } from "@/components/growth";
+import { VerifyBanner } from "@/components/verify-banner";
 import { useWorkspace } from "@/lib/workspace";
 import { ErrorNotice } from "./ui";
 import { UpgradePrompt } from "./plans";
@@ -253,6 +254,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </button>
         </header>
         <main className="main-content">
+          <VerifyBanner user={user} />
           <Announcements workspaceId={workspace.id} page={section} />
           <ErrorNotice error={error} />
           {children}

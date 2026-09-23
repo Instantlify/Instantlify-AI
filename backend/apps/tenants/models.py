@@ -13,6 +13,9 @@ class User(AbstractUser):
     is_banned = models.BooleanField(default=False)
     banned_at = models.DateTimeField(null=True, blank=True)
     ban_reason = models.CharField(max_length=300, blank=True)
+    # Proof the signup controls this address. Null until confirmed; see
+    # tenants.verification for what it gates.
+    email_verified_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(Lower("email"), name="user_email_ci_unique")]

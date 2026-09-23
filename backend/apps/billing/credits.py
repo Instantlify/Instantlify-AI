@@ -239,6 +239,33 @@ def credit(workspace_id, *, key, amount_cents, type, payment_intent="", descript
     )
 
 
+def grant_signup_credit(workspace_id):
+    """The welcome balance that lets a new workspace try the AI before paying.
+
+    Without it `billing_mode="platform_credits"` (the default) starts at zero, so the
+    first thing a new signup meets is a card form, and nobody reaches the product they
+    came to evaluate. Nemio pays the provider for this, so it is handed out only once
+    per workspace, only after the owner confirmed their address (see
+    tenants.verification), and only to workspaces that are not an agency's clients:
+    a reseller's child balances resolve to the parent, so granting there would pay
+    the same agency once per workspace it creates.
+    """
+    from apps.tenants.models import Workspace
+
+    amount = getattr(settings, "SIGNUP_CREDIT_CENTS", 0)
+    if amount <= 0:
+        return None
+    if Workspace.objects.filter(pk=workspace_id, parent__isnull=False).exists():
+        return None
+    return credit(
+        workspace_id,
+        key=f"signup-grant:{workspace_id}",
+        amount_cents=amount,
+        type="adjustment",
+        description="Welcome credit",
+    )
+
+
 def create_topup_session(job, account):
     """Stripe Checkout for a manual top-up. The card is saved for off-session auto
     top-ups; the pending ledger row is the metadata key the webhook routes on."""

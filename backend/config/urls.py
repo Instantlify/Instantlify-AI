@@ -33,6 +33,7 @@ from apps.tenants.invitations import (
     InvitationListView,
 )
 from apps.tenants.recovery import PasswordResetConfirmView, PasswordResetRequestView
+from apps.tenants.verification import ResendVerificationView, VerifyEmailView
 from apps.tenants.views import (
     AuditListView,
     CSRFView,
@@ -63,6 +64,8 @@ urlpatterns = [
     path("api/auth/login/", LoginView.as_view()),
     path("api/auth/password-reset/", PasswordResetRequestView.as_view()),
     path("api/auth/password-reset/confirm/", PasswordResetConfirmView.as_view()),
+    path("api/auth/verify-email/", VerifyEmailView.as_view()),
+    path("api/auth/verify-email/resend/", ResendVerificationView.as_view()),
     path("api/auth/logout/", LogoutView.as_view()),
     path("api/auth/me/", MeView.as_view()),
     path("api/auth/token/", JWTLoginView.as_view()),

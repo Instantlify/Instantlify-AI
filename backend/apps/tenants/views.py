@@ -62,6 +62,9 @@ class SignupView(APIView):
                 {"detail": "Unable to create this account. Try signing in."}, status=400
             )
         login(request, user, backend="apps.tenants.auth.BanAwareBackend")
+        from .verification import send_verification
+
+        send_verification(user)
         # Close the marketing loop: this signup belongs to the visit session that
         # produced it, so a landing page's conversion is measurable end to end.
         # Tracking must never be able to fail a signup.
@@ -75,7 +78,15 @@ class SignupView(APIView):
             )
         except Exception:  # noqa: BLE001 - attribution is best effort, signup is not
             pass
-        return Response({"id": user.id, "name": user.first_name, "email": user.email}, status=201)
+        return Response(
+            {
+                "id": user.id,
+                "name": user.first_name,
+                "email": user.email,
+                "email_verified": False,
+            },
+            status=201,
+        )
 
 
 @method_decorator(csrf_protect, name="dispatch")
@@ -91,7 +102,14 @@ class LoginView(SignupView):
         if user is None:
             return Response({"detail": "Email or password is incorrect."}, status=401)
         login(request, user)
-        return Response({"id": user.id, "name": user.first_name, "email": user.email})
+        return Response(
+            {
+                "id": user.id,
+                "name": user.first_name,
+                "email": user.email,
+                "email_verified": bool(user.email_verified_at),
+            }
+        )
 
 
 class LogoutView(APIView):
@@ -103,7 +121,12 @@ class LogoutView(APIView):
 class MeView(APIView):
     def get(self, request):
         return Response(
-            {"id": request.user.id, "name": request.user.first_name, "email": request.user.email}
+            {
+                "id": request.user.id,
+                "name": request.user.first_name,
+                "email": request.user.email,
+                "email_verified": bool(request.user.email_verified_at),
+            }
         )
 
 
