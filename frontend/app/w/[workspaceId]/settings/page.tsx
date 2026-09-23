@@ -364,11 +364,17 @@ export default function SettingsPage() {
                         borderRadius: 6,
                         fontSize: "0.875rem",
                         background:
-                          verifyNotice.tone === "success" ? "#ecfdf5" : "#fef2f2",
+                          verifyNotice.tone === "success"
+                            ? "#ecfdf5"
+                            : "#fef2f2",
                         color:
-                          verifyNotice.tone === "success" ? "#065f46" : "#991b1b",
+                          verifyNotice.tone === "success"
+                            ? "#065f46"
+                            : "#991b1b",
                         border: `1px solid ${
-                          verifyNotice.tone === "success" ? "#a7f3d0" : "#fecaca"
+                          verifyNotice.tone === "success"
+                            ? "#a7f3d0"
+                            : "#fecaca"
                         }`,
                       }}
                     >
@@ -388,7 +394,8 @@ export default function SettingsPage() {
                     >
                       <p style={{ margin: 0 }}>
                         Configure one of the following DNS records with your
-                        registrar to verify ownership and activate on-demand TLS:
+                        registrar to verify ownership and activate on-demand
+                        TLS:
                       </p>
                       <div
                         style={{
@@ -482,7 +489,8 @@ export default function SettingsPage() {
           >
             <p className="panel-subtitle">
               This workspace is managed under an agency. Subscription plan tier,
-              limits, and prepaid AI credits roll up to your parent organization.
+              limits, and prepaid AI credits roll up to your parent
+              organization.
             </p>
           </Panel>
         )}
