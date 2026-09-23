@@ -150,6 +150,10 @@ def adapter_for(connection):
         return FakeChannelAdapter()
     if settings.CHANNEL_ADAPTER_MODE != "live":
         raise IntegrationUnavailable("Live connections are disabled")
+    if connection.provider == "linkedin" and not settings.LINKEDIN_MESSAGING_APPROVED:
+        raise IntegrationUnavailable(
+            "LinkedIn messaging access for this app has not been confirmed"
+        )
     from .instagram import LiveInstagramAdapter
     from .providers import LinkedInAdapter, MessengerAdapter, TelegramAdapter, WhatsAppAdapter
 

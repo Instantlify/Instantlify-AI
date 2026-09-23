@@ -105,6 +105,12 @@ class TelegramAdapter(InstagramAdapter):
 
 
 class LinkedInAdapter:
+    """Unproven against a real account. LinkedIn does not hand out messaging access to
+    ordinary apps, so `adapters.adapter_for` refuses this provider unless
+    LINKEDIN_MESSAGING_APPROVED says the grant was confirmed. Verify the endpoint and
+    payload below against the app's own documentation before turning that on.
+    """
+
     def __init__(self, connection):
         self.connection = connection
 

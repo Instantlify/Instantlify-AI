@@ -132,3 +132,39 @@ def test_snapchat_webhook(client, workspace):
     assert lead.name == "Sarah Influencer"
     assert "snapchat" in lead.tags
     assert Message.objects.for_workspace(workspace).filter(direction="inbound").exists()
+
+
+@pytest.mark.django_db
+def test_live_linkedin_is_refused_until_messaging_access_is_confirmed(client, workspace, settings):
+    """Credentials do not mean LinkedIn will accept sends: /v2/messages needs granted
+    access. Taking the connection anyway would leave every reply failing after the
+    customer believed the channel was live."""
+    settings.CHANNEL_ADAPTER_MODE = "live"
+    settings.LINKEDIN_CLIENT_ID = "li-client"
+    settings.LINKEDIN_CLIENT_SECRET = "li-secret"
+    settings.LINKEDIN_MESSAGING_APPROVED = False
+
+    res = client.post(f"/api/workspaces/{workspace.id}/linkedin/connect/")
+    assert res.status_code == 503
+    assert "not available yet" in res.json()["detail"]
+
+    settings.LINKEDIN_MESSAGING_APPROVED = True
+    assert client.post(f"/api/workspaces/{workspace.id}/linkedin/connect/").status_code == 200
+
+    connection = ChannelConnection.objects.for_workspace(workspace).create(
+        workspace=workspace,
+        provider="linkedin",
+        external_account_id="urn:li:organization:1",
+        display_name="Acme",
+        access_token="tok",
+        expires_at=timezone.now(),
+        status="active",
+    )
+    from apps.channels.adapters import IntegrationUnavailable, adapter_for
+
+    assert adapter_for(connection) is not None
+    # Sends stop too, not just new connections: a channel connected while the flag was
+    # on must not keep delivering after it is turned back off.
+    settings.LINKEDIN_MESSAGING_APPROVED = False
+    with pytest.raises(IntegrationUnavailable):
+        adapter_for(connection)

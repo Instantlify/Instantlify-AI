@@ -141,8 +141,16 @@ const PROVIDERS: Record<string, ProviderSpec> = {
 const CHANNEL_PROVIDERS = [
   { id: "whatsapp", label: "WhatsApp Business", account: "Phone number ID" },
   { id: "telegram", label: "Telegram Bot", account: "Bot user ID" },
-  { id: "snapchat", label: "Snapchat Lead Ads", account: "Ad Account or Form ID" },
-  { id: "linkedin", label: "LinkedIn Company Page", account: "Organization URN" },
+  {
+    id: "snapchat",
+    label: "Snapchat Lead Ads",
+    account: "Ad Account or Form ID",
+  },
+  {
+    id: "linkedin",
+    label: "LinkedIn Company Page",
+    account: "Organization URN",
+  },
   { id: "messenger", label: "Facebook Messenger", account: "Page ID" },
 ];
 
@@ -255,11 +263,16 @@ export default function IntegrationsPage() {
     const conn = params.get("connection");
     const result = params.get("integration");
     if (conn) {
-      if (conn === "connected") feedback.setNotice("Channel connected successfully.");
+      if (conn === "connected")
+        feedback.setNotice("Channel connected successfully.");
       else if (conn === "test-connected")
-        feedback.setNotice("Channel connected in local test mode (CHANNEL_ADAPTER_MODE=fake).");
+        feedback.setNotice(
+          "Channel connected in local test mode (CHANNEL_ADAPTER_MODE=fake).",
+        );
       else if (conn === "limit")
-        feedback.setError("Your plan's connected-account limit has been reached.");
+        feedback.setError(
+          "Your plan's connected-account limit has been reached.",
+        );
       else if (conn === "cancelled")
         feedback.setError("Channel connection was cancelled.");
       url.searchParams.delete("connection");
@@ -270,7 +283,8 @@ export default function IntegrationsPage() {
       const label =
         PROVIDERS[params.get("provider") || ""]?.label || "Integration";
       const text = `${label} ${OAUTH_RESULTS[result] || "sign-in finished."}`;
-      if (result === "cancelled" || result === "failed") feedback.setError(text);
+      if (result === "cancelled" || result === "failed")
+        feedback.setError(text);
       else feedback.setNotice(text);
       url.searchParams.delete("integration");
       url.searchParams.delete("provider");
@@ -631,14 +645,29 @@ export default function IntegrationsPage() {
                 </Empty>
               )}
               <details style={{ marginTop: 20 }}>
-                <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--muted)", fontSize: "0.9rem" }}>
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    color: "var(--muted)",
+                    fontSize: "0.9rem",
+                  }}
+                >
                   Advanced: Webhook URLs for Custom Apps & Verification
                 </summary>
                 <div style={{ marginTop: 12 }}>
                   <p className="muted-text">
-                    For custom apps or developers hosting their own webhook subscriptions. Telegram and LinkedIn register webhooks automatically.
+                    For custom apps or developers hosting their own webhook
+                    subscriptions. Telegram and LinkedIn register webhooks
+                    automatically.
                   </p>
-                  {["instagram", "whatsapp", "messenger", "linkedin", "snapchat"].map((provider) => (
+                  {[
+                    "instagram",
+                    "whatsapp",
+                    "messenger",
+                    "linkedin",
+                    "snapchat",
+                  ].map((provider) => (
                     <CopyField
                       key={provider}
                       label={`${provider} webhook URL`}
@@ -652,7 +681,8 @@ export default function IntegrationsPage() {
               <Panel title="Connect a channel">
                 <div style={{ marginBottom: 20 }}>
                   <p className="muted-text" style={{ marginBottom: 12 }}>
-                    Connect your business accounts with one click. No developer tokens or technical setup required.
+                    Connect your business accounts with one click. No developer
+                    tokens or technical setup required.
                   </p>
                   <div className="row wrap" style={{ gap: 10 }}>
                     <button
@@ -674,13 +704,35 @@ export default function IntegrationsPage() {
                       Connect LinkedIn Page
                     </button>
                   </div>
+                  <p className="muted-text" style={{ marginTop: 8 }}>
+                    LinkedIn needs granted messaging access on your LinkedIn
+                    app. Until that is confirmed, connecting is declined rather
+                    than accepted and left unable to deliver.
+                  </p>
                 </div>
 
-                <details style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
-                  <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--muted)", fontSize: "0.9rem" }}>
+                <details
+                  style={{
+                    marginTop: 16,
+                    borderTop: "1px solid var(--border)",
+                    paddingTop: 14,
+                  }}
+                >
+                  <summary
+                    style={{
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      color: "var(--muted)",
+                      fontSize: "0.9rem",
+                    }}
+                  >
                     Advanced: Manual Credentials & Developer Channels
                   </summary>
-                  <form className="form-grid" onSubmit={connectChannel} style={{ marginTop: 14 }}>
+                  <form
+                    className="form-grid"
+                    onSubmit={connectChannel}
+                    style={{ marginTop: 14 }}
+                  >
                     <label>
                       Provider
                       <select name="provider" defaultValue="whatsapp">
@@ -727,7 +779,10 @@ export default function IntegrationsPage() {
                       Create a local test channel (no provider calls)
                     </label>
                     <div className="form-actions">
-                      <button className="button primary" disabled={feedback.busy}>
+                      <button
+                        className="button primary"
+                        disabled={feedback.busy}
+                      >
                         Connect
                         <Plus size={16} />
                       </button>

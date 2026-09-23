@@ -218,6 +218,15 @@ class LinkedInOAuthStartView(APIView):
                 {"detail": "Configure LinkedIn credentials and live channel mode first."},
                 status=503,
             )
+        if settings.CHANNEL_ADAPTER_MODE == "live" and not settings.LINKEDIN_MESSAGING_APPROVED:
+            # Refuse the connection rather than take it and fail every send afterwards.
+            return Response(
+                {
+                    "detail": "LinkedIn messaging is not available yet. It needs granted "
+                    "messaging access on the LinkedIn app, confirmed against a real account."
+                },
+                status=503,
+            )
         state = secrets.token_urlsafe(32)
         OAuthState.objects.for_workspace(member.workspace).create(
             workspace=member.workspace,
