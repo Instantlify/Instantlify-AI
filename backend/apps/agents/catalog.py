@@ -11,8 +11,8 @@ PLATFORM_MODELS = [
         "label": "GPT-5.4 Mini",
         "badge": "Recommended · Fast",
         "description": "Fast, smart, and cost-effective. Best for high-volume sales qualification, customer support, and instant lead capture.",
-        "default_our_input": Decimal("60.00"),   # cents / 1M ($0.60)
-        "default_our_output": Decimal("240.00"), # cents / 1M ($2.40)
+        "default_our_input": Decimal("60.00"),  # cents / 1M ($0.60)
+        "default_our_output": Decimal("240.00"),  # cents / 1M ($2.40)
     },
     {
         "id": "claude-sonnet-5",
@@ -21,7 +21,7 @@ PLATFORM_MODELS = [
         "badge": "High Intelligence",
         "description": "Deep conversational nuance, human-like empathy, and multi-step reasoning. Best for consultative sales and complex deals.",
         "default_our_input": Decimal("300.00"),  # $3.00
-        "default_our_output": Decimal("1500.00"),# $15.00
+        "default_our_output": Decimal("1500.00"),  # $15.00
     },
     {
         "id": "gemini-2.5-flash",
@@ -29,8 +29,8 @@ PLATFORM_MODELS = [
         "label": "Gemini 2.5 Flash",
         "badge": "Ultra Fast",
         "description": "Sub-second response speed with high throughput. Keeps inbound prospects instantly engaged without lag.",
-        "default_our_input": Decimal("30.00"),   # $0.30
-        "default_our_output": Decimal("120.00"), # $1.20
+        "default_our_input": Decimal("30.00"),  # $0.30
+        "default_our_output": Decimal("120.00"),  # $1.20
     },
     {
         "id": "grok-beta",
@@ -38,8 +38,8 @@ PLATFORM_MODELS = [
         "label": "xAI Grok",
         "badge": "Direct & Punchy",
         "description": "Punchy, modern conversational style. Well suited for creator brands, direct response, and dynamic social DMs.",
-        "default_our_input": Decimal("80.00"),   # $0.80
-        "default_our_output": Decimal("320.00"), # $3.20
+        "default_our_input": Decimal("80.00"),  # $0.80
+        "default_our_output": Decimal("320.00"),  # $3.20
     },
 ]
 

@@ -61,5 +61,6 @@ class CheckDomainTLSView(APIView):
             return Response({"domain": domain, "allowed": True}, status=200)
 
         log.info("Caddy TLS on-demand check rejected unauthorized domain: %s", domain)
-        return Response({"domain": domain, "allowed": False, "error": "unauthorized_domain"}, status=404)
-
+        return Response(
+            {"domain": domain, "allowed": False, "error": "unauthorized_domain"}, status=404
+        )

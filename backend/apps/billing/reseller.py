@@ -43,6 +43,4 @@ def get_parent_agency(workspace_id: UUID | str) -> Workspace | None:
 def effective_billing_account(workspace_id: UUID | str) -> BillingAccount:
     """Returns the BillingAccount responsible for this workspace (agency or self)."""
     target_id = effective_billing_workspace_id(workspace_id)
-    return BillingAccount.objects.for_workspace(target_id).get_or_create(
-        workspace_id=target_id
-    )[0]
+    return BillingAccount.objects.for_workspace(target_id).get_or_create(workspace_id=target_id)[0]

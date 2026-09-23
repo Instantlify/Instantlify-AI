@@ -338,4 +338,3 @@ def test_platform_models_catalog_and_endpoint(client, workspace, config):
     res_models = client.get(f"/api/workspaces/{workspace.pk}/agent/models/")
     assert res_models.status_code == 200
     assert len(res_models.json()) >= 4
-

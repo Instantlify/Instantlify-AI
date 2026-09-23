@@ -183,7 +183,9 @@ def linkedin_webhook(request):
     try:
         payload = json.loads(request.body)
         events = []
-        elements = payload.get("elements") if isinstance(payload.get("elements"), list) else [payload]
+        elements = (
+            payload.get("elements") if isinstance(payload.get("elements"), list) else [payload]
+        )
         for entry in elements:
             account_id = str(
                 entry.get("organization") or entry.get("recipient") or "urn:li:organization:123456"
@@ -265,11 +267,7 @@ def snapchat_webhook(request):
                 },
             )
             lead = (
-                Lead.objects.for_workspace(workspace)
-                .filter(email=email)
-                .first()
-                if email
-                else None
+                Lead.objects.for_workspace(workspace).filter(email=email).first() if email else None
             )
             if not lead:
                 lead = Lead.objects.for_workspace(workspace).create(

@@ -13,9 +13,7 @@ def account_for(workspace_id):
     from .reseller import effective_billing_workspace_id
 
     target_id = effective_billing_workspace_id(workspace_id)
-    return BillingAccount.objects.for_workspace(target_id).get_or_create(
-        workspace_id=target_id
-    )[0]
+    return BillingAccount.objects.for_workspace(target_id).get_or_create(workspace_id=target_id)[0]
 
 
 @transaction.atomic
