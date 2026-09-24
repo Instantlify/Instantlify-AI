@@ -98,11 +98,13 @@ def send_plan_changed(workspace_id):
 
 def send_manage_link(account, membership):
     """Creates the portal session at send time; the URL is single-use and short-lived."""
+    from .services import payments_url
+
     if not (settings.STRIPE_SECRET_KEY and account.customer_id):
         raise ValueError("This workspace has no Stripe customer yet.")
     session = stripe.billing_portal.Session.create(
         customer=account.customer_id,
-        return_url=f"{settings.PUBLIC_APP_URL}/w/{account.workspace_id}/payments",
+        return_url=payments_url(account.workspace_id),
         api_key=settings.STRIPE_SECRET_KEY,
     )
     return _send("manage-subscription-link", membership, {"portal_url": session.url})

@@ -18,6 +18,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .models import AICreditBalance, AICreditTransaction, ModelPricingRate
+from .services import payments_url
 
 MILLION = Decimal(1_000_000)
 CENT = Decimal("0.0001")
@@ -297,8 +298,10 @@ def create_topup_session(job, account):
             "metadata": {"workspace_id": str(job.workspace_id)},
         },
         metadata={"nemio_credit_topup": str(pending.pk), "workspace": str(job.workspace_id)},
-        success_url=settings.PUBLIC_APP_URL + "?credits=success",
-        cancel_url=settings.PUBLIC_APP_URL + "?credits=cancelled",
+        # job.workspace_id, not the account's: a reseller's client pays from their own
+        # workspace and must come back to it, not to the agency parent.
+        success_url=payments_url(job.workspace_id, "?credits=success"),
+        cancel_url=payments_url(job.workspace_id, "?credits=cancelled"),
         idempotency_key=str(job.id),
     )
 

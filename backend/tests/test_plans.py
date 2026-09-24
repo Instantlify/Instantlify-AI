@@ -236,3 +236,30 @@ def test_a_tier_with_subscribers_cannot_be_deleted(workspace):
     plan = set_limits(workspace)
     with pytest.raises(ProtectedError):
         plan.delete()
+
+
+def test_stripe_returns_land_in_the_workspace_not_on_the_marketing_page(workspace, settings):
+    """PUBLIC_APP_URL is the anonymous marketing page: it offers "Sign in" and "Get
+    started" whatever the session says, so someone who just paid reads it as having been
+    signed out. Every Stripe return has to come back to their own Payments page."""
+    from apps.billing.services import payments_url
+
+    settings.PUBLIC_APP_URL = "https://app.example.com"
+    url = payments_url(workspace.pk, "?billing=success")
+    assert url == f"https://app.example.com/w/{workspace.pk}/payments?billing=success"
+    assert payments_url(workspace.pk).endswith(f"/w/{workspace.pk}/payments")
+
+
+def test_no_stripe_return_points_at_the_bare_app_url():
+    """A regression guard: these are easy to write as PUBLIC_APP_URL + "?x=y" and the
+    mistake is invisible until someone pays."""
+    import re
+    from pathlib import Path
+
+    billing = Path(__file__).resolve().parent.parent / "apps" / "billing"
+    offenders = []
+    for source in billing.glob("*.py"):
+        for number, line in enumerate(source.read_text(encoding="utf-8").splitlines(), 1):
+            if re.search(r"(success_url|cancel_url|return_url)\s*=\s*.*PUBLIC_APP_URL", line):
+                offenders.append(f"{source.name}:{number}")
+    assert not offenders, f"Use payments_url() instead of PUBLIC_APP_URL at: {offenders}"
