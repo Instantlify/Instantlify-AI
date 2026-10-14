@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "e3130365-a8ad-4d66-8ff4-7910c0528431",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "C:\\Users\\OC\\Desktop\\Nemio AI\\.archify\\workflow-nemio-client-process-20261006-110800\\candidate.json",
+  "output": "C:\\Users\\OC\\Desktop\\Nemio AI\\.archify\\workflow-nemio-client-process-20261006-110800\\client-process.html",
+  "specification": {
+    "sha256": "4455648ccdb548a23171e0bc931c9eebcb1c2a5c9a924b8a27770ee2c0e9aafc",
+    "bytes": 6497
+  },
+  "artifact": {
+    "sha256": "4455a9f855e902913118549e6530d0d0e4e6d71a7dd0dc87123625f8277bc119",
+    "bytes": 785605
+  }
+}

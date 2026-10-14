@@ -106,6 +106,198 @@ test("pricing outage recovers on retry", async ({ page }) => {
   await expect(page.locator(".plan-price")).toContainText("$49");
 });
 
+test("conversation previews advance and switch without sending messages", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const demo = page.locator("#interactive-demo .nm-demo");
+  await demo.getByRole("button", { name: "Simulate customer reply" }).click();
+  await expect(
+    demo.getByText("Following up with people interested in my services."),
+  ).toBeVisible();
+  await demo.getByRole("button", { name: "Run the next step" }).click();
+  await expect(
+    demo.getByText("Resource delivered · Interest tagged"),
+  ).toBeVisible();
+  await page.getByRole("button", { name: /AI qualification/ }).click();
+  await expect(
+    demo.getByText("Can you help our team automate sales enquiries?"),
+  ).toBeVisible();
+  await expect(
+    demo.getByRole("button", { name: "Simulate customer reply" }),
+  ).toBeVisible();
+  await expect(
+    demo.getByText("Resource delivered · Interest tagged"),
+  ).toHaveCount(0);
+});
+
+test("integration search combines with category and handles empty results", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const directory = page.locator("#integrations");
+  await directory.getByRole("button", { name: "CRM", exact: true }).click();
+  await expect(directory.locator("article")).toHaveCount(4);
+  await page
+    .getByRole("searchbox", { name: "Search integrations" })
+    .fill("notion");
+  await expect(directory.locator("article")).toHaveCount(1);
+  await expect(
+    directory.getByRole("heading", { name: "Notion" }),
+  ).toBeVisible();
+  await page
+    .getByRole("searchbox", { name: "Search integrations" })
+    .fill("no-such-tool");
+  await expect(directory.getByText(/No matching integrations/)).toBeVisible();
+  await page.getByRole("searchbox", { name: "Search integrations" }).fill("");
+  await directory.getByRole("button", { name: "All", exact: true }).click();
+  await expect(directory.locator("article")).toHaveCount(17);
+});
+
+test("mobile menu, audience examples and planned features are clear", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await expect(
+    page
+      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("link", { name: "Integrations" }),
+  ).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name: "Integrations" })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Open navigation" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Agencies", exact: true }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "A workspace for every client relationship.",
+    }),
+  ).toBeVisible();
+  const moderation = page
+    .locator("#toolkit article")
+    .filter({ hasText: "Comment moderation" });
+  await expect(moderation.getByText("Planned", { exact: true })).toBeVisible();
+  await expect(moderation.getByRole("link")).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+});
+
+test("detailed channel previews, builder and agent controls work", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const channels = page.getByRole("group", { name: "Channel details" });
+  await channels.getByRole("button", { name: "WhatsApp", exact: true }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Keep the conversation close to your customer.",
+    }),
+  ).toBeVisible();
+  await channels.getByRole("button", { name: "Telegram", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "A helpful assistant behind your bot." }),
+  ).toBeVisible();
+  const builder = page.locator("#flow-builder");
+  await builder.getByRole("button", { name: "Run example flow" }).click();
+  await expect(builder.locator(".nd-node.ran")).toHaveCount(1);
+  for (let i = 0; i < 3; i++)
+    await builder.getByRole("button", { name: "Continue example" }).click();
+  await expect(builder.getByText("Example workflow complete")).toBeVisible();
+  await builder.getByRole("button", { name: "Reset example" }).click();
+  await expect(builder.locator(".nd-node.ran")).toHaveCount(0);
+  await page
+    .getByRole("group", { name: "Agent preview" })
+    .getByRole("button", { name: "Actions", exact: true })
+    .click();
+  await expect(
+    page.locator("#ai-agents").getByText("Check availability", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("group", { name: "Agent preview" })
+    .getByRole("button", { name: "Oversight", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Your team decides where AI helps." }),
+  ).toBeVisible();
+});
+
+test("feature catalogue filters current and planned capabilities", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const catalogue = page.locator("#feature-catalog");
+  expect(await catalogue.locator("article").count()).toBeGreaterThan(50);
+  await catalogue.getByRole("button", { name: "Roadmap", exact: true }).click();
+  await expect(catalogue.locator("article")).toHaveCount(9);
+  await expect(catalogue.locator(".nm-planned")).toHaveCount(9);
+  await catalogue
+    .getByRole("button", { name: "All features", exact: true })
+    .click();
+  await page
+    .getByRole("searchbox", { name: "Search product features" })
+    .fill("cooldown");
+  await expect(catalogue.locator("article")).toHaveCount(1);
+  await expect(
+    catalogue.getByRole("heading", { name: "Lead cooldowns" }),
+  ).toBeVisible();
+  await page
+    .getByRole("searchbox", { name: "Search product features" })
+    .fill("not-a-feature");
+  await expect(catalogue.getByText(/No matching features/)).toBeVisible();
+});
+
+test("inbox preview keeps contact details together and voice visual is labelled", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const inbox = page.locator("#inbox-crm");
+  await inbox.getByRole("button", { name: /Alex Kim/ }).click();
+  await expect(inbox.getByRole("heading", { name: "Alex Kim" })).toBeVisible();
+  await expect(
+    inbox.getByText("Confirm the appointment", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Preview voice-message visual" })
+    .click();
+  await expect(page.locator(".nd-wave.playing")).toBeVisible();
+  await expect(
+    page.getByText("This visual preview does not play or generate audio."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Stop waveform preview" }).click();
+  await expect(page.locator(".nd-wave.playing")).toHaveCount(0);
+});
+
+test("rich product menu works on mobile without overflowing", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.locator(".nm-mega > summary").click();
+  await expect(page.locator(".nd-mega-menu a")).toHaveCount(12);
+  await page
+    .locator(".nd-mega-menu")
+    .getByRole("link", { name: /Flow builder/ })
+    .click();
+  await expect(page).toHaveURL(/#flow-builder$/);
+  await expect(
+    page.getByRole("button", { name: "Open navigation" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+});
+
 test("legacy invitation and pricing links reach authentication", async ({
   page,
 }) => {
@@ -136,8 +328,15 @@ test("signup preserves the selected plan through onboarding", async ({
     }
     return route.fulfill({ json: { results: created ? [workspace] : [] } });
   });
-  await page.route("**/api/auth/signup/", (route) =>
-    route.fulfill({ json: user }),
+  let signedIn = false;
+  await page.route("**/api/auth/signup/", (route) => {
+    signedIn = true;
+    return route.fulfill({ json: user });
+  });
+  await page.route("**/api/auth/me/", (route) =>
+    signedIn
+      ? route.fulfill({ json: user })
+      : route.fulfill({ status: 401, json: { detail: "Sign in required" } }),
   );
   await page.route("**/api/growth/wizard/", (route) =>
     route.fulfill({

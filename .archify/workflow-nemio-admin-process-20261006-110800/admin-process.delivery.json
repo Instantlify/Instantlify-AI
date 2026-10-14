@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "87f1ba30-5889-4b3d-96da-f10838d5c5a8",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "C:\\Users\\OC\\Desktop\\Nemio AI\\.archify\\workflow-nemio-admin-process-20261006-110800\\candidate.json",
+  "output": "C:\\Users\\OC\\Desktop\\Nemio AI\\.archify\\workflow-nemio-admin-process-20261006-110800\\admin-process.html",
+  "specification": {
+    "sha256": "65952f993274fd7fdfde47b3803877688869c5655896712054162f13590bdb3f",
+    "bytes": 6723
+  },
+  "artifact": {
+    "sha256": "d7ef5e4f17b5ff807e94f336b3015572c39e5d63d3777a069a6457bbf18cf363",
+    "bytes": 785746
+  }
+}

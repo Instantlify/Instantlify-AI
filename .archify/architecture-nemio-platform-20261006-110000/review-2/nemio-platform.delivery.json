@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "90acd292-c38e-4766-b34b-231344342947",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\Users\\OC\\Desktop\\Nemio AI\\.archify\\architecture-nemio-platform-20261006-110000\\candidate.json",
+  "output": "C:\\Users\\OC\\Desktop\\Nemio AI\\.archify\\architecture-nemio-platform-20261006-110000\\review-2\\nemio-platform.html",
+  "specification": {
+    "sha256": "339f65bab435543bd4a7e6c9c096e6e7ea01f9fa8f388061a5260779143787ca",
+    "bytes": 5914
+  },
+  "artifact": {
+    "sha256": "58723417c6f4a27883e44de4d3825640afcb176602c5095199773b12dc7a0936",
+    "bytes": 786823
+  }
+}
