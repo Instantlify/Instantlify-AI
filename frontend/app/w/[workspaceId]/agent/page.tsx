@@ -34,6 +34,7 @@ import {
   Table,
   useFeedback,
 } from "@/components/ui";
+import { BrandIcon, type BrandName } from "@/lib/brand-icons";
 
 const TOOL_HELP: Record<string, string> = {
   check_calendar_availability: "Check whether a time is free on your calendar",
@@ -44,6 +45,13 @@ const TOOL_HELP: Record<string, string> = {
   handoff_to_human: "Hand the conversation to a teammate",
 };
 const QUALIFYING = ["interest", "budget", "timeline", "company"];
+
+/** Provider logos for the model cards; providers without one show no mark. */
+const MODEL_BRANDS: Partial<Record<string, BrandName>> = {
+  openai: "openai",
+  anthropic: "claude",
+  gemini: "gemini",
+};
 
 const DEFAULT_PLATFORM_MODELS: PlatformModel[] = [
   {
@@ -349,7 +357,20 @@ export default function AgentPage() {
                             }}
                           >
                             <div>
-                              <strong style={{ fontSize: "1rem" }}>
+                              <strong
+                                style={{
+                                  fontSize: "1rem",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                }}
+                              >
+                                {MODEL_BRANDS[m.provider] && (
+                                  <BrandIcon
+                                    name={MODEL_BRANDS[m.provider]!}
+                                    size={18}
+                                  />
+                                )}
                                 {m.label}
                               </strong>
                               <div style={{ marginTop: 2 }}>

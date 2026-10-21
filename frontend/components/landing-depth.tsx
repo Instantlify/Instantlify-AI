@@ -9,7 +9,6 @@ import {
   MessageCircle,
   GitBranch,
   Sparkles,
-  Instagram,
   Send,
   Users,
   Mic,
@@ -26,11 +25,12 @@ import {
   Play,
   CheckCircle2,
 } from "lucide-react";
+import { BrandIcon, type BrandName } from "@/lib/brand-icons";
 
 const channels = [
   {
     name: "Instagram",
-    icon: Instagram,
+    brand: "instagram" as const,
     title: "Let your content start the conversation.",
     copy: "Give the interest on your posts, stories and inbox a clear next step. Deliver resources, answer common questions and keep every enquiry in your CRM.",
     features: [
@@ -68,7 +68,7 @@ const channels = [
   },
   {
     name: "WhatsApp",
-    icon: MessageCircle,
+    brand: "whatsapp" as const,
     title: "Keep the conversation close to your customer.",
     copy: "Connect your WhatsApp business channel to the same inbox, workflows and assistant. Collect context and guide enquiries toward an appointment or purchase.",
     features: [
@@ -106,7 +106,7 @@ const channels = [
   },
   {
     name: "Telegram",
-    icon: Send,
+    brand: "telegram" as const,
     title: "A helpful assistant behind your bot.",
     copy: "Connect a Telegram bot and turn incoming questions into useful conversations. Your sales logic, customer context and team remain in one workspace.",
     features: [
@@ -144,7 +144,7 @@ const channels = [
   },
   {
     name: "Messenger",
-    icon: MessageCircle,
+    brand: "messenger" as const,
     title: "Bring page conversations into the same inbox.",
     copy: "Keep Messenger enquiries alongside your other connected channels. Reuse workflows and give your team one place to manage incoming customer conversations.",
     features: [
@@ -178,6 +178,12 @@ const channels = [
     ],
   },
 ];
+
+const NETWORKS: Record<string, BrandName> = {
+  Instagram: "instagram",
+  WhatsApp: "whatsapp",
+  Telegram: "telegram",
+};
 
 const catalog = [
   [
@@ -494,7 +500,6 @@ export function ProductDepth() {
   const [filter, setFilter] = useState("All features");
   const [query, setQuery] = useState("");
   const chosen = channels[channel];
-  const ChannelIcon = chosen.icon;
   const visible = catalog.filter(
     ([group, title, description]) =>
       (filter === "All features" || filter === group) &&
@@ -538,14 +543,14 @@ export function ProductDepth() {
           role="group"
           aria-label="Channel details"
         >
-          {channels.map(({ name, icon: Icon }, i) => (
+          {channels.map(({ name, brand }, i) => (
             <button
               key={name}
               aria-pressed={channel === i}
               className={channel === i ? "active" : ""}
               onClick={() => setChannel(i)}
             >
-              <Icon size={18} />
+              <BrandIcon name={brand} size={18} />
               {name}
             </button>
           ))}
@@ -553,7 +558,7 @@ export function ProductDepth() {
         <div className="nd-channel-panel">
           <div>
             <div className="nd-channel-title">
-              <ChannelIcon size={25} />
+              <BrandIcon name={chosen.brand} size={25} />
               <h3>{chosen.title}</h3>
             </div>
             <p className="nd-intro">{chosen.copy}</p>
@@ -569,7 +574,7 @@ export function ProductDepth() {
                 <strong>Your business</strong>
                 <small>{chosen.name} · Example</small>
               </div>
-              <ChannelIcon size={20} />
+              <BrandIcon name={chosen.brand} size={20} />
             </div>
             <div className="nd-offer-art">
               <span>
@@ -905,6 +910,7 @@ export function ProductDepth() {
                   <div>
                     <strong>{name}</strong>
                     <small>
+                      <BrandIcon name={NETWORKS[network]} size={11} />{" "}
                       {network} · {subject}
                     </small>
                   </div>

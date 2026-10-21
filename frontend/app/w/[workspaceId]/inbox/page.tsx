@@ -1,22 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight,
-  Bookmark,
   Bot,
   ChevronDown,
   Clock,
   CreditCard,
   ExternalLink,
-  Filter,
   Hand,
+  Info,
   MessageSquarePlus,
   Paperclip,
   Plus,
   RefreshCw,
   Search,
-  Send,
   Smile,
   StickyNote,
   Timer,
@@ -40,15 +38,15 @@ import {
   type Offer,
   type Page,
 } from "@/lib/api";
+import { useSearchParams } from "next/navigation";
 import { useWorkspace } from "@/lib/workspace";
 import { useWorkspaceSocket } from "@/lib/ws";
-import { ChannelBadge, META_CHANNELS } from "@/lib/channels";
+import { ChannelBadge, ChannelIcon, META_CHANNELS } from "@/lib/channels";
 import { initials } from "@/components/shell";
 import {
   Empty,
   ErrorNotice,
   Pill,
-  statusTone,
   SuccessNotice,
   useFeedback,
 } from "@/components/ui";
@@ -60,6 +58,8 @@ const TABS = [
   { id: "instagram", label: "Instagram Direct" },
   { id: "messenger", label: "Facebook Messenger" },
   { id: "whatsapp", label: "WhatsApp" },
+  { id: "telegram", label: "Telegram" },
+  { id: "webchat", label: "Website chat" },
 ];
 const WINDOWED = new Set<string>(META_CHANNELS);
 const WINDOW_MS = 24 * 3600 * 1000;
@@ -146,13 +146,9 @@ export default function InboxPage() {
   const { workspace, user, prefix, manager, activeAccount, setActiveAccount } =
     useWorkspace();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  // The CRM links here with ?conversation=<id>; the workspace layout renders pages
-  // only in the browser, so the URL is readable on first render.
-  const [selected, setSelected] = useState<string | null>(() =>
-    typeof window === "undefined"
-      ? null
-      : new URLSearchParams(window.location.search).get("conversation"),
-  );
+  // The CRM links here with ?conversation=<id>.
+  const linked = useSearchParams().get("conversation");
+  const [selected, setSelected] = useState<string | null>(linked);
   const [messages, setMessages] = useState<Message[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [events, setEvents] = useState<ConversationEvent[]>([]);
@@ -178,10 +174,10 @@ export default function InboxPage() {
     type: string;
   } | null>(null);
   const [showChannelDropdown, setShowChannelDropdown] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const feedback = useFeedback();
   const bodyRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
-  const chatInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadList = useCallback(
@@ -453,23 +449,13 @@ export default function InboxPage() {
     ? members.find((member) => member.user_id === current.assigned_to)
     : undefined;
 
-  // Demo messages matching Screenshot 9 if no messages in database yet
-  const demoMessages = [
-    { id: "d1", direction: "outbound" as const, text: "Hi,\nOur team will get back to you as soon as possible", created_at: "2026-09-24T16:20:00Z", sender: "human" as const, author_name: "Team", kind: "text", delivery_status: null },
-    { id: "d2", direction: "outbound" as const, text: "What type of event you wanna host debating or career counseling?", created_at: "2026-09-24T16:31:00Z", sender: "ai" as const, author_name: "AI", kind: "text", delivery_status: null },
-    { id: "d3", direction: "inbound" as const, text: "I want to host a debating event on 25 Sept 2026", created_at: "2026-09-24T16:32:00Z", sender: "customer" as const, author_name: "Customer", kind: "text", delivery_status: null },
-    { id: "d4", direction: "inbound" as const, text: "How much the debating event cost for 300 participants?", created_at: "2026-09-24T16:38:00Z", sender: "customer" as const, author_name: "Customer", kind: "text", delivery_status: null },
-    { id: "d5", direction: "outbound" as const, text: "Hi,\nOur team will get back to you as soon as possible", created_at: "2026-09-24T16:32:00Z", sender: "human" as const, author_name: "Team", kind: "text", delivery_status: null },
-    { id: "d6", direction: "outbound" as const, text: "Thanks! Just sent you the details in the message", created_at: "2026-09-24T16:38:00Z", sender: "human" as const, author_name: "Team", kind: "text", delivery_status: null },
-    { id: "d7", direction: "outbound" as const, text: "Thanks for your interest! How can we help you?", created_at: "2026-09-24T16:38:00Z", sender: "ai" as const, author_name: "AI", kind: "text", delivery_status: null },
-    { id: "d8", direction: "inbound" as const, text: "Hello how are you?", created_at: "2026-09-24T17:41:00Z", sender: "customer" as const, author_name: "Customer", kind: "text", delivery_status: null },
-    { id: "d9", direction: "outbound" as const, text: "Hi,\nOur team will get back to you as soon as possible", created_at: "2026-09-24T17:41:00Z", sender: "human" as const, author_name: "Team", kind: "text", delivery_status: null },
-  ];
-
-  const activeMessages = timeline.length ? timeline : demoMessages.map(m => ({ kind: "message" as const, at: m.created_at, item: m }));
+  const lastActive = current?.last_inbound_at
+    ? `Last message ${new Date(current.last_inbound_at).toLocaleString()}`
+    : "No customer messages yet";
 
   return (
     <div className="boosend-inbox-layout">
+      <TourMarker workspaceId={workspace.id} step="crm" />
       {/* Left Column: Conversations Sidebar (Screenshot 9) */}
       <aside className="boosend-inbox-sidebar">
         {/* Channel selector dropdown pill */}
@@ -478,21 +464,19 @@ export default function InboxPage() {
             <button
               type="button"
               className="boosend-inbox-channel-pill-btn"
+              aria-haspopup="listbox"
+              aria-expanded={showChannelDropdown}
+              aria-label="Filter by channel"
               onClick={() => setShowChannelDropdown((v) => !v)}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span
-                  style={{
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    background: "#f1f5f9",
-                    color: "#475569",
-                    padding: "2px 6px",
-                    borderRadius: "6px",
-                  }}
-                >
-                  All
-                </span>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                {channel ? (
+                  <ChannelIcon provider={channel} size={14} />
+                ) : (
+                  <span className="inbox-channel-all">All</span>
+                )}
                 <span>
                   {channel
                     ? TABS.find((t) => t.id === channel)?.label || "Channel"
@@ -504,80 +488,90 @@ export default function InboxPage() {
 
             {showChannelDropdown && (
               <div
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  top: "calc(100% + 4px)",
-                  width: "100%",
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "12px",
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-                  padding: "6px",
-                  zIndex: 50,
-                }}
+                className="inbox-channel-menu"
+                role="listbox"
+                aria-label="Filter by channel"
               >
                 {TABS.map((t) => (
                   <button
-                    key={t.id}
+                    key={t.id || "all"}
                     type="button"
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "8px 10px",
-                      fontSize: "12px",
-                      border: "none",
-                      background: channel === t.id ? "#f1f5f9" : "transparent",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      color: "#0f172a",
-                      fontWeight: channel === t.id ? 600 : 400,
-                    }}
+                    role="option"
+                    aria-selected={channel === t.id}
+                    className={channel === t.id ? "on" : ""}
                     onClick={() => {
                       setChannel(t.id);
                       setShowChannelDropdown(false);
                     }}
                   >
+                    {t.id && <ChannelIcon provider={t.id} size={14} />}
                     {t.label}
                   </button>
                 ))}
               </div>
             )}
           </div>
+          {activeAccount && (
+            <span className="account-chip">
+              Account: {accountName || "selected account"}
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Show all accounts"
+                onClick={() => setActiveAccount(null)}
+              >
+                <X size={13} />
+              </button>
+            </span>
+          )}
         </div>
 
-        {/* Search row with filter icon */}
+        {/* Search row with status filter */}
         <div className="boosend-inbox-search-row">
           <div className="boosend-inbox-search-box">
             <Search size={14} color="#94a3b8" />
             <input
-              type="text"
+              type="search"
               className="boosend-inbox-search-input"
               placeholder="Search conversations..."
+              aria-label="Search conversations"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <button
-            type="button"
-            className="boosend-chat-action-btn"
-            title="Filter by status"
-            onClick={() =>
-              setFilter((f) => (f === "all" ? "needs_human" : "all"))
-            }
+          <select
+            className="inbox-filter-select"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            aria-label="Filter"
           >
-            <Filter size={15} color={filter !== "all" ? "#0f172a" : "#94a3b8"} />
-          </button>
+            <option value="all">All</option>
+            <option value="mine">Assigned to me</option>
+            <option value="unassigned">Unassigned</option>
+            <option value="needs_human">Needs a human</option>
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+          </select>
         </div>
 
         {/* Conversations list scroll */}
         <div className="boosend-inbox-list-scroll">
-          {visible.length > 0 ? (
+          {loading ? (
+            <p className="inbox-list-empty">Loading conversations…</p>
+          ) : visible.length > 0 ? (
             visible.map((item) => {
               const isActive = item.id === selected;
-              const firstLetter = item.lead.name?.charAt(0).toUpperCase() || "F";
-              const lastText = item.last_message?.text || "No messages yet";
+              const firstLetter =
+                item.lead.name?.charAt(0).toUpperCase() || "?";
+              const awaiting = item.last_message?.direction === "inbound";
+              const lastText = item.last_message
+                ? `${item.last_message.direction === "outbound" ? "You: " : ""}${
+                    item.last_message.text ||
+                    (item.last_message.kind === "voice"
+                      ? "🎤 Voice note"
+                      : "Attachment")
+                  }`
+                : "No messages yet";
 
               return (
                 <button
@@ -586,7 +580,12 @@ export default function InboxPage() {
                   className={`boosend-conv-item ${isActive ? "active" : ""}`}
                   onClick={() => setSelected(item.id)}
                 >
-                  <div className="boosend-conv-avatar">{firstLetter}</div>
+                  <div className="boosend-conv-avatar">
+                    {firstLetter}
+                    <span className="conv-channel-mark" title={item.provider}>
+                      <ChannelIcon provider={item.provider} size={10} />
+                    </span>
+                  </div>
                   <div className="boosend-conv-info">
                     <div className="boosend-conv-top">
                       <span className="boosend-conv-name">
@@ -600,154 +599,566 @@ export default function InboxPage() {
                       </span>
                     </div>
                     <div className="boosend-conv-snippet">{lastText}</div>
+                    {(item.status === "needs_human" || item.is_test) && (
+                      <div className="boosend-conv-meta">
+                        {item.is_test ? "Test" : ""}
+                        {item.is_test && item.status === "needs_human"
+                          ? " · "
+                          : ""}
+                        {item.status === "needs_human" ? "Needs a human" : ""}
+                      </div>
+                    )}
                   </div>
+                  {awaiting && (
+                    <>
+                      <i
+                        className="unread-dot"
+                        title="Awaiting a reply"
+                        aria-hidden="true"
+                      />
+                      <span className="sr-only">Awaiting a reply</span>
+                    </>
+                  )}
                 </button>
               );
             })
           ) : (
-            /* Demo conversation matching Screenshot 9 */
-            <button
-              type="button"
-              className="boosend-conv-item active"
-              onClick={() => setSelected("demo-1")}
-            >
-              <div className="boosend-conv-avatar">F</div>
-              <div className="boosend-conv-info">
-                <div className="boosend-conv-top">
-                  <span className="boosend-conv-name">Facebook user 468752</span>
-                  <span className="boosend-conv-date">9/24/2026</span>
-                </div>
-                <div className="boosend-conv-snippet">
-                  Hi, Our team will get back to you as soon...
-                </div>
-              </div>
-            </button>
+            <p className="inbox-list-empty">
+              {conversations.length
+                ? "No conversations match."
+                : channel || activeAccount
+                  ? "No conversations on this channel or account yet."
+                  : "No conversations yet. Connect a channel or simulate a test message under Integrations."}
+            </p>
           )}
         </div>
       </aside>
 
       {/* Right Column: Chat Main View (Screenshot 9) */}
       <main className="boosend-chat-main">
-        {/* Header bar */}
-        <div className="boosend-chat-header">
-          <div className="boosend-chat-user-head">
-            <div className="boosend-conv-avatar" style={{ background: "#0f172a", color: "#ffffff", border: "none" }}>
-              {current?.lead.name?.charAt(0).toUpperCase() || "F"}
-            </div>
-            <div>
-              <div className="boosend-chat-user-title">
-                {current?.lead.name || "Facebook user 468752"}
+        <ErrorNotice error={feedback.error} />
+        <SuccessNotice notice={feedback.notice} />
+        {current ? (
+          <>
+            {/* Header bar */}
+            <div className="boosend-chat-header">
+              <div className="boosend-chat-user-head">
+                <div className="boosend-conv-avatar inbox-head-avatar">
+                  {initials(current.lead.name || "?")}
+                </div>
+                <div>
+                  <div className="boosend-chat-user-title">
+                    {current.lead.name || "Unknown lead"}
+                  </div>
+                  <div className="boosend-chat-user-sub">
+                    <ChannelBadge provider={current.provider} compact />
+                    <span>{current.connection_name}</span>
+                    <span aria-hidden="true">·</span>
+                    <Clock size={11} />
+                    <span>{lastActive}</span>
+                  </div>
+                </div>
               </div>
-              <div className="boosend-chat-user-sub">
-                <Clock size={11} />
-                <span>Last active 9/24/2026</span>
+
+              <div className="boosend-chat-actions">
+                <span
+                  className={`inbox-live ${live ? "on" : ""}`}
+                  title={live ? "Live updates" : "Refreshing every 10 seconds"}
+                >
+                  {live ? <Wifi size={12} /> : <WifiOff size={12} />}
+                  {live ? "Live" : "Polling"}
+                </span>
+                {left !== null && (
+                  <span
+                    className={`window-chip ${windowClosed ? "closed" : left < 3600000 ? "soon" : ""}`}
+                    title="Meta allows free-form replies for 24 hours after the customer's last message."
+                  >
+                    <Timer size={13} />
+                    {windowClosed ? "24h window closed" : countdown(left)}
+                  </span>
+                )}
+                <select
+                  className="inbox-head-select"
+                  aria-label="Assign to"
+                  value={current.assigned_to ?? ""}
+                  onChange={(event) =>
+                    patch({
+                      assigned_to: event.target.value
+                        ? Number(event.target.value)
+                        : null,
+                    })
+                  }
+                >
+                  <option value="">Unassigned</option>
+                  {members
+                    .filter(
+                      (member) =>
+                        manager ||
+                        member.user_id === user.id ||
+                        member.user_id === current.assigned_to,
+                    )
+                    .map((member) => (
+                      <option key={member.id} value={member.user_id}>
+                        {member.name || member.email}
+                      </option>
+                    ))}
+                </select>
+                <select
+                  className="inbox-head-select"
+                  aria-label="Status"
+                  value={current.status}
+                  onChange={(event) =>
+                    patch({
+                      status: event.target.value as Conversation["status"],
+                    })
+                  }
+                >
+                  <option value="open">Open</option>
+                  <option value="needs_human">Needs a human</option>
+                  <option value="closed">Closed</option>
+                </select>
+                <button
+                  type="button"
+                  className="boosend-chat-action-btn"
+                  aria-label="Refresh"
+                  title="Refresh"
+                  onClick={refreshAll}
+                >
+                  <RefreshCw size={15} />
+                </button>
+                <button
+                  type="button"
+                  className={`boosend-chat-action-btn ${showInfo ? "on" : ""}`}
+                  aria-label="Contact details"
+                  aria-pressed={showInfo}
+                  title="Contact details"
+                  onClick={() => setShowInfo((value) => !value)}
+                >
+                  <Info size={16} />
+                </button>
               </div>
             </div>
-          </div>
 
-          <div className="boosend-chat-actions">
-            <button
-              type="button"
-              className="boosend-chat-action-btn"
-              title="Bookmark / Flag"
-            >
-              <Bookmark size={16} />
-            </button>
-            <button
-              type="button"
-              className="boosend-chat-action-btn"
-              title="Toggle Info"
-              onClick={() => {
-                if (current) {
-                  patch({ ai_enabled: !current.ai_enabled });
-                }
-              }}
-            >
-              <Bot size={16} color={current?.ai_enabled ? "#10b981" : "#94a3b8"} />
-            </button>
-          </div>
-        </div>
-
-        {/* Message Thread */}
-        <div className="boosend-chat-messages" ref={bodyRef}>
-          {/* Date Divider */}
-          <div className="boosend-date-divider">
-            <span className="boosend-date-divider-text">
-              Thursday, September 24
-            </span>
-          </div>
-
-          {activeMessages.map((entry, idx) => {
-            const isMsg = entry.kind === "message";
-            if (!isMsg) return null;
-            const msg = entry.item;
-            const isInbound = msg.direction === "inbound";
-            const timeStr = new Date(msg.created_at).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-
-            return (
-              <div
-                key={`msg-${idx}`}
-                className={`boosend-msg-row ${isInbound ? "inbound" : "outbound"}`}
-              >
-                <div className="boosend-msg-bubble">{msg.text}</div>
-                <span className="boosend-msg-time">{timeStr}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Sticky Input Bar matching Screenshot 9 */}
-        <div className="boosend-chat-input-bar">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (draft.trim()) {
-                if (current) send();
-                else {
-                  // Fallback demo echo
-                  setDraft("");
-                }
-              }
-            }}
-          >
-            <div className="boosend-chat-input-box">
-              <button
-                type="button"
-                className="icon-button"
-                style={{ color: "#94a3b8", padding: "4px" }}
-                onClick={() => fileInputRef.current?.click()}
-                title="Add attachment"
-              >
-                <Plus size={18} />
-              </button>
-
-              <input
-                ref={chatInputRef}
-                type="text"
-                className="boosend-chat-input-field"
-                placeholder="Type a message..."
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-              />
-
-              <button
-                type="submit"
-                className="boosend-chat-send-btn"
-                title="Send message"
-              >
-                <ArrowUpRight size={16} />
-              </button>
+            {/* Message Thread */}
+            <div className="boosend-chat-messages" ref={bodyRef}>
+              {timeline.length ? (
+                timeline.map((entry, index) => {
+                  const day = new Date(entry.at).toDateString();
+                  const newDay =
+                    index === 0 ||
+                    new Date(timeline[index - 1].at).toDateString() !== day;
+                  return (
+                    <Fragment key={`${entry.kind}-${entry.item.id}`}>
+                      {newDay && (
+                        <div className="boosend-date-divider">
+                          <span className="boosend-date-divider-text">
+                            {new Date(entry.at).toLocaleDateString(undefined, {
+                              weekday: "long",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      {entry.kind === "note" ? (
+                        <div className="inbox-note">
+                          <StickyNote size={12} /> {entry.item.text}
+                          <time>
+                            {new Date(entry.at).toLocaleString()} · internal
+                            note
+                          </time>
+                        </div>
+                      ) : entry.kind === "event" ? (
+                        <div className="system-event">
+                          <Zap size={12} />
+                          <span>
+                            {EVENT_LABELS[entry.item.kind]}
+                            {entry.item.automation_name &&
+                              entry.item.kind === "triggered" &&
+                              `: ${entry.item.automation_name}`}
+                          </span>
+                          <time>{new Date(entry.at).toLocaleString()}</time>
+                        </div>
+                      ) : (
+                        <MessageBubble message={entry.item} />
+                      )}
+                    </Fragment>
+                  );
+                })
+              ) : (
+                <Empty>No messages yet.</Empty>
+              )}
             </div>
-          </form>
-        </div>
+
+            {/* Sticky Input Bar matching Screenshot 9 */}
+            <div className="boosend-chat-input-bar">
+              {current.lead.opted_out ? (
+                <Empty>This lead opted out. Messaging is disabled.</Empty>
+              ) : (
+                <>
+                  <div
+                    className="handoff-toggle"
+                    role="group"
+                    aria-label="Who replies"
+                  >
+                    <button
+                      type="button"
+                      className={current.ai_enabled ? "on" : ""}
+                      aria-pressed={current.ai_enabled}
+                      disabled={feedback.busy}
+                      onClick={() =>
+                        !current.ai_enabled &&
+                        patch({ ai_enabled: true, status: "open" })
+                      }
+                    >
+                      <Bot size={14} /> AI active
+                    </button>
+                    <button
+                      type="button"
+                      className={!current.ai_enabled ? "on human" : ""}
+                      aria-pressed={!current.ai_enabled}
+                      disabled={feedback.busy}
+                      onClick={() =>
+                        current.ai_enabled &&
+                        patch({ ai_enabled: false, assigned_to: user.id })
+                      }
+                    >
+                      <Hand size={14} /> Human takeover
+                    </button>
+                    <span className="muted-text">
+                      {current.ai_enabled
+                        ? "The AI agent answers new messages."
+                        : assignee
+                          ? `${assignee.name || assignee.email} is handling this conversation.`
+                          : "Your team answers this conversation."}
+                    </span>
+                  </div>
+                  {windowClosed && (
+                    <p className="inbox-window-note">
+                      The 24-hour messaging window has closed; wait for the
+                      customer to write again.
+                    </p>
+                  )}
+                  {attachedFile && (
+                    <div className="inbox-attachment">
+                      <Paperclip size={13} />
+                      <strong>{attachedFile.name}</strong>
+                      <span className="muted-text">
+                        ({(attachedFile.size / 1024).toFixed(0)} KB)
+                      </span>
+                      <button
+                        type="button"
+                        className="icon-button"
+                        onClick={() => setAttachedFile(null)}
+                        aria-label="Remove attachment"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      send();
+                    }}
+                  >
+                    <div className="boosend-chat-input-box">
+                      <button
+                        type="button"
+                        className="icon-button"
+                        style={{ color: "#94a3b8", padding: "4px" }}
+                        aria-label="Attach file"
+                        title="Attach file (images, PDFs, audio)"
+                        disabled={windowClosed}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Plus size={18} />
+                      </button>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        style={{ display: "none" }}
+                        accept="image/*,.pdf,audio/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setAttachedFile({
+                              name: file.name,
+                              size: file.size,
+                              type: file.type.startsWith("image/")
+                                ? "Image"
+                                : file.type.startsWith("audio/")
+                                  ? "Audio"
+                                  : "Document",
+                              url: URL.createObjectURL(file),
+                            });
+                          }
+                          e.target.value = "";
+                        }}
+                      />
+
+                      <textarea
+                        ref={composerRef}
+                        rows={1}
+                        className="boosend-chat-input-field"
+                        placeholder={
+                          windowClosed
+                            ? "Messaging window closed"
+                            : "Type a message..."
+                        }
+                        aria-label="Reply"
+                        maxLength={2000}
+                        disabled={windowClosed}
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" && !event.shiftKey) {
+                            event.preventDefault();
+                            send();
+                          }
+                        }}
+                      />
+
+                      <button
+                        type="submit"
+                        className="boosend-chat-send-btn"
+                        aria-label="Send message"
+                        title="Send message"
+                        disabled={
+                          feedback.busy ||
+                          (!draft.trim() && !attachedFile) ||
+                          windowClosed
+                        }
+                      >
+                        <ArrowUpRight size={16} />
+                      </button>
+                    </div>
+                  </form>
+                  <div className="composer-tools">
+                    <div className="tool-anchor">
+                      <button
+                        type="button"
+                        className="icon-button"
+                        aria-label="Insert emoji"
+                        aria-expanded={picker === "emoji"}
+                        onClick={() =>
+                          setPicker(picker === "emoji" ? null : "emoji")
+                        }
+                      >
+                        <Smile size={16} />
+                      </button>
+                      {picker === "emoji" && (
+                        <div
+                          className="tool-pop emoji-pop"
+                          role="group"
+                          aria-label="Emoji"
+                        >
+                          {EMOJI.map((emoji) => (
+                            <button
+                              type="button"
+                              key={emoji}
+                              onClick={() => insert(emoji)}
+                              aria-label={`Insert ${emoji}`}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="tool-anchor">
+                      <button
+                        type="button"
+                        className="icon-button"
+                        aria-label="Quick replies"
+                        aria-expanded={picker === "replies"}
+                        onClick={() =>
+                          setPicker(picker === "replies" ? null : "replies")
+                        }
+                      >
+                        <MessageSquarePlus size={16} />
+                      </button>
+                      {picker === "replies" && (
+                        <div className="tool-pop replies-pop">
+                          <strong className="small">Quick replies</strong>
+                          {replies.map((reply, index) => (
+                            <div
+                              className="reply-row"
+                              key={`${index}-${reply}`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => insert(reply)}
+                              >
+                                {reply}
+                              </button>
+                              <button
+                                type="button"
+                                className="icon-button"
+                                aria-label="Delete quick reply"
+                                onClick={() =>
+                                  saveReplies(
+                                    replies.filter((_, i) => i !== index),
+                                  )
+                                }
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          ))}
+                          {!replies.length && (
+                            <p className="muted-text">
+                              No quick replies saved.
+                            </p>
+                          )}
+                          <button
+                            type="button"
+                            className="text-button"
+                            disabled={
+                              !draft.trim() || replies.includes(draft.trim())
+                            }
+                            onClick={() =>
+                              saveReplies([...replies, draft.trim()].slice(-20))
+                            }
+                          >
+                            Save current reply
+                          </button>
+                          <small className="muted-text">
+                            Saved in this browser.
+                          </small>
+                        </div>
+                      )}
+                    </div>
+                    {offers.length > 0 ? (
+                      <select
+                        className="inbox-head-select"
+                        aria-label="Send payment link"
+                        defaultValue=""
+                        onChange={(event) => {
+                          sendPaymentLink(event.target.value);
+                          event.target.value = "";
+                        }}
+                      >
+                        <option value="">Send payment link…</option>
+                        {offers.map((offer) => (
+                          <option key={offer.id} value={offer.id}>
+                            {offer.name} ·{" "}
+                            {money(offer.amount_cents, offer.currency)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="muted-text inbox-offers-hint">
+                        <CreditCard size={12} /> Create offers to send payment
+                        links.
+                      </span>
+                    )}
+                    <span className="spacer" />
+                    <input
+                      placeholder="Internal note (team only)"
+                      value={note}
+                      onChange={(event) => setNote(event.target.value)}
+                      maxLength={5000}
+                      aria-label="Internal note"
+                      className="note-input"
+                    />
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      onClick={addNote}
+                      disabled={feedback.busy || !note.trim()}
+                    >
+                      Add note
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="boosend-chat-messages">
+            <Empty>
+              {loading
+                ? "Loading…"
+                : "Select a conversation to read and reply."}
+            </Empty>
+          </div>
+        )}
       </main>
+
+      {current && showInfo && (
+        <aside className="inbox-info-panel" aria-label="Contact details">
+          <div className="inbox-info-head">
+            <strong>Contact details</strong>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Close contact details"
+              onClick={() => setShowInfo(false)}
+            >
+              <X size={14} />
+            </button>
+          </div>
+          <dl className="lead-panel">
+            <dt>Email</dt>
+            <dd>
+              <input
+                defaultValue={current.lead.email}
+                key={`${current.id}-email`}
+                placeholder="lead@example.com"
+                aria-label="Lead email"
+                onBlur={(event) => {
+                  if (event.target.value !== current.lead.email)
+                    updateLead({ email: event.target.value });
+                }}
+                className="lead-email"
+              />
+            </dd>
+            <dt>Stage</dt>
+            <dd>
+              <select
+                value={current.lead.stage}
+                aria-label="Lead stage"
+                onChange={(event) => updateLead({ stage: event.target.value })}
+              >
+                {STAGES.map((stage) => (
+                  <option key={stage} value={stage}>
+                    {stage}
+                  </option>
+                ))}
+              </select>
+            </dd>
+            {current.lead.tags.length > 0 && (
+              <>
+                <dt>Tags</dt>
+                <dd className="inbox-tags">
+                  {current.lead.tags.map((tag) => (
+                    <Pill key={tag} tone={tag === "hot" ? "warn" : "neutral"}>
+                      {tag}
+                    </Pill>
+                  ))}
+                </dd>
+              </>
+            )}
+            {Object.entries(current.lead.fields).map(([key, value]) => (
+              <FieldRow key={key} label={key} value={value} />
+            ))}
+          </dl>
+          {current.contact_link && (
+            <a
+              href={current.contact_link}
+              target="_blank"
+              rel="noreferrer"
+              className="text-button"
+            >
+              Open chat <ExternalLink size={12} />
+            </a>
+          )}
+        </aside>
+      )}
     </div>
   );
 }
-
 
 const SENDER_BADGES: Record<
   Exclude<Message["sender"], "customer" | "human">,
@@ -766,25 +1177,30 @@ function MessageBubble({ message }: { message: Message }) {
       ? null
       : SENDER_BADGES[message.sender];
   return (
-    <div className={`bubble ${message.direction} sender-${message.sender}`}>
-      {message.sender === "human" && (
-        <span
-          className="bubble-author"
-          title={message.author_name || "Teammate"}
-        >
-          {initials(message.author_name || "Team")}
+    <div className={`boosend-msg-row ${message.direction}`}>
+      <div className={`bubble ${message.direction} sender-${message.sender}`}>
+        {message.sender === "human" && (
+          <span
+            className="bubble-author"
+            title={message.author_name || "Teammate"}
+          >
+            {initials(message.author_name || "Team")}
+          </span>
+        )}
+        {badge && (
+          <span className="bubble-badge">
+            <badge.icon size={11} /> {badge.label}
+          </span>
+        )}
+        <span className="bubble-text">
+          {message.text || (message.kind === "voice" ? "🎤 Voice note" : "…")}
         </span>
-      )}
-      {badge && (
-        <span className="bubble-badge">
-          <badge.icon size={11} /> {badge.label}
-        </span>
-      )}
-      <span className="bubble-text">
-        {message.text || (message.kind === "voice" ? "🎤 Voice note" : "…")}
-      </span>
-      <time>
-        {new Date(message.created_at).toLocaleString()}
+      </div>
+      <time className="boosend-msg-time">
+        {new Date(message.created_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
         {message.delivery_status ? ` · ${message.delivery_status}` : ""}
       </time>
     </div>

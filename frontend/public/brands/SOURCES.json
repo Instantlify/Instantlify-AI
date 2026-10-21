@@ -1,0 +1,58 @@
+{
+  "gohighlevel": {
+    "src": "/brands/gohighlevel.png",
+    "source": "https://storage.googleapis.com/msgsndr/knES3eSWYIsc5YSZ3YLl/media/62b48689c85eccb36ca941fc.png"
+  },
+  "inworld": {
+    "src": "/brands/inworld.png",
+    "source": "https://inworld.ai/apple-icon.png?apple-icon.41lwedso2_34h.png"
+  },
+  "heygen": {
+    "src": "/brands/heygen.ico",
+    "source": "https://www.heygen.com/favicon.ico?favicon.2m321y0geyyfh.ico"
+  },
+  "jotform": {
+    "src": "/brands/jotform.png",
+    "source": "https://cdn.jotfor.ms/assets/img/favicons/apple-touch-icon-precomposed.png"
+  },
+  "notavo": {
+    "src": "/brands/notavo.png",
+    "source": "https://notavo.ai/NotavoLogo.png"
+  },
+  "zorromail": {
+    "src": "/brands/zorromail.png",
+    "source": "https://www.zorromail.app/zorromail-logo.png"
+  },
+  "klaviyo": {
+    "src": "/brands/klaviyo.png",
+    "source": "https://www.klaviyo.com/icons/icon-32x32.png"
+  },
+  "mailerlite": {
+    "src": "/brands/mailerlite.svg",
+    "source": "https://www.mailerlite.com/site/themes/new/img/favicons/safari-pinned-tab.svg"
+  },
+  "poppy": {
+    "src": "/brands/poppy.png",
+    "source": "https://getpoppy.ai/favicon.png"
+  },
+  "systeme": {
+    "src": "/brands/systeme.png",
+    "source": "https://systeme.io/161/60a777c6b6c23_60a777c6b6c22_favicon.png"
+  },
+  "vapi": {
+    "src": "/brands/vapi.svg",
+    "source": "https://vapi.ai/icon.svg?icon.05txosa6z_gu8.svg"
+  },
+  "retell": {
+    "src": "/brands/retell.png",
+    "source": "https://cdn.prod.website-files.com/64ada0f2685b2d18caa5e699/69e1934ee0b7e56c7f7f4f19_retell4848.png"
+  },
+  "attio": {
+    "src": "/brands/attio.ico",
+    "source": "https://attio.com/favicon.ico?favicon.0t61hvyp-jaev.ico"
+  },
+  "caldotcom": {
+    "src": "/brands/caldotcom.svg",
+    "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/caldotcom.svg"
+  }
+}

@@ -1,37 +1,37 @@
-/* Bespoke Nemio AI Design System: Pitch-Dark Sleek Sidebar + Modern High-Contrast Canvas */
+/* Shared white and olive palette for public pages, onboarding, and the workspace. */
 :root {
   /* Canvas & Surfaces */
-  --bg-canvas: #f8fafc;
+  --bg-canvas: #fafbf8;
   --bg-surface: #ffffff;
-  --bg-subtle: #f1f5f9;
-  --bg-hover: #e2e8f0;
-  --border-light: #e2e8f0;
-  --border-subtle: #cbd5e1;
+  --bg-subtle: #f1f3ed;
+  --bg-hover: #e2e6da;
+  --border-light: #e2e6da;
+  --border-subtle: #cbd2c1;
 
   /* Typography Colors */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --text-light: #94a3b8;
+  --text-primary: #272a21;
+  --text-secondary: #535c49;
+  --text-muted: #68715f;
+  --text-light: #77816e;
 
-  /* Pitch-Dark Sidebar System (Exact BooSend Essence) */
-  --sidebar-bg: #0b0c10;
-  --sidebar-card-bg: #15171d;
-  --sidebar-card-border: rgba(255, 255, 255, 0.08);
-  --sidebar-card-hover: #1c1f26;
-  --sidebar-text: #94a3b8;
-  --sidebar-text-hover: #f1f5f9;
+  /* Light sidebar surfaces */
+  --sidebar-bg: #ffffff;
+  --sidebar-card-bg: #f7f8f3;
+  --sidebar-card-border: #e2e6da;
+  --sidebar-card-hover: #edf0e6;
+  --sidebar-text: #77816e;
+  --sidebar-text-hover: #f1f3ed;
   --sidebar-active-bg: #ffffff;
   --sidebar-active-text: #000000;
-  --sidebar-subtle-border: rgba(255, 255, 255, 0.06);
+  --sidebar-subtle-border: #e2e6da;
 
   /* Primary Accent & Brand Identity */
-  --brand-primary: #2563eb;
-  --brand-primary-hover: #1d4ed8;
-  --brand-primary-light: #eff6ff;
+  --brand-primary: #52634d;
+  --brand-primary-hover: #40513c;
+  --brand-primary-light: #edf1e7;
   --brand-accent-amber: #f59e0b;
-  --brand-accent-purple: #8b5cf6;
-  --brand-accent-cyan: #06b6d4;
+  --brand-accent-purple: #7b8961;
+  --brand-accent-cyan: #6d8462;
   --brand-accent-emerald: #10b981;
   --brand-radius-sm: 8px;
   --brand-radius: 14px;
@@ -50,6 +50,123 @@
 
   /* Global Elevation & Shadows */
   --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
-  --shadow-float: 0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-card:
+    0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-float:
+    0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+}
+
+:root {
+  color-scheme: light;
+  --brand-action: #52634d;
+  --brand-action-hover: #40513c;
+  --brand-ink: var(--text-primary);
+  --brand-muted: var(--text-muted);
+  --brand-line: var(--border-light);
+  --brand-soft: var(--bg-subtle);
+  --brand-canvas: var(--bg-canvas);
+  --brand-paper: #fffef9;
+  --brand-accent: #879769;
+  --brand-sidebar: #ffffff;
+  --sidebar-text: var(--text-secondary);
+  --sidebar-text-hover: var(--text-primary);
+  --sidebar-active-bg: var(--brand-primary-light);
+  --sidebar-active-text: var(--brand-action);
+}
+
+/* Account menus and navigation use light surfaces throughout the client. */
+.boosend-sidebar {
+  background: var(--brand-sidebar);
+  color: var(--text-secondary);
+  border-color: var(--border-light);
+}
+.boosend-sidebar
+  :is(
+    .brand-link,
+    .brand-title,
+    .brand-icon-ghost,
+    .workspace-title,
+    .account-handle,
+    .row-handle,
+    .user-name,
+    .workspace-select-item,
+    .account-switch-row
+  ) {
+  color: var(--text-primary);
+}
+.brand-title,
+.brand-icon-ghost {
+  color: var(--brand-action);
+}
+.boosend-sidebar
+  :is(
+    .workspace-pill-header,
+    .social-account-card-trigger,
+    .user-profile-card
+  ) {
+  background: var(--bg-canvas);
+  border-color: var(--border-light);
+}
+.boosend-sidebar
+  :is(.workspace-dropdown-popover, .social-account-menu-popover) {
+  background: var(--bg-surface);
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-float);
+}
+.boosend-sidebar
+  :is(
+    .workspace-pill-header:hover,
+    .social-account-card-trigger:hover,
+    .workspace-select-item:hover,
+    .account-switch-row:hover,
+    .menu-action-btn:hover,
+    .add-workspace-btn:hover,
+    .boosend-nav-link:hover
+  ) {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+.boosend-sidebar
+  :is(
+    .workspace-select-item.current,
+    .account-switch-row.selected,
+    .default-tag
+  ) {
+  background: var(--brand-primary-light);
+  color: var(--brand-action);
+}
+.boosend-sidebar
+  :is(.add-workspace-btn, .menu-action-footer, .sidebar-bottom-user-wrap) {
+  border-color: var(--border-light);
+  color: var(--text-secondary);
+}
+.boosend-sidebar .add-workspace-btn {
+  background: var(--bg-subtle);
+}
+.boosend-sidebar .menu-action-btn {
+  color: var(--text-secondary);
+}
+.boosend-sidebar .menu-action-btn.primary-link {
+  color: var(--brand-action);
+}
+.boosend-sidebar
+  :is(.workspace-avatar-sq, .account-avatar-circle, .user-avatar-circle) {
+  background: var(--brand-action);
+  color: white;
+}
+.boosend-sidebar .boosend-nav-link.active,
+.boosend-sidebar .boosend-nav-link.active .nav-icon-wrap {
+  background: var(--brand-primary-light) !important;
+  color: var(--brand-action) !important;
+}
+.boosend-sidebar::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+}
+.platform-badge-pill {
+  border-color: var(--bg-surface);
+}
+.secondary:hover,
+.button.secondary:hover {
+  background: var(--bg-subtle) !important;
 }

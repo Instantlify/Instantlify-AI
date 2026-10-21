@@ -10,7 +10,8 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import { ArrowRight, Check, Instagram, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, ShieldCheck } from "lucide-react";
+import { BrandIcon } from "@/lib/brand-icons";
 import { api, ApiError, message, type Workspace } from "@/lib/api";
 import { Brand } from "@/components/shell";
 import { ErrorNotice } from "@/components/ui";
@@ -284,7 +285,7 @@ function ConnectStep({
     <div className="wizard-split">
       <div>
         <span className="section-icon">
-          <Instagram size={24} />
+          <BrandIcon name="instagram" size={24} />
         </span>
         <h1>{TITLES["connect-instagram"]}</h1>
         <p>

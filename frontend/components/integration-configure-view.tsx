@@ -519,7 +519,6 @@ function getConfigSchema(appName: string, pk: string, redirectUrl: string): Conf
           placeholder: "••••••••",
           type: "password",
           required: true,
-          defaultValue: "n8n_api_token_live_sample",
           helper: "Used to trigger workflows and query execution results.",
         },
         {

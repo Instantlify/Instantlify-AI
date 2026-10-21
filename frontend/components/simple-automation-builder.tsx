@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Camera,
@@ -9,15 +9,12 @@ import {
   ChevronRight,
   Clock,
   ExternalLink,
-  Facebook,
   FileText,
   Heart,
   HelpCircle,
   History,
   Image as ImageIcon,
-  Instagram,
   Link as LinkIcon,
-  MessageCircle,
   MessageSquare,
   Mic,
   MoreVertical,
@@ -26,7 +23,6 @@ import {
   Phone,
   Plus,
   Radio,
-  Send,
   Smile,
   Sparkles,
   Smartphone,
@@ -36,7 +32,8 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { api, type Automation } from "@/lib/api";
+import { api, message, type Automation, type Connection, type Page } from "@/lib/api";
+import { BrandIcon } from "@/lib/brand-icons";
 
 interface SimpleAutomationBuilderProps {
   workspaceId: string;
@@ -55,37 +52,23 @@ type TriggerType =
   | "whatsapp_number_message"
   | "fb_page_message";
 
-type CommentScope = "specific" | "any" | "next";
 
 type KeywordOption = "specific" | "any";
 
-// Sample Instagram posts for Step 2 "A specific post" selector
-const SAMPLE_POSTS = [
-  { id: "p1", likes: 23, comments: 1, color: "from-amber-700 via-stone-800 to-zinc-900", tag: "Tech talk" },
-  { id: "p2", likes: 13, comments: 1, color: "from-blue-800 via-indigo-900 to-slate-900", tag: "Casual outfit" },
-  { id: "p3", likes: 28, comments: 8, color: "from-emerald-800 via-teal-900 to-zinc-900", tag: "Office vibe" },
-  { id: "p4", likes: 54, comments: 12, color: "from-rose-800 via-pink-900 to-purple-950", tag: "Graduation" },
-  { id: "p5", likes: 21, comments: 6, color: "from-violet-800 via-purple-900 to-slate-900", tag: "Portrait" },
-  { id: "p6", likes: 88, comments: 22, color: "from-teal-700 via-cyan-900 to-slate-900", tag: "Studio" },
-  { id: "p7", likes: 63, comments: 15, color: "from-sky-700 via-blue-900 to-slate-950", tag: "Coffee break" },
-  { id: "p8", likes: 43, comments: 4, color: "from-fuchsia-800 via-pink-900 to-zinc-900", tag: "Meeting" },
-];
+/** Matches every message; the flow engine treats this keyword as a wildcard. */
+const ANY_KEYWORD = "*";
 
-// Sample Facebook posts (matching Screenshot 2: posters and "Text post" cards)
-const FB_SAMPLE_POSTS = [
-  { id: "fb1", isText: false, color: "from-emerald-800 via-teal-900 to-zinc-900", title: "Debate Club" },
-  { id: "fb2", isText: false, color: "from-stone-800 via-amber-950 to-zinc-900", title: "Youth Wing" },
-  { id: "fb3", isText: false, color: "from-amber-900 via-stone-900 to-slate-950", title: "Bayan-e-Pak" },
-  { id: "fb4", isText: false, color: "from-slate-800 via-blue-950 to-zinc-900", title: "Conference" },
-  { id: "fb5", isText: true, text: "Text post" },
-  { id: "fb6", isText: true, text: "Text post" },
-  { id: "fb7", isText: false, color: "from-indigo-950 via-slate-900 to-zinc-900", title: "Live Session" },
-  { id: "fb8", isText: true, text: "Text post" },
-];
+/** Channel the flow engine stores for each builder platform. */
+const CHANNELS: Record<Platform, string> = {
+  instagram: "instagram",
+  facebook: "messenger",
+  telegram: "telegram",
+  whatsapp: "whatsapp",
+};
 
 export function SimpleAutomationBuilder({
   workspaceId,
-  workspaceName = "censtd_nutech",
+  workspaceName = "Your account",
   onBack,
   onSaved,
 }: SimpleAutomationBuilderProps) {
@@ -95,17 +78,37 @@ export function SimpleAutomationBuilder({
   const [isActive, setIsActive] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState("");
 
   // Step 1: Platform
   const [platform, setPlatform] = useState<Platform>("facebook");
 
   // Step 2: Trigger per platform
   const [triggerType, setTriggerType] = useState<TriggerType>("fb_page_message");
-  const [commentScope, setCommentScope] = useState<CommentScope>("specific");
-  const [selectedPostId, setSelectedPostId] = useState<string>("p1");
-  const [selectedFbPostId, setSelectedFbPostId] = useState<string>("fb1");
-  const [fbCommentScope, setFbCommentScope] = useState<"specific" | "any">("specific");
-  const [selectedFbPage, setSelectedFbPage] = useState("SHAMA - Lightening The Path For Youth");
+  // Connected Facebook Pages, loaded from the workspace; the builder never invents one.
+  const [pages, setPages] = useState<Connection[]>([]);
+  const [selectedFbPage, setSelectedFbPage] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    queueMicrotask(() =>
+      api<Page<Connection>>(
+        `/api/workspaces/${workspaceId}/connections/`,
+        "GET",
+        undefined,
+        controller.signal,
+      )
+        .then((result) => {
+          const connected = result.results.filter(
+            (item) => item.provider === "messenger" && item.status !== "disconnected",
+          );
+          setPages(connected);
+          setSelectedFbPage((current) => current || connected[0]?.id || "");
+        })
+        .catch(() => undefined),
+    );
+    return () => controller.abort();
+  }, [workspaceId]);
 
   // Step 3: Trigger Keywords
   const [keywordOption, setKeywordOption] = useState<KeywordOption>("specific");
@@ -170,113 +173,66 @@ export function SimpleAutomationBuilder({
   const triggerMediumWord = isStoryTrigger ? "reply" : isCommentTrigger ? "comment" : "message";
   const triggerMediumPlural = isStoryTrigger ? "replys" : isCommentTrigger ? "comments" : "messages";
 
-  // Saving handler
+  // Saving handler: builds a graph the flow engine accepts, saves it as a draft and,
+  // when switched on, publishes it.
   const handleSave = async (forceActive?: boolean) => {
     setSaving(true);
     setFeedbackNotice(null);
+    setSaveError("");
     const active = forceActive !== undefined ? forceActive : isActive;
 
-    const payload = {
-      name: automationName || "My automation",
-      status: active ? "active" : "draft",
-      trigger: {
-        kind: triggerType,
-        keyword: keywordOption === "specific" && keywordChips.length ? keywordChips.join(",") : "*",
-        channel: platform || "facebook",
-      },
-      draft: {
-        start: "1",
-        triggers: [
-          {
-            kind: triggerType,
-            keyword: keywordOption === "specific" && keywordChips.length ? keywordChips.join(",") : "*",
-            channel: platform || "facebook",
-          },
-        ],
-        nodes: [
-          {
-            id: "1",
-            position: { x: 100, y: 100 },
-            data: {
-              kind: "send_message" as const,
-              text: openingMessage,
-              buttons: [{ type: "web_url" as const, url: linkUrl, title: openingButtonText }],
-            },
-          },
-          {
-            id: "2",
-            position: { x: 100, y: 300 },
-            data: {
-              kind: "send_message" as const,
-              text: linkMessage,
-              buttons: [{ type: "web_url" as const, url: linkUrl, title: linkButtonText }],
-            },
-          },
-        ],
-        edges: [{ source: "1", target: "2" }],
-      },
-      published: active
+    // Comment and story-reply triggers keep their kind; every message trigger is a DM.
+    const kind =
+      triggerType === "comment" || triggerType === "story_reply" ? triggerType : "dm";
+    const channel = CHANNELS[platform];
+    const keywords =
+      keywordOption === "specific" && keywordChips.length ? keywordChips : [ANY_KEYWORD];
+    const step = (id: string, text: string, title: string, y: number) => ({
+      id,
+      position: { x: 100, y },
+      data: title.trim()
         ? {
-            start: "1",
-            triggers: [
-              {
-                kind: triggerType,
-                keyword: keywordOption === "specific" && keywordChips.length ? keywordChips.join(",") : "*",
-                channel: platform || "facebook",
-              },
-            ],
-            nodes: [
-              {
-                id: "1",
-                position: { x: 100, y: 100 },
-                data: {
-                  kind: "send_message" as const,
-                  text: openingMessage,
-                  buttons: [{ type: "web_url" as const, url: linkUrl, title: openingButtonText }],
-                },
-              },
-              {
-                id: "2",
-                position: { x: 100, y: 300 },
-                data: {
-                  kind: "send_message" as const,
-                  text: linkMessage,
-                  buttons: [{ type: "web_url" as const, url: linkUrl, title: linkButtonText }],
-                },
-              },
-            ],
-            edges: [{ source: "1", target: "2" }],
+            kind: "send_buttons" as const,
+            text,
+            buttons: [{ type: "web_url" as const, url: linkUrl.trim(), title: title.trim() }],
           }
-        : {},
+        : { kind: "send_message" as const, text },
+    });
+    const nodes = [
+      ...(sendOpeningMessage && openingMessage.trim()
+        ? [step("opening", openingMessage, openingButtonText, 100)]
+        : []),
+      step("link", linkMessage, linkButtonText, 300),
+      { id: "done", position: { x: 100, y: 500 }, data: { kind: "end" as const } },
+    ];
+    const draft = {
+      start: nodes[0].id,
+      triggers: keywords.map((keyword) => ({ kind, keyword, channel })),
+      nodes,
+      edges: nodes.slice(1).map((node, index) => ({
+        id: `${nodes[index].id}-${node.id}`,
+        source: nodes[index].id,
+        target: node.id,
+      })),
     };
 
+    const prefix = `/api/workspaces/${workspaceId}`;
     try {
-      const saved = await api<Automation>(`/api/w/${workspaceId}/automations/`, "POST", payload);
+      let saved = await api<Automation>(`${prefix}/automations/`, "POST", {
+        name: automationName.trim() || "My automation",
+        draft,
+      });
+      // Publishing validates the flow and switches it on.
+      if (active)
+        saved = await api<Automation>(`${prefix}/automations/${saved.id}/publish/`, "POST", {
+          graph: draft,
+        });
       setFeedbackNotice(active ? "Automation saved and activated!" : "Automation saved as draft!");
       setTimeout(() => {
         onSaved(saved);
       }, 800);
-    } catch {
-      // Fallback response for offline or simulated test
-      const mockSaved: Automation = {
-        id: `auto_${Date.now()}`,
-        name: automationName,
-        status: active ? "active" : "draft",
-        enabled: active,
-        revision: 1,
-        runs_count: 0,
-        leads_count: 0,
-        folder: "",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        installed_from: null,
-        draft: payload.draft,
-        published: payload.published,
-      };
-      setFeedbackNotice(active ? "Automation saved and activated!" : "Automation saved as draft!");
-      setTimeout(() => {
-        onSaved(mockSaved);
-      }, 800);
+    } catch (err) {
+      setSaveError(message(err));
     } finally {
       setSaving(false);
     }
@@ -323,6 +279,11 @@ export function SimpleAutomationBuilder({
       {feedbackNotice && (
         <div className="simple-feedback-toast">
           <Check size={16} /> {feedbackNotice}
+        </div>
+      )}
+      {saveError && (
+        <div className="simple-feedback-toast error" role="alert">
+          {saveError}
         </div>
       )}
 
@@ -376,7 +337,7 @@ export function SimpleAutomationBuilder({
                     onClick={() => handlePlatformChange("instagram")}
                   >
                     <div className="platform-card-icon-box instagram">
-                      <Instagram size={28} />
+                      <BrandIcon name="instagram" size={26} mono />
                     </div>
                     <span className="platform-card-name">Instagram</span>
                   </button>
@@ -388,7 +349,7 @@ export function SimpleAutomationBuilder({
                     onClick={() => handlePlatformChange("telegram")}
                   >
                     <div className="platform-card-icon-box telegram">
-                      <Send size={24} />
+                      <BrandIcon name="telegram" size={26} mono />
                     </div>
                     <span className="platform-card-name">Telegram</span>
                   </button>
@@ -400,7 +361,7 @@ export function SimpleAutomationBuilder({
                     onClick={() => handlePlatformChange("whatsapp")}
                   >
                     <div className="platform-card-icon-box whatsapp">
-                      <MessageCircle size={26} />
+                      <BrandIcon name="whatsapp" size={26} mono />
                     </div>
                     <span className="platform-card-name">WhatsApp</span>
                   </button>
@@ -412,7 +373,7 @@ export function SimpleAutomationBuilder({
                     onClick={() => handlePlatformChange("facebook")}
                   >
                     <div className="platform-card-icon-box facebook">
-                      <Facebook size={26} />
+                      <BrandIcon name="facebook" size={26} mono />
                     </div>
                     <span className="platform-card-name">Facebook</span>
                   </button>
@@ -443,67 +404,15 @@ export function SimpleAutomationBuilder({
                         <span className={`custom-radio-circle ${triggerType === "comment" ? "checked" : ""}`} />
                         <div>
                           <div className="trigger-option-name">When someone comments on a post</div>
-                          <div className="trigger-option-desc">Watch a specific post or every post for new comments.</div>
+                          <div className="trigger-option-desc">Runs on new comments on any of your posts.</div>
                         </div>
                       </div>
 
                       {triggerType === "comment" && (
                         <div className="comment-subselector-box" onClick={(e) => e.stopPropagation()}>
-                          <div className="comment-scope-tabs">
-                            <button
-                              type="button"
-                              className={`scope-tab-button ${commentScope === "specific" ? "active" : ""}`}
-                              onClick={() => setCommentScope("specific")}
-                            >
-                              <span className="tab-title">A specific post</span>
-                              <span className="tab-sub">Only comments on posts you choose.</span>
-                            </button>
-                            <button
-                              type="button"
-                              className={`scope-tab-button ${commentScope === "any" ? "active" : ""}`}
-                              onClick={() => setCommentScope("any")}
-                            >
-                              <span className="tab-title">Any post</span>
-                              <span className="tab-sub">Comments on every post you publish.</span>
-                            </button>
-                            <button
-                              type="button"
-                              className={`scope-tab-button ${commentScope === "next" ? "active" : ""}`}
-                              onClick={() => setCommentScope("next")}
-                            >
-                              <span className="tab-title">Next post</span>
-                              <span className="tab-sub">Your next post (Meta can take 5–10 min to register it).</span>
-                            </button>
-                          </div>
-
-                          {commentScope === "specific" && (
-                            <div className="posts-picker-wrapper">
-                              <div className="posts-thumbnails-grid">
-                                {SAMPLE_POSTS.map((post) => (
-                                  <button
-                                    type="button"
-                                    key={post.id}
-                                    className={`post-thumb-card bg-gradient-to-br ${post.color} ${selectedPostId === post.id ? "selected-post" : ""}`}
-                                    onClick={() => setSelectedPostId(post.id)}
-                                  >
-                                    <div className="post-thumb-overlay">
-                                      <span className="post-metric">
-                                        <Heart size={11} fill="white" /> {post.likes}
-                                      </span>
-                                      <span className="post-metric">
-                                        <MessageSquare size={11} fill="white" /> {post.comments}
-                                      </span>
-                                    </div>
-                                    <div className="post-inner-label">{post.tag}</div>
-                                  </button>
-                                ))}
-                              </div>
-                              <div className="posts-picker-footer">
-                                <span>Tap a post to select it.</span>
-                                <button type="button" className="load-more-link">Load more</button>
-                              </div>
-                            </div>
-                          )}
+                          <p className="trigger-option-desc">
+                            Runs on new comments on any post of this account.
+                          </p>
                         </div>
                       )}
                     </div>
@@ -598,11 +507,17 @@ export function SimpleAutomationBuilder({
                                   value={selectedFbPage}
                                   onChange={(e) => setSelectedFbPage(e.target.value)}
                                   className="native-page-select"
+                                  aria-label="Facebook Page"
                                 >
-                                  <option value="SHAMA - Lightening The Path For Youth">
-                                    SHAMA - Lightening The Path For Youth
-                                  </option>
-                                  <option value="Nemio Official Community">Nemio Official Community</option>
+                                  {pages.length ? (
+                                    pages.map((page) => (
+                                      <option key={page.id} value={page.id}>
+                                        {page.display_name}
+                                      </option>
+                                    ))
+                                  ) : (
+                                    <option value="">No Facebook Page connected yet</option>
+                                  )}
                                 </select>
                                 <ChevronDown size={15} className="select-dropdown-chevron" />
                               </div>
@@ -625,25 +540,6 @@ export function SimpleAutomationBuilder({
 
                           {triggerType === "comment" && (
                             <div className="comment-subselector-box" onClick={(e) => e.stopPropagation()}>
-                              {/* FB only has 2 tabs: A specific post & Any post */}
-                              <div className="comment-scope-tabs fb-two-tabs">
-                                <button
-                                  type="button"
-                                  className={`scope-tab-button ${fbCommentScope === "specific" ? "active" : ""}`}
-                                  onClick={() => setFbCommentScope("specific")}
-                                >
-                                  <span className="tab-title">A specific post</span>
-                                  <span className="tab-sub">Only comments on posts you choose.</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`scope-tab-button ${fbCommentScope === "any" ? "active" : ""}`}
-                                  onClick={() => setFbCommentScope("any")}
-                                >
-                                  <span className="tab-title">Any post</span>
-                                  <span className="tab-sub">Comments on every post you publish.</span>
-                                </button>
-                              </div>
 
                               <div className="fb-page-dropdown-container" style={{ marginTop: 10, paddingTop: 10 }}>
                                 <label className="fb-page-select-label">Which Page should this connect to?</label>
@@ -652,54 +548,22 @@ export function SimpleAutomationBuilder({
                                     value={selectedFbPage}
                                     onChange={(e) => setSelectedFbPage(e.target.value)}
                                     className="native-page-select"
+                                    aria-label="Facebook Page"
                                   >
-                                    <option value="SHAMA - Lightening The Path For Youth">
-                                      SHAMA - Lightening The Path For Youth
-                                    </option>
-                                    <option value="Nemio Official Community">Nemio Official Community</option>
+                                    {pages.length ? (
+                                      pages.map((page) => (
+                                        <option key={page.id} value={page.id}>
+                                          {page.display_name}
+                                        </option>
+                                      ))
+                                    ) : (
+                                      <option value="">No Facebook Page connected yet</option>
+                                    )}
                                   </select>
                                   <ChevronDown size={15} className="select-dropdown-chevron" />
                                 </div>
                               </div>
 
-                              {fbCommentScope === "specific" && (
-                                <div className="posts-picker-wrapper" style={{ marginTop: 12 }}>
-                                  <div className="posts-thumbnails-grid fb-grid-scroll">
-                                    {FB_SAMPLE_POSTS.map((post) => (
-                                      <button
-                                        type="button"
-                                        key={post.id}
-                                        className={`post-thumb-card ${
-                                          post.isText
-                                            ? "fb-text-post-card"
-                                            : `bg-gradient-to-br ${post.color}`
-                                        } ${selectedFbPostId === post.id ? "selected-post" : ""}`}
-                                        onClick={() => setSelectedFbPostId(post.id)}
-                                      >
-                                        {post.isText ? (
-                                          <div className="text-post-label">{post.text}</div>
-                                        ) : (
-                                          <>
-                                            <div className="post-thumb-overlay">
-                                              <span className="post-metric">
-                                                <Heart size={11} fill="white" /> 18
-                                              </span>
-                                              <span className="post-metric">
-                                                <MessageSquare size={11} fill="white" /> 3
-                                              </span>
-                                            </div>
-                                            <div className="post-inner-label">{post.title}</div>
-                                          </>
-                                        )}
-                                      </button>
-                                    ))}
-                                  </div>
-                                  <div className="posts-picker-footer">
-                                    <span>Tap a post to select it.</span>
-                                    <button type="button" className="load-more-link">Load more</button>
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           )}
                         </div>
@@ -840,7 +704,7 @@ export function SimpleAutomationBuilder({
                     <div className="why-opening-dm-box">
                       <div className="why-title">Why an opening DM?</div>
                       <div className="why-body">
-                        If you're messaging a new person on Instagram, you only get one message until they accept.
+                        If you&apos;re messaging a new person on Instagram, you only get one message until they accept.
                         With an opening DM, you get the chance to talk with every single lead after they get the link.
                       </div>
                     </div>
@@ -929,7 +793,7 @@ export function SimpleAutomationBuilder({
                   <div className="simple-feature-toggle-row">
                     <div>
                       <div className="toggle-heading">Follow up</div>
-                      <div className="toggle-sub">Send a nudge if they don't click.</div>
+                      <div className="toggle-sub">Send a nudge if they don&apos;t click.</div>
                     </div>
                     <button
                       type="button"
@@ -1106,7 +970,7 @@ export function SimpleAutomationBuilder({
                       <button type="button" className="chat-back-arrow">‹</button>
                       <div className="chat-avatar-badge">
                         <div className="chat-avatar-img">
-                          <Instagram size={14} className="avatar-brand-icon" />
+                          <BrandIcon name="instagram" size={14} mono className="avatar-brand-icon" />
                         </div>
                       </div>
                       <div className="chat-user-info">
@@ -1134,7 +998,7 @@ export function SimpleAutomationBuilder({
                       {sendOpeningMessage && openingMessage && (
                         <div className="chat-bubble-row bot-row">
                           <div className="chat-bot-avatar">
-                            <Instagram size={10} />
+                            <BrandIcon name="instagram" size={10} />
                           </div>
                           <div className="chat-bubble bot-bubble">
                             <div className="bubble-text">{openingMessage}</div>
@@ -1158,7 +1022,7 @@ export function SimpleAutomationBuilder({
                       {linkMessage && (
                         <div className="chat-bubble-row bot-row">
                           <div className="chat-bot-avatar">
-                            <Instagram size={10} />
+                            <BrandIcon name="instagram" size={10} />
                           </div>
                           <div className="chat-bubble bot-bubble">
                             <div className="bubble-text">{linkMessage}</div>
@@ -1194,7 +1058,7 @@ export function SimpleAutomationBuilder({
                     <div className="phone-chat-header">
                       <button type="button" className="chat-back-arrow">‹</button>
                       <div className="chat-avatar-badge telegram">
-                        <Send size={14} className="avatar-brand-icon" />
+                        <BrandIcon name="telegram" size={14} mono className="avatar-brand-icon" />
                       </div>
                       <div className="chat-user-info">
                         <span className="chat-username">Your Bot</span>
@@ -1232,7 +1096,7 @@ export function SimpleAutomationBuilder({
                     <div className="phone-chat-header whatsapp-header">
                       <button type="button" className="chat-back-arrow white">‹</button>
                       <div className="chat-avatar-badge whatsapp">
-                        <MessageCircle size={14} className="avatar-brand-icon" />
+                        <BrandIcon name="whatsapp" size={14} mono className="avatar-brand-icon" />
                       </div>
                       <div className="chat-user-info white">
                         <span className="chat-username white">Your Business</span>
@@ -1246,7 +1110,7 @@ export function SimpleAutomationBuilder({
 
                     <div className="phone-chat-messages-scroll whatsapp-bg">
                       <div className="phone-empty-watermark whatsapp">
-                        <MessageCircle size={32} className="watermark-icon" />
+                        <BrandIcon name="whatsapp" size={32} mono className="watermark-icon" />
                         <span>Your messages will appear here as you set them up.</span>
                       </div>
                     </div>
@@ -1271,7 +1135,7 @@ export function SimpleAutomationBuilder({
                     <div className="phone-chat-header">
                       <button type="button" className="chat-back-arrow">‹</button>
                       <div className="chat-avatar-badge facebook">
-                        <Facebook size={14} className="avatar-brand-icon" />
+                        <BrandIcon name="messenger" size={14} mono className="avatar-brand-icon" />
                       </div>
                       <div className="chat-user-info">
                         <span className="chat-username">Your Page</span>

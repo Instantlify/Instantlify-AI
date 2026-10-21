@@ -5,7 +5,6 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   AlertCircle,
   Briefcase,
-  Camera,
   Check,
   ChevronDown,
   Clock,
@@ -14,13 +13,11 @@ import {
   Crown,
   Eye,
   EyeOff,
-  Facebook,
   FileText,
   HelpCircle,
   History,
   Image as ImageIcon,
   Infinity as InfinityIcon,
-  Instagram,
   Key,
   Layers,
   Lock,
@@ -55,6 +52,7 @@ import {
   type User as ApiUser,
   type Workspace,
 } from "@/lib/api";
+import { BrandIcon } from "@/lib/brand-icons";
 import { loadWorkspaces, useWorkspace } from "@/lib/workspace";
 import { ErrorNotice, SuccessNotice, useFeedback } from "@/components/ui";
 
@@ -600,8 +598,8 @@ export default function SettingsPage() {
                 {/* Right column: Form fields */}
                 <div className="profile-fields-col">
                   <div className="form-group">
-                    <label className="field-label">Full Name</label>
-                    <input
+                    <label className="field-label" htmlFor="settings-full-name">Full Name</label>
+                    <input id="settings-full-name"
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
@@ -611,8 +609,8 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="form-group">
-                    <label className="field-label">Email Address</label>
-                    <input
+                    <label className="field-label" htmlFor="settings-email-address">Email Address</label>
+                    <input id="settings-email-address"
                       type="email"
                       value={emailAddress}
                       onChange={(e) => setEmailAddress(e.target.value)}
@@ -682,9 +680,9 @@ export default function SettingsPage() {
             <form onSubmit={handleUpdatePassword} className="change-password-form">
               <div className="password-fields-two-col">
                 <div className="form-group">
-                  <label className="field-label">New password</label>
+                  <label className="field-label" htmlFor="settings-new-password">New password</label>
                   <div className="password-input-wrapper">
-                    <input
+                    <input id="settings-new-password"
                       type={showNewPassword ? "text" : "password"}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
@@ -704,9 +702,9 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="field-label">Confirm Password</label>
+                  <label className="field-label" htmlFor="settings-confirm-password">Confirm Password</label>
                   <div className="password-input-wrapper">
-                    <input
+                    <input id="settings-confirm-password"
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -748,7 +746,7 @@ export default function SettingsPage() {
           <div className="settings-card">
             <div className="settings-card-header">
               <div className="card-header-icon-title">
-                <Camera size={18} className="card-icon" />
+                <BrandIcon name="instagram" size={18} className="card-icon" />
                 <div>
                   <h2 className="card-title">Instagram Accounts</h2>
                   <p className="card-subtitle">Manage your connected Instagram accounts.</p>
@@ -772,7 +770,7 @@ export default function SettingsPage() {
                   <div key={acc.id} className="connected-channel-card-row">
                     <div className="channel-info-left">
                       <div className="channel-avatar-circle instagram">
-                        <Instagram size={18} />
+                        <BrandIcon name="instagram" size={18} mono />
                       </div>
                       <div>
                         <div className="channel-name-title-row">
@@ -827,7 +825,7 @@ export default function SettingsPage() {
           <div className="settings-card">
             <div className="settings-card-header">
               <div className="card-header-icon-title">
-                <Facebook size={18} className="card-icon fb-blue-icon" />
+                <BrandIcon name="facebook" size={18} className="card-icon" />
                 <div>
                   <h2 className="card-title">Facebook Pages</h2>
                   <p className="card-subtitle">
@@ -853,7 +851,7 @@ export default function SettingsPage() {
                   <div key={page.id} className="connected-channel-card-row">
                     <div className="channel-info-left">
                       <div className="channel-avatar-circle facebook">
-                        <Facebook size={18} />
+                        <BrandIcon name="facebook" size={18} mono />
                       </div>
                       <div>
                         <div className="channel-name-title-row">
@@ -1139,10 +1137,10 @@ export default function SettingsPage() {
 
                 <div className="auto-recharge-inputs-row">
                   <div className="form-group" style={{ flex: 1 }}>
-                    <label className="field-label">Trigger when balance drops below</label>
+                    <label className="field-label" htmlFor="settings-trigger-when-balance-drops-below">Trigger when balance drops below</label>
                     <div className="dollar-input-wrapper">
                       <span className="currency-symbol">$</span>
-                      <input
+                      <input id="settings-trigger-when-balance-drops-below"
                         type="text"
                         value={autoRechargeThreshold}
                         onChange={(e) => setAutoRechargeThreshold(e.target.value)}
@@ -1153,9 +1151,9 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="form-group" style={{ flex: 1 }}>
-                    <label className="field-label">Recharge amount</label>
+                    <label className="field-label" htmlFor="settings-recharge-amount">Recharge amount</label>
                     <div className="custom-select-box">
-                      <select
+                      <select id="settings-recharge-amount"
                         value={autoRechargeAmount}
                         onChange={(e) => {
                           setAutoRechargeAmount(e.target.value);
@@ -1300,8 +1298,8 @@ export default function SettingsPage() {
               <div className="ws-block-eyebrow">BASICS</div>
 
               <div className="form-group">
-                <label className="field-label">Workspace Name</label>
-                <input
+                <label className="field-label" htmlFor="settings-workspace-name">Workspace Name</label>
+                <input id="settings-workspace-name"
                   type="text"
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
@@ -1310,10 +1308,10 @@ export default function SettingsPage() {
               </div>
 
               <div className="form-group" style={{ marginTop: 14 }}>
-                <label className="field-label">Workspace Color</label>
+                <label className="field-label" htmlFor="settings-workspace-color">Workspace Color</label>
                 <div className="color-input-hex-row">
                   <div className="color-preview-box" style={{ background: workspaceColor }} />
-                  <input
+                  <input id="settings-workspace-color"
                     type="text"
                     value={workspaceColor}
                     onChange={(e) => setWorkspaceColor(e.target.value)}
@@ -1451,8 +1449,8 @@ export default function SettingsPage() {
               </div>
 
               <div className="form-group" style={{ marginTop: 14 }}>
-                <label className="field-label">Brand name</label>
-                <input
+                <label className="field-label" htmlFor="settings-brand-name">Brand name</label>
+                <input id="settings-brand-name"
                   type="text"
                   value={brandName}
                   onChange={(e) => setBrandName(e.target.value)}
@@ -1489,8 +1487,8 @@ export default function SettingsPage() {
 
             <form onSubmit={handleInviteMember} style={{ marginTop: 16 }}>
               <div className="form-group">
-                <label className="field-label">Email Address</label>
-                <input
+                <label className="field-label" htmlFor="settings-email-address-2">Email Address</label>
+                <input id="settings-email-address-2"
                   type="email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
@@ -1501,9 +1499,9 @@ export default function SettingsPage() {
               </div>
 
               <div className="form-group" style={{ marginTop: 12 }}>
-                <label className="field-label">Role</label>
+                <label className="field-label" htmlFor="settings-role">Role</label>
                 <div className="custom-select-box">
-                  <select
+                  <select id="settings-role"
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value as "admin" | "agent")}
                     className="native-page-select"

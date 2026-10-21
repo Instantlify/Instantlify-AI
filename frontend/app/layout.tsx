@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { DM_Sans, Manrope } from "next/font/google";
-import "./theme.css";
 import "./globals.css";
 import "./features.css";
 import "./refresh.css";
@@ -8,6 +7,7 @@ import "./landing.css";
 import "./landing-depth.css";
 import "./meta.css";
 import "@xyflow/react/dist/style.css";
+import "./theme.css";
 
 // Self-hosted at build time; meta.css points the shared font tokens at these.
 const body = DM_Sans({ subsets: ["latin"], variable: "--font-body" });

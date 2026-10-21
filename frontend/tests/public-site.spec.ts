@@ -427,9 +427,10 @@ test("workspace navigation remains usable on desktop and mobile", async ({
   });
   await page.goto("/w/design-review/overview");
   await expect(
-    page.getByRole("heading", { name: "Your business at a glance, Alex." }),
+    page.getByRole("heading", { name: "Your Statistics" }),
   ).toBeVisible();
-  await expect(page.locator(".welcome-banner")).toBeVisible();
+  // No channel is connected yet, so the overview asks for one.
+  await expect(page.getByText("Connect your Instagram account")).toBeVisible();
   await page.screenshot({
     path: "test-results/nemio-workspace-desktop.png",
     fullPage: true,

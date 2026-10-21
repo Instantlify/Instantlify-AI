@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ExternalLink,
   Plus,
@@ -11,6 +11,7 @@ import {
   Check,
   Sparkles,
 } from "lucide-react";
+import { api, message, type DeepLink } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import {
   Empty,
@@ -23,55 +24,34 @@ import {
   Table,
   useFeedback,
 } from "@/components/ui";
-
-type DeepLink = {
-  id: string;
-  title: string;
-  platform: "instagram" | "whatsapp" | "youtube" | "telegram" | "custom";
-  target: string;
-  shortCode: string;
-  clicks: number;
-  active: boolean;
-  createdAt: string;
-};
-
-const DEFAULT_LINKS: DeepLink[] = [
-  {
-    id: "dl-1",
-    title: "Instagram Profile Direct",
-    platform: "instagram",
-    target: "https://instagram.com/censtd_nutech",
-    shortCode: "ig-profile",
-    clicks: 342,
-    active: true,
-    createdAt: "2026-10-18T10:00:00Z",
-  },
-  {
-    id: "dl-2",
-    title: "WhatsApp Order Concierge",
-    platform: "whatsapp",
-    target: "https://wa.me/15550100200?text=Hi%20Nemio",
-    shortCode: "wa-order",
-    clicks: 189,
-    active: true,
-    createdAt: "2026-10-19T14:30:00Z",
-  },
-];
+import { BrandIcon, isBrand } from "@/lib/brand-icons";
 
 export default function DeepLinksPage() {
-  const { workspace } = useWorkspace();
-  const [links, setLinks] = useState<DeepLink[]>(() => {
-    try {
-      const stored = localStorage.getItem(`nemio:deeplinks:${workspace.id}`);
-      return stored ? JSON.parse(stored) : DEFAULT_LINKS;
-    } catch {
-      return DEFAULT_LINKS;
-    }
-  });
+  const { workspace, prefix, manager } = useWorkspace();
+  const [links, setLinks] = useState<DeepLink[]>([]);
+  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [qrModal, setQrModal] = useState<DeepLink | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const feedback = useFeedback();
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  const shortUrl = (link: DeepLink) => `${origin}/go/${link.code}/`;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    queueMicrotask(() =>
+      api<DeepLink[]>(`${prefix}/deeplinks/`, "GET", undefined, controller.signal)
+        .then(setLinks)
+        .catch((err) => {
+          if (!controller.signal.aborted) feedback.setError(message(err));
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLoading(false);
+        }),
+    );
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefix]);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -88,48 +68,50 @@ export default function DeepLinksPage() {
     }
   }
 
-  function handleCreate(e: React.FormEvent) {
+  async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !target.trim()) {
-      feedback.setError("Please provide a title and target URL.");
-      return;
+    const code = (customCode.trim() || title.toLowerCase().replace(/[^a-z0-9]+/g, "-"))
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40);
+    const done = await feedback.run(async () => {
+      const created = await api<DeepLink>(`${prefix}/deeplinks/`, "POST", {
+        title: title.trim(),
+        platform,
+        target: target.trim(),
+        code,
+      });
+      setLinks((list) => [created, ...list]);
+      return true;
+    }, `Smart link "${title.trim()}" created.`);
+    if (done) {
+      setCreating(false);
+      setTitle("");
+      setTarget("");
+      setCustomCode("");
     }
-    const slug = (customCode.trim() || title.toLowerCase().replace(/[^a-z0-9]+/g, "-")).slice(0, 30);
-    const newLink: DeepLink = {
-      id: `dl-${Date.now()}`,
-      title: title.trim(),
-      platform,
-      target: target.trim(),
-      shortCode: slug,
-      clicks: 0,
-      active: true,
-      createdAt: new Date().toISOString(),
-    };
-    save([newLink, ...links]);
-    setCreating(false);
-    setTitle("");
-    setTarget("");
-    setCustomCode("");
-    feedback.setNotice(`Smart link "${newLink.title}" created!`);
   }
 
   function copyLink(link: DeepLink) {
-    const fullUrl = `https://${window.location.host}/p/deep/${link.shortCode}`;
-    navigator.clipboard.writeText(fullUrl);
+    navigator.clipboard.writeText(shortUrl(link));
     setCopiedId(link.id);
     setTimeout(() => setCopiedId(null), 2000);
   }
 
-  function toggleActive(id: string) {
-    save(
-      links.map((link) =>
-        link.id === id ? { ...link, active: !link.active } : link,
-      ),
-    );
+  async function toggleActive(link: DeepLink) {
+    await feedback.run(async () => {
+      const updated = await api<DeepLink>(`${prefix}/deeplinks/${link.id}/`, "PATCH", {
+        active: !link.active,
+      });
+      setLinks((list) => list.map((item) => (item.id === link.id ? updated : item)));
+    });
   }
 
-  function remove(id: string) {
-    save(links.filter((link) => link.id !== id));
+  async function remove(link: DeepLink) {
+    if (!window.confirm(`Delete "${link.title}"? Its short link stops working.`)) return;
+    await feedback.run(async () => {
+      await api(`${prefix}/deeplinks/${link.id}/`, "DELETE");
+      setLinks((list) => list.filter((item) => item.id !== link.id));
+    }, "Link deleted.");
   }
 
   return (
@@ -167,10 +149,12 @@ export default function DeepLinksPage() {
       </div>
 
       <Panel title="Active Smart Links" aside={`${links.length} links configured`}>
-        {links.length > 0 ? (
+        {loading ? (
+          <p className="loading-text">Loading links…</p>
+        ) : links.length > 0 ? (
           <Table head={["Link Details", "Platform Target", "Clicks", "Status", "Actions"]}>
             {links.map((link) => {
-              const fullUrl = typeof window !== "undefined" ? `https://${window.location.host}/p/deep/${link.shortCode}` : `.../p/deep/${link.shortCode}`;
+              const fullUrl = shortUrl(link);
               return (
                 <tr key={link.id}>
                   <td>
@@ -180,14 +164,19 @@ export default function DeepLinksPage() {
                     </div>
                   </td>
                   <td>
-                    <Pill tone="neutral">{link.platform.toUpperCase()}</Pill>
+                    <Pill tone="neutral">
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        {isBrand(link.platform) && <BrandIcon name={link.platform} size={13} />}
+                        {link.platform.toUpperCase()}
+                      </span>
+                    </Pill>
                   </td>
                   <td className="num">{link.clicks}</td>
                   <td>
                     <button
                       className={`pill ${link.active ? "pill-good" : "pill-warn"}`}
                       style={{ border: "none", cursor: "pointer" }}
-                      onClick={() => toggleActive(link.id)}
+                      onClick={() => toggleActive(link)}
                     >
                       {link.active ? "Active" : "Paused"}
                     </button>
@@ -220,7 +209,7 @@ export default function DeepLinksPage() {
                       </a>
                       <button
                         className="icon-button"
-                        onClick={() => remove(link.id)}
+                        onClick={() => remove(link)}
                         title="Delete link"
                       >
                         <Trash2 size={16} />
@@ -301,7 +290,7 @@ export default function DeepLinksPage() {
         <Modal title={`QR Code: ${qrModal.title}`} onClose={() => setQrModal(null)}>
           <div style={{ textAlign: "center", padding: "16px 0" }}>
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://${typeof window !== "undefined" ? window.location.host : ""}/p/deep/${qrModal.shortCode}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shortUrl(qrModal))}`}
               alt="Deep Link QR Code"
               style={{ width: "200px", height: "200px", borderRadius: "12px", border: "1px solid var(--brand-line)" }}
             />

@@ -35,6 +35,7 @@ import {
   SuccessNotice,
   useFeedback,
 } from "@/components/ui";
+import { BrandIcon } from "@/lib/brand-icons";
 
 const CATEGORIES = [
   "sales",
@@ -559,7 +560,7 @@ export default function TemplatesPage() {
                         disabled={!owner || feedback.busy}
                         onClick={() => payouts("onboard")}
                       >
-                        <CreditCard size={16} /> Finish Stripe setup
+                        <BrandIcon name="stripe" size={16} mono /> Finish Stripe setup
                       </button>
                     )}
                     <button

@@ -1,0 +1,314 @@
+"use client";
+
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Plug, Plus, Send } from "lucide-react";
+import { api, message, when, type Connection, type Delivery, type Page } from "@/lib/api";
+import { ChannelIcon, channelLabel } from "@/lib/channels";
+import {
+  CopyField,
+  Empty,
+  ErrorNotice,
+  Panel,
+  Pill,
+  statusTone,
+  SuccessNotice,
+  Table,
+  useFeedback,
+} from "@/components/ui";
+
+/** Channels connected by hand (no OAuth) and what their account ID is. */
+const CHANNEL_PROVIDERS = [
+  { id: "whatsapp", label: "WhatsApp Business", account: "Phone number ID" },
+  { id: "telegram", label: "Telegram Bot", account: "Bot user ID" },
+  { id: "snapchat", label: "Snapchat Lead Ads", account: "Ad Account or Form ID" },
+  { id: "linkedin", label: "LinkedIn Company Page", account: "Organization URN" },
+  { id: "instagram", label: "Instagram", account: "Instagram account ID" },
+  { id: "messenger", label: "Facebook Messenger", account: "Facebook Page ID" },
+];
+
+/** Connected channels: one-click Meta and LinkedIn, manual and local test channels, a
+ * test-message simulator, and the latest outbound deliveries. */
+export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: boolean }) {
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const feedback = useFeedback();
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      const [channels, sent] = await Promise.all([
+        api<Page<Connection>>(`${prefix}/connections/`, "GET", undefined, signal),
+        manager
+          ? api<Delivery[]>(`${prefix}/deliveries/`, "GET", undefined, signal)
+          : Promise.resolve([] as Delivery[]),
+      ]);
+      setConnections(channels.results);
+      setDeliveries(sent);
+    },
+    [prefix, manager],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    queueMicrotask(() =>
+      load(controller.signal).catch((err) => {
+        if (!controller.signal.aborted) feedback.setError(message(err));
+      }),
+    );
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load]);
+
+  async function connectOAuth(path: "meta" | "linkedin") {
+    await feedback.run(async () => {
+      const result = await api<{ authorization_url: string }>(
+        `${prefix}/${path}/connect/`,
+        "POST",
+      );
+      window.location.assign(result.authorization_url);
+    });
+  }
+
+  async function connectChannel(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form));
+    await feedback.run(async () => {
+      await api(`${prefix}/channels/connect/`, "POST", {
+        provider: data.provider,
+        external_account_id: data.external_account_id,
+        display_name: data.display_name,
+        access_token: data.access_token || "",
+        is_test: data.is_test === "on",
+      });
+      await load();
+      form.reset();
+    }, "Connection requested. Verification runs in the background.");
+  }
+
+  async function disconnect(connection: Connection) {
+    if (!window.confirm(`Disconnect ${connection.display_name}?`)) return;
+    await feedback.run(async () => {
+      await api(`${prefix}/channels/${connection.id}/disconnect/`, "POST", {});
+      await load();
+    }, "Channel disconnected.");
+  }
+
+  async function simulate(event: FormEvent<HTMLFormElement>, connection: Connection) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form));
+    await feedback.run(async () => {
+      await api(`${prefix}/channels/${connection.id}/simulate/`, "POST", {
+        text: data.text,
+        kind: data.kind,
+        sender_id: data.sender_id || "test-lead",
+      });
+      form.reset();
+    }, "Test message queued. It appears in the inbox within seconds.");
+  }
+
+  return (
+    <div className="channels-panel">
+      <ErrorNotice error={feedback.error} />
+      <SuccessNotice notice={feedback.notice} />
+      <div className="channels-panel-grid">
+        <Panel title="Connected channels" aside={`${connections.length} connected`}>
+          {connections.length ? (
+            <div className="card-list">
+              {connections.map((connection) => (
+                <div className="card channel-card" key={connection.id}>
+                  <div className="row between">
+                    <div className="channel-card-title">
+                      <ChannelIcon provider={connection.provider} size={20} />
+                      <div>
+                        <strong>{connection.display_name}</strong>
+                        <div className="muted-text">
+                          {channelLabel(connection.provider)} · expires{" "}
+                          {when(connection.expires_at)}
+                          {connection.locked && (
+                            <>
+                              {" "}
+                              · <Pill tone="warn">locked by plan</Pill>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Pill tone={connection.is_test ? "neutral" : statusTone(connection.status)}>
+                      {connection.is_test ? "test" : connection.status}
+                    </Pill>
+                  </div>
+                  {manager && connection.is_test && connection.status === "active" && (
+                    <form
+                      className="channel-simulate"
+                      onSubmit={(event) => simulate(event, connection)}
+                    >
+                      <label>
+                        Simulate an inbound message
+                        <input
+                          name="text"
+                          maxLength={2000}
+                          placeholder="e.g. What is the price?"
+                          required
+                        />
+                      </label>
+                      <div className="row">
+                        <select name="kind" defaultValue="dm" aria-label="Kind">
+                          <option value="dm">DM</option>
+                          <option value="comment">Comment</option>
+                          <option value="story_reply">Story reply</option>
+                          <option value="live_comment">Live comment</option>
+                        </select>
+                        <input
+                          name="sender_id"
+                          maxLength={100}
+                          placeholder="Sender ID (test-lead)"
+                          aria-label="Sender ID"
+                        />
+                        <button className="button small primary" disabled={feedback.busy}>
+                          Send <Send size={14} />
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                  {manager && connection.status !== "disconnected" && (
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        className="button small danger"
+                        disabled={feedback.busy}
+                        onClick={() => disconnect(connection)}
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty>No channels yet. Connect one to start receiving conversations.</Empty>
+          )}
+        </Panel>
+
+        {manager && (
+          <div className="stack">
+            <Panel title="Connect a channel">
+              <p className="muted-text">
+                Connect your business accounts with one click. No developer tokens needed.
+              </p>
+              <div className="row wrap channel-connect-buttons">
+                <button
+                  type="button"
+                  className="button primary"
+                  disabled={feedback.busy}
+                  onClick={() => connectOAuth("meta")}
+                >
+                  <Plug size={16} /> Connect Instagram &amp; Messenger
+                </button>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={feedback.busy}
+                  onClick={() => connectOAuth("linkedin")}
+                >
+                  <Plug size={16} /> Connect LinkedIn Page
+                </button>
+              </div>
+              <details className="channel-advanced">
+                <summary>Manual credentials, WhatsApp, Telegram and test channels</summary>
+                <form className="form-grid" onSubmit={connectChannel}>
+                  <label>
+                    Provider
+                    <select name="provider" defaultValue="whatsapp">
+                      {CHANNEL_PROVIDERS.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="hint">
+                      {CHANNEL_PROVIDERS.map((item) => `${item.label}: ${item.account}`).join(
+                        " · ",
+                      )}
+                    </span>
+                  </label>
+                  <label>
+                    Account ID
+                    <input
+                      name="external_account_id"
+                      maxLength={200}
+                      pattern="[A-Za-z0-9_\-]{1,200}"
+                      required
+                    />
+                  </label>
+                  <label>
+                    Display name
+                    <input name="display_name" maxLength={150} required />
+                  </label>
+                  <label>
+                    Access token
+                    <input
+                      name="access_token"
+                      type="password"
+                      autoComplete="off"
+                      maxLength={4000}
+                    />
+                    <span className="hint">
+                      Required for live connections; leave empty for a test channel.
+                    </span>
+                  </label>
+                  <label className="inline">
+                    <input type="checkbox" name="is_test" />
+                    Create a local test channel (no provider calls)
+                  </label>
+                  <div className="form-actions">
+                    <button className="button primary" disabled={feedback.busy}>
+                      Connect <Plus size={16} />
+                    </button>
+                  </div>
+                </form>
+                <div className="channel-webhooks">
+                  <p className="muted-text">
+                    Webhook URLs for custom apps. Telegram and LinkedIn register theirs
+                    automatically.
+                  </p>
+                  {["instagram", "whatsapp", "messenger", "linkedin", "snapchat"].map(
+                    (provider) => (
+                      <CopyField
+                        key={provider}
+                        label={`${channelLabel(provider)} webhook URL`}
+                        value={`${origin}/webhooks/${provider}/`}
+                      />
+                    ),
+                  )}
+                </div>
+              </details>
+            </Panel>
+
+            <Panel title="Recent deliveries" aside={`${deliveries.length}`}>
+              {deliveries.length ? (
+                <Table head={["When", "Recipient", "Status", "Attempts", "Error"]}>
+                  {deliveries.slice(0, 20).map((delivery) => (
+                    <tr key={delivery.id}>
+                      <td>{when(delivery.created_at)}</td>
+                      <td className="mono">{delivery.recipient_id}</td>
+                      <td>
+                        <Pill tone={statusTone(delivery.status)}>{delivery.status}</Pill>
+                      </td>
+                      <td>{delivery.attempts}</td>
+                      <td className="mono">{delivery.error_code || "—"}</td>
+                    </tr>
+                  ))}
+                </Table>
+              ) : (
+                <Empty>Nothing sent yet.</Empty>
+              )}
+            </Panel>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

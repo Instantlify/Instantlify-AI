@@ -54,6 +54,12 @@ class ChannelAdapter(ABC):
         """IN_PROGRESS, FINISHED, ERROR, EXPIRED or PUBLISHED (Meta's status_code)."""
         raise NotImplementedError("unsupported_provider")
 
+    def hide_comment(self, comment_id: str) -> None:
+        raise IntegrationUnavailable("This channel cannot hide comments")
+
+    def delete_comment(self, comment_id: str) -> None:
+        raise IntegrationUnavailable("This channel cannot delete comments")
+
     def publish_container(self, container_id: str) -> str:
         raise NotImplementedError("unsupported_provider")
 
@@ -90,6 +96,7 @@ class FakeChannelAdapter(InstagramAdapter):
 
     def __init__(self):
         self.sent = {}
+        self.moderated = []
 
     def send_message(self, *, recipient_id, text, idempotency_key):
         self.sent.setdefault(idempotency_key, (recipient_id, text))
@@ -108,6 +115,12 @@ class FakeChannelAdapter(InstagramAdapter):
 
     def publish_container(self, container_id):
         return container_id.replace("fake-container-", "fake-post-")
+
+    def hide_comment(self, comment_id):
+        self.moderated.append(("hide", comment_id))
+
+    def delete_comment(self, comment_id):
+        self.moderated.append(("delete", comment_id))
 
     def refresh_token(self, credentials):
         return Credentials(
@@ -140,10 +153,29 @@ def exchange_oauth_code(code, workspace_id):
     )
 
 
+class WebChatAdapter(ChannelAdapter):
+    """Website chat: replies are stored and read back by the visitor's widget, so a
+    delivery is complete as soon as it is recorded."""
+
+    def send_message(self, *, recipient_id, text, idempotency_key, **kwargs):
+        return "webchat:" + idempotency_key
+
+    def send_voice_note(self, *, recipient_id, media_url, idempotency_key):
+        return "webchat:" + idempotency_key
+
+    def parse_incoming_webhook(self, payload):
+        return []
+
+    def refresh_token(self, credentials):
+        return credentials
+
+
 def adapter_for(connection):
     from apps.platform_ops.security import assert_enabled
 
     assert_enabled(connection.workspace_id, "integration:" + connection.provider)
+    if connection.provider == "webchat":
+        return WebChatAdapter()
     if connection.is_test:
         if settings.CHANNEL_ADAPTER_MODE != "fake":
             raise IntegrationUnavailable("Test connections are disabled")

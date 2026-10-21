@@ -8,15 +8,13 @@ import {
   Check,
   ChevronDown,
   GitBranch,
-  Instagram,
-  MessageCircle,
   Sparkles,
   Users,
   CalendarCheck,
   ShieldCheck,
   Zap,
-  Send,
   Menu,
+  MessageCircle,
   X,
   Search,
   BarChart3,
@@ -28,6 +26,7 @@ import {
   Globe,
   CheckCircle2,
 } from "lucide-react";
+import { BrandIcon, type BrandName } from "@/lib/brand-icons";
 import { Brand } from "@/components/shell";
 import { TrackVisit } from "@/components/growth";
 import { PublicPricing } from "@/components/public-pricing";
@@ -43,7 +42,7 @@ const scenarios = [
       "Here’s your getting-started guide. What’s the biggest thing you’d like to improve?",
     answer: "Following up with people interested in my services.",
     result: "Resource delivered · Interest tagged",
-    icon: Instagram,
+    brand: "instagram" as const,
   },
   {
     name: "Story reply",
@@ -54,7 +53,7 @@ const scenarios = [
       "Yes! We start with the basics and build from there. Would you like the workshop details?",
     answer: "Yes please, send them over!",
     result: "Workshop details sent · Lead captured",
-    icon: Instagram,
+    brand: "instagram" as const,
   },
   {
     name: "AI qualification",
@@ -65,7 +64,7 @@ const scenarios = [
       "Happy to help. Which channel gets the most enquiries, and what would you like to automate first?",
     answer: "WhatsApp. We want to book more consultations.",
     result: "Intent identified · Ready for a booking",
-    icon: MessageCircle,
+    brand: "whatsapp" as const,
   },
   {
     name: "Team handoff",
@@ -76,7 +75,7 @@ const scenarios = [
       "Let’s get the right person involved. Tell me a little about your project and I’ll pass the context to our team.",
     answer: "We need a workflow for three client accounts.",
     result: "Team notified · Context preserved",
-    icon: Send,
+    brand: "telegram" as const,
   },
 ];
 
@@ -124,6 +123,27 @@ const capabilities = [
     tags: "Funnel analytics · Attribution · Experiments",
   },
 ];
+
+/** Shared brand artwork for every entry in the integration grid. */
+const LOGOS: Record<string, BrandName> = {
+  "Cal.com": "caldotcom",
+  GoHighLevel: "gohighlevel",
+  Attio: "attio",
+  Instagram: "instagram",
+  WhatsApp: "whatsapp",
+  Messenger: "messenger",
+  Telegram: "telegram",
+  "Google Calendar": "googlecalendar",
+  Airtable: "airtable",
+  Notion: "notion",
+  Slack: "slack",
+  ElevenLabs: "elevenlabs",
+  OpenAI: "openai",
+  Stripe: "stripe",
+  Zapier: "zapier",
+  n8n: "n8n",
+  Make: "make",
+};
 
 const integrations = [
   ["Instagram", "Channels", "IG", "Channel connection"],
@@ -190,7 +210,6 @@ function Demo({
   onStep: () => void;
 }) {
   const item = scenarios[scenario];
-  const Icon = item.icon;
   return (
     <div className="nm-demo" aria-label="Illustrative conversation demo">
       <div className="nm-demo-toolbar">
@@ -204,7 +223,8 @@ function Demo({
         <div>
           <strong>Jordan Davis</strong>
           <small>
-            <Icon size={12} /> {item.channel} · Example lead
+            <BrandIcon name={item.brand} size={12} /> {item.channel} ·
+            Example lead
           </small>
         </div>
         <span className="nm-status">
@@ -480,16 +500,16 @@ export function LandingPage({ helpLinks }: { helpLinks: ReactNode }) {
             <b>WHEREVER THEY SAY HELLO.</b>
           </span>
           <div>
-            <Instagram /> Instagram
+            <BrandIcon name="instagram" size={21} /> Instagram
           </div>
           <div>
-            <MessageCircle /> WhatsApp
+            <BrandIcon name="whatsapp" size={21} /> WhatsApp
           </div>
           <div>
-            <MessageCircle /> Messenger
+            <BrandIcon name="messenger" size={21} /> Messenger
           </div>
           <div>
-            <Send /> Telegram
+            <BrandIcon name="telegram" size={21} /> Telegram
           </div>
         </section>
         <section className="nm-section" id="interactive-demo">
@@ -747,9 +767,13 @@ export function LandingPage({ helpLinks }: { helpLinks: ReactNode }) {
             {filtered.map(([name, group, monogram, type]) => (
               <article key={name}>
                 <span
-                  className={`nm-app-icon tone-${group.split(" ")[0].toLowerCase()}`}
+                  className={`nm-app-icon tone-${group.split(" ")[0].toLowerCase()}${LOGOS[name] ? " has-logo" : ""}`}
                 >
-                  {monogram}
+                  {LOGOS[name] ? (
+                    <BrandIcon name={LOGOS[name]} size={18} />
+                  ) : (
+                    monogram
+                  )}
                 </span>
                 <div>
                   <h3>{name}</h3>

@@ -10,13 +10,11 @@ import {
   ChevronLeft,
   Phone,
   Video,
-  FileSpreadsheet,
   CheckCircle2,
-  Calendar,
   Zap,
-  Mail,
   Users,
 } from "lucide-react";
+import { BrandIcon } from "@/lib/brand-icons";
 
 export interface IntegrationAppInfo {
   providerKey?: string;
@@ -148,7 +146,7 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                   When...
                 </div>
                 <div className="boosend-canvas-node-title">
-                  <MessageSquare size={13} color="#f43f5e" />
+                  <BrandIcon name="instagram" size={13} />
                   Message Received
                 </div>
                 <div className="boosend-canvas-node-sub">any message</div>
@@ -248,7 +246,7 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                           fontSize: "10px",
                         }}
                       >
-                        <FileSpreadsheet size={13} />
+                        <span className="explainer-app-mark">{app.logo}</span>
                       </div>
                       <span className="sheet-doc-title">Leads</span>
                       <span className="sheet-menubar">File Edit View Insert Format</span>
@@ -353,7 +351,7 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                 {isEmail && (
                   <div className="mock-email-panel">
                     <div className="mock-email-header">
-                      <Mail size={14} color="#2563eb" />
+                      <span className="explainer-app-mark">{app.logo}</span>
                       <strong>Automated Email Sent</strong>
                     </div>
                     {destPopulated ? (
@@ -376,7 +374,7 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                 {isScheduling && (
                   <div className="mock-cal-panel">
                     <div className="mock-cal-header">
-                      <Calendar size={14} color="#0284c7" />
+                      <span className="explainer-app-mark">{app.logo}</span>
                       <strong>Calendar Booking</strong>
                     </div>
                     {destPopulated ? (

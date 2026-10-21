@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/api/:path*/", destination: `${backend}/api/:path*/` },
       { source: "/health/:path*/", destination: `${backend}/health/:path*/` },
+      { source: "/go/:code/", destination: `${backend}/go/:code/` },
     ];
   },
   trailingSlash: true,

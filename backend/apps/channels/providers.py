@@ -72,6 +72,23 @@ class MessengerAdapter(InstagramAdapter):
             {"attachment": {"type": "audio", "payload": {"url": media_url, "is_reusable": False}}},
         )
 
+    def hide_comment(self, comment_id):
+        request(
+            "POST",
+            f"https://graph.facebook.com/{settings.META_API_VERSION}/{comment_id}",
+            side_effect=True,
+            headers={"Authorization": f"Bearer {self.connection.access_token}"},
+            json={"is_hidden": True},
+        )
+
+    def delete_comment(self, comment_id):
+        request(
+            "DELETE",
+            f"https://graph.facebook.com/{settings.META_API_VERSION}/{comment_id}",
+            side_effect=True,
+            headers={"Authorization": f"Bearer {self.connection.access_token}"},
+        )
+
 
 class TelegramAdapter(InstagramAdapter):
     def __init__(self, connection):

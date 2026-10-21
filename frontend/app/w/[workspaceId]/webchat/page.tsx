@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bot,
   Check,
@@ -12,6 +12,7 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
+import { api, message, type WebChatSettings } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import {
   CopyField,
@@ -23,16 +24,35 @@ import {
 } from "@/components/ui";
 
 export default function WebChatPage() {
-  const { workspace } = useWorkspace();
-  const [title, setTitle] = useState("Customer Support");
-  const [greeting, setGreeting] = useState("Hi there! 👋 How can our team or AI assistant help you today?");
+  const { workspace, prefix } = useWorkspace();
+  const [title, setTitle] = useState("");
+  const [greeting, setGreeting] = useState("");
   const [color, setColor] = useState("#347359");
   const [botEnabled, setBotEnabled] = useState(true);
-  const [allowedDomains, setAllowedDomains] = useState("myshop.com, example.com");
+  const [allowedDomains, setAllowedDomains] = useState("");
   const [copied, setCopied] = useState(false);
   const feedback = useFeedback();
 
-  const embedScript = `<script\n  src="https://${typeof window !== "undefined" ? window.location.host : "app.nemio.ai"}/widget.js"\n  data-workspace="${workspace.id}"\n  data-color="${color}"\n  async>\n</script>`;
+  useEffect(() => {
+    const controller = new AbortController();
+    queueMicrotask(() =>
+      api<WebChatSettings>(`${prefix}/webchat/`, "GET", undefined, controller.signal)
+        .then((saved) => {
+          setTitle(saved.title);
+          setGreeting(saved.greeting);
+          setColor(saved.color);
+          setBotEnabled(saved.bot_enabled);
+          setAllowedDomains(saved.allowed_domains.join(", "));
+        })
+        .catch((err) => {
+          if (!controller.signal.aborted) feedback.setError(message(err));
+        }),
+    );
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefix]);
+
+  const embedScript = `<script\n  src="${typeof window !== "undefined" ? window.location.origin : "https://app.nemio.ai"}/widget.js"\n  data-workspace="${workspace.id}"\n  async>\n</script>`;
 
   function copyCode() {
     navigator.clipboard.writeText(embedScript);
@@ -40,9 +60,21 @@ export default function WebChatPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    feedback.setNotice("Web chat settings saved. Your widget script is updated.");
+    await feedback.run(async () => {
+      const saved = await api<WebChatSettings>(`${prefix}/webchat/`, "PUT", {
+        title: title.trim(),
+        greeting: greeting.trim(),
+        color,
+        bot_enabled: botEnabled,
+        allowed_domains: allowedDomains
+          .split(",")
+          .map((host) => host.trim())
+          .filter(Boolean),
+      });
+      setAllowedDomains(saved.allowed_domains.join(", "));
+    }, "Web chat settings saved. The widget picks them up on its next load.");
   }
 
   return (

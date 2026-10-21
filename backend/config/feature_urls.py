@@ -87,6 +87,16 @@ from apps.tenants.branding import (
 )
 from apps.tenants.data_views import DataOperationsView, DownloadExportView
 from apps.tenants.tls import CheckDomainTLSView
+from apps.tools.views import (
+    DeepLinkDetail,
+    DeepLinkList,
+    DeepLinkRedirect,
+    PublicWebChatView,
+    ShieldEventList,
+    ShieldRuleDetail,
+    ShieldRuleList,
+    WebChatSettingsView,
+)
 
 P = "api/workspaces/<uuid:workspace_id>/"
 urlpatterns = [
@@ -140,6 +150,12 @@ urlpatterns = [
     path(P + "posts/", PostList.as_view()),
     path(P + "posts/<uuid:pk>/", PostDetail.as_view()),
     path(P + "bio/", BioView.as_view()),
+    path(P + "deeplinks/", DeepLinkList.as_view()),
+    path(P + "deeplinks/<uuid:pk>/", DeepLinkDetail.as_view()),
+    path(P + "shield/rules/", ShieldRuleList.as_view()),
+    path(P + "shield/rules/<uuid:pk>/", ShieldRuleDetail.as_view()),
+    path(P + "shield/events/", ShieldEventList.as_view()),
+    path(P + "webchat/", WebChatSettingsView.as_view()),
     path(P + "templates/", MyTemplateList.as_view()),
     path(P + "templates/publish/", PublishTemplateView.as_view()),
     path(P + "templates/install/", InstallTemplateView.as_view()),
@@ -159,6 +175,8 @@ urlpatterns = [
     path("api/public/templates/", PublicTemplateList.as_view()),
     path("api/public/templates/<slug:slug>/", PublicTemplateDetail.as_view()),
     path("api/public/bio/<slug:slug>/", PublicBioView.as_view()),
+    path("api/public/webchat/<uuid:workspace_id>/", PublicWebChatView.as_view()),
+    path("go/<slug:code>/", DeepLinkRedirect.as_view()),
     path("api/public/branding/", PublicBrandingView.as_view()),
     path("api/public/plans/", PublicPlansView.as_view()),
     # On-demand TLS validation queried by edge proxy (Caddy / reverse proxy).

@@ -55,6 +55,23 @@ class LiveInstagramAdapter(InstagramAdapter):
     def headers(self):
         return {"Authorization": f"Bearer {self.connection.access_token}"}
 
+    def hide_comment(self, comment_id):
+        request(
+            "POST",
+            f"https://graph.instagram.com/{settings.META_API_VERSION}/{comment_id}",
+            side_effect=True,
+            headers=self.headers(),
+            json={"hide": True},
+        )
+
+    def delete_comment(self, comment_id):
+        request(
+            "DELETE",
+            f"https://graph.instagram.com/{settings.META_API_VERSION}/{comment_id}",
+            side_effect=True,
+            headers=self.headers(),
+        )
+
     def create_media_container(self, *, caption, media_url, media_type):
         payload = {"caption": caption[:2200]}
         if media_type == "video":

@@ -1,26 +1,31 @@
-import {
-  Facebook,
-  Instagram,
-  Linkedin,
-  MessageCircle,
-  Send,
-  type LucideIcon,
-} from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import type { Connection } from "./api";
+import { BrandIcon, type BrandName } from "./brand-icons";
 
 /** Meta channels lead every channel list; the rest follow in this order. */
 export const META_CHANNELS = ["instagram", "messenger", "whatsapp"] as const;
 
 const CHANNELS: Record<
   string,
-  { label: string; short: string; icon: LucideIcon }
+  { label: string; short: string; brand?: BrandName }
 > = {
-  instagram: { label: "Instagram", short: "IG", icon: Instagram },
-  messenger: { label: "Facebook", short: "FB", icon: Facebook },
-  whatsapp: { label: "WhatsApp", short: "WA", icon: MessageCircle },
-  telegram: { label: "Telegram", short: "TG", icon: Send },
-  linkedin: { label: "LinkedIn", short: "LI", icon: Linkedin },
+  instagram: { label: "Instagram", short: "IG", brand: "instagram" },
+  messenger: { label: "Messenger", short: "FB", brand: "messenger" },
+  whatsapp: { label: "WhatsApp", short: "WA", brand: "whatsapp" },
+  telegram: { label: "Telegram", short: "TG", brand: "telegram" },
+  linkedin: { label: "LinkedIn", short: "LI", brand: "linkedin" },
+  webchat: { label: "Website chat", short: "Web" },
 };
+
+/** The provider's real logo, or a generic chat glyph for unknown providers. */
+function ProviderMark({ provider, size }: { provider: string; size: number }) {
+  const brand = CHANNELS[provider]?.brand;
+  return brand ? (
+    <BrandIcon name={brand} size={size} />
+  ) : (
+    <MessageCircle size={size} aria-hidden="true" />
+  );
+}
 
 export function channelLabel(provider: string) {
   return CHANNELS[provider]?.label ?? provider;
@@ -33,10 +38,9 @@ export function ChannelIcon({
   provider: string;
   size?: number;
 }) {
-  const Icon = CHANNELS[provider]?.icon ?? MessageCircle;
   return (
     <span className={`channel-icon channel-${provider}`} aria-hidden="true">
-      <Icon size={size} />
+      <ProviderMark provider={provider} size={size} />
     </span>
   );
 }
@@ -50,13 +54,12 @@ export function ChannelBadge({
   compact?: boolean;
 }) {
   const meta = CHANNELS[provider];
-  const Icon = meta?.icon ?? MessageCircle;
   return (
     <span
       className={`channel-badge channel-${provider}`}
       title={channelLabel(provider)}
     >
-      <Icon size={12} aria-hidden="true" />
+      <ProviderMark provider={provider} size={12} />
       {compact ? (meta?.short ?? provider) : channelLabel(provider)}
     </span>
   );

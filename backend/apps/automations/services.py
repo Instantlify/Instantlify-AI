@@ -149,6 +149,10 @@ def publish(automation, graph, actor):
     return automation
 
 
+# A trigger with this keyword fires on every message of its kind and channel.
+ANY_KEYWORD = "*"
+
+
 def keyword_matches(keyword, text):
     return (
         re.search(r"(?<!\w)" + re.escape(keyword) + r"(?!\w)", text, flags=re.IGNORECASE)
@@ -213,7 +217,7 @@ def route_message(message, payload):
         .select_related("automation")
         .order_by("created_at", "id")
     ):
-        if keyword_matches(trigger.keyword, message.text):
+        if trigger.keyword == ANY_KEYWORD or keyword_matches(trigger.keyword, message.text):
             from apps.analytics.services import choose_automation, record
 
             lead_id = message.conversation.identity.lead_id

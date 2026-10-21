@@ -142,6 +142,14 @@ def test_trigger_requires_kind_and_whole_word(client, workspace, channel, text, 
     assert not ConversationState.objects.for_workspace(workspace).exists()
 
 
+def test_any_keyword_trigger_fires_on_every_message_of_its_kind(client, workspace, channel):
+    publish(client, workspace, graph(triggers=[{"kind": "dm", "keyword": "*"}]))
+    inbound(channel, "nice post", kind="comment", comment_id="c-4")
+    assert not ConversationState.objects.for_workspace(workspace).exists()
+    inbound(channel, "hello there")
+    assert ConversationState.objects.for_workspace(workspace).count() == 1
+
+
 def test_cooldown_blocks_retrigger_after_completion(client, workspace, channel):
     publish(client, workspace, graph())
     inbound(channel, "price", kind="comment", comment_id="c-4")

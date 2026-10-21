@@ -8,6 +8,7 @@ from rest_framework.exceptions import ValidationError
 from apps.channels.adapters import WINDOWED_PROVIDERS
 from apps.channels.models import Delivery
 from apps.tenants.services import audit
+from apps.tools.shield import moderate_comment
 
 from .models import ChannelIdentity, Conversation, Lead, Message
 
@@ -96,6 +97,8 @@ def receive(event, payload):
         # Voice notes are transcribed by a worker, then routed exactly like typed text.
         msg.transcription_status = "pending"
         msg.save(update_fields=["transcription_status"])
+    elif msg.kind in {"comment", "live_comment"} and moderate_comment(msg, payload):
+        pass  # a hidden or deleted comment is kept in the inbox but starts nothing
     else:
         handle_inbound(msg, identity.lead, payload)
     transaction.on_commit(lambda: notify(event.workspace_id))

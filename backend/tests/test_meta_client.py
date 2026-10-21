@@ -470,6 +470,22 @@ def test_lead_rows_filters_bulk_actions_and_broadcast(client, workspace):
     assert Lead.objects.for_workspace(workspace).count() == 2
 
 
+def test_contact_added_by_hand_has_no_channel_or_messages(client, workspace):
+    url = f"/api/workspaces/{workspace.pk}/leads/"
+    created = client.post(
+        url,
+        {"name": "Maya Chen", "email": "maya@example.com", "stage": "new", "provider": "instagram"},
+        format="json",
+    )
+    assert created.status_code == 201, created.content
+    row = created.json()
+    assert (row["name"], row["channels"], row["message_count"]) == ("Maya Chen", [], 0)
+    assert row["conversation_id"] is None
+    assert not ChannelConnection.objects.for_workspace(workspace).exists()
+    assert not Conversation.objects.for_workspace(workspace).exists()
+    assert client.post(url, {"name": "X", "stage": "nope"}, format="json").status_code == 400
+
+
 # Overview telemetry
 
 

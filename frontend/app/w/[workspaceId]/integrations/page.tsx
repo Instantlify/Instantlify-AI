@@ -8,21 +8,15 @@ import {
   CheckCircle2,
   Clock,
   Code2,
-  Database,
   ExternalLink,
   HelpCircle,
   KeyRound,
   LayoutGrid,
-  Mail,
   MessageSquare,
-  Mic,
-  PhoneCall,
-  Play,
   Plug,
   Plus,
   RefreshCw,
   Send,
-  Sparkles,
   Volume2,
   Webhook,
   Workflow,
@@ -40,10 +34,13 @@ import {
   type WebhookDelivery,
   type WebhookSubscription,
 } from "@/lib/api";
+import { BrandIcon } from "@/lib/brand-icons";
+import { useSearchParams } from "next/navigation";
 import { useWorkspace } from "@/lib/workspace";
 import { CopyField, Empty, ErrorNotice, Modal, Pill, statusTone, SuccessNotice, Table, useFeedback } from "@/components/ui";
 import { IntegrationAnimatedExplainer } from "@/components/integration-animated-explainer";
 import { IntegrationConfigureView } from "@/components/integration-configure-view";
+import { ChannelsPanel } from "@/components/channels-panel";
 
 type Category =
   | "All"
@@ -96,7 +93,11 @@ export default function IntegrationsPage() {
   const { workspace, prefix, manager } = useWorkspace();
   const owner = workspace.role === "owner";
 
-  const [activeTab, setActiveTab] = useState<"gallery" | "developer">("gallery");
+  // Other pages link straight to a tab with ?tab=channels or ?tab=developer.
+  const requestedTab = useSearchParams().get("tab");
+  const [activeTab, setActiveTab] = useState<"gallery" | "channels" | "developer">(
+    requestedTab === "channels" || requestedTab === "developer" ? requestedTab : "gallery",
+  );
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
   const [explainingApp, setExplainingApp] = useState<AppItem | null>(null);
 
@@ -292,11 +293,7 @@ export default function IntegrationsPage() {
       providerKey: "google_sheets",
       iconBg: "#e6f4ea",
       iconColor: "#137333",
-      logo: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H6v-2h6v2zm0-4H6v-2h6v2zm0-4H6V7h6v2zm6 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V7h4v2z" />
-        </svg>
-      ),
+      logo: <BrandIcon name="googlesheets" size={22} />,
       explainer: {
         stepType: "Automation builder step",
         description:
@@ -315,11 +312,7 @@ export default function IntegrationsPage() {
       oauthAction: "google_calendar",
       iconBg: "#e8f0fe",
       iconColor: "#1a73e8",
-      logo: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5z" />
-        </svg>
-      ),
+      logo: <BrandIcon name="googlecalendar" size={22} />,
       explainer: {
         stepType: "Automation builder step",
         description:
@@ -336,11 +329,7 @@ export default function IntegrationsPage() {
       providerKey: "gmail",
       iconBg: "#fce8e6",
       iconColor: "#ea4335",
-      logo: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-        </svg>
-      ),
+      logo: <BrandIcon name="gmail" size={22} />,
       explainer: {
         stepType: "Automation builder step",
         description:
@@ -357,11 +346,7 @@ export default function IntegrationsPage() {
       providerKey: "outlook",
       iconBg: "#e1f0fa",
       iconColor: "#0078d4",
-      logo: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M1 5h14v14H1V5zm16 2.5v9l6 3.5V4l-6 3.5z" />
-        </svg>
-      ),
+      logo: <BrandIcon name="outlook" size={22} />,
       explainer: {
         stepType: "Automation builder step",
         description:
@@ -379,11 +364,7 @@ export default function IntegrationsPage() {
       providerKey: "gohighlevel",
       iconBg: "#eff6ff",
       iconColor: "#2563eb",
-      logo: (
-        <div style={{ fontWeight: 800, fontSize: "16px", color: "#2563eb", letterSpacing: "-1px" }}>
-          GHL
-        </div>
-      ),
+      logo: <BrandIcon name="gohighlevel" size={22} />,
       explainer: {
         stepType: "CRM & Contacts step",
         description:
@@ -400,12 +381,7 @@ export default function IntegrationsPage() {
       providerKey: "elevenlabs",
       iconBg: "#f8fafc",
       iconColor: "#0f172a",
-      logo: (
-        <div style={{ display: "flex", gap: "2px", alignItems: "center" }}>
-          <div style={{ width: "4px", height: "16px", background: "#0f172a", borderRadius: "1px" }} />
-          <div style={{ width: "4px", height: "16px", background: "#0f172a", borderRadius: "1px" }} />
-        </div>
-      ),
+      logo: <BrandIcon name="elevenlabs" size={22} />,
       explainer: {
         stepType: "Voice synthesis step",
         description:
@@ -422,9 +398,7 @@ export default function IntegrationsPage() {
       providerKey: "inworld",
       iconBg: "#f1f5f9",
       iconColor: "#0f172a",
-      logo: (
-        <div style={{ width: "16px", height: "16px", borderRadius: "50%", border: "3px solid #0f172a" }} />
-      ),
+      logo: <BrandIcon name="inworld" size={22} />,
       explainer: {
         stepType: "Automation builder step",
         description:
@@ -441,7 +415,7 @@ export default function IntegrationsPage() {
       providerKey: "minimax",
       iconBg: "#fff1f2",
       iconColor: "#e11d48",
-      logo: <Volume2 size={20} color="#e11d48" />,
+      logo: <BrandIcon name="minimax" size={22} />,
       explainer: {
         stepType: "Voice synthesis step",
         description:
@@ -459,7 +433,7 @@ export default function IntegrationsPage() {
       providerKey: "heygen",
       iconBg: "#f5f3ff",
       iconColor: "#7c3aed",
-      logo: <Play size={20} color="#7c3aed" />,
+      logo: <BrandIcon name="heygen" size={22} />,
       explainer: {
         stepType: "AI Video generator step",
         description:
@@ -476,9 +450,7 @@ export default function IntegrationsPage() {
       providerKey: "jotform",
       iconBg: "#fff7ed",
       iconColor: "#ea580c",
-      logo: (
-        <div style={{ fontWeight: 800, fontSize: "14px", color: "#ea580c" }}>JF</div>
-      ),
+      logo: <BrandIcon name="jotform" size={22} />,
       explainer: {
         stepType: "Workflow tool step",
         description:
@@ -495,11 +467,7 @@ export default function IntegrationsPage() {
       providerKey: "n8n",
       iconBg: "#fdf2f8",
       iconColor: "#db2777",
-      logo: (
-        <div style={{ fontWeight: 800, fontSize: "13px", color: "#db2777", letterSpacing: "-0.5px" }}>
-          n8n
-        </div>
-      ),
+      logo: <BrandIcon name="n8n" size={22} />,
       explainer: {
         stepType: "Automation builder step",
         description:
@@ -517,9 +485,7 @@ export default function IntegrationsPage() {
       providerKey: "make",
       iconBg: "#f5f3ff",
       iconColor: "#9333ea",
-      logo: (
-        <div style={{ fontWeight: 800, fontSize: "15px", color: "#9333ea" }}>///</div>
-      ),
+      logo: <BrandIcon name="make" size={22} />,
       explainer: {
         stepType: "Automation builder step",
         description:
@@ -538,11 +504,7 @@ export default function IntegrationsPage() {
       oauthAction: "slack",
       iconBg: "#fdf4ff",
       iconColor: "#a21caf",
-      logo: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 15a2 2 0 1 1-2-2h2v2zm1 0a2 2 0 1 1 2 2v-2H7zm0-6a2 2 0 1 1-2-2 2 2 0 0 1 2 2v2zm6 0a2 2 0 1 1 2 2h-2V9zm-1 0a2 2 0 1 1-2-2v2h2zm0 6a2 2 0 1 1 2-2v2h-2z" />
-        </svg>
-      ),
+      logo: <BrandIcon name="slack" size={22} />,
       explainer: {
         stepType: "Team alert step",
         description:
@@ -559,7 +521,7 @@ export default function IntegrationsPage() {
       providerKey: "discord",
       iconBg: "#eef2ff",
       iconColor: "#4f46e5",
-      logo: <MessageSquare size={20} color="#4f46e5" />,
+      logo: <BrandIcon name="discord" size={22} />,
       explainer: {
         stepType: "Team alert step",
         description:
@@ -576,9 +538,7 @@ export default function IntegrationsPage() {
       providerKey: "shopify",
       iconBg: "#f0fdf4",
       iconColor: "#16a34a",
-      logo: (
-        <div style={{ fontWeight: 800, fontSize: "14px", color: "#16a34a" }}>$</div>
-      ),
+      logo: <BrandIcon name="shopify" size={22} />,
       explainer: {
         stepType: "Commerce & Store step",
         description:
@@ -595,7 +555,7 @@ export default function IntegrationsPage() {
       providerKey: "notavo",
       iconBg: "#faf5ff",
       iconColor: "#6b21a8",
-      logo: <Database size={20} color="#6b21a8" />,
+      logo: <BrandIcon name="notavo" size={22} />,
       explainer: {
         stepType: "Knowledge Base step",
         description:
@@ -613,9 +573,7 @@ export default function IntegrationsPage() {
       providerKey: "zorromail",
       iconBg: "#f8fafc",
       iconColor: "#0f172a",
-      logo: (
-        <div style={{ fontWeight: 800, fontSize: "14px", color: "#0f172a" }}>Z</div>
-      ),
+      logo: <BrandIcon name="zorromail" size={22} />,
       explainer: {
         stepType: "Transactional email step",
         description:
@@ -632,7 +590,7 @@ export default function IntegrationsPage() {
       providerKey: "klaviyo",
       iconBg: "#f0fdf4",
       iconColor: "#15803d",
-      logo: <Mail size={20} color="#15803d" />,
+      logo: <BrandIcon name="klaviyo" size={22} />,
       explainer: {
         stepType: "Email Marketing sync step",
         description:
@@ -650,7 +608,7 @@ export default function IntegrationsPage() {
       providerKey: "mailerlite",
       iconBg: "#f0fdfa",
       iconColor: "#0d9488",
-      logo: <Mail size={20} color="#0d9488" />,
+      logo: <BrandIcon name="mailerlite" size={22} />,
       explainer: {
         stepType: "Email Marketing step",
         description:
@@ -667,9 +625,7 @@ export default function IntegrationsPage() {
       providerKey: "stripe",
       iconBg: "#eef2ff",
       iconColor: "#4338ca",
-      logo: (
-        <div style={{ fontWeight: 800, fontSize: "14px", color: "#4338ca" }}>S</div>
-      ),
+      logo: <BrandIcon name="stripe" size={22} />,
       explainer: {
         stepType: "Payments & Checkout step",
         description:
@@ -686,7 +642,7 @@ export default function IntegrationsPage() {
       providerKey: "poppy_ai",
       iconBg: "#fff1f2",
       iconColor: "#f43f5e",
-      logo: <Sparkles size={20} color="#f43f5e" />,
+      logo: <BrandIcon name="poppy" size={22} />,
       explainer: {
         stepType: "Automation builder step",
         description:
@@ -704,9 +660,7 @@ export default function IntegrationsPage() {
       providerKey: "systeme_io",
       iconBg: "#f0f9ff",
       iconColor: "#0284c7",
-      logo: (
-        <div style={{ fontWeight: 800, fontSize: "14px", color: "#0284c7" }}>S</div>
-      ),
+      logo: <BrandIcon name="systeme" size={22} />,
       explainer: {
         stepType: "Marketing & CRM step",
         description:
@@ -723,7 +677,7 @@ export default function IntegrationsPage() {
       providerKey: "vapi",
       iconBg: "#ecfdf5",
       iconColor: "#059669",
-      logo: <PhoneCall size={20} color="#059669" />,
+      logo: <BrandIcon name="vapi" size={22} />,
       explainer: {
         stepType: "AI Voice phone call step",
         description:
@@ -740,7 +694,7 @@ export default function IntegrationsPage() {
       providerKey: "retell",
       iconBg: "#f8fafc",
       iconColor: "#0f172a",
-      logo: <Mic size={20} color="#0f172a" />,
+      logo: <BrandIcon name="retell" size={22} />,
       explainer: {
         stepType: "Realtime Voice step",
         description:
@@ -758,11 +712,7 @@ export default function IntegrationsPage() {
       providerKey: "airtable",
       iconBg: "#fffbeb",
       iconColor: "#d97706",
-      logo: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2L1 8l11 6 11-6-11-6zm0 13.5L3.5 10 1 11.5l11 6 11-6L20.5 10 12 15.5zm0 4.5L3.5 14.5 1 16l11 6 11-6-2.5-1.5L12 20z" />
-        </svg>
-      ),
+      logo: <BrandIcon name="airtable" size={22} />,
       explainer: {
         stepType: "Database & Knowledge step",
         description:
@@ -780,11 +730,7 @@ export default function IntegrationsPage() {
       status: "coming_soon",
       iconBg: "#f0f9ff",
       iconColor: "#0284c7",
-      logo: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" />
-        </svg>
-      ),
+      logo: <BrandIcon name="salesforce" size={22} />,
     },
     {
       id: "hubspot",
@@ -794,11 +740,7 @@ export default function IntegrationsPage() {
       status: "coming_soon",
       iconBg: "#fff7ed",
       iconColor: "#ea580c",
-      logo: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V18h-2v-1.07A4.002 4.002 0 0 1 8 13h2a2 2 0 1 0 4 0c0-1.1-.9-2-2-2-2.21 0-4-1.79-4-4a4 4 0 0 1 3-3.86V3h2v1.14A4.002 4.002 0 0 1 16 8h-2a2 2 0 0 0-4 0c0 1.1.9 2 2 2 2.21 0 4 1.79 4 4a3.996 3.996 0 0 1-3 3.93z" />
-        </svg>
-      ),
+      logo: <BrandIcon name="hubspot" size={22} />,
     },
     {
       id: "zapier",
@@ -808,9 +750,7 @@ export default function IntegrationsPage() {
       status: "coming_soon",
       iconBg: "#fff7ed",
       iconColor: "#f97316",
-      logo: (
-        <div style={{ fontWeight: 800, fontSize: "16px", color: "#f97316" }}>_</div>
-      ),
+      logo: <BrandIcon name="zapier" size={22} />,
     },
   ];
 
@@ -951,6 +891,14 @@ export default function IntegrationsPage() {
           </button>
           <button
             type="button"
+            className={`boosend-view-tab ${activeTab === "channels" ? "active" : ""}`}
+            onClick={() => setActiveTab("channels")}
+          >
+            <MessageSquare size={15} />
+            Channels
+          </button>
+          <button
+            type="button"
             className={`boosend-view-tab ${activeTab === "developer" ? "active" : ""}`}
             onClick={() => setActiveTab("developer")}
           >
@@ -963,7 +911,9 @@ export default function IntegrationsPage() {
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
 
-      {activeTab === "gallery" ? (
+      {activeTab === "channels" ? (
+        <ChannelsPanel prefix={prefix} manager={manager} />
+      ) : activeTab === "gallery" ? (
         <>
           {/* Category Filter Pills (Screenshots 5, 6) */}
           <div className="boosend-categories-bar">
@@ -1063,9 +1013,9 @@ export default function IntegrationsPage() {
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
               {[
-                { name: "Zapier", path: "connectors/zapier", text: "Instant triggers & message actions" },
-                { name: "n8n", path: "connectors/n8n", text: "Community node: Trigger + CRM node" },
-                { name: "Make.com", path: "connectors/make", text: "Custom app: Watch events & search leads" },
+                { name: "Zapier", brand: "zapier" as const, path: "connectors/zapier", text: "Instant triggers & message actions" },
+                { name: "n8n", brand: "n8n" as const, path: "connectors/n8n", text: "Community node: Trigger + CRM node" },
+                { name: "Make.com", brand: "make" as const, path: "connectors/make", text: "Custom app: Watch events & search leads" },
               ].map((c) => (
                 <div
                   key={c.name}
@@ -1076,7 +1026,10 @@ export default function IntegrationsPage() {
                     padding: "12px",
                   }}
                 >
-                  <strong style={{ fontSize: "13px" }}>{c.name}</strong>
+                  <strong style={{ fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <BrandIcon name={c.brand} size={16} />
+                    {c.name}
+                  </strong>
                   <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>{c.text}</div>
                 </div>
               ))}

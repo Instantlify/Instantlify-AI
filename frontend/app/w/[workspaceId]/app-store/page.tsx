@@ -167,7 +167,7 @@ export default function AppStorePage() {
               N
             </div>
             <div style={{ fontSize: "10px", fontWeight: 700, color: "#0f172a" }}>
-              @censtd_nutech
+              @{workspace.name.toLowerCase().replace(/[^a-z0-9]+/g, "_")}
             </div>
             <div
               style={{

@@ -1,9 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * End-to-end pass over the product against the local Compose stack (fake providers):
- * account → workspace → test channel → automation → simulated comment → inbox →
- * AI agent → analytics → bio page → offers → invites → sign out/in → mobile.
+ * End-to-end pass over the product against the local Compose stack: account →
+ * workspace → local test channel → automation → simulated comment → inbox → AI agent
+ * → analytics → bio page → offers → invites → sign out/in → mobile. The channel is a
+ * local test channel, so no provider is ever contacted whatever the adapter mode.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -11,18 +12,28 @@ const email = `e2e-${Date.now()}@example.com`;
 const password = "River!Saffron42Cloud";
 const slug = `e2e-${Date.now().toString(36)}`;
 let workspaceUrl = "";
+/** Live-mode backends refuse local test channels; the steps that need one skip then. */
+let testChannels = true;
+const NO_TEST_CHANNELS =
+  "This backend refuses local test channels; run it with CHANNEL_ADAPTER_MODE=fake.";
+
+/** Sections that live in the collapsible "Business tools" group of the sidebar. */
+const TOOLS = [
+  "AI agent",
+  "Analytics",
+  "Templates",
+  "Payments",
+  "Team",
+  "Activity",
+];
 
 async function nav(page: Page, label: string) {
-  if (!["Overview", "Inbox", "Automations", "AI agent"].includes(label)) {
+  if (TOOLS.includes(label)) {
     const tools = page.locator(".nav-tools");
-    if (!(await tools.getAttribute("open"))) {
-      if (
-        !(await tools.evaluate(
-          (element) => (element as HTMLDetailsElement).open,
-        ))
-      )
-        await tools.locator("summary").click();
-    }
+    if (
+      !(await tools.evaluate((element) => (element as HTMLDetailsElement).open))
+    )
+      await tools.locator("summary").click();
   }
   await page
     .getByRole("navigation", { name: "Workspace navigation" })
@@ -30,11 +41,26 @@ async function nav(page: Page, label: string) {
     .click();
 }
 
+async function simulate(page: Page, text: string, kind = "dm") {
+  await nav(page, "Integrations");
+  await page.getByRole("button", { name: "Channels", exact: true }).click();
+  await page.getByLabel("Simulate an inbound message").fill(text);
+  await page.getByLabel("Kind").selectOption(kind);
+  await page.getByLabel("Sender ID").fill("lead-one");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Test message queued" }),
+  ).toBeVisible();
+}
+
 test("sign up, create a workspace and connect a test channel", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Get started", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Get started", exact: true })
+    .first()
+    .click();
   await page.getByLabel("Your name").fill("Alex");
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
@@ -44,7 +70,7 @@ test("sign up, create a workspace and connect a test channel", async ({
   // Short setup: optionally connect Instagram, then name the workspace.
   await expect(
     page.getByRole("heading", { name: "Connect your Instagram" }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 30000 });
   await page
     .getByRole("button", { name: "I’ll connect my account later" })
     .click();
@@ -52,65 +78,105 @@ test("sign up, create a workspace and connect a test channel", async ({
   await page
     .getByRole("button", { name: "Open my workspace", exact: true })
     .click();
-  await expect(
-    page.getByRole("heading", { name: "Your business at a glance, Alex." }),
-  ).toBeVisible();
-  await expect(page).toHaveURL(/\/w\/[0-9a-f-]+\/overview/);
+  await expect(page).toHaveURL(/\/w\/[0-9a-f-]+\/overview/, { timeout: 30000 });
   workspaceUrl = page.url().replace(/\/overview.*$/, "");
   await expect(
-    page.getByText("E2E Studio is ready for your team."),
+    page.getByRole("heading", { name: "Your Statistics" }),
   ).toBeVisible();
-  // Skipped the Instagram step, so the overview insists on it until connected.
+  await expect(page.locator(".workspace-crumb")).toHaveText("E2E Studio");
+  // Skipped the Instagram step, so the overview asks for a channel until one exists.
   await expect(page.getByText("Connect your Instagram account")).toBeVisible();
-  await page.getByRole("button", { name: "Connect Instagram" }).click();
-  await expect(page).toHaveURL(/integrations/);
-  await nav(page, "Overview");
-  await expect(page.getByText("Local connection test completed")).toBeVisible();
+  await page.getByRole("link", { name: "Connect account" }).click();
+  await expect(page).toHaveURL(/integrations\/?\?tab=channels/);
+
+  await page
+    .getByText("Manual credentials, WhatsApp, Telegram and test channels")
+    .click();
+  const connect = page.locator(".channel-advanced");
+  await connect
+    .getByRole("combobox", { name: /^Provider/ })
+    .selectOption("instagram");
+  await connect.getByLabel("Account ID", { exact: true }).fill("e2e-instagram");
+  await connect
+    .getByLabel("Display name", { exact: true })
+    .fill("E2E Test Account");
+  await connect
+    .getByLabel("Create a local test channel (no provider calls)")
+    .check();
+  await connect.getByRole("button", { name: "Connect", exact: true }).click();
+  const requested = page
+    .getByRole("status")
+    .filter({ hasText: "Connection requested" });
+  const refused = page
+    .getByRole("alert")
+    .filter({ hasText: "Test connections are disabled" });
+  await expect(requested.or(refused)).toBeVisible();
+  if (await refused.isVisible()) {
+    // The refusal is shown to the user and nothing is connected.
+    await expect(page.getByText("No channels yet.")).toBeVisible();
+    testChannels = false;
+    test.info().annotations.push({
+      type: "skipped steps",
+      description: NO_TEST_CHANNELS,
+    });
+    return;
+  }
+  await expect(page.getByText("E2E Test Account")).toBeVisible();
+
+  await nav(page, "Home");
+  await expect(
+    page.getByRole("region", { name: "Channel status" }),
+  ).toContainText("Local test connection");
+  await expect(page.getByText("Connect your Instagram account")).toHaveCount(0);
 });
 
 test("rename the workspace", async ({ page }) => {
   await signIn(page);
   await nav(page, "Settings");
+  await page.getByRole("button", { name: "Workspaces", exact: true }).click();
   await page
-    .getByLabel("Workspace name", { exact: true })
+    .getByLabel("Workspace Name", { exact: true })
     .fill("E2E Studio Updated");
-  await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByRole("status")).toHaveText("Workspace name updated.");
+  await page.getByRole("button", { name: "Save Changes", exact: true }).click();
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Workspace settings saved successfully!" }),
+  ).toBeVisible();
 });
 
 test("build and publish a comment → DM automation", async ({ page }) => {
   await signIn(page);
-  await nav(page, "Automations");
-  await page.getByLabel("New automation").fill("Pricing comment");
-  await page.getByRole("button", { name: "Create", exact: true }).click();
+  await nav(page, "Automation");
+  await page.getByRole("button", { name: "Create New" }).click();
+  await page.getByRole("button", { name: /Advanced builder/ }).click();
   await expect(page).toHaveURL(/\/automations\/[0-9a-f-]+/);
   await expect(
-    page.getByRole("heading", { name: "Pricing comment" }),
+    page.getByRole("heading", { name: "Untitled automation" }),
   ).toBeVisible();
   // The starter graph already has a trigger on "price"; publish it as-is.
   await expect(page.getByLabel("Keyword")).toHaveValue("price");
   await page.getByRole("button", { name: "Publish" }).click();
-  await expect(page.getByRole("status")).toContainText("Published");
-  await nav(page, "Automations");
   await expect(
-    page.getByRole("cell", { name: /Pricing comment/ }),
+    page.getByRole("status").filter({ hasText: "Published" }),
   ).toBeVisible();
-  await expect(page.getByText("live", { exact: true })).toBeVisible();
+  await nav(page, "Automation");
+  await expect(
+    page.getByRole("link", { name: "Untitled automation" }),
+  ).toBeVisible();
+  await expect(page.locator(".status-pill").first()).toHaveText("live");
+  await expect(
+    page.getByRole("switch", { name: "Untitled automation active" }),
+  ).toBeChecked();
 });
 
 test("a simulated comment fires the flow and lands in the inbox", async ({
   page,
 }) => {
+  test.skip(!testChannels, NO_TEST_CHANNELS);
   await signIn(page);
-  await nav(page, "Integrations");
-  await page
-    .getByLabel("Simulate an inbound message")
-    .fill("What is the PRICE?");
-  await page.getByLabel("Kind").selectOption("comment");
-  await page.getByLabel("Sender ID").fill("lead-one");
-  await page.getByRole("button", { name: "Send", exact: true }).click();
-  await expect(page.getByRole("status")).toBeVisible();
-  await nav(page, "Inbox");
+  await simulate(page, "What is the PRICE?", "comment");
+  await nav(page, "Conversations");
   const row = page.getByRole("button", { name: /lead-one/ });
   await expect(row).toBeVisible({ timeout: 30000 });
   await row.click();
@@ -122,7 +188,7 @@ test("a simulated comment fires the flow and lands in the inbox", async ({
   });
   // Human reply through the composer.
   await page.getByLabel("Reply").fill("Happy to help!");
-  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await page.getByRole("button", { name: "Send message" }).click();
   await expect(page.getByText("Happy to help!")).toBeVisible();
   await page.getByLabel("Internal note").fill("Warm lead, follow up tomorrow");
   await page.getByRole("button", { name: "Add note" }).click();
@@ -130,14 +196,15 @@ test("a simulated comment fires the flow and lands in the inbox", async ({
 });
 
 test("the AI agent answers with the local test provider", async ({ page }) => {
+  test.skip(!testChannels, NO_TEST_CHANNELS);
   await signIn(page);
   await nav(page, "AI agent");
   await page.getByLabel("Use the local test provider (no API key)").check();
   await page.getByLabel("Agent enabled").check();
   await page.getByRole("button", { name: "Save agent settings" }).click();
-  await expect(page.getByRole("status").first()).toContainText(
-    "Agent settings saved.",
-  );
+  await expect(
+    page.getByRole("status").filter({ hasText: "Agent settings saved." }),
+  ).toBeVisible();
   await page.getByLabel("Title").fill("Pricing FAQ");
   await page
     .getByLabel("Paste FAQ text")
@@ -147,25 +214,27 @@ test("the AI agent answers with the local test provider", async ({ page }) => {
   await expect(page.getByText("ready", { exact: true })).toBeVisible({
     timeout: 30000,
   });
-  await nav(page, "Inbox");
+  await nav(page, "Conversations");
   await page.getByRole("button", { name: /lead-one/ }).click();
-  // The toggle is optimistic; wait for the save itself so the reload cannot abort it.
-  const saved = page.waitForResponse(
-    (response) =>
-      response.request().method() === "PATCH" &&
-      response.url().includes("/conversations/"),
-  );
-  await page.getByLabel("AI replies").check();
-  expect((await saved).ok()).toBeTruthy();
+  const aiActive = page
+    .getByRole("group", { name: "Who replies" })
+    .getByRole("button", { name: "AI active" });
+  if ((await aiActive.getAttribute("aria-pressed")) !== "true") {
+    // The toggle is optimistic; wait for the save itself so the reload cannot abort it.
+    const saved = page.waitForResponse(
+      (response) =>
+        response.request().method() === "PATCH" &&
+        response.url().includes("/conversations/"),
+    );
+    await aiActive.click();
+    expect((await saved).ok()).toBeTruthy();
+  }
   // Reload so the assertion reflects the server, not the optimistic UI state.
   await page.reload();
   await page.getByRole("button", { name: /lead-one/ }).click();
-  await expect(page.getByLabel("AI replies")).toBeChecked();
-  await nav(page, "Integrations");
-  await page.getByLabel("Simulate an inbound message").fill("Hello there");
-  await page.getByLabel("Sender ID").fill("lead-one");
-  await page.getByRole("button", { name: "Send", exact: true }).click();
-  await nav(page, "Inbox");
+  await expect(aiActive).toHaveAttribute("aria-pressed", "true");
+  await simulate(page, "Hello there");
+  await nav(page, "Conversations");
   await page.getByRole("button", { name: /lead-one/ }).click();
   await expect(
     page.getByText("[Local test] Thanks for reaching out."),
@@ -177,16 +246,21 @@ test("the AI agent answers with the local test provider", async ({ page }) => {
 test("analytics, bio page, offers and invitations", async ({ page }) => {
   await signIn(page);
   await nav(page, "Analytics");
-  await expect(
-    page.getByRole("cell", { name: "Pricing comment" }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/analytics\//);
+  // Automations appear in the funnel once they have fired, which needs a test channel.
+  if (testChannels)
+    await expect(
+      page.getByRole("cell", { name: "Untitled automation" }),
+    ).toBeVisible();
   await nav(page, "Link in bio");
   await page.getByLabel("Page address").fill(slug);
   await page.getByLabel("Title", { exact: true }).fill("E2E Studio");
   await page.getByLabel("Bio").fill("Book a call with us.");
   await page.getByLabel("Published (visible to anyone with the link)").check();
   await page.getByRole("button", { name: "Save page" }).click();
-  await expect(page.getByRole("status")).toContainText("saved");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Page saved." }),
+  ).toBeVisible();
   await nav(page, "Payments");
   await page.getByLabel("Name", { exact: true }).fill("Starter pack");
   await page.getByLabel("Amount").fill("49");
@@ -212,20 +286,19 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();
   await signIn(page);
-  await expect(
-    page.getByRole("combobox", { name: "Current workspace" }),
-  ).toContainText("E2E Studio Updated");
-  await expect(page).toHaveURL(/integrations/);
-  await nav(page, "Overview");
-  await expect(page.getByText("Local connection test completed")).toBeVisible();
+  await expect(page.locator(".workspace-title")).toHaveText(
+    "E2E Studio Updated",
+  );
+  await nav(page, "Home");
+  if (testChannels)
+    await expect(
+      page.getByRole("region", { name: "Channel status" }),
+    ).toContainText("Local test connection");
   await page.screenshot({
     path: "test-results/dashboard-desktop.png",
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(
-    page.getByRole("button", { name: "Sign out on mobile" }),
-  ).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -235,7 +308,9 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
     path: "test-results/dashboard-mobile.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Sign out on mobile" }).click();
+  // On phones the sidebar, and its sign-out button, sit in the navigation drawer.
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await page
     .getByRole("link", { name: "Sign in", exact: true })
     .first()

@@ -110,6 +110,7 @@ INSTALLED_APPS = [
     "apps.marketplace",
     "apps.content",
     "apps.public_api",
+    "apps.tools",
 ]
 MIDDLEWARE = [
     "apps.platform_ops.middleware.ConsoleBoundary",
@@ -366,6 +367,8 @@ CHANNEL_CALLS_PER_HOUR = {
     "messenger": int(os.environ.get("MESSENGER_CALLS_PER_HOUR", "3600")),
     "whatsapp": int(os.environ.get("WHATSAPP_CALLS_PER_HOUR", "3600")),
     "telegram": int(os.environ.get("TELEGRAM_CALLS_PER_HOUR", "1800")),
+    # Website chat replies are stored for the visitor to poll; no provider is called.
+    "webchat": 100000,
 }
 META_APP_CALLS_PER_HOUR = int(os.environ.get("META_APP_CALLS_PER_HOUR", "0"))
 CELERY_BEAT_SCHEDULE.update(

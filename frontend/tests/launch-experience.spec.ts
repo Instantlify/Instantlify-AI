@@ -95,11 +95,11 @@ test("short onboarding skips optional setup and shows unique leads", async ({
       .locator("strong"),
   ).toContainText("1");
   await expect(
-    page.getByRole("link", { name: "Integrations", exact: true }),
+    page.getByRole("link", { name: "Analytics", exact: true }),
   ).not.toBeVisible();
   await page.locator(".nav-tools > summary").click();
   await expect(
-    page.getByRole("link", { name: "Integrations", exact: true }),
+    page.getByRole("link", { name: "Analytics", exact: true }),
   ).toBeVisible();
 });
 
@@ -210,10 +210,10 @@ test("mobile workspace tools stay inside the viewport", async ({ page }) => {
   await page.getByRole("button", { name: "Open navigation" }).click();
   await page.locator(".nav-tools > summary").click();
   await expect(
-    page.getByRole("link", { name: "Integrations", exact: true }),
+    page.getByRole("link", { name: "Analytics", exact: true }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Integrations", exact: true }).click();
-  await expect(page.locator(".sidebar")).not.toHaveClass(/open/);
+  await page.getByRole("link", { name: "Analytics", exact: true }).click();
+  await expect(page.locator(".boosend-sidebar")).not.toHaveClass(/drawer-open/);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

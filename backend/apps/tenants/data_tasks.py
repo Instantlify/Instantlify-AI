@@ -54,10 +54,24 @@ def export_tables():
     )
     from apps.marketplace.models import Template, TemplateInstall, TemplatePurchase
     from apps.public_api.models import APIKey, MCPClient, WebhookSubscription
+    from apps.tools.models import DeepLink, ShieldEvent, ShieldRule, WebChatSettings
 
     from .models import AuditEvent, Membership, WorkspaceBranding
 
     return {
+        "deeplinks": (
+            DeepLink,
+            ["id", "title", "platform", "target", "code", "clicks", "active", "created_at"],
+        ),
+        "shield_rules": (ShieldRule, ["id", "name", "keywords", "action", "enabled", "created_at"]),
+        "shield_events": (
+            ShieldEvent,
+            ["id", "rule_name", "comment_id", "author", "text", "action_taken", "created_at"],
+        ),
+        "webchat": (
+            WebChatSettings,
+            ["title", "greeting", "color", "bot_enabled", "allowed_domains", "updated_at"],
+        ),
         "members": (Membership, ["id", "user_id", "user__email", "role", "created_at"]),
         "branding": (
             WorkspaceBranding,

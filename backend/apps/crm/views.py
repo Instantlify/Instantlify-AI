@@ -366,55 +366,20 @@ class LeadList(generics.ListCreateAPIView):
         return LeadRowSerializer
 
     def perform_create(self, serializer):
+        # A contact added by hand: no channel identity or conversation until the
+        # person actually messages one of the workspace's channels.
         member = workspace_membership(self.request, self.kwargs["workspace_id"])
-        workspace_id = member.workspace_id
-        lead = serializer.save(workspace_id=workspace_id)
-
-        from apps.channels.models import ChannelConnection
-        from apps.crm.models import ChannelIdentity, Conversation, Message
-        provider = self.request.data.get("provider", "facebook" if "malik" in (lead.name or "").lower() else "instagram")
-        channel = ChannelConnection.objects.filter(workspace_id=workspace_id, provider=provider).first()
-        if not channel:
-            channel = ChannelConnection.objects.filter(workspace_id=workspace_id).first()
-        if not channel:
-            channel = ChannelConnection.objects.create(
-                workspace_id=workspace_id,
-                provider=provider,
-                name=f"{provider.capitalize()} Account",
-                external_id=f"demo_{provider}_{workspace_id}",
-                status="connected",
-                is_test=True,
-            )
-        identity, _ = ChannelIdentity.objects.get_or_create(
-            workspace_id=workspace_id,
-            lead=lead,
-            connection=channel,
-            defaults={"external_id": lead.fields.get("handle", f"demo_{lead.id}")},
-        )
-        conv, _ = Conversation.objects.get_or_create(
-            workspace_id=workspace_id,
-            identity=identity,
-            defaults={"status": "open"},
-        )
-        msg_count = int(self.request.data.get("message_count", 1))
-        for i in range(msg_count):
-            Message.objects.create(
-                workspace_id=workspace_id,
-                conversation=conv,
-                direction="inbound",
-                text=f"Inquiry message from {lead.name or 'User'}",
-                kind="text",
-            )
+        serializer.save(workspace=member.workspace)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         lead = serializer.instance
-        lead.identities = list(lead.channelidentity_set.select_related("connection", "conversation"))
-        output = LeadRowSerializer(lead).data
-        headers = self.get_success_headers(output)
-        return Response(output, status=status.HTTP_201_CREATED, headers=headers)
+        # A new contact has no channel identities yet, so nothing to count.
+        lead.identities = []
+        lead.message_count = 0
+        return Response(LeadRowSerializer(lead).data, status=201)
 
     def get_queryset(self):
         member = workspace_membership(self.request, self.kwargs["workspace_id"])

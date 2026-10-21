@@ -10,8 +10,11 @@ import {
   type ReactNode,
 } from "react";
 import {
+  Activity,
+  BarChart3,
   ChevronDown,
   Contact,
+  CreditCard,
   GitBranch,
   Layers,
   LayoutDashboard,
@@ -19,11 +22,13 @@ import {
   LogOut,
   Menu,
   MessageCircle,
-  MessageSquare,
   Plus,
   Settings,
   ShieldCheck,
   Sparkles,
+  Store,
+  Users,
+  Wrench,
   X,
   type LucideIcon,
   ChevronRight,
@@ -36,6 +41,7 @@ import { useWorkspace } from "@/lib/workspace";
 import { ErrorNotice } from "./ui";
 import { UpgradePrompt } from "./plans";
 import { MetaAccountSwitcher } from "./meta-switcher";
+import { BrandIcon, type BrandName } from "@/lib/brand-icons";
 
 export const initials = (name: string) =>
   name.trim().slice(0, 2).toUpperCase() || "N";
@@ -81,6 +87,8 @@ type NavItem = {
   icon: LucideIcon;
   badge?: string;
   color?: string;
+  /** Shows the brand's real logo in place of `icon`. */
+  brand?: BrandName;
 };
 
 /* Primary Navigation matching BooSend IA */
@@ -92,19 +100,25 @@ const PRIMARY_NAV: NavItem[] = [
   { id: "crm", label: "CRM", icon: Contact },
 ];
 
-const DIRECT_CHANNELS: NavItem[] = [
-  {
-    id: "webchat",
-    label: "WhatsApp",
-    icon: MessageSquare,
-    color: "#25d366",
-  },
-  {
-    id: "deeplinks",
-    label: "Telegram",
-    icon: Sparkles,
-    color: "#229ed9",
-  },
+/* Every other workspace section, grouped so the main list stays short. */
+const TOOLS: NavItem[] = [
+  { id: "agent", label: "AI agent", icon: Sparkles },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "templates", label: "Templates", icon: Store },
+  { id: "payments", label: "Payments", icon: CreditCard },
+  { id: "team", label: "Team", icon: Users },
+  { id: "activity", label: "Activity", icon: Activity },
+];
+
+/** Sections an agent can open; owners and admins see everything. */
+const AGENT_SECTIONS = [
+  "overview",
+  "inbox",
+  "crm",
+  "calendar",
+  "app-store",
+  "team",
+  "settings",
 ];
 
 export function Shell({ children }: { children: ReactNode }) {
@@ -122,6 +136,8 @@ export function Shell({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const branding = workspace.branding;
+  const allowed = (id: string) => manager || AGENT_SECTIONS.includes(id);
+  const tools = TOOLS.filter((item) => allowed(item.id));
 
   const docked = (workspace.pinned_apps || [])
     .map(appById)
@@ -200,7 +216,11 @@ export function Shell({ children }: { children: ReactNode }) {
           className="nav-icon-wrap"
           style={{ color: item.color || undefined }}
         >
-          <Icon size={18} />
+          {item.brand ? (
+            <BrandIcon name={item.brand} size={18} />
+          ) : (
+            <Icon size={18} />
+          )}
         </span>
         {!collapsed && <span className="nav-label-text">{item.label}</span>}
         {item.badge && !collapsed && (
@@ -302,7 +322,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
         {/* 3. Main Navigation List */}
         <nav className="boosend-nav-menu" aria-label="Workspace navigation">
-          {PRIMARY_NAV.map((item) => renderNavLink(item))}
+          {PRIMARY_NAV.filter((item) => allowed(item.id)).map((item) => renderNavLink(item))}
 
           {/* Expandable Apps Accordion Group */}
           <div className="nav-accordion-group">
@@ -338,8 +358,25 @@ export function Shell({ children }: { children: ReactNode }) {
             )}
           </div>
 
-          {/* Standalone Quick Channel Connectors */}
-          {DIRECT_CHANNELS.map((item) => renderNavLink(item))}
+          {tools.length > 0 && !collapsed && (
+            <details
+              className="nav-tools"
+              open={tools.some((item) => item.id === section)}
+            >
+              <summary className="boosend-nav-link accordion-header">
+                <span className="nav-icon-wrap">
+                  <Wrench size={18} />
+                </span>
+                <span className="nav-label-text">Business tools</span>
+                <span className="accordion-arrow">
+                  <ChevronDown size={14} />
+                </span>
+              </summary>
+              <div className="accordion-children">
+                {tools.map((item) => renderNavLink(item, true))}
+              </div>
+            </details>
+          )}
 
           {/* Settings */}
           {renderNavLink({
@@ -418,7 +455,15 @@ export function Shell({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page Content Body */}
-        <main className="canvas-body">{children}</main>
+        <main className="canvas-body">
+          <VerifyBanner user={user} />
+          <Announcements workspaceId={workspace.id} page={section} />
+          {children}
+        </main>
+        <UpgradePrompt
+          prefix={`/api/workspaces/${workspace.id}`}
+          agencyManaged={Boolean(workspace.parent)}
+        />
       </div>
 
       {/* Create Workspace Modal */}

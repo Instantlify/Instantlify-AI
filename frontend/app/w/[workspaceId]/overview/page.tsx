@@ -3,120 +3,165 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
+  ArrowRight,
+  Bot,
   GraduationCap,
   MessageCircle,
   RefreshCw,
-  Send,
-  Sparkles,
-  Trophy,
+  UserPlus,
   Users,
-  Coins,
-  ArrowRight,
 } from "lucide-react";
-import { api, type Connection, type Page } from "@/lib/api";
+import {
+  api,
+  message,
+  type Connection,
+  type Funnel,
+  type Page,
+  type Telemetry,
+} from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
+import { BrandIcon } from "@/lib/brand-icons";
+import {
+  ChannelBadge,
+  ChannelIcon,
+  channelLabel,
+  META_CHANNELS,
+  tokenHealth,
+} from "@/lib/channels";
+import { Sparkline } from "@/components/sparkline";
+import { ConnectPrompt } from "@/components/growth";
+import {
+  ErrorNotice,
+  Panel,
+  SuccessNotice,
+  Table,
+  useFeedback,
+} from "@/components/ui";
 
-// Demo leaderboard accounts matching BooSend Screenshot 1
-const LEADERBOARD_USERS = [
-  { rank: 1, name: "Sarah K.", dms: "90k", color: "#ec4899", initials: "SK" },
-  { rank: 2, name: "David M.", dms: "58k", color: "#3b82f6", initials: "DM" },
-  { rank: 3, name: "Elena R.", dms: "51k", color: "#eab308", initials: "ER" },
-  { rank: 4, name: "Lucas P.", dms: "41k", color: "#10b981", initials: "LP" },
-  { rank: 5, name: "Aria T.", dms: "37k", color: "#8b5cf6", initials: "AT" },
-  { rank: 6, name: "Marcus", dms: "32k", color: "#06b6d4", initials: "MC" },
-  { rank: 7, name: "Julian", dms: "30k", color: "#f97316", initials: "JL" },
-  { rank: 8, name: "NAT Pro", dms: "27k", color: "#64748b", initials: "NP" },
-];
+const NOUNS: Record<string, [string, string]> = {
+  instagram: ["account", "accounts"],
+  messenger: ["Page", "Pages"],
+  whatsapp: ["number", "numbers"],
+};
+
+const percent = (value: number) => `${Math.round(value * 100)}%`;
+
+const duration = (minutes: number) =>
+  minutes < 1
+    ? "under 1 min"
+    : minutes < 60
+      ? `${Math.round(minutes)} min`
+      : minutes < 60 * 24
+        ? `${(minutes / 60).toFixed(1)} h`
+        : `${(minutes / 60 / 24).toFixed(1)} days`;
 
 export default function OverviewPage() {
   const { workspace, prefix, manager } = useWorkspace();
   const [connections, setConnections] = useState<Connection[]>([]);
-  const [stats, setStats] = useState({
-    conversations: 0,
-    contacts: 0,
-    aiUsageCents: 0,
-  });
+  const [funnel, setFunnel] = useState<Funnel | null>(null);
+  const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
+  const [checkedAt, setCheckedAt] = useState(() => Date.now());
   const [refreshing, setRefreshing] = useState(false);
+  const feedback = useFeedback();
 
-  const loadData = useCallback(
+  const load = useCallback(
     async (signal?: AbortSignal) => {
-      try {
-        const [channels, funnelReport] = await Promise.all([
-          api<Page<Connection>>(`${prefix}/connections/`, "GET", undefined, signal),
-          api<{ leads: number; conversations: number }>(
-            `${prefix}/analytics/funnel/?period=7d`,
-            "GET",
-            undefined,
-            signal,
-          ).catch(() => ({ leads: 0, conversations: 0 })),
+      const channels = await api<Page<Connection>>(
+        `${prefix}/connections/`,
+        "GET",
+        undefined,
+        signal,
+      );
+      setConnections(channels.results);
+      setCheckedAt(Date.now());
+      // Funnel and telemetry are owner/admin reports.
+      if (manager) {
+        const [report, metrics] = await Promise.all([
+          api<Funnel>(`${prefix}/analytics/funnel/?period=7d`, "GET", undefined, signal),
+          api<Telemetry>(`${prefix}/telemetry/`, "GET", undefined, signal),
         ]);
-        setConnections(channels.results || []);
-        setStats({
-          conversations: funnelReport.conversations || 0,
-          contacts: funnelReport.leads || 0,
-          aiUsageCents: 0,
-        });
-      } catch {
-        // Fallback gracefully for new workspaces
+        setFunnel(report);
+        setTelemetry(metrics);
       }
     },
-    [prefix],
+    [prefix, manager],
   );
 
   useEffect(() => {
     const controller = new AbortController();
-    loadData(controller.signal);
-    return () => controller.abort();
-  }, [loadData]);
+    queueMicrotask(() =>
+      load(controller.signal).catch((err) => {
+        if (!controller.signal.aborted) feedback.setError(message(err));
+      }),
+    );
+    const timer = window.setInterval(() => load().catch(() => undefined), 15000);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load]);
 
   async function handleRefresh() {
     setRefreshing(true);
-    await loadData();
-    setTimeout(() => setRefreshing(false), 500);
+    await load().catch((err) => feedback.setError(message(err)));
+    setRefreshing(false);
   }
+
+  const live = connections.filter((item) => item.status !== "disconnected");
+  const reconnect = live.filter((item) => tokenHealth(item, checkedAt) === "reconnect").length;
+  const expiring = live.filter((item) => tokenHealth(item, checkedAt) === "expiring").length;
+  const inbound = (telemetry?.days || []).map((day) => ({
+    date: day.date,
+    value: day.instagram + day.messenger + day.whatsapp + day.other,
+  }));
+  const contacts = (telemetry?.days || []).map((day) => ({
+    date: day.date,
+    value: day.contacts,
+  }));
 
   return (
     <div className="overview-page-container">
-      {/* 1. Leaderboard Bar (Matching Screenshot 1) */}
-      <section className="boosend-leaderboard-bar">
-        <div className="leaderboard-info">
-          <span className="trophy-badge">
-            <Trophy size={18} className="trophy-gold" />
-          </span>
-          <div className="leaderboard-text">
-            <strong className="leaderboard-title">Leaderboard</strong>
-            <span className="leaderboard-subtitle">
-              Top Instagram accounts by DM Conversations this month
+      <ConnectPrompt workspaceId={workspace.id} />
+      <ErrorNotice error={feedback.error} />
+      <SuccessNotice notice={feedback.notice} />
+
+      {/* 1. Channel status: which accounts are connected and which need attention */}
+      <section className="boosend-leaderboard-bar overview-channel-bar" aria-label="Channel status">
+        {META_CHANNELS.map((provider) => {
+          const items = live.filter((item) => item.provider === provider);
+          const [one, many] = NOUNS[provider];
+          return (
+            <span key={provider} className={`channel-status-item ${items.length ? "" : "off"}`}>
+              <ChannelIcon provider={provider} size={18} />
+              <strong>{channelLabel(provider)}</strong>
+              <span>
+                {!items.length
+                  ? "Not connected"
+                  : items.every((item) => item.is_test)
+                    ? "Local test connection"
+                    : provider === "instagram" && items.length === 1
+                    ? items[0].display_name
+                    : `${items.length} ${items.length === 1 ? one : many}`}
+              </span>
             </span>
-          </div>
-        </div>
-
-        <div className="leaderboard-avatars-row">
-          {LEADERBOARD_USERS.map((user) => (
-            <div key={user.rank} className="leaderboard-avatar-item" title={`${user.name} (${user.dms} DMs)`}>
-              <div
-                className="avatar-circle"
-                style={{ backgroundColor: user.color }}
-              >
-                {user.initials}
-                {user.rank <= 3 && (
-                  <span className={`rank-chip rank-${user.rank}`}>{user.rank}</span>
-                )}
-              </div>
-              <span className="score-pill">{user.dms}</span>
-            </div>
-          ))}
-        </div>
-
-        <button className="your-place-button" type="button">
-          <span className="dash">—</span>
-          <span className="btn-label">YOUR PLACE</span>
-        </button>
+          );
+        })}
+        <Link
+          href={`/w/${workspace.id}/integrations?tab=channels`}
+          className={`channel-status-link ${reconnect || expiring ? "warn" : ""}`}
+        >
+          {reconnect
+            ? `${reconnect} need${reconnect === 1 ? "s" : ""} reconnecting`
+            : expiring
+              ? `${expiring} token${expiring === 1 ? "" : "s"} expiring soon`
+              : "Manage channels"}
+          <ArrowRight size={13} />
+        </Link>
       </section>
 
       {/* 2. Hero Quick Action Cards (Matching Screenshot 1) */}
       <section className="boosend-quick-actions-row">
-        {/* Left Card: Learn To Use Nemio */}
         <Link href={`/w/${workspace.id}/help`} className="quick-action-card learn-card">
           <div className="action-card-icon-cap">
             <GraduationCap size={32} />
@@ -130,27 +175,29 @@ export default function OverviewPage() {
           <ArrowRight size={20} className="hover-arrow" />
         </Link>
 
-        {/* Right Card: Connect Claude MCP with Dot-Matrix Pattern */}
-        <div className="quick-action-card mcp-dark-card">
+        <Link href={`/w/${workspace.id}/integrations`} className="quick-action-card mcp-dark-card">
           <div className="mcp-starburst-icon">
-            <Sparkles size={28} />
+            <BrandIcon name="claude" size={28} />
           </div>
           <div className="action-card-content">
             <h2 className="action-card-heading white-heading">Connect Claude MCP</h2>
             <p className="action-card-desc light-desc">
-              Power external AI workflows with realtime Instagram conversations & lead triggers.
+              Create an API key under Integrations to give Claude your conversations and lead
+              triggers.
             </p>
           </div>
-          <span className="mcp-status-pill">Active</span>
-        </div>
+          <ArrowRight size={20} className="hover-arrow" />
+        </Link>
       </section>
 
-      {/* 3. Your Statistics Section (Matching Screenshot 1) */}
+      {/* 3. Your Statistics */}
       <section className="boosend-statistics-section">
         <div className="section-title-row">
           <div>
             <h2 className="section-main-heading">Your Statistics</h2>
-            <span className="section-sub-heading">Real-time performance metrics</span>
+            <span className="section-sub-heading">
+              {manager ? "Last 14 days across every connected account" : "Visible to owners and admins"}
+            </span>
           </div>
           <button
             type="button"
@@ -163,150 +210,127 @@ export default function OverviewPage() {
           </button>
         </div>
 
-        {/* 3 Metrics Cards */}
-        <div className="metrics-cards-grid">
-          {/* Card 1: Conversations */}
-          <div className="metric-kpi-card cyan-tone">
-            <div className="kpi-card-header">
-              <span className="kpi-icon-wrap cyan">
-                <Send size={15} />
-              </span>
-              <span className="kpi-label">Conversations</span>
-            </div>
-            <div className="kpi-value-row">
-              <span className="kpi-number">{stats.conversations}</span>
-            </div>
-            <span className="kpi-period">JAN - DEC 2026</span>
-
-            {/* Cyan Sparkline Area */}
-            <div className="sparkline-wrapper">
-              <svg className="sparkline-svg" viewBox="0 0 300 60" preserveAspectRatio="none">
-                <path
-                  d="M0,50 Q60,48 120,49 T240,48 T300,49"
-                  fill="none"
-                  stroke="#06b6d4"
-                  strokeWidth="2.5"
-                />
-                <path
-                  d="M0,50 Q60,48 120,49 T240,48 T300,49 L300,60 L0,60 Z"
-                  fill="rgba(6, 182, 212, 0.08)"
-                />
-              </svg>
-              <div className="sparkline-axis">
-                <span>J</span>
-                <span>F</span>
-                <span>M</span>
-                <span>A</span>
-                <span>M</span>
-                <span>J</span>
-                <span>J</span>
-                <span>A</span>
-                <span>S</span>
-                <span>O</span>
-                <span>N</span>
-                <span>D</span>
+        {manager && (
+          <div className="metrics-cards-grid overview-metrics">
+            <article className="metric-kpi-card cyan-tone">
+              <div className="kpi-card-header">
+                <span className="kpi-icon-wrap cyan">
+                  <MessageCircle size={15} />
+                </span>
+                <span className="kpi-label">Inbound messages</span>
               </div>
-            </div>
-
-            <div className="kpi-footer-note">All connected accounts</div>
-          </div>
-
-          {/* Card 2: Contacts */}
-          <div className="metric-kpi-card emerald-tone">
-            <div className="kpi-card-header">
-              <span className="kpi-icon-wrap emerald">
-                <Users size={15} />
-              </span>
-              <span className="kpi-label">Contacts</span>
-            </div>
-            <div className="kpi-value-row">
-              <span className="kpi-number">{stats.contacts}</span>
-            </div>
-            <span className="kpi-period">JAN - DEC 2026</span>
-
-            {/* Emerald Peak Sparkline Area (Matching screenshot peak in Sep) */}
-            <div className="sparkline-wrapper">
-              <svg className="sparkline-svg" viewBox="0 0 300 60" preserveAspectRatio="none">
-                <path
-                  d="M0,55 L160,55 L190,15 L220,55 L300,55"
-                  fill="none"
-                  stroke="#10b981"
-                  strokeWidth="2.5"
-                />
-                <path
-                  d="M0,55 L160,55 L190,15 L220,55 L300,55 L300,60 L0,60 Z"
-                  fill="rgba(16, 185, 129, 0.12)"
-                />
-              </svg>
-              <div className="sparkline-axis">
-                <span>J</span>
-                <span>F</span>
-                <span>M</span>
-                <span>A</span>
-                <span>M</span>
-                <span>J</span>
-                <span>J</span>
-                <span>A</span>
-                <span className="active-peak">S</span>
-                <span>O</span>
-                <span>N</span>
-                <span>D</span>
+              <div className="kpi-value-row">
+                <span className="kpi-number">{telemetry ? telemetry.totals.inbound : "—"}</span>
               </div>
-            </div>
+              <p className="kpi-split">
+                {META_CHANNELS.map((provider) => (
+                  <span key={provider}>
+                    <ChannelBadge provider={provider} compact />{" "}
+                    {(telemetry?.days || []).reduce((sum, day) => sum + day[provider], 0)}
+                  </span>
+                ))}
+              </p>
+              <Sparkline points={inbound} label="Inbound messages per day" />
+            </article>
 
-            <div className="kpi-footer-note">Unique users reached</div>
-          </div>
+            <article className="metric-kpi-card emerald-tone">
+              <div className="kpi-card-header">
+                <span className="kpi-icon-wrap emerald">
+                  <Users size={15} />
+                </span>
+                <span className="kpi-label">Contacts captured</span>
+              </div>
+              <div className="kpi-value-row">
+                <span className="kpi-number">{telemetry ? telemetry.totals.contacts : "—"}</span>
+              </div>
+              <p className="kpi-split">New leads from comments, story replies and DMs.</p>
+              <Sparkline points={contacts} label="New contacts per day" />
+            </article>
 
-          {/* Card 3: AI Usage */}
-          <div className="metric-kpi-card purple-tone">
-            <div className="kpi-card-header">
-              <span className="kpi-icon-wrap purple">
-                <Coins size={15} />
-              </span>
-              <span className="kpi-label">AI Usage</span>
-              <Link href={`/w/${workspace.id}/payments`} className="kpi-corner-link">
-                Pricing
+            <article className="metric-kpi-card stat-card">
+              <div className="kpi-card-header">
+                <span className="kpi-icon-wrap cyan">
+                  <UserPlus size={15} />
+                </span>
+                <span className="kpi-label">Leads this week</span>
+              </div>
+              <div className="kpi-value-row">
+                <strong className="kpi-number">{funnel ? funnel.unique_leads : "—"}</strong>
+              </div>
+              <p className="kpi-split">
+                Unique people who reached an automation in the last 7 days.
+              </p>
+              <Link href={`/w/${workspace.id}/analytics`} className="kpi-corner-link">
+                View funnel
               </Link>
-            </div>
-            <div className="kpi-value-row">
-              <span className="kpi-number">${(stats.aiUsageCents / 100).toFixed(2)}</span>
-            </div>
-            <span className="kpi-period">ENGINE COST · 2026</span>
+            </article>
 
-            {/* Purple Flat Line Sparkline Area */}
-            <div className="sparkline-wrapper">
-              <svg className="sparkline-svg" viewBox="0 0 300 60" preserveAspectRatio="none">
-                <path
-                  d="M0,55 L300,55"
-                  fill="none"
-                  stroke="#8b5cf6"
-                  strokeWidth="2.5"
-                />
-                <path
-                  d="M0,55 L300,55 L300,60 L0,60 Z"
-                  fill="rgba(139, 92, 246, 0.08)"
-                />
-              </svg>
-              <div className="sparkline-axis">
-                <span>J</span>
-                <span>F</span>
-                <span>M</span>
-                <span>A</span>
-                <span>M</span>
-                <span>J</span>
-                <span>J</span>
-                <span>A</span>
-                <span>S</span>
-                <span>O</span>
-                <span>N</span>
-                <span>D</span>
+            <article className="metric-kpi-card purple-tone">
+              <div className="kpi-card-header">
+                <span className="kpi-icon-wrap purple">
+                  <Bot size={15} />
+                </span>
+                <span className="kpi-label">AI engagement</span>
               </div>
-            </div>
-
-            <div className="kpi-footer-note">Credits consumed</div>
+              <div className="kpi-value-row">
+                <span className="kpi-number">
+                  {telemetry?.totals.ai_rate == null ? "—" : percent(telemetry.totals.ai_rate)}
+                </span>
+              </div>
+              <p className="kpi-split">
+                {!telemetry || telemetry.totals.ai_rate == null
+                  ? "No inbound conversations yet."
+                  : `Share of ${telemetry.totals.conversations} conversation${telemetry.totals.conversations === 1 ? "" : "s"} the AI agent answered.`}
+              </p>
+              {telemetry?.totals.ai_rate != null && (
+                <div
+                  className="meter"
+                  role="meter"
+                  aria-label="AI engagement rate"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(telemetry.totals.ai_rate * 100)}
+                >
+                  <span style={{ width: percent(telemetry.totals.ai_rate) }} />
+                </div>
+              )}
+            </article>
           </div>
-        </div>
+        )}
       </section>
+
+      {telemetry && telemetry.channels.length > 0 && (
+        <Panel title="Channel performance" aside="Last 14 days" className="channel-matrix">
+          <Table
+            head={["Channel", "Inbound messages", "Conversations", "Median first reply", "Top trigger"]}
+          >
+            {telemetry.channels.map((row) => (
+              <tr key={row.provider}>
+                <td>
+                  <ChannelBadge provider={row.provider} />
+                </td>
+                <td className="num">{row.inbound}</td>
+                <td className="num">{row.conversations}</td>
+                <td className="num">
+                  {row.median_response_minutes === null
+                    ? "—"
+                    : duration(row.median_response_minutes)}
+                </td>
+                <td>
+                  {row.top_automation ? (
+                    <>
+                      {row.top_automation.name}{" "}
+                      <span className="muted-text">· {row.top_automation.runs} runs</span>
+                    </>
+                  ) : (
+                    <span className="muted-text">No triggers yet</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </Table>
+        </Panel>
+      )}
     </div>
   );
 }

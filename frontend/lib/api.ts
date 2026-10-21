@@ -170,9 +170,6 @@ export type Automation = {
   published: Partial<FlowGraph>;
   revision: number;
   enabled: boolean;
-  status?: string;
-  runs_count?: number;
-  leads_count?: number;
   updated_at: string;
   installed_from: string | null;
   folder: string;
@@ -343,6 +340,42 @@ export type ScheduledPost = {
   created_at: string;
 };
 export type BioLink = { title: string; url: string };
+export type DeepLink = {
+  id: string;
+  title: string;
+  platform: "instagram" | "whatsapp" | "youtube" | "telegram" | "custom";
+  target: string;
+  code: string;
+  clicks: number;
+  active: boolean;
+  created_at: string;
+};
+export type ShieldRule = {
+  id: string;
+  name: string;
+  keywords: string[];
+  action: "hide" | "delete" | "flag";
+  enabled: boolean;
+  created_at: string;
+};
+export type ShieldEvent = {
+  id: string;
+  rule_name: string;
+  provider: string;
+  comment_id: string;
+  author: string;
+  text: string;
+  action_taken: "hidden" | "deleted" | "flagged" | "failed";
+  created_at: string;
+};
+export type WebChatSettings = {
+  title: string;
+  greeting: string;
+  color: string;
+  bot_enabled: boolean;
+  allowed_domains: string[];
+  updated_at?: string;
+};
 export type BioPage = {
   id?: string;
   slug: string;

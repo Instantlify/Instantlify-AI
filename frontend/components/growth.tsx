@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Gift, Instagram, MessageCircle, Send, X } from "lucide-react";
+import { Gift, MessageCircle, Send, X } from "lucide-react";
+import { BrandIcon } from "@/lib/brand-icons";
 import { api, message, type Connection } from "@/lib/api";
 import {
   announcements,
@@ -191,7 +192,7 @@ export function ConnectPrompt({ workspaceId }: { workspaceId: string }) {
   if (!missing) return null;
   return (
     <section className="connect-prompt" role="region" aria-label="Connect">
-      <Instagram size={22} />
+      <BrandIcon name="instagram" size={22} />
       <div>
         <strong>Connect your Instagram account</strong>
         <p>
@@ -199,7 +200,7 @@ export function ConnectPrompt({ workspaceId }: { workspaceId: string }) {
           It takes about a minute.
         </p>
       </div>
-      <Link className="button primary" href={`/w/${workspaceId}/integrations`}>
+      <Link className="button primary" href={`/w/${workspaceId}/integrations?tab=channels`}>
         Connect account
       </Link>
     </section>
