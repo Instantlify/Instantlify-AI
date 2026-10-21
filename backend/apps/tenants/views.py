@@ -129,6 +129,40 @@ class MeView(APIView):
             }
         )
 
+    def patch(self, request):
+        user = request.user
+        name = request.data.get("name")
+        email = request.data.get("email")
+        if name is not None:
+            user.first_name = str(name).strip()[:150]
+        if email is not None:
+            clean_email = str(email).strip().lower()
+            if clean_email and clean_email != user.email:
+                if get_user_model().objects.filter(email__iexact=clean_email).exclude(pk=user.pk).exists():
+                    return Response({"detail": "This email address is already in use."}, status=400)
+                user.email = clean_email
+                user.username = clean_email
+        user.save()
+        return Response(
+            {
+                "id": user.id,
+                "name": user.first_name,
+                "email": user.email,
+                "email_verified": bool(user.email_verified_at),
+            }
+        )
+
+
+class PasswordChangeView(APIView):
+    def post(self, request):
+        password = request.data.get("password")
+        if not password or len(str(password)) < 8:
+            return Response({"detail": "Password must be at least 8 characters long."}, status=400)
+        request.user.set_password(str(password))
+        request.user.save()
+        return Response({"detail": "Password updated successfully."})
+
+
 
 class JWTLoginView(TokenObtainPairView):
     throttle_classes = [ScopedRateThrottle]

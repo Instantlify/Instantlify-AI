@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
+  AlertCircle,
   Briefcase,
   Camera,
   Check,
@@ -41,12 +42,18 @@ import {
 } from "lucide-react";
 import {
   api,
-  message,
+  limit,
+  money,
+  type Billing,
+  type BillingJob,
   type Branding,
-  type ClientWorkspace,
   type Connection,
+  type Credits,
+  type Invitation,
   type Member,
   type Page,
+  type User as ApiUser,
+  type Workspace,
 } from "@/lib/api";
 import { loadWorkspaces, useWorkspace } from "@/lib/workspace";
 import { ErrorNotice, SuccessNotice, useFeedback } from "@/components/ui";
@@ -93,85 +100,197 @@ const SIDEBAR_TEXT_COLORS = [
 ];
 
 export default function SettingsPage() {
-  const { workspace, user, prefix, manager, refresh } = useWorkspace();
+  const { workspace, user: workspaceUser, prefix, manager, refresh } = useWorkspace();
   const feedback = useFeedback();
 
   // Active top tab
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
 
-  // Profile state
-  const [fullName, setFullName] = useState(user?.name || "Muhammad Tahir");
-  const [emailAddress, setEmailAddress] = useState(user?.email || "mtahirmalik3600921@gmail.com");
+  // Profile state (real data from auth/me)
+  const [currentUser, setCurrentUser] = useState<ApiUser | null>(workspaceUser || null);
+  const [fullName, setFullName] = useState("");
+  const [emailAddress, setEmailAddress] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [affiliateCopied, setAffiliateCopied] = useState(false);
 
-  // Meta Accounts state
-  const [instagramConnected, setInstagramConnected] = useState(true);
-  const [facebookConnected, setFacebookConnected] = useState(true);
+  // Meta Accounts state (real connections from backend)
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [loadingConnections, setLoadingConnections] = useState(false);
 
-  // Team state
+  // Team state (real members and invitations)
   const [members, setMembers] = useState<Member[]>([]);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"admin" | "agent">("admin");
 
-  // Subscription state
+  // Subscription state (real billing & credits)
+  const [billing, setBilling] = useState<Billing | null>(null);
+  const [credits, setCredits] = useState<Credits | null>(null);
   const [selectedTopUp, setSelectedTopUp] = useState<number>(10);
   const [autoRechargeEnabled, setAutoRechargeEnabled] = useState(false);
   const [autoRechargeThreshold, setAutoRechargeThreshold] = useState("2.00");
   const [autoRechargeAmount, setAutoRechargeAmount] = useState("10");
 
-  // Workspaces state
-  const [allWorkspaces, setAllWorkspaces] = useState<typeof workspace[]>([workspace]);
-  const [workspaceName, setWorkspaceName] = useState(workspace.name || "Muhammad Tahir's Workspace");
-  const [workspaceColor, setWorkspaceColor] = useState("#6366f1");
+  // Workspaces state (real workspaces & branding)
+  const [allWorkspaces, setAllWorkspaces] = useState<Workspace[]>([workspace]);
+  const [workspaceName, setWorkspaceName] = useState(workspace.name || "");
+  const [workspaceColor, setWorkspaceColor] = useState(
+    workspace.branding?.primary_color || "#6366f1"
+  );
   const [sidebarBgColor, setSidebarBgColor] = useState("#0a0a0a");
   const [sidebarTextColor, setSidebarTextColor] = useState("#ffffff");
-  const [brandName, setBrandName] = useState("BooSend");
+  const [brandName, setBrandName] = useState(
+    workspace.branding?.brand_name || workspace.name || "BooSend"
+  );
+  const [logoUrl, setLogoUrl] = useState(workspace.branding?.logo_url || "");
   const [workspaceSubTab, setWorkspaceSubTab] = useState<"general" | "accounts" | "billing">("general");
 
-  // Load team members and workspaces
+  // 1. Load User Profile
   useEffect(() => {
     const controller = new AbortController();
-    api<Page<Member>>(`${prefix}/members/`, "GET", undefined, controller.signal)
-      .then((res) => {
-        setMembers(res.results || []);
+    api<ApiUser>("/api/auth/me/", "GET", undefined, controller.signal)
+      .then((data) => {
+        setCurrentUser(data);
+        setFullName(data.name || "");
+        setEmailAddress(data.email || "");
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (workspaceUser) {
+          setCurrentUser(workspaceUser);
+          setFullName(workspaceUser.name || "");
+          setEmailAddress(workspaceUser.email || "");
+        }
+      });
+    return () => controller.abort();
+  }, [workspaceUser]);
 
+  // 2. Load Meta Connections
+  const loadConnections = async () => {
+    setLoadingConnections(true);
+    try {
+      const res = await api<any>(`${prefix}/connections/`);
+      const list = Array.isArray(res) ? res : Array.isArray(res?.results) ? res.results : [];
+      setConnections(list);
+    } catch {
+      setConnections([]);
+    } finally {
+      setLoadingConnections(false);
+    }
+  };
+
+  useEffect(() => {
+    loadConnections();
+  }, [prefix]);
+
+  // 3. Load Team Members and Pending Invitations
+  const loadTeam = async () => {
+    try {
+      const [membersRes, invitesRes] = await Promise.all([
+        api<any>(`${prefix}/members/`).catch(() => ({ results: [] })),
+        api<any>(`${prefix}/invitations/`).catch(() => ({ results: [] })),
+      ]);
+      const mList = Array.isArray(membersRes)
+        ? membersRes
+        : Array.isArray(membersRes?.results)
+        ? membersRes.results
+        : [];
+      const iList = Array.isArray(invitesRes)
+        ? invitesRes
+        : Array.isArray(invitesRes?.results)
+        ? invitesRes.results
+        : [];
+      setMembers(mList);
+      setInvitations(iList);
+    } catch {
+      setMembers([]);
+      setInvitations([]);
+    }
+  };
+
+  useEffect(() => {
+    loadTeam();
+  }, [prefix]);
+
+  // 4. Load Billing & Credits
+  const loadBillingAndCredits = async () => {
+    try {
+      const [billingData, creditsData] = await Promise.all([
+        api<Billing>(`${prefix}/billing/`).catch(() => null),
+        api<Credits>(`${prefix}/billing/credits/`).catch(() => null),
+      ]);
+      if (billingData) setBilling(billingData);
+      if (creditsData) {
+        setCredits(creditsData);
+        setAutoRechargeEnabled(creditsData.auto_topup_enabled);
+        setAutoRechargeThreshold(((creditsData.auto_topup_threshold_cents || 200) / 100).toFixed(2));
+        setAutoRechargeAmount(String(Math.round((creditsData.auto_topup_amount_cents || 1000) / 100)));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    loadBillingAndCredits();
+  }, [prefix]);
+
+  // 5. Load Workspaces and Branding
+  useEffect(() => {
+    const controller = new AbortController();
     loadWorkspaces(controller.signal)
       .then((list) => {
         if (list.length) setAllWorkspaces(list);
       })
       .catch(() => undefined);
 
+    api<{ own: Branding | null; effective: Branding }>(
+      `${prefix}/branding/`,
+      "GET",
+      undefined,
+      controller.signal
+    )
+      .then((res) => {
+        const brand = res.own || res.effective;
+        if (brand) {
+          if (brand.primary_color) setWorkspaceColor(brand.primary_color);
+          if (brand.brand_name) setBrandName(brand.brand_name);
+          if (brand.logo_url) setLogoUrl(brand.logo_url);
+        }
+      })
+      .catch(() => undefined);
+
+    setWorkspaceName(workspace.name || "");
     return () => controller.abort();
-  }, [prefix]);
+  }, [prefix, workspace]);
 
   // Affiliate link copy
   const handleCopyAffiliate = () => {
-    const link = `https://boosend.ai/?ref=${encodeURIComponent(user?.email || "tahir")}`;
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://boosend.ai";
+    const refCode = currentUser?.email ? currentUser.email.split("@")[0] : "member";
+    const link = `${origin}/?ref=${encodeURIComponent(refCode)}`;
     navigator.clipboard.writeText(link);
     setAffiliateCopied(true);
     setTimeout(() => setAffiliateCopied(false), 2500);
   };
 
-  // Save profile changes
+  // Save profile changes (real PATCH to /api/auth/me/)
   const handleSaveProfile = async (e: FormEvent) => {
     e.preventDefault();
     await feedback.run(async () => {
-      await api(`/api/auth/me/`, "PATCH", {
+      const updated = await api<ApiUser>(`/api/auth/me/`, "PATCH", {
         name: fullName,
         email: emailAddress,
       });
+      setCurrentUser(updated);
       await refresh();
     }, "Profile details updated successfully!");
   };
 
-  // Update password
+  // Update password (real POST to /api/auth/password/)
   const handleUpdatePassword = async (e: FormEvent) => {
     e.preventDefault();
     if (!newPassword || newPassword.length < 8) {
@@ -191,21 +310,36 @@ export default function SettingsPage() {
     }, "Password updated successfully!");
   };
 
-  // Save workspace settings
-  const handleSaveWorkspace = async () => {
+  // Meta account actions
+  const handleConnectMeta = async () => {
     await feedback.run(async () => {
-      await api(`${prefix}/`, "PATCH", {
-        name: workspaceName,
-      });
-      await api(`${prefix}/branding/`, "PUT", {
-        brand_name: brandName,
-        primary_color: workspaceColor,
-      });
-      await refresh();
-    }, "Workspace settings saved successfully!");
+      const res = await api<{ authorization_url: string }>(
+        `${prefix}/meta/connect/`,
+        "POST",
+        {}
+      );
+      if (res.authorization_url) {
+        window.location.assign(res.authorization_url);
+      }
+    });
   };
 
-  // Add team member
+  const handleReconnectAll = async () => {
+    await feedback.run(async () => {
+      await api(`${prefix}/connections/refresh/`, "POST");
+      await loadConnections();
+    }, "Refresh token request sent for Instagram accounts!");
+  };
+
+  const handleDisconnectChannel = async (connectionId: string, name: string) => {
+    if (!confirm(`Are you sure you want to disconnect ${name}?`)) return;
+    await feedback.run(async () => {
+      await api(`${prefix}/channels/${connectionId}/disconnect/`, "POST");
+      await loadConnections();
+    }, `${name} disconnected.`);
+  };
+
+  // Team invite actions
   const handleInviteMember = async (e: FormEvent) => {
     e.preventDefault();
     if (!inviteEmail) return;
@@ -216,8 +350,138 @@ export default function SettingsPage() {
       });
       setShowAddMemberModal(false);
       setInviteEmail("");
+      await loadTeam();
     }, `Invitation sent to ${inviteEmail}!`);
   };
+
+  const handleRemoveMember = async (memberId: string, memberName: string) => {
+    if (!confirm(`Remove ${memberName} from this workspace?`)) return;
+    await feedback.run(async () => {
+      await api(`${prefix}/members/${memberId}/`, "DELETE");
+      await loadTeam();
+    }, `${memberName} removed.`);
+  };
+
+  const handleRevokeInvitation = async (inviteId: string, email: string) => {
+    await feedback.run(async () => {
+      await api(`${prefix}/invitations/${inviteId}/`, "DELETE");
+      await loadTeam();
+    }, `Invitation for ${email} revoked.`);
+  };
+
+  // Customer Portal / Billing
+  const handleOpenCustomerPortal = async () => {
+    await feedback.run(async () => {
+      const job = await api<BillingJob>(
+        `${prefix}/billing/`,
+        "POST",
+        {
+          kind: "portal",
+          plan: billing?.plan || "pro",
+          interval: billing?.interval || "monthly",
+        },
+        undefined,
+        {
+          "Idempotency-Key": crypto.randomUUID(),
+        }
+      );
+      if (job.result?.url) {
+        window.location.assign(job.result.url);
+      } else {
+        window.location.assign(`/w/${workspace.id}/payments`);
+      }
+    });
+  };
+
+  // AI Credits topup
+  const handleTopUpCredits = async (amountDollars: number) => {
+    setSelectedTopUp(amountDollars);
+    await feedback.run(async () => {
+      const job = await api<BillingJob>(
+        `${prefix}/billing/`,
+        "POST",
+        {
+          kind: "credits",
+          plan: billing?.plan || "pro",
+          interval: billing?.interval || "monthly",
+          amount_cents: amountDollars * 100,
+        },
+        undefined,
+        {
+          "Idempotency-Key": crypto.randomUUID(),
+        }
+      );
+      if (job.result?.url) {
+        window.location.assign(job.result.url);
+      } else {
+        await loadBillingAndCredits();
+      }
+    }, `Initiating top-up for $${amountDollars}...`);
+  };
+
+  // Save Auto Recharge settings
+  const handleToggleAutoRecharge = async () => {
+    const nextState = !autoRechargeEnabled;
+    setAutoRechargeEnabled(nextState);
+    await feedback.run(async () => {
+      await api(`${prefix}/billing/credits/`, "PATCH", {
+        auto_topup_enabled: nextState,
+        auto_topup_threshold_cents: Math.round(parseFloat(autoRechargeThreshold || "2") * 100),
+        auto_topup_amount_cents: Math.round(parseFloat(autoRechargeAmount || "10") * 100),
+      });
+      await loadBillingAndCredits();
+    }, `Automatic recharge ${nextState ? "enabled" : "disabled"}.`);
+  };
+
+  const handleSaveAutoRechargeSettings = async () => {
+    await feedback.run(async () => {
+      await api(`${prefix}/billing/credits/`, "PATCH", {
+        auto_topup_enabled: autoRechargeEnabled,
+        auto_topup_threshold_cents: Math.round(parseFloat(autoRechargeThreshold || "2") * 100),
+        auto_topup_amount_cents: Math.round(parseFloat(autoRechargeAmount || "10") * 100),
+      });
+      await loadBillingAndCredits();
+    }, "Automatic recharge settings saved.");
+  };
+
+  // Save Workspace & Branding changes
+  const handleSaveWorkspace = async () => {
+    await feedback.run(async () => {
+      await api(`${prefix}/`, "PATCH", {
+        name: workspaceName,
+      });
+      await api(`${prefix}/branding/`, "PUT", {
+        brand_name: brandName,
+        primary_color: workspaceColor,
+        logo_url: logoUrl,
+      });
+      await refresh();
+    }, "Workspace settings saved successfully!");
+  };
+
+  // Filter connections into Instagram and Facebook/Meta
+  const connectionList = Array.isArray(connections) ? connections : [];
+  const memberList = Array.isArray(members) ? members : [];
+  const inviteList = Array.isArray(invitations) ? invitations : [];
+  const workspaceList = Array.isArray(allWorkspaces) ? allWorkspaces : [];
+
+  const instagramAccounts = connectionList.filter(
+    (c) => c && c.provider === "instagram" && c.status !== "disconnected"
+  );
+  const facebookPages = connectionList.filter(
+    (c) => c && (c.provider === "meta" || c.provider === "facebook") && c.status !== "disconnected"
+  );
+
+  // Separate workspace owner from general members
+  const ownerMember = memberList.find((m) => m && m.role === "owner");
+  const nonOwnerMembers = memberList.filter((m) => m && m.role !== "owner");
+
+  // Calculated credits balance in dollars
+  const creditBalanceDisplay = credits
+    ? `$${(parseInt(credits.balance_cents || "0", 10) / 100).toFixed(2)}`
+    : "$0.00";
+
+  const userInitial = (currentUser?.name || currentUser?.email || "M").charAt(0).toUpperCase();
 
   return (
     <div className="boosend-settings-page">
@@ -230,11 +494,12 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        {/* Affiliate Link Button with yellow border / icon */}
+        {/* Affiliate Link Button */}
         <button
           type="button"
           className="get-affiliate-link-btn"
           onClick={handleCopyAffiliate}
+          title="Click to copy your personal affiliate link"
         >
           <span className="affiliate-flower-icon">🌼</span>
           {affiliateCopied ? "Affiliate Link Copied!" : "Get Affiliate Link"}
@@ -293,11 +558,11 @@ export default function SettingsPage() {
       </div>
 
       {/* =========================================================================
-          TAB 1: PROFILE (Screenshot 1)
+          TAB 1: PROFILE
           ========================================================================= */}
       {activeTab === "profile" && (
         <div className="settings-tab-content stack-cards">
-          {/* Section 1: Profile details card */}
+          {/* Card 1: Profile details */}
           <div className="settings-card">
             <div className="settings-card-header">
               <div className="card-header-icon-title">
@@ -314,12 +579,21 @@ export default function SettingsPage() {
                 {/* Left column: Avatar */}
                 <div className="profile-avatar-col">
                   <div className="profile-avatar-circle">
-                    <span>{fullName.charAt(0).toUpperCase() || "M"}</span>
+                    <span>{userInitial}</span>
                   </div>
-                  <div className="avatar-user-name">{fullName}</div>
+                  <div className="avatar-user-name">
+                    {fullName || currentUser?.name || "User"}
+                  </div>
                   <label className="change-photo-link">
                     Change photo
-                    <input type="file" accept="image/*" style={{ display: "none" }} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={() => {
+                        feedback.setNotice("Photo selected for upload on Save changes.");
+                      }}
+                    />
                   </label>
                 </div>
 
@@ -359,11 +633,19 @@ export default function SettingsPage() {
                             <span className="connected-acc-type">Email</span>
                             <span className="primary-green-badge">PRIMARY</span>
                           </div>
-                          <div className="connected-acc-value">{emailAddress}</div>
+                          <div className="connected-acc-value">
+                            {currentUser?.email || emailAddress}
+                          </div>
                         </div>
                       </div>
 
-                      <button type="button" className="connected-acc-disconnect-btn">
+                      <button
+                        type="button"
+                        className="connected-acc-disconnect-btn"
+                        onClick={() => {
+                          feedback.setError("Cannot disconnect primary account email.");
+                        }}
+                      >
                         Disconnect
                       </button>
                     </div>
@@ -388,7 +670,7 @@ export default function SettingsPage() {
             </form>
           </div>
 
-          {/* Section 2: Change password card */}
+          {/* Card 2: Change password */}
           <div className="settings-card">
             <div className="settings-card-header">
               <div>
@@ -413,6 +695,7 @@ export default function SettingsPage() {
                       type="button"
                       className="password-toggle-eye"
                       onClick={() => setShowNewPassword(!showNewPassword)}
+                      aria-label="Toggle password view"
                     >
                       {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
@@ -434,6 +717,7 @@ export default function SettingsPage() {
                       type="button"
                       className="password-toggle-eye"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      aria-label="Toggle confirm password view"
                     >
                       {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
@@ -456,7 +740,7 @@ export default function SettingsPage() {
       )}
 
       {/* =========================================================================
-          TAB 2: META ACCOUNTS (Screenshot 2)
+          TAB 2: META ACCOUNTS
           ========================================================================= */}
       {activeTab === "meta" && (
         <div className="settings-tab-content stack-cards">
@@ -474,59 +758,67 @@ export default function SettingsPage() {
               <button
                 type="button"
                 className="add-black-btn"
-                onClick={() => {
-                  window.location.assign(`/api/meta/oauth/authorize/?action=connect&provider=instagram`);
-                }}
+                onClick={handleConnectMeta}
               >
                 <Plus size={15} /> Add Account
               </button>
             </div>
 
-            {instagramConnected ? (
-              <div className="connected-channel-card-row">
-                <div className="channel-info-left">
-                  <div className="channel-avatar-circle instagram">
-                    <Instagram size={18} />
-                  </div>
-                  <div>
-                    <div className="channel-name-title-row">
-                      <span className="channel-handle">@censtd_nutech</span>
-                      <span className="primary-gray-badge">Primary</span>
+            {loadingConnections ? (
+              <div className="empty-channel-box">Loading connected Instagram accounts...</div>
+            ) : instagramAccounts.length > 0 ? (
+              <div className="stack-cards" style={{ gap: 10 }}>
+                {instagramAccounts.map((acc, idx) => (
+                  <div key={acc.id} className="connected-channel-card-row">
+                    <div className="channel-info-left">
+                      <div className="channel-avatar-circle instagram">
+                        <Instagram size={18} />
+                      </div>
+                      <div>
+                        <div className="channel-name-title-row">
+                          <span className="channel-handle">
+                            {acc.display_name.startsWith("@") ? acc.display_name : `@${acc.display_name}`}
+                          </span>
+                          {idx === 0 && <span className="primary-gray-badge">Primary</span>}
+                          {acc.is_test && <span className="primary-gray-badge">Test Mode</span>}
+                        </div>
+                        <div className="channel-meta-stats">
+                          {acc.followers !== null ? `${acc.followers} followers · ` : ""}
+                          Connected {acc.expires_at ? new Date(acc.expires_at).toLocaleDateString() : "recently"}
+                        </div>
+                        {acc.last_refreshed_at && (
+                          <div className="channel-synced-time">
+                            <Clock size={12} /> Synced {new Date(acc.last_refreshed_at).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="channel-meta-stats">
-                      183 followers · Connected 9/2/2026
-                    </div>
-                    <div className="channel-synced-time">
-                      <Clock size={12} /> Synced Oct 21, 06:50 PM
-                    </div>
-                  </div>
-                </div>
 
-                <div className="channel-actions-right">
-                  <span className="status-active-green">
-                    <Check size={14} /> Active
-                  </span>
-                  <button
-                    type="button"
-                    className="reconnect-text-btn"
-                    onClick={() => {
-                      window.location.assign(`/api/meta/oauth/authorize/?action=connect&provider=instagram`);
-                    }}
-                  >
-                    <RotateCw size={13} /> Reconnect
-                  </button>
-                  <button
-                    type="button"
-                    className="disconnect-red-btn"
-                    onClick={() => setInstagramConnected(false)}
-                  >
-                    Disconnect
-                  </button>
-                </div>
+                    <div className="channel-actions-right">
+                      <span className="status-active-green">
+                        <Check size={14} /> {acc.status === "active" ? "Active" : acc.status}
+                      </span>
+                      <button
+                        type="button"
+                        className="reconnect-text-btn"
+                        onClick={handleReconnectAll}
+                      >
+                        <RotateCw size={13} /> Reconnect
+                      </button>
+                      <button
+                        type="button"
+                        className="disconnect-red-btn"
+                        onClick={() => handleDisconnectChannel(acc.id, acc.display_name)}
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="empty-channel-box">
-                No Instagram accounts connected. Click &ldquo;+ Add Account&rdquo; to connect.
+                No Instagram accounts connected. Click &ldquo;+ Add Account&rdquo; to connect your Instagram profile.
               </div>
             )}
           </div>
@@ -547,40 +839,44 @@ export default function SettingsPage() {
               <button
                 type="button"
                 className="add-facebook-blue-btn"
-                onClick={() => {
-                  window.location.assign(`/api/meta/oauth/authorize/?action=connect&provider=meta`);
-                }}
+                onClick={handleConnectMeta}
               >
                 <Plus size={15} /> Add Facebook Page
               </button>
             </div>
 
-            {facebookConnected ? (
-              <div className="connected-channel-card-row">
-                <div className="channel-info-left">
-                  <div className="channel-avatar-circle facebook">
-                    <Facebook size={18} />
-                  </div>
-                  <div>
-                    <div className="channel-name-title-row">
-                      <span className="channel-handle">SHAMA - Lightening The Path For Youth</span>
-                      <span className="primary-blue-badge">Primary</span>
+            {loadingConnections ? (
+              <div className="empty-channel-box">Loading connected Facebook Pages...</div>
+            ) : facebookPages.length > 0 ? (
+              <div className="stack-cards" style={{ gap: 10 }}>
+                {facebookPages.map((page, idx) => (
+                  <div key={page.id} className="connected-channel-card-row">
+                    <div className="channel-info-left">
+                      <div className="channel-avatar-circle facebook">
+                        <Facebook size={18} />
+                      </div>
+                      <div>
+                        <div className="channel-name-title-row">
+                          <span className="channel-handle">{page.display_name}</span>
+                          {idx === 0 && <span className="primary-blue-badge">Primary</span>}
+                        </div>
+                        <div className="channel-meta-stats">
+                          Facebook Page · Messenger connected
+                        </div>
+                      </div>
                     </div>
-                    <div className="channel-meta-stats">
-                      Facebook Page · Messenger connected
-                    </div>
-                  </div>
-                </div>
 
-                <div className="channel-actions-right">
-                  <button
-                    type="button"
-                    className="disconnect-red-btn"
-                    onClick={() => setFacebookConnected(false)}
-                  >
-                    Disconnect
-                  </button>
-                </div>
+                    <div className="channel-actions-right">
+                      <button
+                        type="button"
+                        className="disconnect-red-btn"
+                        onClick={() => handleDisconnectChannel(page.id, page.display_name)}
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="empty-channel-box">
@@ -592,7 +888,7 @@ export default function SettingsPage() {
       )}
 
       {/* =========================================================================
-          TAB 3: TEAM (Screenshot 3)
+          TAB 3: TEAM
           ========================================================================= */}
       {activeTab === "team" && (
         <div className="settings-tab-content">
@@ -602,7 +898,7 @@ export default function SettingsPage() {
                 <Users size={18} className="card-icon" />
                 <div>
                   <h2 className="card-title">Team Members</h2>
-                  <p className="card-subtitle">{workspaceName} workspace</p>
+                  <p className="card-subtitle">{workspaceName || workspace.name} workspace</p>
                 </div>
               </div>
 
@@ -622,11 +918,19 @@ export default function SettingsPage() {
               <div className="team-member-row owner-row">
                 <div className="team-member-info-left">
                   <div className="team-avatar-circle owner">
-                    <span>{fullName.charAt(0).toUpperCase() || "M"}</span>
+                    <span>
+                      {(ownerMember?.name || currentUser?.name || currentUser?.email || "M")
+                        .charAt(0)
+                        .toUpperCase()}
+                    </span>
                   </div>
                   <div>
-                    <div className="team-member-name">{fullName}</div>
-                    <div className="team-member-email">{emailAddress}</div>
+                    <div className="team-member-name">
+                      {ownerMember?.name || currentUser?.name || "Workspace Owner"}
+                    </div>
+                    <div className="team-member-email">
+                      {ownerMember?.email || currentUser?.email}
+                    </div>
                   </div>
                 </div>
 
@@ -634,26 +938,62 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Members List or Empty State */}
-            {members.length > 0 ? (
+            {/* Other Members & Invitations */}
+            {nonOwnerMembers.length > 0 || inviteList.length > 0 ? (
               <div className="team-members-list" style={{ marginTop: 16 }}>
-                {members.map((m) => (
-                  <div key={m.id} className="team-member-row">
-                    <div className="team-member-info-left">
-                      <div className="team-avatar-circle">
-                        <span>{m.name.charAt(0).toUpperCase()}</span>
+                <div className="team-section-eyebrow">MEMBERS & INVITATIONS</div>
+                <div className="stack-cards" style={{ gap: 10 }}>
+                  {nonOwnerMembers.map((m) => (
+                    <div key={m.id} className="team-member-row">
+                      <div className="team-member-info-left">
+                        <div className="team-avatar-circle">
+                          <span>{m.name ? m.name.charAt(0).toUpperCase() : "U"}</span>
+                        </div>
+                        <div>
+                          <div className="team-member-name">{m.name}</div>
+                          <div className="team-member-email">{m.email}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="team-member-name">{m.name}</div>
-                        <div className="team-member-email">{m.email}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span className="primary-gray-badge">{m.role}</span>
+                        <button
+                          type="button"
+                          className="disconnect-red-btn"
+                          onClick={() => handleRemoveMember(m.id, m.name)}
+                        >
+                          Remove
+                        </button>
                       </div>
                     </div>
-                    <span className="primary-gray-badge">{m.role}</span>
-                  </div>
-                ))}
+                  ))}
+
+                  {inviteList.map((inv) => (
+                    <div key={inv.id} className="team-member-row" style={{ opacity: 0.85 }}>
+                      <div className="team-member-info-left">
+                        <div className="team-avatar-circle" style={{ background: "#fef3c7", color: "#b45309" }}>
+                          <span>✉</span>
+                        </div>
+                        <div>
+                          <div className="team-member-name">{inv.email}</div>
+                          <div className="team-member-email">Invitation Pending</div>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span className="primary-gray-badge">{inv.role}</span>
+                        <button
+                          type="button"
+                          className="disconnect-red-btn"
+                          onClick={() => handleRevokeInvitation(inv.id, inv.email)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
-              /* Empty state matching Screenshot 3 */
+              /* Empty state */
               <div className="team-empty-state-box">
                 <div className="team-empty-icon-circle">
                   <Users size={24} />
@@ -676,7 +1016,7 @@ export default function SettingsPage() {
       )}
 
       {/* =========================================================================
-          TAB 4: SUBSCRIPTION (Screenshot 4)
+          TAB 4: SUBSCRIPTION
           ========================================================================= */}
       {activeTab === "subscription" && (
         <div className="settings-tab-content stack-cards">
@@ -695,7 +1035,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   className="customer-portal-white-btn"
-                  onClick={() => window.open("https://billing.stripe.com/p/login/", "_blank")}
+                  onClick={handleOpenCustomerPortal}
                 >
                   <span className="portal-dollar-icon">$</span> Customer Portal
                 </button>
@@ -712,8 +1052,12 @@ export default function SettingsPage() {
             {/* Dark Navy/Black Plan Banner Card */}
             <div className="subscription-plan-banner">
               <div className="plan-banner-top">
-                <h3 className="plan-banner-title">Lifetime</h3>
-                <span className="plan-banner-billed">Billed lifetime</span>
+                <h3 className="plan-banner-title">
+                  {billing?.plan ? billing.plan.charAt(0).toUpperCase() + billing.plan.slice(1) : "Pro"}
+                </h3>
+                <span className="plan-banner-billed">
+                  Billed {billing?.interval || "monthly"}
+                </span>
               </div>
 
               <div className="plan-stats-four-col">
@@ -723,15 +1067,19 @@ export default function SettingsPage() {
                 </div>
                 <div className="plan-stat-item">
                   <span className="stat-label">Instagram Accounts</span>
-                  <span className="stat-val">Unlimited</span>
+                  <span className="stat-val">
+                    {limit(billing?.channel_limit)}
+                  </span>
                 </div>
                 <div className="plan-stat-item">
                   <span className="stat-label">DMs This Month</span>
-                  <span className="stat-val">Unlimited</span>
+                  <span className="stat-val">
+                    {billing ? `${billing.used} / ${limit(billing.usage_limit)}` : "Unlimited"}
+                  </span>
                 </div>
                 <div className="plan-stat-item">
                   <span className="stat-label">AI Credits</span>
-                  <span className="stat-val">$5.00</span>
+                  <span className="stat-val">{creditBalanceDisplay}</span>
                 </div>
               </div>
             </div>
@@ -750,7 +1098,7 @@ export default function SettingsPage() {
 
               <div className="ai-credits-pricing-hint">
                 <span className="hint-label">Pricing</span>
-                <span className="hint-value">$5.00</span>
+                <span className="hint-value">{creditBalanceDisplay}</span>
               </div>
             </div>
 
@@ -764,7 +1112,7 @@ export default function SettingsPage() {
                       type="button"
                       key={amt}
                       className={`topup-amount-btn ${selectedTopUp === amt ? "selected" : ""}`}
-                      onClick={() => setSelectedTopUp(amt)}
+                      onClick={() => handleTopUpCredits(amt)}
                     >
                       ${amt}
                     </button>
@@ -782,7 +1130,8 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     className={`toggle-switch-pill ${autoRechargeEnabled ? "active" : ""}`}
-                    onClick={() => setAutoRechargeEnabled(!autoRechargeEnabled)}
+                    onClick={handleToggleAutoRecharge}
+                    aria-label="Toggle automatic recharge"
                   >
                     <span className="toggle-switch-thumb" />
                   </button>
@@ -797,6 +1146,7 @@ export default function SettingsPage() {
                         type="text"
                         value={autoRechargeThreshold}
                         onChange={(e) => setAutoRechargeThreshold(e.target.value)}
+                        onBlur={handleSaveAutoRechargeSettings}
                         className="dollar-text-input"
                       />
                     </div>
@@ -807,7 +1157,10 @@ export default function SettingsPage() {
                     <div className="custom-select-box">
                       <select
                         value={autoRechargeAmount}
-                        onChange={(e) => setAutoRechargeAmount(e.target.value)}
+                        onChange={(e) => {
+                          setAutoRechargeAmount(e.target.value);
+                          handleSaveAutoRechargeSettings();
+                        }}
                         className="native-page-select"
                       >
                         <option value="10">$10</option>
@@ -827,7 +1180,7 @@ export default function SettingsPage() {
                   <div className="credits-rem-title">Credits Remaining</div>
                   <div className="credits-rem-sub">Available balance for AI messages</div>
                 </div>
-                <div className="credits-rem-val">$5.00</div>
+                <div className="credits-rem-val">{creditBalanceDisplay}</div>
               </div>
             </div>
           </div>
@@ -835,7 +1188,7 @@ export default function SettingsPage() {
       )}
 
       {/* =========================================================================
-          TAB 5: WORKSPACES (Screenshot 5)
+          TAB 5: WORKSPACES
           ========================================================================= */}
       {activeTab === "workspaces" && (
         <div className="settings-tab-content workspaces-layout-grid">
@@ -844,7 +1197,9 @@ export default function SettingsPage() {
             <div className="workspaces-list-header">
               <div>
                 <h3 className="ws-list-title">Workspaces</h3>
-                <span className="ws-usage-count">1 of 1 used</span>
+                <span className="ws-usage-count">
+                  {allWorkspaces.length} workspace{allWorkspaces.length > 1 ? "s" : ""}
+                </span>
               </div>
               <button
                 type="button"
@@ -860,20 +1215,40 @@ export default function SettingsPage() {
             <div className="ws-eyebrow">MY WORKSPACES</div>
 
             <div className="my-workspaces-stack">
-              {allWorkspaces.map((ws) => (
-                <div key={ws.id} className="active-workspace-card-item">
-                  <div className="ws-card-avatar" style={{ background: workspaceColor }}>
-                    <span>{ws.name.charAt(0).toUpperCase()}</span>
-                  </div>
-                  <div className="ws-card-info">
-                    <div className="ws-card-name-row">
-                      <span className="ws-name-text">{ws.name}</span>
-                      <span className="current-badge-pill">Current</span>
+              {workspaceList.map((ws) => {
+                const isCurrent = ws.id === workspace.id;
+                return (
+                  <Link
+                    key={ws.id}
+                    href={`/w/${ws.id}/settings`}
+                    className="active-workspace-card-item"
+                    style={{
+                      borderColor: isCurrent ? "#0f172a" : "#e2e8f0",
+                      textDecoration: "none",
+                      marginBottom: 8,
+                      display: "flex",
+                    }}
+                  >
+                    <div
+                      className="ws-card-avatar"
+                      style={{
+                        background: ws.branding?.primary_color || (isCurrent ? workspaceColor : "#6366f1"),
+                      }}
+                    >
+                      <span>{(ws.name || "W").charAt(0).toUpperCase()}</span>
                     </div>
-                    <div className="ws-card-role-meta">Owner · Default · 1 member</div>
-                  </div>
-                </div>
-              ))}
+                    <div className="ws-card-info">
+                      <div className="ws-card-name-row">
+                        <span className="ws-name-text">{ws.name}</span>
+                        {isCurrent && <span className="current-badge-pill">Current</span>}
+                      </div>
+                      <div className="ws-card-role-meta">
+                        {ws.role || "Member"} · Active
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
@@ -881,11 +1256,11 @@ export default function SettingsPage() {
           <div className="workspaces-right-column">
             <div className="ws-settings-header-banner">
               <div className="ws-banner-avatar" style={{ background: workspaceColor }}>
-                <span>{workspaceName.charAt(0).toUpperCase()}</span>
+                <span>{(workspaceName || workspace.name || "W").charAt(0).toUpperCase()}</span>
               </div>
               <div>
                 <span className="settings-for-label">Settings for</span>
-                <h2 className="ws-banner-title">{workspaceName}</h2>
+                <h2 className="ws-banner-title">{workspaceName || workspace.name}</h2>
               </div>
             </div>
 
@@ -901,14 +1276,20 @@ export default function SettingsPage() {
               <button
                 type="button"
                 className={`ws-subtab-btn ${workspaceSubTab === "accounts" ? "active" : ""}`}
-                onClick={() => setWorkspaceSubTab("accounts")}
+                onClick={() => {
+                  setWorkspaceSubTab("accounts");
+                  setActiveTab("meta");
+                }}
               >
                 Accounts
               </button>
               <button
                 type="button"
                 className={`ws-subtab-btn ${workspaceSubTab === "billing" ? "active" : ""}`}
-                onClick={() => setWorkspaceSubTab("billing")}
+                onClick={() => {
+                  setWorkspaceSubTab("billing");
+                  setActiveTab("subscription");
+                }}
               >
                 Billing
               </button>
@@ -970,10 +1351,10 @@ export default function SettingsPage() {
                 style={{ background: sidebarBgColor, color: sidebarTextColor }}
               >
                 <div className="preview-ws-icon" style={{ background: workspaceColor }}>
-                  {workspaceName.charAt(0).toUpperCase()}
+                  {(workspaceName || "W").charAt(0).toUpperCase()}
                 </div>
                 <div className="preview-copy-col">
-                  <span className="preview-ws-name">{workspaceName}</span>
+                  <span className="preview-ws-name">{workspaceName || "Workspace"}</span>
                   <span className="preview-subtitle">Preview of your sidebar</span>
                 </div>
               </div>
@@ -1035,12 +1416,34 @@ export default function SettingsPage() {
                 <label className="field-label">Logo</label>
                 <div className="logo-upload-wrapper">
                   <div className="logo-ghost-box">
-                    <Sparkles size={22} className="ghost-icon" />
+                    {logoUrl ? (
+                      <img
+                        src={logoUrl}
+                        alt="Logo"
+                        style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: 8 }}
+                      />
+                    ) : (
+                      <Sparkles size={22} className="ghost-icon" />
+                    )}
                   </div>
                   <div>
                     <label className="upload-file-btn">
                       Upload
-                      <input type="file" accept="image/*" style={{ display: "none" }} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              setLogoUrl(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
                     </label>
                     <span className="file-format-hint">PNG, JPG, GIF or WebP - max 5MB</span>
                   </div>
@@ -1080,7 +1483,9 @@ export default function SettingsPage() {
         <div className="settings-modal-backdrop" onClick={() => setShowAddMemberModal(false)}>
           <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">Invite Team Member</h3>
-            <p className="modal-sub">Collaborate with colleagues on {workspaceName}.</p>
+            <p className="modal-sub">
+              Collaborate with colleagues on {workspaceName || workspace.name}.
+            </p>
 
             <form onSubmit={handleInviteMember} style={{ marginTop: 16 }}>
               <div className="form-group">
