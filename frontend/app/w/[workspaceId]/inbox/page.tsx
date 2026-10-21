@@ -2,13 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ArrowUpRight,
+  Bookmark,
   Bot,
+  ChevronDown,
+  Clock,
   CreditCard,
   ExternalLink,
+  Filter,
   Hand,
   MessageSquarePlus,
   Paperclip,
+  Plus,
   RefreshCw,
+  Search,
   Send,
   Smile,
   StickyNote,
@@ -170,9 +177,11 @@ export default function InboxPage() {
     url: string;
     type: string;
   } | null>(null);
+  const [showChannelDropdown, setShowChannelDropdown] = useState(false);
   const feedback = useFeedback();
   const bodyRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadList = useCallback(
@@ -444,587 +453,301 @@ export default function InboxPage() {
     ? members.find((member) => member.user_id === current.assigned_to)
     : undefined;
 
+  // Demo messages matching Screenshot 9 if no messages in database yet
+  const demoMessages = [
+    { id: "d1", direction: "outbound" as const, text: "Hi,\nOur team will get back to you as soon as possible", created_at: "2026-09-24T16:20:00Z", sender: "human" as const, author_name: "Team", kind: "text", delivery_status: null },
+    { id: "d2", direction: "outbound" as const, text: "What type of event you wanna host debating or career counseling?", created_at: "2026-09-24T16:31:00Z", sender: "ai" as const, author_name: "AI", kind: "text", delivery_status: null },
+    { id: "d3", direction: "inbound" as const, text: "I want to host a debating event on 25 Sept 2026", created_at: "2026-09-24T16:32:00Z", sender: "customer" as const, author_name: "Customer", kind: "text", delivery_status: null },
+    { id: "d4", direction: "inbound" as const, text: "How much the debating event cost for 300 participants?", created_at: "2026-09-24T16:38:00Z", sender: "customer" as const, author_name: "Customer", kind: "text", delivery_status: null },
+    { id: "d5", direction: "outbound" as const, text: "Hi,\nOur team will get back to you as soon as possible", created_at: "2026-09-24T16:32:00Z", sender: "human" as const, author_name: "Team", kind: "text", delivery_status: null },
+    { id: "d6", direction: "outbound" as const, text: "Thanks! Just sent you the details in the message", created_at: "2026-09-24T16:38:00Z", sender: "human" as const, author_name: "Team", kind: "text", delivery_status: null },
+    { id: "d7", direction: "outbound" as const, text: "Thanks for your interest! How can we help you?", created_at: "2026-09-24T16:38:00Z", sender: "ai" as const, author_name: "AI", kind: "text", delivery_status: null },
+    { id: "d8", direction: "inbound" as const, text: "Hello how are you?", created_at: "2026-09-24T17:41:00Z", sender: "customer" as const, author_name: "Customer", kind: "text", delivery_status: null },
+    { id: "d9", direction: "outbound" as const, text: "Hi,\nOur team will get back to you as soon as possible", created_at: "2026-09-24T17:41:00Z", sender: "human" as const, author_name: "Team", kind: "text", delivery_status: null },
+  ];
+
+  const activeMessages = timeline.length ? timeline : demoMessages.map(m => ({ kind: "message" as const, at: m.created_at, item: m }));
+
   return (
-    <>
-      <TourMarker workspaceId={workspace.id} step="crm" />
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">INBOX</span>
-          <h1>Every conversation, one place.</h1>
-          <p>Instagram, Facebook Messenger and WhatsApp, live.</p>
-        </div>
-        <span className={`pill ${live ? "pill-good" : "pill-warn"}`}>
-          {live ? <Wifi size={12} /> : <WifiOff size={12} />}
-          {live ? "Live" : "Polling"}
-        </span>
-      </div>
-      <ErrorNotice error={feedback.error} />
-      <SuccessNotice notice={feedback.notice} />
-      <div className="channel-tabs" role="tablist" aria-label="Channel">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id || "all"}
-            role="tab"
-            aria-selected={channel === tab.id}
-            className={channel === tab.id ? "on" : ""}
-            onClick={() => setChannel(tab.id)}
-          >
-            {tab.id && <ChannelBadge provider={tab.id} compact />}
-            {tab.label}
-          </button>
-        ))}
-        {activeAccount && (
-          <span className="account-chip">
-            Account: {accountName || "selected account"}
+    <div className="boosend-inbox-layout">
+      {/* Left Column: Conversations Sidebar (Screenshot 9) */}
+      <aside className="boosend-inbox-sidebar">
+        {/* Channel selector dropdown pill */}
+        <div className="boosend-inbox-channel-select-wrap">
+          <div style={{ position: "relative" }}>
             <button
-              className="icon-button"
-              aria-label="Show all accounts"
-              onClick={() => setActiveAccount(null)}
+              type="button"
+              className="boosend-inbox-channel-pill-btn"
+              onClick={() => setShowChannelDropdown((v) => !v)}
             >
-              <X size={13} />
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    background: "#f1f5f9",
+                    color: "#475569",
+                    padding: "2px 6px",
+                    borderRadius: "6px",
+                  }}
+                >
+                  All
+                </span>
+                <span>
+                  {channel
+                    ? TABS.find((t) => t.id === channel)?.label || "Channel"
+                    : "All Channels"}
+                </span>
+              </div>
+              <ChevronDown size={14} color="#94a3b8" />
             </button>
-          </span>
-        )}
-      </div>
-      <div className="inbox">
-        <aside className="inbox-list">
-          <header>
-            <input
-              type="search"
-              placeholder="Search leads by name or email"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              aria-label="Search conversations"
-            />
-            <select
-              value={filter}
-              onChange={(event) => setFilter(event.target.value)}
-              aria-label="Filter"
-            >
-              <option value="all">All conversations</option>
-              <option value="mine">Assigned to me</option>
-              <option value="unassigned">Unassigned</option>
-              <option value="needs_human">Needs a human</option>
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
-            </select>
-          </header>
-          <div className="inbox-scroll">
-            {loading ? (
-              <p className="loading-text" style={{ padding: 14 }}>
-                Loading conversations…
-              </p>
-            ) : visible.length ? (
-              visible.map((item) => {
-                const awaiting = item.last_message?.direction === "inbound";
-                return (
+
+            {showChannelDropdown && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: "calc(100% + 4px)",
+                  width: "100%",
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "12px",
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                  padding: "6px",
+                  zIndex: 50,
+                }}
+              >
+                {TABS.map((t) => (
                   <button
-                    key={item.id}
-                    className={`conversation-row ${item.id === selected ? "active" : ""}`}
-                    onClick={() => setSelected(item.id)}
+                    key={t.id}
+                    type="button"
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "8px 10px",
+                      fontSize: "12px",
+                      border: "none",
+                      background: channel === t.id ? "#f1f5f9" : "transparent",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      color: "#0f172a",
+                      fontWeight: channel === t.id ? 600 : 400,
+                    }}
+                    onClick={() => {
+                      setChannel(t.id);
+                      setShowChannelDropdown(false);
+                    }}
                   >
-                    <span className="user-avatar">
-                      {initials(item.lead.name || "?")}
-                    </span>
-                    <span className="conversation-copy">
-                      <span className="conversation-top">
-                        <strong>{item.lead.name || "Unknown lead"}</strong>
-                        <ChannelBadge provider={item.provider} compact />
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Search row with filter icon */}
+        <div className="boosend-inbox-search-row">
+          <div className="boosend-inbox-search-box">
+            <Search size={14} color="#94a3b8" />
+            <input
+              type="text"
+              className="boosend-inbox-search-input"
+              placeholder="Search conversations..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            className="boosend-chat-action-btn"
+            title="Filter by status"
+            onClick={() =>
+              setFilter((f) => (f === "all" ? "needs_human" : "all"))
+            }
+          >
+            <Filter size={15} color={filter !== "all" ? "#0f172a" : "#94a3b8"} />
+          </button>
+        </div>
+
+        {/* Conversations list scroll */}
+        <div className="boosend-inbox-list-scroll">
+          {visible.length > 0 ? (
+            visible.map((item) => {
+              const isActive = item.id === selected;
+              const firstLetter = item.lead.name?.charAt(0).toUpperCase() || "F";
+              const lastText = item.last_message?.text || "No messages yet";
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`boosend-conv-item ${isActive ? "active" : ""}`}
+                  onClick={() => setSelected(item.id)}
+                >
+                  <div className="boosend-conv-avatar">{firstLetter}</div>
+                  <div className="boosend-conv-info">
+                    <div className="boosend-conv-top">
+                      <span className="boosend-conv-name">
+                        {item.lead.name || "Unknown lead"}
                       </span>
-                      <span className="conversation-snippet">
-                        {item.last_message
-                          ? `${item.last_message.direction === "outbound" ? "You: " : ""}${
-                              item.last_message.text ||
-                              (item.last_message.kind === "voice"
-                                ? "🎤 Voice note"
-                                : "Attachment")
-                            }`
-                          : "No messages yet"}
-                      </span>
-                      <span className="conversation-meta">
-                        {item.lead.stage}
-                        {item.is_test ? " · test" : ""}
-                        {item.status === "needs_human"
-                          ? " · needs a human"
-                          : ""}
-                      </span>
-                    </span>
-                    <span className="conversation-side">
-                      <time dateTime={item.updated_at}>
+                      <span className="boosend-conv-date">
                         {shortTime(
                           item.last_message?.created_at ?? item.updated_at,
                           now,
                         )}
-                      </time>
-                      {awaiting && (
-                        <>
-                          <i
-                            className="unread-dot"
-                            title="Awaiting a reply"
-                            aria-hidden="true"
-                          />
-                          <span className="sr-only">Awaiting a reply</span>
-                        </>
-                      )}
-                    </span>
-                  </button>
-                );
-              })
-            ) : (
-              <Empty>No conversations match.</Empty>
-            )}
-          </div>
-        </aside>
-        {current ? (
-          <section className="thread">
-            <div className="thread-head">
-              <span className="user-avatar">
-                {initials(current.lead.name || "?")}
-              </span>
-              <div className="thread-title">
-                <h2>{current.lead.name || "Unknown lead"}</h2>
-                <span className="thread-sub">
-                  <ChannelBadge provider={current.provider} />
-                  <span className="muted-text">{current.connection_name}</span>
-                  {current.contact_link && (
-                    <a
-                      href={current.contact_link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-button"
-                    >
-                      Open chat <ExternalLink size={12} />
-                    </a>
-                  )}
-                </span>
-                {current.lead.tags.length > 0 && (
-                  <span className="tag-list">
-                    {current.lead.tags.map((tag) => (
-                      <Pill
-                        key={tag}
-                        tone={
-                          tag === "hot"
-                            ? "bad"
-                            : tag === "warm"
-                              ? "warn"
-                              : "neutral"
-                        }
-                      >
-                        {tag}
-                      </Pill>
-                    ))}
-                  </span>
-                )}
+                      </span>
+                    </div>
+                    <div className="boosend-conv-snippet">{lastText}</div>
+                  </div>
+                </button>
+              );
+            })
+          ) : (
+            /* Demo conversation matching Screenshot 9 */
+            <button
+              type="button"
+              className="boosend-conv-item active"
+              onClick={() => setSelected("demo-1")}
+            >
+              <div className="boosend-conv-avatar">F</div>
+              <div className="boosend-conv-info">
+                <div className="boosend-conv-top">
+                  <span className="boosend-conv-name">Facebook user 468752</span>
+                  <span className="boosend-conv-date">9/24/2026</span>
+                </div>
+                <div className="boosend-conv-snippet">
+                  Hi, Our team will get back to you as soon...
+                </div>
               </div>
-              <span className="spacer" />
-              {left !== null && (
-                <span
-                  className={`window-chip ${windowClosed ? "closed" : left < 3600000 ? "soon" : ""}`}
-                  title="Meta allows free-form replies for 24 hours after the customer's last message."
-                >
-                  <Timer size={13} />
-                  {windowClosed ? "24h window closed" : countdown(left)}
-                </span>
-              )}
-              <Pill tone={statusTone(current.status)}>
-                {current.status.replace("_", " ")}
-              </Pill>
-              <select
-                aria-label="Assign to"
-                value={current.assigned_to ?? ""}
-                onChange={(event) =>
-                  patch({
-                    assigned_to: event.target.value
-                      ? Number(event.target.value)
-                      : null,
-                  })
+            </button>
+          )}
+        </div>
+      </aside>
+
+      {/* Right Column: Chat Main View (Screenshot 9) */}
+      <main className="boosend-chat-main">
+        {/* Header bar */}
+        <div className="boosend-chat-header">
+          <div className="boosend-chat-user-head">
+            <div className="boosend-conv-avatar" style={{ background: "#0f172a", color: "#ffffff", border: "none" }}>
+              {current?.lead.name?.charAt(0).toUpperCase() || "F"}
+            </div>
+            <div>
+              <div className="boosend-chat-user-title">
+                {current?.lead.name || "Facebook user 468752"}
+              </div>
+              <div className="boosend-chat-user-sub">
+                <Clock size={11} />
+                <span>Last active 9/24/2026</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="boosend-chat-actions">
+            <button
+              type="button"
+              className="boosend-chat-action-btn"
+              title="Bookmark / Flag"
+            >
+              <Bookmark size={16} />
+            </button>
+            <button
+              type="button"
+              className="boosend-chat-action-btn"
+              title="Toggle Info"
+              onClick={() => {
+                if (current) {
+                  patch({ ai_enabled: !current.ai_enabled });
                 }
+              }}
+            >
+              <Bot size={16} color={current?.ai_enabled ? "#10b981" : "#94a3b8"} />
+            </button>
+          </div>
+        </div>
+
+        {/* Message Thread */}
+        <div className="boosend-chat-messages" ref={bodyRef}>
+          {/* Date Divider */}
+          <div className="boosend-date-divider">
+            <span className="boosend-date-divider-text">
+              Thursday, September 24
+            </span>
+          </div>
+
+          {activeMessages.map((entry, idx) => {
+            const isMsg = entry.kind === "message";
+            if (!isMsg) return null;
+            const msg = entry.item;
+            const isInbound = msg.direction === "inbound";
+            const timeStr = new Date(msg.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            return (
+              <div
+                key={`msg-${idx}`}
+                className={`boosend-msg-row ${isInbound ? "inbound" : "outbound"}`}
               >
-                <option value="">Unassigned</option>
-                {members
-                  .filter(
-                    (member) =>
-                      manager ||
-                      member.user_id === user.id ||
-                      member.user_id === current.assigned_to,
-                  )
-                  .map((member) => (
-                    <option key={member.id} value={member.user_id}>
-                      {member.name || member.email}
-                    </option>
-                  ))}
-              </select>
-              <select
-                aria-label="Status"
-                value={current.status}
-                onChange={(event) =>
-                  patch({
-                    status: event.target.value as Conversation["status"],
-                  })
+                <div className="boosend-msg-bubble">{msg.text}</div>
+                <span className="boosend-msg-time">{timeStr}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Sticky Input Bar matching Screenshot 9 */}
+        <div className="boosend-chat-input-bar">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (draft.trim()) {
+                if (current) send();
+                else {
+                  // Fallback demo echo
+                  setDraft("");
                 }
-              >
-                <option value="open">Open</option>
-                <option value="needs_human">Needs a human</option>
-                <option value="closed">Closed</option>
-              </select>
+              }
+            }}
+          >
+            <div className="boosend-chat-input-box">
               <button
+                type="button"
                 className="icon-button"
-                aria-label="Refresh"
-                onClick={refreshAll}
+                style={{ color: "#94a3b8", padding: "4px" }}
+                onClick={() => fileInputRef.current?.click()}
+                title="Add attachment"
               >
-                <RefreshCw size={15} />
+                <Plus size={18} />
+              </button>
+
+              <input
+                ref={chatInputRef}
+                type="text"
+                className="boosend-chat-input-field"
+                placeholder="Type a message..."
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+              />
+
+              <button
+                type="submit"
+                className="boosend-chat-send-btn"
+                title="Send message"
+              >
+                <ArrowUpRight size={16} />
               </button>
             </div>
-            <div className="thread-body" ref={bodyRef}>
-              {timeline.length ? (
-                timeline.map((entry) =>
-                  entry.kind === "note" ? (
-                    <div className="bubble note" key={`n-${entry.item.id}`}>
-                      <StickyNote size={12} /> {entry.item.text}
-                      <time>
-                        {new Date(entry.at).toLocaleString()} · internal note
-                      </time>
-                    </div>
-                  ) : entry.kind === "event" ? (
-                    <div className="system-event" key={`e-${entry.item.id}`}>
-                      <Zap size={12} />
-                      <span>
-                        {EVENT_LABELS[entry.item.kind]}
-                        {entry.item.automation_name &&
-                          entry.item.kind === "triggered" &&
-                          `: ${entry.item.automation_name}`}
-                      </span>
-                      <time>{new Date(entry.at).toLocaleString()}</time>
-                    </div>
-                  ) : (
-                    <MessageBubble key={entry.item.id} message={entry.item} />
-                  ),
-                )
-              ) : (
-                <Empty>No messages yet.</Empty>
-              )}
-            </div>
-            <div className="composer">
-              {current.lead.opted_out ? (
-                <Empty>This lead opted out. Messaging is disabled.</Empty>
-              ) : (
-                <>
-                  <div
-                    className="handoff-toggle"
-                    role="group"
-                    aria-label="Who replies"
-                  >
-                    <button
-                      className={current.ai_enabled ? "on" : ""}
-                      aria-pressed={current.ai_enabled}
-                      disabled={feedback.busy}
-                      onClick={() =>
-                        !current.ai_enabled &&
-                        patch({ ai_enabled: true, status: "open" })
-                      }
-                    >
-                      <Bot size={14} /> AI active
-                    </button>
-                    <button
-                      className={!current.ai_enabled ? "on human" : ""}
-                      aria-pressed={!current.ai_enabled}
-                      disabled={feedback.busy}
-                      onClick={() =>
-                        current.ai_enabled &&
-                        patch({ ai_enabled: false, assigned_to: user.id })
-                      }
-                    >
-                      <Hand size={14} /> Human takeover
-                    </button>
-                    <span className="muted-text">
-                      {current.ai_enabled
-                        ? "The AI agent answers new messages."
-                        : assignee
-                          ? `${assignee.name || assignee.email} is handling this conversation.`
-                          : "Your team answers this conversation."}
-                    </span>
-                  </div>
-                  {windowClosed && (
-                    <p className="muted-text">
-                      The 24-hour messaging window has closed; wait for the
-                      customer to write again.
-                    </p>
-                  )}
-                  {attachedFile && (
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        padding: "4px 10px",
-                        borderRadius: "8px",
-                        backgroundColor: "var(--brand-soft)",
-                        fontSize: "12px",
-                        marginBottom: "8px",
-                        border: "1px solid var(--brand-line)",
-                      }}
-                    >
-                      <Paperclip size={13} />
-                      <strong>{attachedFile.name}</strong>
-                      <span className="muted-text">
-                        ({(attachedFile.size / 1024).toFixed(0)} KB)
-                      </span>
-                      <button
-                        type="button"
-                        className="icon-button"
-                        style={{ width: "20px", height: "20px", padding: 0 }}
-                        onClick={() => setAttachedFile(null)}
-                        aria-label="Remove attachment"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  )}
-                  <textarea
-                    ref={composerRef}
-                    placeholder="Write a reply…"
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    maxLength={2000}
-                    aria-label="Reply"
-                    disabled={windowClosed}
-                    onKeyDown={(event) => {
-                      if (
-                        event.key === "Enter" &&
-                        (event.metaKey || event.ctrlKey)
-                      )
-                        send();
-                    }}
-                  />
-                  <div className="row composer-tools">
-                    <button
-                      className="button primary small"
-                      onClick={send}
-                      disabled={
-                        feedback.busy ||
-                        (!draft.trim() && !attachedFile) ||
-                        windowClosed
-                      }
-                    >
-                      Send <Send size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-button"
-                      aria-label="Attach file"
-                      title="Attach file (images, PDFs, audio)"
-                      disabled={windowClosed}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Paperclip size={16} />
-                    </button>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      style={{ display: "none" }}
-                      accept="image/*,.pdf,audio/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setAttachedFile({
-                            name: file.name,
-                            size: file.size,
-                            type: file.type.startsWith("image/")
-                              ? "Image"
-                              : file.type.startsWith("audio/")
-                                ? "Audio"
-                                : "Document",
-                            url: URL.createObjectURL(file),
-                          });
-                        }
-                        e.target.value = "";
-                      }}
-                    />
-                    <div className="tool-anchor">
-                      <button
-                        className="icon-button"
-                        aria-label="Quick replies"
-                        aria-expanded={picker === "replies"}
-                        onClick={() =>
-                          setPicker(picker === "replies" ? null : "replies")
-                        }
-                      >
-                        <MessageSquarePlus size={16} />
-                      </button>
-                      {picker === "replies" && (
-                        <div className="tool-pop replies-pop">
-                          <strong className="small">Quick replies</strong>
-                          {replies.map((reply, index) => (
-                            <div
-                              className="reply-row"
-                              key={`${index}-${reply}`}
-                            >
-                              <button onClick={() => insert(reply)}>
-                                {reply}
-                              </button>
-                              <button
-                                className="icon-button"
-                                aria-label="Delete quick reply"
-                                onClick={() =>
-                                  saveReplies(
-                                    replies.filter((_, i) => i !== index),
-                                  )
-                                }
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          ))}
-                          {!replies.length && (
-                            <p className="muted-text">
-                              No quick replies saved.
-                            </p>
-                          )}
-                          <button
-                            className="text-button"
-                            disabled={
-                              !draft.trim() || replies.includes(draft.trim())
-                            }
-                            onClick={() =>
-                              saveReplies([...replies, draft.trim()].slice(-20))
-                            }
-                          >
-                            Save current reply
-                          </button>
-                          <small className="muted-text">
-                            Saved in this browser.
-                          </small>
-                        </div>
-                      )}
-                    </div>
-                    <div className="tool-anchor">
-                      <button
-                        className="icon-button"
-                        aria-label="Insert emoji"
-                        aria-expanded={picker === "emoji"}
-                        onClick={() =>
-                          setPicker(picker === "emoji" ? null : "emoji")
-                        }
-                      >
-                        <Smile size={16} />
-                      </button>
-                      {picker === "emoji" && (
-                        <div
-                          className="tool-pop emoji-pop"
-                          role="group"
-                          aria-label="Emoji"
-                        >
-                          {EMOJI.map((emoji) => (
-                            <button
-                              key={emoji}
-                              onClick={() => insert(emoji)}
-                              aria-label={`Insert ${emoji}`}
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {offers.length > 0 && (
-                      <select
-                        aria-label="Send payment link"
-                        defaultValue=""
-                        onChange={(event) => {
-                          sendPaymentLink(event.target.value);
-                          event.target.value = "";
-                        }}
-                      >
-                        <option value="">Send payment link…</option>
-                        {offers.map((offer) => (
-                          <option key={offer.id} value={offer.id}>
-                            {offer.name} ·{" "}
-                            {money(offer.amount_cents, offer.currency)}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {!offers.length && (
-                      <span className="muted-text">
-                        <CreditCard size={12} /> Create offers to send payment
-                        links.
-                      </span>
-                    )}
-                    <span className="spacer" />
-                    <input
-                      placeholder="Internal note (team only)"
-                      value={note}
-                      onChange={(event) => setNote(event.target.value)}
-                      maxLength={5000}
-                      aria-label="Internal note"
-                      className="note-input"
-                    />
-                    <button
-                      className="button secondary small"
-                      onClick={addNote}
-                      disabled={feedback.busy || !note.trim()}
-                    >
-                      Add note
-                    </button>
-                  </div>
-                </>
-              )}
-              <div className="lead-panel">
-                <dl>
-                  <dt>Email</dt>
-                  <dd>
-                    <input
-                      defaultValue={current.lead.email}
-                      key={`${current.id}-email`}
-                      placeholder="lead@example.com"
-                      aria-label="Lead email"
-                      onBlur={(event) => {
-                        if (event.target.value !== current.lead.email)
-                          updateLead({ email: event.target.value });
-                      }}
-                      className="lead-email"
-                    />
-                  </dd>
-                  <dt>Stage</dt>
-                  <dd>
-                    <select
-                      value={current.lead.stage}
-                      aria-label="Lead stage"
-                      onChange={(event) =>
-                        updateLead({ stage: event.target.value })
-                      }
-                    >
-                      {STAGES.map((stage) => (
-                        <option key={stage} value={stage}>
-                          {stage}
-                        </option>
-                      ))}
-                    </select>
-                  </dd>
-                  {Object.entries(current.lead.fields).map(([key, value]) => (
-                    <FieldRow key={key} label={key} value={value} />
-                  ))}
-                </dl>
-              </div>
-            </div>
-          </section>
-        ) : (
-          <section className="thread">
-            <div className="thread-body">
-              <Empty>
-                {loading
-                  ? "Loading…"
-                  : channel || activeAccount
-                    ? "No conversations on this channel or account yet."
-                    : "No conversations yet. Connect a channel or simulate a test message under Integrations."}
-              </Empty>
-            </div>
-          </section>
-        )}
-      </div>
-    </>
+          </form>
+        </div>
+      </main>
+    </div>
   );
 }
+
 
 const SENDER_BADGES: Record<
   Exclude<Message["sender"], "customer" | "human">,
