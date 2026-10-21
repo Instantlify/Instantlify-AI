@@ -43,6 +43,7 @@ import {
 import { useWorkspace } from "@/lib/workspace";
 import { CopyField, Empty, ErrorNotice, Modal, Pill, statusTone, SuccessNotice, Table, useFeedback } from "@/components/ui";
 import { IntegrationAnimatedExplainer } from "@/components/integration-animated-explainer";
+import { IntegrationConfigureView } from "@/components/integration-configure-view";
 
 type Category =
   | "All"
@@ -841,11 +842,91 @@ export default function IntegrationsPage() {
       return;
     }
 
-    // Open configuration modal
-    if (app.providerKey) {
-      setConfiguring(app.providerKey);
+    // Open configuration screen
+    if (app.providerKey || app.id) {
+      setConfiguring(app.providerKey || app.id);
     }
   };
+
+  const configuredApp = configuring
+    ? APPS.find((a) => a.providerKey === configuring || a.id === configuring)
+    : null;
+
+  if (configuredApp) {
+    return (
+      <div className="boosend-integrations-page">
+        <ErrorNotice error={feedback.error} />
+        <SuccessNotice notice={feedback.notice} />
+        <IntegrationConfigureView
+          app={configuredApp}
+          existingIntegration={integrations.find(
+            (i) => i.provider === configuredApp.providerKey,
+          )}
+          onBack={() => setConfiguring("")}
+          onSave={async (credentials, isTest) => {
+            await feedback.run(async () => {
+              const saved = await api<Integration>(`${prefix}/integrations/`, "POST", {
+                provider: configuredApp.providerKey || configuredApp.id,
+                credentials,
+                options: {},
+                enabled: true,
+                is_test: isTest,
+              });
+              setIntegrations((list) => [
+                ...list.filter((item) => item.provider !== saved.provider),
+                saved,
+              ]);
+              setConfiguring("");
+            }, `${configuredApp.name} configuration saved!`);
+          }}
+          onConnect={async (credentials, isTest) => {
+            if (
+              configuredApp.oauthAction === "google_calendar" ||
+              configuredApp.providerKey === "google_sheets" ||
+              configuredApp.providerKey === "gmail"
+            ) {
+              try {
+                await connectOAuth("google");
+              } catch {
+                await feedback.run(async () => {
+                  const saved = await api<Integration>(`${prefix}/integrations/`, "POST", {
+                    provider: configuredApp.providerKey || configuredApp.id,
+                    credentials,
+                    options: {},
+                    enabled: true,
+                    is_test: isTest,
+                  });
+                  setIntegrations((list) => [
+                    ...list.filter((item) => item.provider !== saved.provider),
+                    saved,
+                  ]);
+                  setConfiguring("");
+                }, `${configuredApp.name} connected successfully!`);
+              }
+            } else if (configuredApp.oauthAction === "meta") {
+              await connectMeta();
+            } else {
+              await feedback.run(async () => {
+                const saved = await api<Integration>(`${prefix}/integrations/`, "POST", {
+                  provider: configuredApp.providerKey || configuredApp.id,
+                  credentials,
+                  options: {},
+                  enabled: true,
+                  is_test: isTest,
+                });
+                setIntegrations((list) => [
+                  ...list.filter((item) => item.provider !== saved.provider),
+                  saved,
+                ]);
+                setConfiguring("");
+              }, `${configuredApp.name} connected successfully!`);
+            }
+          }}
+          busy={feedback.busy}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="boosend-integrations-page">
@@ -1212,117 +1293,6 @@ export default function IntegrationsPage() {
         </div>
       )}
 
-      {/* Integration Setup Modal */}
-      {configuring && (
-        <Modal
-          title={`Configure ${APPS.find((a) => a.providerKey === configuring)?.name || configuring}`}
-          onClose={() => setConfiguring("")}
-        >
-          <form className="form-grid" onSubmit={saveIntegration}>
-            <label
-              className="inline"
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "18px",
-                cursor: "pointer",
-                fontSize: "13.5px",
-                fontWeight: 500,
-                color: "#1e293b",
-              }}
-            >
-              <input
-                type="checkbox"
-                name="is_test"
-                checked={testMode}
-                onChange={(e) => setTestMode(e.target.checked)}
-                style={{
-                  width: "18px",
-                  height: "18px",
-                  accentColor: "#0f1117",
-                  margin: 0,
-                  cursor: "pointer",
-                }}
-              />
-              Use local test simulation (no live external API calls)
-            </label>
-
-            {!testMode && (
-              <>
-                <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "14px", fontSize: "13px", fontWeight: 600, color: "#334155" }}>
-                  API Key or Secret Token
-                  <input
-                    name="cred_api_key"
-                    type="password"
-                    placeholder="Enter your API token"
-                    style={{
-                      border: "1px solid #cbd5e1",
-                      borderRadius: "8px",
-                      padding: "10px 12px",
-                      fontSize: "13.5px",
-                      outline: "none",
-                      color: "#0f172a",
-                    }}
-                    required
-                  />
-                </label>
-                <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "14px", fontSize: "13px", fontWeight: 600, color: "#334155" }}>
-                  Account / Workspace ID (optional)
-                  <input
-                    name="cred_account_id"
-                    placeholder="e.g. workspace_123"
-                    style={{
-                      border: "1px solid #cbd5e1",
-                      borderRadius: "8px",
-                      padding: "10px 12px",
-                      fontSize: "13.5px",
-                      outline: "none",
-                      color: "#0f172a",
-                    }}
-                  />
-                </label>
-              </>
-            )}
-
-            <div className="form-actions" style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-              <button
-                type="button"
-                className="button secondary"
-                onClick={() => setConfiguring("")}
-                style={{
-                  background: "#ffffff",
-                  color: "#334155",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: "8px",
-                  padding: "9px 16px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="button primary"
-                disabled={feedback.busy}
-                style={{
-                  background: "#0f1117",
-                  color: "#ffffff",
-                  border: "1px solid #0f1117",
-                  borderRadius: "8px",
-                  padding: "9px 18px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                {feedback.busy ? "Connecting…" : "Save Integration"}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
     </div>
   );
 }

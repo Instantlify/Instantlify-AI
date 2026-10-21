@@ -3523,4 +3523,305 @@
   }
 }
 
+/* ==========================================================================
+   BooSend Dedicated Integration Configuration Page
+   Matches User Screenshot for Google Sheets & Custom Platform Setups
+   ========================================================================== */
+.boosend-config-page {
+  display: flex;
+  flex-direction: column;
+  max-width: 1300px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.boosend-config-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.boosend-btn-back-int {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 15px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.boosend-btn-back-int:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.boosend-config-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 28px 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.boosend-config-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.boosend-config-app-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.boosend-config-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.boosend-config-app-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.boosend-config-app-desc {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 4px 0 0 0;
+}
+
+.boosend-config-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.boosend-setup-guide-box {
+  margin-top: 22px;
+  margin-bottom: 24px;
+}
+
+.setup-guide-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  font-size: 13.5px;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0 0 10px 0;
+  font-weight: 600;
+}
+
+.setup-guide-content {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 18px 22px;
+  color: #1e3a8a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.setup-guide-steps-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.setup-step-item {
+  color: #1e40af;
+}
+
+.guide-ext-link {
+  color: #1d4ed8;
+  text-decoration: underline;
+  font-weight: 600;
+  margin: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.guide-copy-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-left: 6px;
+}
+
+.guide-copy-chip code {
+  font-size: 12px;
+  color: #1e3a8a;
+  font-family: monospace;
+}
+
+.guide-copy-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.setup-guide-notice {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(191, 219, 254, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #1e40af;
+}
+
+.boosend-config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 950px;
+}
+
+.config-form-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.config-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.req-star {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.config-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.config-input-element {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #0f172a;
+  background: #eff6ff; /* light blue tint matching screenshot */
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.config-input-element:focus {
+  background: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.config-input-element.readonly-input {
+  background: #ffffff;
+  color: #475569;
+  padding-right: 44px;
+}
+
+.input-inline-action-btn {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+}
+
+.input-inline-action-btn:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.config-field-helper {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 3px 0 0 0;
+}
+
+.config-test-mode-row {
+  margin-top: 4px;
+}
+
+.test-mode-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.test-mode-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #0f172a;
+  cursor: pointer;
+}
+
+.boosend-config-footer {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.config-docs-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.config-docs-link:hover {
+  text-decoration: underline;
+}
+
 
