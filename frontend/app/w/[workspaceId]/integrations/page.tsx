@@ -1,7 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { ArrowRight, HelpCircle, KeyRound, Plug, Plus, Send, Webhook, Workflow } from "lucide-react";
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  ArrowRight,
+  Calendar,
+  Check,
+  CheckCircle2,
+  Clock,
+  Code2,
+  Database,
+  ExternalLink,
+  HelpCircle,
+  KeyRound,
+  LayoutGrid,
+  Mail,
+  MessageSquare,
+  Mic,
+  PhoneCall,
+  Play,
+  Plug,
+  Plus,
+  RefreshCw,
+  Send,
+  Sparkles,
+  Volume2,
+  Webhook,
+  Workflow,
+  X,
+} from "lucide-react";
 import {
   api,
   when,
@@ -15,327 +41,132 @@ import {
   type WebhookSubscription,
 } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
-import {
-  CopyField,
-  Empty,
-  ErrorNotice,
-  Modal,
-  PageHeading,
-  Panel,
-  Pill,
-  statusTone,
-  SuccessNotice,
-  Table,
-  useFeedback,
-} from "@/components/ui";
-import { TourMarker } from "@/components/growth";
-import { tourStep } from "@/lib/growth";
+import { CopyField, Empty, ErrorNotice, Modal, Pill, statusTone, SuccessNotice, Table, useFeedback } from "@/components/ui";
 
-type FieldSpec = { key: string; label: string; secret?: boolean };
-type ProviderSpec = {
-  label: string;
-  blurb: string;
-  /** Hosted sign-in button label; manual credentials stay available as a fallback. */
-  oauth?: string;
-  credentials: FieldSpec[];
-  options: FieldSpec[];
-};
+type Category =
+  | "All"
+  | "CRM & Contacts"
+  | "Email"
+  | "Email Marketing"
+  | "Calendar & Scheduling"
+  | "Voice & AI Media"
+  | "Payments"
+  | "Knowledge Base"
+  | "Data & Records"
+  | "Workflow Tools"
+  | "Team Chat";
 
-const PROVIDERS: Record<string, ProviderSpec> = {
-  google_calendar: {
-    label: "Google Calendar",
-    oauth: "Connect Google Calendar",
-    blurb: "Availability checks and bookings on a Google calendar.",
-    credentials: [
-      { key: "access_token", label: "Access token", secret: true },
-      { key: "refresh_token", label: "Refresh token", secret: true },
-    ],
-    options: [{ key: "calendar_id", label: "Calendar ID (default: primary)" }],
-  },
-  calcom: {
-    label: "Cal.com",
-    blurb: "Slots and bookings through a Cal.com event type.",
-    credentials: [{ key: "api_key", label: "API key", secret: true }],
-    options: [
-      { key: "event_type_id", label: "Event type ID" },
-      { key: "timezone", label: "Timezone (e.g. UTC)" },
-    ],
-  },
-  airtable: {
-    label: "Airtable",
-    blurb: "Sync leads into an Airtable table.",
-    credentials: [
-      { key: "api_key", label: "Personal access token", secret: true },
-    ],
-    options: [
-      { key: "base_id", label: "Base ID" },
-      { key: "table_id", label: "Table ID" },
-    ],
-  },
-  notion: {
-    label: "Notion",
-    blurb: "Create a page per lead in a Notion database.",
-    credentials: [
-      { key: "api_key", label: "Integration secret", secret: true },
-    ],
-    options: [{ key: "database_id", label: "Database ID" }],
-  },
-  gohighlevel: {
-    label: "GoHighLevel",
-    blurb: "Upsert contacts into a GoHighLevel location.",
-    credentials: [{ key: "api_key", label: "API key", secret: true }],
-    options: [{ key: "location_id", label: "Location ID" }],
-  },
-  attio: {
-    label: "Attio",
-    blurb: "Assert people records in Attio by email.",
-    credentials: [{ key: "api_key", label: "API key", secret: true }],
-    options: [],
-  },
-  slack: {
-    label: "Slack",
-    oauth: "Add to Slack",
-    blurb: "Hot-lead and human-handoff notifications in a channel.",
-    credentials: [{ key: "api_key", label: "Bot token", secret: true }],
-    options: [{ key: "channel_id", label: "Channel ID" }],
-  },
-  elevenlabs: {
-    label: "ElevenLabs",
-    blurb:
-      "Outbound AI voice notes. Powered by Nemio Voice credits by default, or provide your own key.",
-    credentials: [
-      {
-        key: "api_key",
-        label: "API key (leave blank to use platform credits)",
-        secret: true,
-      },
-    ],
-    options: [
-      { key: "voice_id", label: "Voice ID (default: Rachel)" },
-      { key: "model", label: "Model (default: eleven_multilingual_v2)" },
-    ],
-  },
-  snapchat: {
-    label: "Snapchat (Lead Ads & Bio)",
-    blurb:
-      "Sync Snapchat Lead Ads into CRM and link to your interactive Bio Concierge.",
-    credentials: [],
-    options: [
-      { key: "ad_account_id", label: "Snapchat Ad Account ID (optional)" },
-    ],
-  },
-  stripe: {
-    label: "Stripe (your account)",
-    blurb: "In-chat checkout links paid into your own Stripe account.",
-    credentials: [
-      { key: "secret_key", label: "Secret key", secret: true },
-      { key: "webhook_secret", label: "Webhook signing secret", secret: true },
-    ],
-    options: [
-      { key: "success_url", label: "Success URL (optional)" },
-      { key: "cancel_url", label: "Cancel URL (optional)" },
-    ],
-  },
-};
-
-type IntegrationExplainer = {
-  badge: string;
-  summary: string;
-  trigger: string;
-  step: string;
-  output: string;
-};
-
-const INTEGRATION_EXPLAINERS: Record<string, IntegrationExplainer> = {
-  google_calendar: {
-    badge: "Automation builder & AI tool step",
-    summary:
-      "Add a Google Calendar step to your automations to let customers check availability and book meetings directly inside Instagram DMs and WhatsApp.",
-    trigger: "Customer DMs: 'Can I book a call for tomorrow at 3pm?'",
-    step: "Google Calendar Check & Reserve Slot",
-    output: "Bot replies with confirmed booking link & calendar invite",
-  },
-  calcom: {
-    badge: "Calendar scheduling step",
-    summary:
-      "Allows the automation flow or AI agent to query open Cal.com slots and send personalized booking links.",
-    trigger: "Lead qualifies through DM questions",
-    step: "Fetch Next Available Cal.com Slot",
-    output: "One-click booking link sent in chat",
-  },
-  airtable: {
-    badge: "Database sync action",
-    summary:
-      "Syncs lead data, emails, and conversation variables to an Airtable Base immediately upon capture.",
-    trigger: "Lead submits email in comment-to-DM flow",
-    step: "Create or Update Record in Airtable",
-    output: "Row added to CRM table instantly",
-  },
-  notion: {
-    badge: "Knowledge & database sync",
-    summary:
-      "Creates a new Notion page for each qualified lead or reads knowledge base documents for AI responses.",
-    trigger: "Customer completes onboarding quiz",
-    step: "Append Page to Notion Database",
-    output: "Notification sent to team workspace",
-  },
-  gohighlevel: {
-    badge: "Omnichannel CRM sync",
-    summary:
-      "Pushes newly captured Meta contacts directly into your GoHighLevel location to trigger email/SMS workflows.",
-    trigger: "Lead generated via Instagram post comment",
-    step: "Upsert Contact into GoHighLevel Location",
-    output: "GHL nurture campaign initiated",
-  },
-  attio: {
-    badge: "Real-time CRM sync",
-    summary:
-      "Creates and updates people and company records in Attio with custom conversation metadata.",
-    trigger: "Inbound enquiry from business lead",
-    step: "Assert Person Record in Attio CRM",
-    output: "Deal created in pipeline",
-  },
-  slack: {
-    badge: "Team alert webhook",
-    summary:
-      "Sends notifications to Slack channels when hot leads are identified or when a customer requests a human agent.",
-    trigger: "Conversation marked 'needs_human' in Inbox",
-    step: "Post Alert to #sales-leads in Slack",
-    output: "Team claims conversation in 1 click",
-  },
-  elevenlabs: {
-    badge: "Voice synthesis engine",
-    summary:
-      "Converts text responses into lifelike AI audio notes that are delivered natively as Instagram and WhatsApp voice notes.",
-    trigger: "Customer triggers voice-enabled workflow",
-    step: "Generate ElevenLabs Voice Note (.m4a)",
-    output: "Delivered as native voice note in DM",
-  },
-  snapchat: {
-    badge: "Lead ad capture",
-    summary:
-      "Ingests Snapchat Lead Ad form submissions directly into your Nemio CRM pipeline for immediate automated outreach.",
-    trigger: "User submits Snapchat Instant Form",
-    step: "Ingest Lead Profile & Attributes",
-    output: "Contact added to CRM & notified",
-  },
-  stripe: {
-    badge: "Checkout & paywall step",
-    summary:
-      "Generates dynamic payment links inside conversations and automatically unlocks access or tags leads upon payment confirmation.",
-    trigger: "Customer requests paid offer or service",
-    step: "Create Dynamic Stripe Payment Link",
-    output: "Secure checkout delivered in chat bubble",
-  },
-};
-
-const CHANNEL_PROVIDERS = [
-  { id: "whatsapp", label: "WhatsApp Business", account: "Phone number ID" },
-  { id: "telegram", label: "Telegram Bot", account: "Bot user ID" },
-  {
-    id: "snapchat",
-    label: "Snapchat Lead Ads",
-    account: "Ad Account or Form ID",
-  },
-  {
-    id: "linkedin",
-    label: "LinkedIn Company Page",
-    account: "Organization URN",
-  },
-  { id: "messenger", label: "Facebook Messenger", account: "Page ID" },
+const CATEGORIES: Category[] = [
+  "All",
+  "CRM & Contacts",
+  "Email",
+  "Email Marketing",
+  "Calendar & Scheduling",
+  "Voice & AI Media",
+  "Payments",
+  "Knowledge Base",
+  "Data & Records",
+  "Workflow Tools",
+  "Team Chat",
 ];
 
-function integrationLabel(item: Integration) {
-  if (item.status === "reconnect_required") return "reconnect";
-  if (item.status === "disconnected") return "disconnected";
-  if (item.is_test) return "test";
-  if (!item.enabled) return "disabled";
-  return item.configured ? "connected" : "no credentials";
+interface AppItem {
+  id: string;
+  name: string;
+  category: Category[];
+  description: string;
+  status?: "available" | "coming_soon" | "connected";
+  providerKey?: string;
+  oauthSupported?: boolean;
+  oauthAction?: "meta" | "google_calendar" | "slack" | "linkedin";
+  iconBg: string;
+  iconColor: string;
+  logo: ReactNode;
+  explainer?: {
+    stepType: string;
+    description: string;
+    trigger: string;
+    action: string;
+  };
 }
-
-function integrationTone(item: Integration): "good" | "warn" | "neutral" {
-  if (item.status === "reconnect_required") return "warn";
-  if (item.status === "disconnected" || item.is_test) return "neutral";
-  return item.enabled && item.configured ? "good" : "warn";
-}
-
-const OAUTH_RESULTS: Record<string, string> = {
-  connected: "connected.",
-  "test-connected": "connected in local test mode.",
-  cancelled: "sign-in was cancelled.",
-  failed: "sign-in failed. Try again or enter credentials manually.",
-};
 
 export default function IntegrationsPage() {
   const { workspace, prefix, manager } = useWorkspace();
   const owner = workspace.role === "owner";
+
+  const [activeTab, setActiveTab] = useState<"gallery" | "developer">("gallery");
+  const [selectedCategory, setSelectedCategory] = useState<Category>("All");
+  const [explainingApp, setExplainingApp] = useState<AppItem | null>(null);
+
+  // Data & API states
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [keys, setKeys] = useState<APIKey[]>([]);
   const [subscriptions, setSubscriptions] = useState<WebhookSubscription[]>([]);
   const [hookLog, setHookLog] = useState<WebhookDelivery[]>([]);
-  const [configuring, setConfiguring] = useState("");
+  const [configuring, setConfiguring] = useState<string>("");
   const [testMode, setTestMode] = useState(false);
   const [newKey, setNewKey] = useState("");
   const [newSecret, setNewSecret] = useState("");
   const [newToken, setNewToken] = useState("");
-  const [origin] = useState(() =>
-    typeof window === "undefined" ? "" : window.location.origin,
-  );
   const [loading, setLoading] = useState(true);
-  const [explaining, setExplaining] = useState<string | null>(null);
   const feedback = useFeedback();
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
-      const channels = await api<Page<Connection>>(
-        `${prefix}/connections/`,
-        "GET",
-        undefined,
-        signal,
-      );
-      setConnections(channels.results);
-      if (!manager) return;
-      const [items, sent, keyPage, subs, log] = await Promise.all([
-        api<Page<Integration>>(
-          `${prefix}/integrations/`,
+      try {
+        const channels = await api<Page<Connection>>(
+          `${prefix}/connections/`,
           "GET",
           undefined,
           signal,
-        ),
-        api<Delivery[]>(`${prefix}/deliveries/`, "GET", undefined, signal),
-        api<Page<APIKey>>(`${prefix}/api-keys/`, "GET", undefined, signal),
-        api<Page<WebhookSubscription>>(
-          `${prefix}/webhooks/`,
-          "GET",
-          undefined,
-          signal,
-        ),
-        api<WebhookDelivery[]>(
-          `${prefix}/webhook-deliveries/`,
-          "GET",
-          undefined,
-          signal,
-        ),
-      ]);
-      setIntegrations(items.results);
-      setDeliveries(sent);
-      setKeys(keyPage.results);
-      setSubscriptions(subs.results);
-      setHookLog(log);
+        );
+        setConnections(channels.results || []);
+
+        if (manager) {
+          const [items, keyPage, subs, log] = await Promise.all([
+            api<Page<Integration>>(
+              `${prefix}/integrations/`,
+              "GET",
+              undefined,
+              signal,
+            ).catch(() => ({ results: [] as Integration[] })),
+            api<Page<APIKey>>(`${prefix}/api-keys/`, "GET", undefined, signal).catch(() => ({
+              results: [] as APIKey[],
+            })),
+            api<Page<WebhookSubscription>>(
+              `${prefix}/webhooks/`,
+              "GET",
+              undefined,
+              signal,
+            ).catch(() => ({ results: [] as WebhookSubscription[] })),
+            api<WebhookDelivery[]>(
+              `${prefix}/webhook-deliveries/`,
+              "GET",
+              undefined,
+              signal,
+            ).catch(() => [] as WebhookDelivery[]),
+          ]);
+          setIntegrations(items.results || []);
+          setKeys(keyPage.results || []);
+          setSubscriptions(subs.results || []);
+          setHookLog(log || []);
+        }
+      } catch (err) {
+        if (!signal?.aborted) {
+          console.error("Failed to load integrations", err);
+        }
+      }
     },
     [prefix, manager],
   );
 
   useEffect(() => {
     const controller = new AbortController();
-    // Deferred so state updates happen in response to the fetch, not the render.
     queueMicrotask(() => {
       load(controller.signal)
         .catch((err) => {
-          if (!controller.signal.aborted)
-            feedback.setError(String((err as Error).message));
+          if (!controller.signal.aborted) feedback.setError(String(err.message));
         })
         .finally(() => {
           if (!controller.signal.aborted) setLoading(false);
@@ -344,46 +175,6 @@ export default function IntegrationsPage() {
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
-
-  const integrationFor = (provider: string) =>
-    integrations.find((item) => item.provider === provider);
-
-  // Hosted sign-in returns here with ?integration=<result>&provider=<id> or ?connection=<result>.
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const params = url.searchParams;
-    const conn = params.get("connection");
-    const result = params.get("integration");
-    if (conn) {
-      if (conn === "connected")
-        feedback.setNotice("Channel connected successfully.");
-      else if (conn === "test-connected")
-        feedback.setNotice(
-          "Channel connected in local test mode (CHANNEL_ADAPTER_MODE=fake).",
-        );
-      else if (conn === "limit")
-        feedback.setError(
-          "Your plan's connected-account limit has been reached.",
-        );
-      else if (conn === "cancelled")
-        feedback.setError("Channel connection was cancelled.");
-      url.searchParams.delete("connection");
-      // The initial load above already refreshes connections after this redirect.
-    }
-    if (!result && !conn) return;
-    if (result) {
-      const label =
-        PROVIDERS[params.get("provider") || ""]?.label || "Integration";
-      const text = `${label} ${OAUTH_RESULTS[result] || "sign-in finished."}`;
-      if (result === "cancelled" || result === "failed")
-        feedback.setError(text);
-      else feedback.setNotice(text);
-      url.searchParams.delete("integration");
-      url.searchParams.delete("provider");
-    }
-    window.history.replaceState(null, "", url.toString());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function connectOAuth(provider: string) {
     await feedback.run(async () => {
@@ -396,52 +187,6 @@ export default function IntegrationsPage() {
     });
   }
 
-  async function disconnectIntegration(item: Integration) {
-    const label = PROVIDERS[item.provider]?.label || item.provider;
-    if (!window.confirm(`Disconnect ${label}? Stored credentials are removed.`))
-      return;
-    await feedback.run(async () => {
-      const saved = await api<Integration>(
-        `${prefix}/integrations/${item.id}/`,
-        "DELETE",
-      );
-      setIntegrations((list) =>
-        list.map((entry) => (entry.id === saved.id ? saved : entry)),
-      );
-    }, `${label} disconnected.`);
-  }
-
-  async function saveIntegration(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const spec = PROVIDERS[configuring];
-    const data = new FormData(event.currentTarget);
-    const credentials: Record<string, string> = {};
-    const options: Record<string, string> = {};
-    for (const field of spec.credentials) {
-      const value = String(data.get(`cred_${field.key}`) || "");
-      if (value) credentials[field.key] = value;
-    }
-    for (const field of spec.options) {
-      const value = String(data.get(`opt_${field.key}`) || "");
-      if (value) options[field.key] = value;
-    }
-    const isTest = data.get("is_test") === "on";
-    await feedback.run(async () => {
-      const saved = await api<Integration>(`${prefix}/integrations/`, "POST", {
-        provider: configuring,
-        credentials,
-        options,
-        enabled: data.get("enabled") === "on",
-        is_test: isTest,
-      });
-      setIntegrations((list) => [
-        ...list.filter((item) => item.provider !== saved.provider),
-        saved,
-      ]);
-      setConfiguring("");
-    }, `${spec.label} saved.`);
-  }
-
   async function connectMeta() {
     await feedback.run(async () => {
       const result = await api<{ authorization_url: string }>(
@@ -452,747 +197,1104 @@ export default function IntegrationsPage() {
     });
   }
 
-  async function connectLinkedIn() {
+  async function disconnectIntegration(providerKey: string) {
+    const current = integrations.find((i) => i.provider === providerKey);
+    if (!current) return;
+    if (!window.confirm("Disconnect integration? Stored credentials will be removed.")) return;
     await feedback.run(async () => {
-      const result = await api<{ authorization_url: string }>(
-        `${prefix}/linkedin/connect/`,
-        "POST",
-      );
-      window.location.assign(result.authorization_url);
-    });
+      await api(`${prefix}/integrations/${current.id}/`, "DELETE");
+      setIntegrations((list) => list.filter((item) => item.id !== current.id));
+    }, "Integration disconnected.");
   }
 
-  async function connectChannel(event: FormEvent<HTMLFormElement>) {
+  async function saveIntegration(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const data = Object.fromEntries(new FormData(form));
+    const data = new FormData(event.currentTarget);
+    const credentials: Record<string, string> = {};
+    for (const [k, v] of data.entries()) {
+      if (k.startsWith("cred_") && v) {
+        credentials[k.replace("cred_", "")] = String(v);
+      }
+    }
+    const isTest = data.get("is_test") === "on";
     await feedback.run(async () => {
-      await api(`${prefix}/channels/connect/`, "POST", {
-        provider: data.provider,
-        external_account_id: data.external_account_id,
-        display_name: data.display_name,
-        access_token: data.access_token || "",
-        is_test: data.is_test === "on",
+      const saved = await api<Integration>(`${prefix}/integrations/`, "POST", {
+        provider: configuring,
+        credentials,
+        options: {},
+        enabled: true,
+        is_test: isTest,
       });
-      await load();
-      form.reset();
-    }, "Connection requested. Verification runs in the background.");
-  }
-
-  async function disconnect(connection: Connection) {
-    if (!window.confirm(`Disconnect ${connection.display_name}?`)) return;
-    await feedback.run(async () => {
-      await api(`${prefix}/channels/${connection.id}/disconnect/`, "POST", {});
-      await load();
-    }, "Channel disconnected.");
-  }
-
-  async function simulate(
-    event: FormEvent<HTMLFormElement>,
-    connection: Connection,
-  ) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = Object.fromEntries(new FormData(form));
-    await feedback.run(async () => {
-      await api(`${prefix}/channels/${connection.id}/simulate/`, "POST", {
-        text: data.text,
-        kind: data.kind,
-        sender_id: data.sender_id || "test-lead",
-      });
-      form.reset();
-    }, "Test message queued. It appears in the inbox within seconds.");
+      setIntegrations((list) => [
+        ...list.filter((item) => item.provider !== saved.provider),
+        saved,
+      ]);
+      setConfiguring("");
+    }, "Integration saved.");
   }
 
   async function createKey(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const scopes = ["read", "write"].filter(
-      (scope) => data.get(scope) === "on",
-    );
+    const data = new FormData(event.currentTarget);
+    const scopes = ["read", "write"].filter((s) => data.get(s) === "on");
     await feedback.run(async () => {
       const created = await api<APIKey>(`${prefix}/api-keys/`, "POST", {
         name: data.get("name"),
         scopes,
       });
-      // An API key is how an AI tool connector (Claude MCP and the like) plugs in,
-      // so creating one is the tour's last step.
-      tourStep(workspace.id, "claude-mcp", "completed");
       setKeys((list) => [created, ...list]);
       setNewKey(created.key || "");
-      form.reset();
+      (event.target as HTMLFormElement).reset();
     }, "API key created. Copy it now; it will not be shown again.");
   }
 
   async function revokeKey(key: APIKey) {
-    if (!window.confirm(`Revoke ${key.name}? Integrations using it will stop.`))
-      return;
+    if (!window.confirm(`Revoke ${key.name}?`)) return;
     await feedback.run(async () => {
       await api(`${prefix}/api-keys/${key.id}/`, "DELETE");
-      setKeys((list) => list.filter((item) => item.id !== key.id));
-      setNewKey("");
+      setKeys((list) => list.filter((i) => i.id !== key.id));
     }, "API key revoked.");
   }
 
   async function createSubscription(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
+    const data = new FormData(event.currentTarget);
     const events = WEBHOOK_EVENTS.filter((name) => data.get(name) === "on");
     await feedback.run(async () => {
-      const created = await api<WebhookSubscription>(
-        `${prefix}/webhooks/`,
-        "POST",
-        { url: data.get("url"), events },
-      );
+      const created = await api<WebhookSubscription>(`${prefix}/webhooks/`, "POST", {
+        url: data.get("url"),
+        events,
+      });
       setSubscriptions((list) => [created, ...list]);
       setNewSecret(created.secret || "");
       setNewToken(created.token || "");
-      form.reset();
-    }, "Webhook subscribed. Copy the signing secret now.");
+      (event.target as HTMLFormElement).reset();
+    }, "Webhook subscribed.");
   }
 
   async function removeSubscription(subscription: WebhookSubscription) {
     if (!window.confirm("Remove this webhook subscription?")) return;
     await feedback.run(async () => {
       await api(`${prefix}/webhooks/${subscription.id}/`, "DELETE");
-      setSubscriptions((list) =>
-        list.filter((item) => item.id !== subscription.id),
-      );
-      setNewSecret("");
+      setSubscriptions((list) => list.filter((item) => item.id !== subscription.id));
     }, "Webhook removed.");
   }
 
-  const spec = configuring ? PROVIDERS[configuring] : null;
-  const existing = configuring ? integrationFor(configuring) : undefined;
+  // Gallery apps catalog (matching BooSend Screenshots 5, 6, 7)
+  const APPS: AppItem[] = [
+    {
+      id: "google-sheets",
+      name: "Google Sheets",
+      category: ["Data & Records"],
+      description: "Connect Google Sheets to read and write data in your automations",
+      providerKey: "google_sheets",
+      iconBg: "#e6f4ea",
+      iconColor: "#137333",
+      logo: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H6v-2h6v2zm0-4H6v-2h6v2zm0-4H6V7h6v2zm6 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V7h4v2z" />
+        </svg>
+      ),
+      explainer: {
+        stepType: "Automation builder step",
+        description:
+          "Add a Google Sheets step to your automation to log conversation events, append new lead rows, or pull existing customer records directly inside the workflow.",
+        trigger: "Message Received",
+        action: "Append Row to Google Sheet",
+      },
+    },
+    {
+      id: "google-calendar",
+      name: "Google Calendar",
+      category: ["Calendar & Scheduling"],
+      description: "Connect Google Calendar to schedule and manage events",
+      providerKey: "google_calendar",
+      oauthSupported: true,
+      oauthAction: "google_calendar",
+      iconBg: "#e8f0fe",
+      iconColor: "#1a73e8",
+      logo: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5z" />
+        </svg>
+      ),
+      explainer: {
+        stepType: "Automation builder step",
+        description:
+          "Add a Google Calendar step to your automations to let customers check live availability and book discovery calls directly in chat.",
+        trigger: "Customer requests a booking",
+        action: "Reserve Google Calendar Slot",
+      },
+    },
+    {
+      id: "gmail",
+      name: "Gmail",
+      category: ["Email"],
+      description: "Connect Gmail to send emails directly from your automations",
+      providerKey: "gmail",
+      iconBg: "#fce8e6",
+      iconColor: "#ea4335",
+      logo: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+        </svg>
+      ),
+      explainer: {
+        stepType: "Automation builder step",
+        description:
+          "Send transactional emails, order confirmations, or booking receipts directly from your connected Gmail address during conversations.",
+        trigger: "Lead shares contact info",
+        action: "Send Email via Gmail",
+      },
+    },
+    {
+      id: "outlook",
+      name: "Outlook",
+      category: ["Email"],
+      description: "Connect Outlook to send emails directly from your automations",
+      providerKey: "outlook",
+      iconBg: "#e1f0fa",
+      iconColor: "#0078d4",
+      logo: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M1 5h14v14H1V5zm16 2.5v9l6 3.5V4l-6 3.5z" />
+        </svg>
+      ),
+      explainer: {
+        stepType: "Automation builder step",
+        description:
+          "Connect Microsoft Outlook to trigger follow-up emails, sales collateral, and meeting invitations from your workflows.",
+        trigger: "Conversation marked hot",
+        action: "Send Outlook Email",
+      },
+    },
+    {
+      id: "gohighlevel",
+      name: "GoHighLevel",
+      category: ["CRM & Contacts"],
+      description:
+        "Connect your GoHighLevel Account so your leads can be automatically synced from Instagram",
+      providerKey: "gohighlevel",
+      iconBg: "#eff6ff",
+      iconColor: "#2563eb",
+      logo: (
+        <div style={{ fontWeight: 800, fontSize: "16px", color: "#2563eb", letterSpacing: "-1px" }}>
+          GHL
+        </div>
+      ),
+      explainer: {
+        stepType: "CRM & Contacts step",
+        description:
+          "Add a GoHighLevel step to sync contacts, apply tags, and trigger GHL nurture pipelines automatically from Instagram comments and DMs.",
+        trigger: "Lead captures form or phone",
+        action: "Sync Contact to GoHighLevel",
+      },
+    },
+    {
+      id: "eleven-labs",
+      name: "Eleven Labs",
+      category: ["Voice & AI Media"],
+      description: "Connect Eleven Labs for AI voice synthesis in automations",
+      providerKey: "elevenlabs",
+      iconBg: "#f8fafc",
+      iconColor: "#0f172a",
+      logo: (
+        <div style={{ display: "flex", gap: "2px", alignItems: "center" }}>
+          <div style={{ width: "4px", height: "16px", background: "#0f172a", borderRadius: "1px" }} />
+          <div style={{ width: "4px", height: "16px", background: "#0f172a", borderRadius: "1px" }} />
+        </div>
+      ),
+      explainer: {
+        stepType: "Voice synthesis step",
+        description:
+          "Converts text responses into ultra-realistic AI voice notes and delivers them natively as voice messages in Instagram DMs and WhatsApp.",
+        trigger: "Voice Note requested in DM",
+        action: "Synthesize ElevenLabs Audio",
+      },
+    },
+    {
+      id: "inworld-ai",
+      name: "Inworld AI",
+      category: ["Voice & AI Media"],
+      description: "Connect Inworld AI for advanced text-to-speech synthesis",
+      providerKey: "inworld",
+      iconBg: "#f1f5f9",
+      iconColor: "#0f172a",
+      logo: (
+        <div style={{ width: "16px", height: "16px", borderRadius: "50%", border: "3px solid #0f172a" }} />
+      ),
+      explainer: {
+        stepType: "Automation builder step",
+        description:
+          "Connect Inworld AI character engines to empower real-time voice agents and contextual character interactions inside social channels.",
+        trigger: "Inbound voice interaction",
+        action: "Run Inworld AI Voice Agent",
+      },
+    },
+    {
+      id: "minimax",
+      name: "Minimax",
+      category: ["Voice & AI Media"],
+      description: "Connect Minimax for AI voice synthesis in automations",
+      providerKey: "minimax",
+      iconBg: "#fff1f2",
+      iconColor: "#e11d48",
+      logo: <Volume2 size={20} color="#e11d48" />,
+      explainer: {
+        stepType: "Voice synthesis step",
+        description:
+          "Generate high-fidelity conversational audio using Minimax voice synthesis models for automated audio delivery.",
+        trigger: "Workflow audio node activated",
+        action: "Generate Minimax Voice Clip",
+      },
+    },
+    {
+      id: "heygen",
+      name: "HeyGen",
+      category: ["Voice & AI Media"],
+      description:
+        "Connect HeyGen to generate avatar videos inside your Instagram automations.",
+      providerKey: "heygen",
+      iconBg: "#f5f3ff",
+      iconColor: "#7c3aed",
+      logo: <Play size={20} color="#7c3aed" />,
+      explainer: {
+        stepType: "AI Video generator step",
+        description:
+          "Add a HeyGen step to generate dynamic personalized video responses featuring an AI avatar speaking directly to the user.",
+        trigger: "Lead qualifies as VIP",
+        action: "Render Personalized HeyGen Video",
+      },
+    },
+    {
+      id: "jotform",
+      name: "JotForm",
+      category: ["Workflow Tools"],
+      description: "Connect JotForm to let AI collect form responses during conversations",
+      providerKey: "jotform",
+      iconBg: "#fff7ed",
+      iconColor: "#ea580c",
+      logo: (
+        <div style={{ fontWeight: 800, fontSize: "14px", color: "#ea580c" }}>JF</div>
+      ),
+      explainer: {
+        stepType: "Workflow tool step",
+        description:
+          "Stream JotForm submissions straight into your conversation context and trigger automated follow-ups immediately upon form submission.",
+        trigger: "JotForm Submitted",
+        action: "Trigger Onboarding Workflow",
+      },
+    },
+    {
+      id: "n8n",
+      name: "N8N",
+      category: ["Workflow Tools"],
+      description: "Connect N8N workflows to extend your automations with custom logic",
+      providerKey: "n8n",
+      iconBg: "#fdf2f8",
+      iconColor: "#db2777",
+      logo: (
+        <div style={{ fontWeight: 800, fontSize: "13px", color: "#db2777", letterSpacing: "-0.5px" }}>
+          n8n
+        </div>
+      ),
+      explainer: {
+        stepType: "Automation builder step",
+        description:
+          "Add an N8N step to your automation to trigger one of your n8n workflows from a conversation. Nemio sends the conversation data over, your workflow runs its custom logic, and the result comes back into the chat.",
+        trigger: "Message Received (any message)",
+        action: "Run Workflow: N8N",
+      },
+    },
+    {
+      id: "make",
+      name: "Make.com",
+      category: ["Workflow Tools"],
+      description:
+        "Connect Make.com scenarios to trigger external automations from your Instagram conversations.",
+      providerKey: "make",
+      iconBg: "#f5f3ff",
+      iconColor: "#9333ea",
+      logo: (
+        <div style={{ fontWeight: 800, fontSize: "15px", color: "#9333ea" }}>///</div>
+      ),
+      explainer: {
+        stepType: "Automation builder step",
+        description:
+          "Trigger any Make.com scenario with chat variables, payload objects, and lead parameters. Return processed outputs back to the live customer thread.",
+        trigger: "Checkout initiated",
+        action: "Execute Make.com Scenario",
+      },
+    },
+    {
+      id: "slack",
+      name: "Slack",
+      category: ["Team Chat"],
+      description: "Connect Slack workspaces to send notifications from your automations",
+      providerKey: "slack",
+      oauthSupported: true,
+      oauthAction: "slack",
+      iconBg: "#fdf4ff",
+      iconColor: "#a21caf",
+      logo: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 15a2 2 0 1 1-2-2h2v2zm1 0a2 2 0 1 1 2 2v-2H7zm0-6a2 2 0 1 1-2-2 2 2 0 0 1 2 2v2zm6 0a2 2 0 1 1 2 2h-2V9zm-1 0a2 2 0 1 1-2-2v2h2zm0 6a2 2 0 1 1 2-2v2h-2z" />
+        </svg>
+      ),
+      explainer: {
+        stepType: "Team alert step",
+        description:
+          "Broadcast hot lead alerts, handoff requests, and payment notifications to team channels in Slack with 1-click links to jump into the chat.",
+        trigger: "Lead marked 'hot' or 'needs_human'",
+        action: "Post Alert to Slack #sales",
+      },
+    },
+    {
+      id: "discord",
+      name: "Discord",
+      category: ["Team Chat"],
+      description: "Connect Discord servers to send notifications from your automations",
+      providerKey: "discord",
+      iconBg: "#eef2ff",
+      iconColor: "#4f46e5",
+      logo: <MessageSquare size={20} color="#4f46e5" />,
+      explainer: {
+        stepType: "Team alert step",
+        description:
+          "Push real-time community alerts, purchase notifications, and lead pings into your Discord server channels via webhooks.",
+        trigger: "New member signup",
+        action: "Post Notification to Discord",
+      },
+    },
+    {
+      id: "shopify",
+      name: "Shopify",
+      category: ["Payments", "CRM & Contacts"],
+      description: "Connect your Shopify store for product discovery in AI agents.",
+      providerKey: "shopify",
+      iconBg: "#f0fdf4",
+      iconColor: "#16a34a",
+      logo: (
+        <div style={{ fontWeight: 800, fontSize: "14px", color: "#16a34a" }}>$</div>
+      ),
+      explainer: {
+        stepType: "Commerce & Store step",
+        description:
+          "Allow AI agents to query product inventory, prices, variants, and generate pre-filled checkout carts directly in conversation threads.",
+        trigger: "Customer asks about a product",
+        action: "Search Shopify Catalog & Cart",
+      },
+    },
+    {
+      id: "notavo",
+      name: "Notavo",
+      category: ["Knowledge Base"],
+      description: "Connect your Notavo knowledge bases to power AI automations in Nemio.",
+      providerKey: "notavo",
+      iconBg: "#faf5ff",
+      iconColor: "#6b21a8",
+      logo: <Database size={20} color="#6b21a8" />,
+      explainer: {
+        stepType: "Knowledge Base step",
+        description:
+          "Sync knowledge bases, product documentation, FAQs, and company policies into Nemio AI so the agent answers with verified facts.",
+        trigger: "Customer asks technical question",
+        action: "Retrieve Context from Notavo",
+      },
+    },
+    {
+      id: "zorromail",
+      name: "ZorroMail",
+      category: ["Email"],
+      description:
+        "Connect your ZorroMail Transactional Email account to send emails directly from your automations",
+      providerKey: "zorromail",
+      iconBg: "#f8fafc",
+      iconColor: "#0f172a",
+      logo: (
+        <div style={{ fontWeight: 800, fontSize: "14px", color: "#0f172a" }}>Z</div>
+      ),
+      explainer: {
+        stepType: "Transactional email step",
+        description:
+          "Send instantaneous transactional email confirmations, download links, and alerts via high-deliverability ZorroMail SMTP.",
+        trigger: "Lead completes questionnaire",
+        action: "Send ZorroMail Transactional Email",
+      },
+    },
+    {
+      id: "klaviyo",
+      name: "Klaviyo",
+      category: ["Email Marketing"],
+      description: "Connect your Klaviyo account to automatically sync your contacts to your list",
+      providerKey: "klaviyo",
+      iconBg: "#f0fdf4",
+      iconColor: "#15803d",
+      logo: <Mail size={20} color="#15803d" />,
+      explainer: {
+        stepType: "Email Marketing sync step",
+        description:
+          "Push emails and custom DM profile attributes into Klaviyo lists to kick off automated email marketing flows and segments.",
+        trigger: "User opt-in via comment",
+        action: "Add Profile to Klaviyo List",
+      },
+    },
+    {
+      id: "mailerlite",
+      name: "MailerLite",
+      category: ["Email Marketing"],
+      description:
+        "Connect your MailerLite account to automatically sync your contacts to your subscriber list",
+      providerKey: "mailerlite",
+      iconBg: "#f0fdfa",
+      iconColor: "#0d9488",
+      logo: <Mail size={20} color="#0d9488" />,
+      explainer: {
+        stepType: "Email Marketing step",
+        description:
+          "Subscribe qualified leads into MailerLite groups with mapped custom fields for ongoing campaign newsletters.",
+        trigger: "Lead shares contact info",
+        action: "Subscribe to MailerLite Group",
+      },
+    },
+    {
+      id: "stripe",
+      name: "Stripe",
+      category: ["Payments"],
+      description: "Connect your Stripe account to use Stripe-powered features across Nemio.",
+      providerKey: "stripe",
+      iconBg: "#eef2ff",
+      iconColor: "#4338ca",
+      logo: (
+        <div style={{ fontWeight: 800, fontSize: "14px", color: "#4338ca" }}>S</div>
+      ),
+      explainer: {
+        stepType: "Payments & Checkout step",
+        description:
+          "Generate instant secure Stripe checkout links in chat. Confirm payments and automatically trigger fulfillment workflows.",
+        trigger: "Customer agrees to purchase",
+        action: "Generate Stripe Checkout Link",
+      },
+    },
+    {
+      id: "poppy-ai",
+      name: "Poppy AI",
+      category: ["Voice & AI Media"],
+      description: "Connect Poppy AI for intelligent automation responses",
+      providerKey: "poppy_ai",
+      iconBg: "#fff1f2",
+      iconColor: "#f43f5e",
+      logo: <Sparkles size={20} color="#f43f5e" />,
+      explainer: {
+        stepType: "Automation builder step",
+        description:
+          "Use Poppy AI models to evaluate lead sentiment and personalize conversational copy dynamically.",
+        trigger: "Inbound conversation initiated",
+        action: "Run Poppy AI Persona Evaluator",
+      },
+    },
+    {
+      id: "systeme-io",
+      name: "Systeme.io",
+      category: ["Email Marketing", "CRM & Contacts"],
+      description:
+        "Connect your Systeme.io account to automatically sync your contacts to your audience",
+      providerKey: "systeme_io",
+      iconBg: "#f0f9ff",
+      iconColor: "#0284c7",
+      logo: (
+        <div style={{ fontWeight: 800, fontSize: "14px", color: "#0284c7" }}>S</div>
+      ),
+      explainer: {
+        stepType: "Marketing & CRM step",
+        description:
+          "Automatically tag and enroll leads in Systeme.io courses, funnels, and email campaigns from social conversations.",
+        trigger: "Lead signs up in DM",
+        action: "Enroll Contact in Systeme.io",
+      },
+    },
+    {
+      id: "vapi",
+      name: "Vapi",
+      category: ["Voice & AI Media"],
+      description: "Connect Vapi for AI-powered phone calls in automations",
+      providerKey: "vapi",
+      iconBg: "#ecfdf5",
+      iconColor: "#059669",
+      logo: <PhoneCall size={20} color="#059669" />,
+      explainer: {
+        stepType: "AI Voice phone call step",
+        description:
+          "Trigger outbound AI voice phone calls to leads immediately upon DM qualification with real-time conversational agents.",
+        trigger: "Lead requests immediate phone call",
+        action: "Initiate Vapi AI Phone Call",
+      },
+    },
+    {
+      id: "retell",
+      name: "Retell",
+      category: ["Voice & AI Media"],
+      description: "Connect Retell for realtime AI voice calls in your automations",
+      providerKey: "retell",
+      iconBg: "#f8fafc",
+      iconColor: "#0f172a",
+      logo: <Mic size={20} color="#0f172a" />,
+      explainer: {
+        stepType: "Realtime Voice step",
+        description:
+          "Power low-latency bidirectional voice agents that call customers back within seconds of an Instagram conversation.",
+        trigger: "Lead books voice callback",
+        action: "Spawn Retell Realtime Voice Call",
+      },
+    },
+    {
+      id: "airtable",
+      name: "Airtable",
+      category: ["Data & Records", "Knowledge Base"],
+      description:
+        "Connect Airtable to your Nemio Account as a knowledgebase and database for your automations!",
+      providerKey: "airtable",
+      iconBg: "#fffbeb",
+      iconColor: "#d97706",
+      logo: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L1 8l11 6 11-6-11-6zm0 13.5L3.5 10 1 11.5l11 6 11-6L20.5 10 12 15.5zm0 4.5L3.5 14.5 1 16l11 6 11-6-2.5-1.5L12 20z" />
+        </svg>
+      ),
+      explainer: {
+        stepType: "Database & Knowledge step",
+        description:
+          "Sync lead records, conversation transcripts, and order metadata into Airtable bases in real time.",
+        trigger: "Form submission completed",
+        action: "Append Record in Airtable Base",
+      },
+    },
+    // Coming Soon Apps
+    {
+      id: "salesforce",
+      name: "Salesforce",
+      category: ["CRM & Contacts"],
+      description: "Enterprise CRM sync for enterprise pipelines and account management.",
+      status: "coming_soon",
+      iconBg: "#f0f9ff",
+      iconColor: "#0284c7",
+      logo: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" />
+        </svg>
+      ),
+    },
+    {
+      id: "hubspot",
+      name: "HubSpot",
+      category: ["CRM & Contacts"],
+      description: "Inbound CRM, deal pipelines, and marketing hub synchronization.",
+      status: "coming_soon",
+      iconBg: "#fff7ed",
+      iconColor: "#ea580c",
+      logo: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V18h-2v-1.07A4.002 4.002 0 0 1 8 13h2a2 2 0 1 0 4 0c0-1.1-.9-2-2-2-2.21 0-4-1.79-4-4a4 4 0 0 1 3-3.86V3h2v1.14A4.002 4.002 0 0 1 16 8h-2a2 2 0 0 0-4 0c0 1.1.9 2 2 2 2.21 0 4 1.79 4 4a3.996 3.996 0 0 1-3 3.93z" />
+        </svg>
+      ),
+    },
+    {
+      id: "zapier",
+      name: "Zapier",
+      category: ["Workflow Tools"],
+      description: "Connect 5,000+ external apps via Zapier instant zaps and triggers.",
+      status: "coming_soon",
+      iconBg: "#fff7ed",
+      iconColor: "#f97316",
+      logo: (
+        <div style={{ fontWeight: 800, fontSize: "16px", color: "#f97316" }}>_</div>
+      ),
+    },
+  ];
+
+  // Filter apps by category
+  const filteredApps = APPS.filter((app) => {
+    if (selectedCategory === "All") return true;
+    return app.category.includes(selectedCategory);
+  });
+
+  const isConnected = (providerKey?: string) => {
+    if (!providerKey) return false;
+    return integrations.some((i) => i.provider === providerKey && i.configured);
+  };
+
+  const handleActionClick = (app: AppItem) => {
+    if (app.status === "coming_soon") return;
+
+    if (isConnected(app.providerKey)) {
+      disconnectIntegration(app.providerKey!);
+      return;
+    }
+
+    if (app.oauthSupported && app.oauthAction === "google_calendar") {
+      connectOAuth("google_calendar");
+      return;
+    }
+    if (app.oauthSupported && app.oauthAction === "slack") {
+      connectOAuth("slack");
+      return;
+    }
+
+    // Open configuration modal
+    if (app.providerKey) {
+      setConfiguring(app.providerKey);
+    }
+  };
 
   return (
-    <>
-      <TourMarker workspaceId={workspace.id} step="apps" />
-      <PageHeading
-        eyebrow="Integrations"
-        title="Plug into your stack."
-        text="Calendars, CRMs, notifications, channels, and the public API."
-      />
+    <div className="boosend-integrations-page">
+      {/* Page Header */}
+      <div className="boosend-integrations-header">
+        <div>
+          <h1 className="boosend-integrations-title">Integrations</h1>
+          <p className="boosend-integrations-sub">
+            Connect external platforms for automation workflows
+          </p>
+        </div>
+
+        {/* Tab Switcher: Gallery vs Developer API & Webhooks */}
+        <div className="boosend-view-tabs">
+          <button
+            type="button"
+            className={`boosend-view-tab ${activeTab === "gallery" ? "active" : ""}`}
+            onClick={() => setActiveTab("gallery")}
+          >
+            <LayoutGrid size={15} />
+            Apps Gallery
+          </button>
+          <button
+            type="button"
+            className={`boosend-view-tab ${activeTab === "developer" ? "active" : ""}`}
+            onClick={() => setActiveTab("developer")}
+          >
+            <Code2 size={15} />
+            API & Webhooks
+          </button>
+        </div>
+      </div>
+
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
-      {loading ? (
-        <p className="loading-text">Loading integrations…</p>
-      ) : !manager ? (
-        <Panel title="Integrations">
-          <Empty>Owners and admins manage integrations and channels.</Empty>
-        </Panel>
-      ) : (
-        <div className="stack">
-          <Panel title="Integrations" aside="Credentials are encrypted at rest">
-            <div className="card-grid">
-              {Object.entries(PROVIDERS).map(([provider, item]) => {
-                const current = integrationFor(provider);
-                return (
-                  <div className="card" key={provider}>
-                    <div className="row between">
-                      <h3>{item.label}</h3>
-                      {current ? (
-                        <Pill tone={integrationTone(current)}>
-                          {integrationLabel(current)}
-                        </Pill>
-                      ) : (
-                        <Pill>not set up</Pill>
-                      )}
-                    </div>
-                    <p className="muted-text">{item.blurb}</p>
-                    <div className="form-actions">
-                      {item.oauth && (
-                        <button
-                          className="button small primary"
-                          disabled={feedback.busy}
-                          onClick={() => connectOAuth(provider)}
-                        >
-                          {current?.status === "reconnect_required"
-                            ? "Reconnect"
-                            : item.oauth}
-                          <Plug size={14} />
-                        </button>
-                      )}
-                      <button
-                        className="button small secondary"
-                        onClick={() => {
-                          setTestMode(Boolean(current?.is_test));
-                          setConfiguring(provider);
-                        }}
+
+      {activeTab === "gallery" ? (
+        <>
+          {/* Category Filter Pills (Screenshots 5, 6) */}
+          <div className="boosend-categories-bar">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                className={`boosend-cat-pill ${selectedCategory === cat ? "active" : ""}`}
+                onClick={() => setSelectedCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* 3-Column App Cards Grid (Screenshots 5, 6, 7) */}
+          <div className="boosend-integrations-grid">
+            {filteredApps.map((app) => {
+              const connected = isConnected(app.providerKey);
+              const isComingSoon = app.status === "coming_soon";
+
+              return (
+                <div key={app.id} className="boosend-int-card">
+                  <div>
+                    {/* Head: Brand Logo + Platform Name */}
+                    <div className="boosend-int-card-head">
+                      <div
+                        className="boosend-int-logo"
+                        style={{ backgroundColor: app.iconBg, color: app.iconColor }}
                       >
-                        {current
-                          ? "Update"
-                          : item.oauth
-                            ? "Enter manually"
-                            : "Configure"}
-                        {!item.oauth && <Plug size={14} />}
-                      </button>
-                      {current?.configured && (
+                        {app.logo}
+                      </div>
+                      <span className="boosend-int-name">{app.name}</span>
+                    </div>
+
+                    {/* Description */}
+                    <p className="boosend-int-desc">{app.description}</p>
+                  </div>
+
+                  {/* Footer Actions */}
+                  <div className="boosend-int-footer">
+                    {isComingSoon ? (
+                      <span className="boosend-pill-coming">
+                        <Clock size={13} />
+                        Coming Soon
+                      </span>
+                    ) : connected ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span className="boosend-pill-connected">
+                          <CheckCircle2 size={13} />
+                          Connected
+                        </span>
                         <button
-                          className="button small secondary"
-                          disabled={feedback.busy}
-                          onClick={() => disconnectIntegration(current)}
+                          type="button"
+                          className="boosend-btn-what"
+                          onClick={() => handleActionClick(app)}
                         >
                           Disconnect
                         </button>
-                      )}
+                      </div>
+                    ) : (
                       <button
                         type="button"
-                        className="text-button"
-                        style={{ fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--brand-muted)" }}
-                        onClick={() => setExplaining(provider)}
+                        className="boosend-btn-create"
+                        onClick={() => handleActionClick(app)}
                       >
-                        <HelpCircle size={13} /> What does this do?
+                        Create Integration
                       </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Panel>
+                    )}
 
-          <div className="two-col">
-            <Panel title="Channels" aside={`${connections.length} connected`}>
-              {connections.length ? (
-                <div className="card-list">
-                  {connections.map((connection) => (
-                    <div className="card" key={connection.id}>
-                      <div className="row between">
-                        <div>
-                          <strong>{connection.display_name}</strong>
-                          <div className="muted-text">
-                            {connection.provider} · expires{" "}
-                            {when(connection.expires_at)}
-                            {connection.locked && (
-                              <>
-                                {" "}
-                                · <Pill tone="warn">locked by plan</Pill>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <Pill
-                          tone={
-                            connection.is_test
-                              ? "neutral"
-                              : statusTone(connection.status)
-                          }
-                        >
-                          {connection.is_test ? "test" : connection.status}
-                        </Pill>
-                      </div>
-                      {connection.is_test && connection.status === "active" && (
-                        <form
-                          className="form-grid"
-                          onSubmit={(event) => simulate(event, connection)}
-                        >
-                          <label>
-                            Simulate an inbound message
-                            <input
-                              name="text"
-                              maxLength={2000}
-                              placeholder="e.g. What is the price?"
-                              required
-                            />
-                          </label>
-                          <div className="row">
-                            <select
-                              name="kind"
-                              defaultValue="dm"
-                              aria-label="Kind"
-                            >
-                              <option value="dm">DM</option>
-                              <option value="comment">Comment</option>
-                              <option value="story_reply">Story reply</option>
-                              <option value="live_comment">Live comment</option>
-                            </select>
-                            <input
-                              name="sender_id"
-                              maxLength={100}
-                              placeholder="Sender ID (test-lead)"
-                              aria-label="Sender ID"
-                            />
-                            <button
-                              className="button small primary"
-                              disabled={feedback.busy}
-                            >
-                              Send
-                              <Send size={14} />
-                            </button>
-                          </div>
-                        </form>
-                      )}
-                      {connection.status !== "disconnected" && (
-                        <div className="form-actions">
-                          <button
-                            className="button small danger"
-                            disabled={feedback.busy}
-                            onClick={() => disconnect(connection)}
-                          >
-                            Disconnect
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Empty>
-                  No channels yet. Instagram connects from the Overview; other
-                  channels are added here.
-                </Empty>
-              )}
-              <details style={{ marginTop: 20 }}>
-                <summary
-                  style={{
-                    cursor: "pointer",
-                    fontWeight: 600,
-                    color: "var(--muted)",
-                    fontSize: "0.9rem",
-                  }}
-                >
-                  Advanced: Webhook URLs for Custom Apps & Verification
-                </summary>
-                <div style={{ marginTop: 12 }}>
-                  <p className="muted-text">
-                    For custom apps or developers hosting their own webhook
-                    subscriptions. Telegram and LinkedIn register webhooks
-                    automatically.
-                  </p>
-                  {[
-                    "instagram",
-                    "whatsapp",
-                    "messenger",
-                    "linkedin",
-                    "snapchat",
-                  ].map((provider) => (
-                    <CopyField
-                      key={provider}
-                      label={`${provider} webhook URL`}
-                      value={`${origin}/webhooks/${provider}/`}
-                    />
-                  ))}
-                </div>
-              </details>
-            </Panel>
-            <div className="stack">
-              <Panel title="Connect a channel">
-                <div style={{ marginBottom: 20 }}>
-                  <p className="muted-text" style={{ marginBottom: 12 }}>
-                    Connect your business accounts with one click. No developer
-                    tokens or technical setup required.
-                  </p>
-                  <div className="row wrap" style={{ gap: 10 }}>
-                    <button
-                      type="button"
-                      className="button primary"
-                      disabled={feedback.busy}
-                      onClick={connectMeta}
-                    >
-                      <Plug size={16} />
-                      Connect Instagram & Messenger
-                    </button>
-                    <button
-                      type="button"
-                      className="button primary"
-                      disabled={feedback.busy}
-                      onClick={connectLinkedIn}
-                    >
-                      <Plug size={16} />
-                      Connect LinkedIn Page
-                    </button>
-                  </div>
-                  <p className="muted-text" style={{ marginTop: 8 }}>
-                    LinkedIn needs granted messaging access on your LinkedIn
-                    app. Until that is confirmed, connecting is declined rather
-                    than accepted and left unable to deliver.
-                  </p>
-                </div>
-
-                <details
-                  style={{
-                    marginTop: 16,
-                    borderTop: "1px solid var(--border)",
-                    paddingTop: 14,
-                  }}
-                >
-                  <summary
-                    style={{
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      color: "var(--muted)",
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    Advanced: Manual Credentials & Developer Channels
-                  </summary>
-                  <form
-                    className="form-grid"
-                    onSubmit={connectChannel}
-                    style={{ marginTop: 14 }}
-                  >
-                    <label>
-                      Provider
-                      <select name="provider" defaultValue="whatsapp">
-                        {CHANNEL_PROVIDERS.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.label}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="hint">
-                        {CHANNEL_PROVIDERS.map(
-                          (item) => `${item.label}: ${item.account}`,
-                        ).join(" · ")}
-                      </span>
-                    </label>
-                    <label>
-                      Account ID
-                      <input
-                        name="external_account_id"
-                        maxLength={200}
-                        pattern="[A-Za-z0-9_\-]{1,200}"
-                        required
-                      />
-                    </label>
-                    <label>
-                      Display name
-                      <input name="display_name" maxLength={150} required />
-                    </label>
-                    <label>
-                      Access token
-                      <input
-                        name="access_token"
-                        type="password"
-                        autoComplete="off"
-                        maxLength={4000}
-                      />
-                      <span className="hint">
-                        Required for live connections; leave empty for a test
-                        channel.
-                      </span>
-                    </label>
-                    <label className="inline">
-                      <input type="checkbox" name="is_test" />
-                      Create a local test channel (no provider calls)
-                    </label>
-                    <div className="form-actions">
+                    {!isComingSoon && (
                       <button
-                        className="button primary"
-                        disabled={feedback.busy}
+                        type="button"
+                        className="boosend-btn-what"
+                        onClick={() => setExplainingApp(app)}
                       >
-                        Connect
-                        <Plus size={16} />
+                        <HelpCircle size={13} />
+                        What does this do?
                       </button>
-                    </div>
-                  </form>
-                </details>
-              </Panel>
-              <Panel title="Recent deliveries" aside={`${deliveries.length}`}>
-                {deliveries.length ? (
-                  <Table
-                    head={["When", "Recipient", "Status", "Attempts", "Error"]}
-                  >
-                    {deliveries.slice(0, 20).map((delivery) => (
-                      <tr key={delivery.id}>
-                        <td>{when(delivery.created_at)}</td>
-                        <td className="mono">{delivery.recipient_id}</td>
-                        <td>
-                          <Pill tone={statusTone(delivery.status)}>
-                            {delivery.status}
-                          </Pill>
-                        </td>
-                        <td>{delivery.attempts}</td>
-                        <td className="mono">{delivery.error_code || "—"}</td>
-                      </tr>
-                    ))}
-                  </Table>
-                ) : (
-                  <Empty>Nothing sent yet.</Empty>
-                )}
-              </Panel>
-            </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-          <Panel title="Connectors" aside="Zapier · n8n · Make">
-            <p className="small">
-              Ready-made connectors live in the repository under{" "}
-              <code>connectors/</code>. Each one needs this app&apos;s URL and
-              an API key from below (instant triggers need the{" "}
-              <code>write</code> scope).
+        </>
+      ) : (
+        /* Developer Tools Tab (API Keys & Outbound Webhooks without cluttering main view) */
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px", marginTop: "12px" }}>
+          {/* Connectors overview */}
+          <div className="boosend-int-card" style={{ padding: "20px" }}>
+            <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "#0f172a" }}>
+              Ready-made Connectors
+            </h3>
+            <p style={{ fontSize: "13px", color: "#64748b", margin: "6px 0 16px" }}>
+              Pre-built packages living in <code>connectors/</code>. Authenticate with an API key below.
             </p>
-            <div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
               {[
-                [
-                  "Zapier",
-                  "connectors/zapier",
-                  "One instant trigger per event, plus send message, update lead and find lead. Verifies webhook signatures.",
-                ],
-                [
-                  "n8n",
-                  "connectors/n8n",
-                  "Community node package: Nemio Trigger and a lead/conversation/message node. Verifies webhook signatures.",
-                ],
-                [
-                  "Make",
-                  "connectors/make",
-                  "Custom app: Watch Events instant trigger, send message, update lead, search leads.",
-                ],
-              ].map(([name, path, text]) => (
-                <div className="list-row" key={name}>
-                  <strong>{name}</strong>
-                  <code>{path}</code>
-                  <span className="muted-text">{text}</span>
+                { name: "Zapier", path: "connectors/zapier", text: "Instant triggers & message actions" },
+                { name: "n8n", path: "connectors/n8n", text: "Community node: Trigger + CRM node" },
+                { name: "Make.com", path: "connectors/make", text: "Custom app: Watch events & search leads" },
+              ].map((c) => (
+                <div
+                  key={c.name}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "10px",
+                    padding: "12px",
+                  }}
+                >
+                  <strong style={{ fontSize: "13px" }}>{c.name}</strong>
+                  <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>{c.text}</div>
                 </div>
               ))}
             </div>
-          </Panel>
+          </div>
 
-          <div className="two-col">
-            <Panel title="API keys" aside="Header: X-API-Key">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+            {/* API Keys */}
+            <div className="boosend-int-card" style={{ padding: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a", margin: 0 }}>
+                  API Keys
+                </h3>
+                <span style={{ fontSize: "11px", color: "#94a3b8" }}>Header: X-API-Key</span>
+              </div>
+
               {keys.length ? (
-                <Table head={["Name", "Prefix", "Scopes", "Last used", ""]}>
-                  {keys.map((key) => (
-                    <tr key={key.id}>
-                      <td>
-                        <strong>{key.name}</strong>
-                        <div className="muted-text">
-                          Created {when(key.created_at)}
-                        </div>
-                      </td>
-                      <td className="mono">{key.prefix}…</td>
-                      <td>
-                        <span className="tag-list">
-                          {key.scopes.map((scope) => (
-                            <Pill key={scope}>{scope}</Pill>
-                          ))}
-                        </span>
-                      </td>
-                      <td>{when(key.last_used_at)}</td>
-                      <td>
-                        {owner && (
-                          <button
-                            className="text-button"
-                            disabled={feedback.busy}
-                            onClick={() => revokeKey(key)}
-                          >
-                            Revoke
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </Table>
+                <div style={{ marginTop: "14px" }}>
+                  <Table head={["Name", "Prefix", "Scopes", ""]}>
+                    {keys.map((key) => (
+                      <tr key={key.id}>
+                        <td>
+                          <strong>{key.name}</strong>
+                          <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                            {when(key.created_at)}
+                          </div>
+                        </td>
+                        <td className="mono">{key.prefix}…</td>
+                        <td>
+                          <span style={{ display: "flex", gap: "4px" }}>
+                            {key.scopes.map((s) => (
+                              <Pill key={s}>{s}</Pill>
+                            ))}
+                          </span>
+                        </td>
+                        <td>
+                          {owner && (
+                            <button
+                              type="button"
+                              className="text-button"
+                              disabled={feedback.busy}
+                              onClick={() => revokeKey(key)}
+                            >
+                              Revoke
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </Table>
+                </div>
               ) : (
                 <Empty>No API keys yet.</Empty>
               )}
+
               {newKey && (
-                <>
+                <div style={{ marginTop: "12px" }}>
                   <CopyField label="New API key (shown once)" value={newKey} />
-                  <p className="muted-text">
-                    Store it now. Nemio keeps only a hash and cannot show it
-                    again.
-                  </p>
-                </>
+                </div>
               )}
-              {owner ? (
-                <form
-                  className="form-grid"
-                  style={{ marginTop: 16 }}
-                  onSubmit={createKey}
-                >
+
+              {owner && (
+                <form className="form-grid" style={{ marginTop: "16px" }} onSubmit={createKey}>
                   <label>
                     Key name
-                    <input
-                      name="name"
-                      maxLength={80}
-                      placeholder="Zapier"
-                      required
-                    />
+                    <input name="name" maxLength={80} placeholder="e.g. My Automation Script" required />
                   </label>
-                  <div className="checkbox-grid">
-                    <label>
+                  <div style={{ display: "flex", gap: "16px" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
                       <input type="checkbox" name="read" defaultChecked />
                       Read
                     </label>
-                    <label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
                       <input type="checkbox" name="write" />
                       Write
                     </label>
                   </div>
-                  <div className="form-actions">
-                    <button className="button primary" disabled={feedback.busy}>
-                      Create key
-                      <KeyRound size={16} />
-                    </button>
-                  </div>
+                  <button className="button primary small" style={{ marginTop: "8px" }} disabled={feedback.busy}>
+                    <KeyRound size={14} />
+                    Create Key
+                  </button>
                 </form>
-              ) : (
-                <p className="muted-text" style={{ marginTop: 14 }}>
-                  Only the workspace owner can create or revoke keys.
-                </p>
               )}
-            </Panel>
-            <Panel title="Outbound webhooks" aside="REST hooks">
-              <p className="muted-text">
-                Zapier, n8n and Make subscribe here (or through the API) and
-                receive signed POSTs. Verify{" "}
-                <code>
-                  X-Nemio-Signature: t=…,v1=HMAC-SHA256(secret, t +
-                  &quot;.&quot; + body)
-                </code>
-                .
+            </div>
+
+            {/* Outbound Webhooks */}
+            <div className="boosend-int-card" style={{ padding: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a", margin: 0 }}>
+                  Outbound Webhooks
+                </h3>
+                <span style={{ fontSize: "11px", color: "#94a3b8" }}>REST Hooks</span>
+              </div>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: "6px 0 14px" }}>
+                Sign events with HMAC-SHA256 signature header for verification.
               </p>
+
               {subscriptions.length ? (
-                <div className="card-list" style={{ marginTop: 12 }}>
-                  {subscriptions.map((subscription) => (
-                    <div className="card" key={subscription.id}>
-                      <div className="row between">
-                        <strong className="mono">{subscription.url}</strong>
-                        <Pill tone={subscription.active ? "good" : "bad"}>
-                          {subscription.active ? "active" : "disabled"}
-                        </Pill>
-                      </div>
-                      <span className="tag-list">
-                        {subscription.events.map((name) => (
-                          <Pill key={name}>{name}</Pill>
-                        ))}
-                      </span>
-                      <span className="muted-text">
-                        {subscription.failure_count} consecutive failures · last
-                        delivered {when(subscription.last_delivered_at)}
-                      </span>
-                      <div className="form-actions">
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {subscriptions.map((sub) => (
+                    <div
+                      key={sub.id}
+                      style={{
+                        padding: "10px",
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <strong className="mono">{sub.url}</strong>
                         <button
-                          className="button small danger"
-                          disabled={feedback.busy}
-                          onClick={() => removeSubscription(subscription)}
+                          type="button"
+                          className="text-button"
+                          style={{ color: "#ef4444" }}
+                          onClick={() => removeSubscription(sub)}
                         >
                           Remove
                         </button>
+                      </div>
+                      <div style={{ display: "flex", gap: "4px", marginTop: "6px" }}>
+                        {sub.events.map((e) => (
+                          <Pill key={e}>{e}</Pill>
+                        ))}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <Empty>No subscriptions yet.</Empty>
+                <Empty>No active webhook subscriptions.</Empty>
               )}
+
               {newSecret && (
-                <CopyField
-                  label="Signing secret (shown once)"
-                  value={newSecret}
-                />
+                <div style={{ marginTop: "12px" }}>
+                  <CopyField label="Signing secret (shown once)" value={newSecret} />
+                </div>
               )}
-              {newToken && (
-                <CopyField
-                  label="Shared token for receivers that cannot verify HMAC, e.g. Make (shown once)"
-                  value={newToken}
-                />
-              )}
-              <form
-                className="form-grid"
-                style={{ marginTop: 16 }}
-                onSubmit={createSubscription}
-              >
+
+              <form className="form-grid" style={{ marginTop: "16px" }} onSubmit={createSubscription}>
                 <label>
                   Endpoint URL
-                  <input
-                    name="url"
-                    type="url"
-                    placeholder="https://hooks.zapier.com/…"
-                    required
-                  />
-                  <span className="hint">Public HTTPS only.</span>
+                  <input name="url" type="url" placeholder="https://api.yourdomain.com/webhook" required />
                 </label>
-                <div className="checkbox-grid">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", fontSize: "12px" }}>
                   {WEBHOOK_EVENTS.map((name) => (
-                    <label key={name}>
+                    <label key={name} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                       <input type="checkbox" name={name} />
                       {name}
                     </label>
                   ))}
                 </div>
-                <div className="form-actions">
-                  <button className="button primary" disabled={feedback.busy}>
-                    Subscribe
-                    <Webhook size={16} />
-                  </button>
-                </div>
+                <button className="button primary small" style={{ marginTop: "8px" }} disabled={feedback.busy}>
+                  <Webhook size={14} />
+                  Subscribe Endpoint
+                </button>
               </form>
-              {hookLog.length > 0 && (
-                <div style={{ marginTop: 18 }}>
-                  <Table head={["When", "Event", "Status", "Attempts", "Code"]}>
-                    {hookLog.slice(0, 20).map((entry) => (
-                      <tr key={entry.id}>
-                        <td>{when(entry.created_at)}</td>
-                        <td className="mono">{entry.event}</td>
-                        <td>
-                          <Pill tone={statusTone(entry.status)}>
-                            {entry.status}
-                          </Pill>
-                        </td>
-                        <td>{entry.attempts}</td>
-                        <td>{entry.response_code ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </Table>
-                </div>
-              )}
-            </Panel>
+            </div>
           </div>
         </div>
       )}
 
-      {spec && (
-        <Modal title={spec.label} onClose={() => setConfiguring("")}>
-          <p className="muted-text">{spec.blurb}</p>
+      {/* Screenshot 7 Explainer Canvas Modal */}
+      {explainingApp && (
+        <div className="boosend-modal-overlay" onClick={() => setExplainingApp(null)}>
+          <div className="boosend-modal-window" onClick={(e) => e.stopPropagation()}>
+            <div className="boosend-modal-header">
+              <div className="boosend-modal-appinfo">
+                <div
+                  className="boosend-int-logo"
+                  style={{
+                    backgroundColor: explainingApp.iconBg,
+                    color: explainingApp.iconColor,
+                    width: "36px",
+                    height: "36px",
+                  }}
+                >
+                  {explainingApp.logo}
+                </div>
+                <strong style={{ fontSize: "16px", color: "#0f172a" }}>{explainingApp.name}</strong>
+                <span className="boosend-step-pill">
+                  {explainingApp.explainer?.stepType || "Automation builder step"}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="boosend-modal-close-btn"
+                onClick={() => setExplainingApp(null)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="boosend-modal-body">
+              <p className="boosend-modal-desc">
+                {explainingApp.explainer?.description ||
+                  `Add a ${explainingApp.name} step to your automation to trigger one of your ${explainingApp.name} workflows from a conversation. Nemio sends the conversation data over, your workflow runs its custom logic, and the result comes back into the chat.`}
+              </p>
+
+              {/* Workflow Canvas Mini-Visualization (Screenshot 7) */}
+              <div className="boosend-canvas-preview">
+                {/* Node 1: Trigger */}
+                <div className="boosend-canvas-node">
+                  <div className="boosend-canvas-node-top">
+                    <Sparkles size={11} color="#f43f5e" />
+                    When...
+                  </div>
+                  <div className="boosend-canvas-node-title">
+                    <MessageSquare size={13} color="#f43f5e" />
+                    Message Received
+                  </div>
+                  <div className="boosend-canvas-node-sub">any message</div>
+                </div>
+
+                {/* Connector with "Step added ✓" badge */}
+                <div className="boosend-canvas-connector">
+                  <span className="boosend-step-added-badge">Step added ✓</span>
+                  <div className="boosend-canvas-line" />
+                </div>
+
+                {/* Node 2: Action */}
+                <div className="boosend-canvas-node">
+                  <div className="boosend-canvas-node-top">
+                    <Workflow size={11} color="#3b82f6" />
+                    Run Workflow
+                  </div>
+                  <div className="boosend-canvas-node-title">
+                    <div
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        borderRadius: "4px",
+                        backgroundColor: explainingApp.iconBg,
+                        color: explainingApp.iconColor,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "10px",
+                      }}
+                    >
+                      {explainingApp.name.slice(0, 2)}
+                    </div>
+                    {explainingApp.name}
+                  </div>
+                  <div className="boosend-canvas-node-sub">custom action</div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
+                <button
+                  type="button"
+                  className="boosend-btn-create"
+                  onClick={() => setExplainingApp(null)}
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Integration Setup Modal */}
+      {configuring && (
+        <Modal
+          title={`Configure ${APPS.find((a) => a.providerKey === configuring)?.name || configuring}`}
+          onClose={() => setConfiguring("")}
+        >
           <form className="form-grid" onSubmit={saveIntegration}>
             <label className="inline">
               <input
                 type="checkbox"
                 name="is_test"
                 checked={testMode}
-                onChange={(event) => setTestMode(event.target.checked)}
+                onChange={(e) => setTestMode(e.target.checked)}
               />
-              Use local test integration (no credentials)
+              Use local test simulation (no live external API calls)
             </label>
-            {!testMode &&
-              spec.credentials.map((field) => (
-                <label key={field.key}>
-                  {field.label}
+
+            {!testMode && (
+              <>
+                <label>
+                  API Key or Secret Token
                   <input
-                    name={`cred_${field.key}`}
-                    type={field.secret ? "password" : "text"}
-                    autoComplete="off"
-                    placeholder={
-                      existing?.configured ? "Leave blank to keep current" : ""
-                    }
-                    required={!existing?.configured}
+                    name="cred_api_key"
+                    type="password"
+                    placeholder="Enter your API token"
+                    required
                   />
                 </label>
-              ))}
-            {spec.options.map((field) => (
-              <label key={field.key}>
-                {field.label}
-                <input
-                  name={`opt_${field.key}`}
-                  defaultValue={existing?.options?.[field.key] || ""}
-                />
-              </label>
-            ))}
-            <label className="inline">
-              <input
-                type="checkbox"
-                name="enabled"
-                defaultChecked={existing ? existing.enabled : true}
-              />
-              Enabled
-            </label>
-            <div className="form-actions">
+                <label>
+                  Account / Workspace ID (optional)
+                  <input name="cred_account_id" placeholder="e.g. workspace_123" />
+                </label>
+              </>
+            )}
+
+            <div className="form-actions" style={{ marginTop: "12px" }}>
               <button className="button primary" disabled={feedback.busy}>
-                {feedback.busy ? "Saving…" : "Save"}
+                {feedback.busy ? "Connecting…" : "Save Integration"}
               </button>
               <button
                 type="button"
@@ -1205,87 +1307,6 @@ export default function IntegrationsPage() {
           </form>
         </Modal>
       )}
-
-      {explaining && (
-        <Modal
-          title={PROVIDERS[explaining]?.label || "Integration Details"}
-          onClose={() => setExplaining(null)}
-        >
-          {(() => {
-            const info = INTEGRATION_EXPLAINERS[explaining] || {
-              badge: "Automation Step",
-              summary: PROVIDERS[explaining]?.blurb || "Connect external services into your workflow canvas.",
-              trigger: "Inbound customer interaction (Comment, DM, or Story Reply)",
-              step: `Run ${PROVIDERS[explaining]?.label || "Integration"} action node`,
-              output: "Response data routed back into conversation",
-            };
-            return (
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <div>
-                  <Pill tone="good">{info.badge}</Pill>
-                  <p style={{ marginTop: "10px", lineHeight: "1.6", color: "var(--brand-ink)" }}>
-                    {info.summary}
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: "var(--brand-canvas)",
-                    border: "1px solid var(--brand-line)",
-                    borderRadius: "12px",
-                    padding: "16px",
-                  }}
-                >
-                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "var(--brand-muted)" }}>
-                    How it works in workflow canvas
-                  </span>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "10px",
-                      marginTop: "12px",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <div style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "var(--brand-action)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700 }}>
-                        1
-                      </div>
-                      <div style={{ flex: 1, fontSize: "13px" }}>
-                        <strong>Trigger:</strong> {info.trigger}
-                      </div>
-                    </div>
-                    <div style={{ paddingLeft: "11px", borderLeft: "2px dashed var(--brand-line)", marginLeft: "11px", height: "14px" }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <div style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "var(--brand-accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700 }}>
-                        2
-                      </div>
-                      <div style={{ flex: 1, fontSize: "13px" }}>
-                        <strong>Canvas Action:</strong> {info.step}
-                      </div>
-                    </div>
-                    <div style={{ paddingLeft: "11px", borderLeft: "2px dashed var(--brand-line)", marginLeft: "11px", height: "14px" }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <div style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "#10b981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700 }}>
-                        3
-                      </div>
-                      <div style={{ flex: 1, fontSize: "13px" }}>
-                        <strong>Delivered Result:</strong> {info.output}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
-                  <button className="button primary small" onClick={() => setExplaining(null)}>
-                    Got it
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
-        </Modal>
-      )}
-    </>
+    </div>
   );
 }
