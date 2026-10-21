@@ -42,6 +42,7 @@ import {
 } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import { CopyField, Empty, ErrorNotice, Modal, Pill, statusTone, SuccessNotice, Table, useFeedback } from "@/components/ui";
+import { IntegrationAnimatedExplainer } from "@/components/integration-animated-explainer";
 
 type Category =
   | "All"
@@ -1194,54 +1195,8 @@ export default function IntegrationsPage() {
                   `Add a ${explainingApp.name} step to your automation to trigger one of your ${explainingApp.name} workflows from a conversation. Nemio sends the conversation data over, your workflow runs its custom logic, and the result comes back into the chat.`}
               </p>
 
-              {/* Workflow Canvas Mini-Visualization (Screenshot 7) */}
-              <div className="boosend-canvas-preview">
-                {/* Node 1: Trigger */}
-                <div className="boosend-canvas-node">
-                  <div className="boosend-canvas-node-top">
-                    <Sparkles size={11} color="#f43f5e" />
-                    When...
-                  </div>
-                  <div className="boosend-canvas-node-title">
-                    <MessageSquare size={13} color="#f43f5e" />
-                    Message Received
-                  </div>
-                  <div className="boosend-canvas-node-sub">any message</div>
-                </div>
-
-                {/* Connector with "Step added ✓" badge */}
-                <div className="boosend-canvas-connector">
-                  <span className="boosend-step-added-badge">Step added ✓</span>
-                  <div className="boosend-canvas-line" />
-                </div>
-
-                {/* Node 2: Action */}
-                <div className="boosend-canvas-node">
-                  <div className="boosend-canvas-node-top">
-                    <Workflow size={11} color="#3b82f6" />
-                    Run Workflow
-                  </div>
-                  <div className="boosend-canvas-node-title">
-                    <div
-                      style={{
-                        width: "16px",
-                        height: "16px",
-                        borderRadius: "4px",
-                        backgroundColor: explainingApp.iconBg,
-                        color: explainingApp.iconColor,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "10px",
-                      }}
-                    >
-                      {explainingApp.name.slice(0, 2)}
-                    </div>
-                    {explainingApp.name}
-                  </div>
-                  <div className="boosend-canvas-node-sub">custom action</div>
-                </div>
-              </div>
+              {/* Two-Frame Interactive Animated Storyboard (Builder Step ➔ Live Execution) */}
+              <IntegrationAnimatedExplainer app={explainingApp} />
 
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
                 <button
