@@ -1,28 +1,55 @@
-/* Brand tokens shared by the public site, auth and client workspace. */
+/* Bespoke Nemio AI Design System: Pitch-Dark Sleek Sidebar + Modern High-Contrast Canvas */
 :root {
-  --brand-accent: #768870;
-  --brand-action: #3e4e42;
-  --brand-action-hover: #5c7461;
-  --brand-ink: #252c26;
-  --brand-muted: #687063;
-  --brand-line: #e2e7de;
-  --brand-paper: #fafbf7;
-  --brand-canvas: #f6f7f2;
-  --brand-surface: #ffffff;
-  --brand-soft: #edf0e8;
-  --brand-sidebar: #1b221d;
-  --brand-sidebar-raised: #202721;
-  --brand-olive: #6f8265;
-  --brand-radius: 14px;
-  --brand-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.03), 0 6px 18px rgba(27, 34, 29, 0.04);
+  /* Canvas & Surfaces */
+  --bg-canvas: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --bg-hover: #e2e8f0;
+  --border-light: #e2e8f0;
+  --border-subtle: #cbd5e1;
 
-  /* Meta channel accents: brand colour on a soft container pill. */
+  /* Typography Colors */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+
+  /* Pitch-Dark Sidebar System (Exact BooSend Essence) */
+  --sidebar-bg: #0b0c10;
+  --sidebar-card-bg: #15171d;
+  --sidebar-card-border: rgba(255, 255, 255, 0.08);
+  --sidebar-card-hover: #1c1f26;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-hover: #f1f5f9;
+  --sidebar-active-bg: #ffffff;
+  --sidebar-active-text: #000000;
+  --sidebar-subtle-border: rgba(255, 255, 255, 0.06);
+
+  /* Primary Accent & Brand Identity */
+  --brand-primary: #2563eb;
+  --brand-primary-hover: #1d4ed8;
+  --brand-primary-light: #eff6ff;
+  --brand-accent-amber: #f59e0b;
+  --brand-accent-purple: #8b5cf6;
+  --brand-accent-cyan: #06b6d4;
+  --brand-accent-emerald: #10b981;
+  --brand-radius-sm: 8px;
+  --brand-radius: 14px;
+  --brand-radius-lg: 18px;
+  --brand-radius-full: 9999px;
+
+  /* Channel Specific Accents */
   --channel-instagram: #e1306c;
-  --channel-instagram-soft: rgba(225, 48, 108, 0.1);
-  --channel-messenger: #1877f2;
-  --channel-messenger-soft: rgba(24, 119, 242, 0.1);
-  --channel-whatsapp: #128c4a;
-  --channel-whatsapp-dot: #25d366;
-  --channel-whatsapp-soft: rgba(37, 211, 102, 0.1);
+  --channel-instagram-soft: rgba(225, 48, 108, 0.12);
+  --channel-facebook: #1877f2;
+  --channel-facebook-soft: rgba(24, 119, 242, 0.12);
+  --channel-whatsapp: #25d366;
+  --channel-whatsapp-soft: rgba(37, 211, 102, 0.12);
+  --channel-telegram: #229ed9;
+  --channel-telegram-soft: rgba(34, 158, 217, 0.12);
+
+  /* Global Elevation & Shadows */
+  --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-float: 0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
 }

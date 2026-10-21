@@ -10,28 +10,23 @@ import {
   type ReactNode,
 } from "react";
 import {
-  Activity,
-  BarChart3,
   ChevronDown,
-  CircleHelp,
   Contact,
-  CreditCard,
   GitBranch,
-  Inbox,
+  Layers,
   LayoutDashboard,
   LayoutGrid,
   LogOut,
   Menu,
   MessageCircle,
-  Plug,
+  MessageSquare,
   Plus,
   Settings,
   ShieldCheck,
   Sparkles,
-  Store,
-  Users,
   X,
   type LucideIcon,
+  ChevronRight,
 } from "lucide-react";
 import { api, message, type Billing, type Workspace } from "@/lib/api";
 import { APPS, appById } from "@/lib/apps";
@@ -53,63 +48,64 @@ export function Brand({
   logo?: string;
 }) {
   return (
-    <div className="brand">
+    <div className="brand-logo-container">
       {logo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={logo} alt="" className="brand-logo" />
       ) : (
-        <span className="brand-icon">
-          <MessageCircle size={17} />
+        <span className="brand-icon-ghost">
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 10h.01" />
+            <path d="M15 10h.01" />
+            <path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z" />
+          </svg>
         </span>
       )}
-      {name}
-      {!logo && <span className="brand-dot">.</span>}
+      <span className="brand-title">{name}</span>
     </div>
   );
 }
 
-type NavItem = { id: string; label: string; icon: LucideIcon };
-
-const PRIMARY: NavItem[] = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "inbox", label: "Inbox", icon: Inbox },
-  { id: "automations", label: "Automations", icon: GitBranch },
-  { id: "crm", label: "CRM & contacts", icon: Contact },
-  { id: "agent", label: "AI agent", icon: Sparkles },
-];
-const TOOLS: NavItem[] = [
-  { id: "analytics", label: "Analytics", icon: BarChart3 },
-  { id: "templates", label: "Templates", icon: Store },
-  { id: "payments", label: "Payments", icon: CreditCard },
-  { id: "integrations", label: "Integrations", icon: Plug },
-  { id: "team", label: "Team", icon: Users },
-  { id: "activity", label: "Activity", icon: Activity },
-  { id: "settings", label: "Settings", icon: Settings },
-];
-const APP_STORE: NavItem = {
-  id: "app-store",
-  label: "App store",
-  icon: LayoutGrid,
+type NavItem = {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  badge?: string;
+  color?: string;
 };
-/** Sections an agent can open; owners and admins see everything. */
-const AGENT_SECTIONS = [
-  "overview",
-  "inbox",
-  "crm",
-  "calendar",
-  "app-store",
-  "team",
-  "settings",
+
+/* Primary Navigation matching BooSend IA */
+const PRIMARY_NAV: NavItem[] = [
+  { id: "overview", label: "Home", icon: LayoutDashboard },
+  { id: "automations", label: "Automation", icon: GitBranch },
+  { id: "integrations", label: "Integrations", icon: LayoutGrid },
+  { id: "inbox", label: "Conversations", icon: MessageCircle },
+  { id: "crm", label: "CRM", icon: Contact },
 ];
 
-function sectionLabel(section: string) {
-  return (
-    [...PRIMARY, ...TOOLS, APP_STORE].find((item) => item.id === section)
-      ?.label ||
-    APPS.find((app) => app.section === section)?.label ||
-    section.charAt(0).toUpperCase() + section.slice(1)
-  );
-}
+const DIRECT_CHANNELS: NavItem[] = [
+  {
+    id: "webchat",
+    label: "WhatsApp",
+    icon: MessageSquare,
+    color: "#25d366",
+  },
+  {
+    id: "deeplinks",
+    label: "Telegram",
+    icon: Sparkles,
+    color: "#229ed9",
+  },
+];
 
 export function Shell({ children }: { children: ReactNode }) {
   const { user, workspace, workspaces, manager, prefix, refresh } =
@@ -119,18 +115,24 @@ export function Shell({ children }: { children: ReactNode }) {
   const section = pathname.split("/")[3] || "overview";
   const [creating, setCreating] = useState(false);
   const [drawer, setDrawer] = useState(false);
-  const [plan, setPlan] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
+  const [workspaceMenu, setWorkspaceMenu] = useState(false);
+  const [appsOpen, setAppsOpen] = useState(true);
+  const [plan, setPlan] = useState("Lifetime");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const branding = workspace.branding;
-  const allowed = (id: string) => manager || AGENT_SECTIONS.includes(id);
+
   const docked = (workspace.pinned_apps || [])
     .map(appById)
     .filter((app) => app?.section && (manager || app.agents))
-    .map((app) => ({ id: app!.section!, label: app!.label, icon: app!.icon }));
+    .map((app) => ({
+      id: app!.section!,
+      label: app!.label,
+      icon: app!.icon,
+    }));
 
   useEffect(() => {
-    // Billing is an owner/admin view; agents simply see no tier badge.
     if (!manager) return;
     const controller = new AbortController();
     api<Billing>(`${prefix}/billing/`, "GET", undefined, controller.signal)
@@ -138,21 +140,17 @@ export function Shell({ children }: { children: ReactNode }) {
         const name =
           billing.catalog.find((card) => card.slug === billing.plan)?.name ||
           billing.plan;
-        setPlan(billing.status === "trialing" ? `${name} trial` : name);
+        setPlan(
+          billing.status === "trialing"
+            ? `${name} trial`
+            : name || "Lifetime",
+        );
       })
       .catch(() => undefined);
     return () => controller.abort();
   }, [prefix, manager]);
-  useEffect(() => {
-    if (!drawer) return;
-    const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDrawer(false);
-    };
-    document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
-  }, [drawer]);
 
-  async function create(event: FormEvent<HTMLFormElement>) {
+  async function createWorkspace(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError("");
@@ -164,6 +162,7 @@ export function Shell({ children }: { children: ReactNode }) {
       );
       await refresh();
       setCreating(false);
+      setWorkspaceMenu(false);
       router.push(`/w/${created.id}/overview`);
     } catch (err) {
       setError(message(err));
@@ -171,6 +170,7 @@ export function Shell({ children }: { children: ReactNode }) {
       setBusy(false);
     }
   }
+
   async function signOut() {
     try {
       await api("/api/auth/logout/", "POST");
@@ -180,134 +180,207 @@ export function Shell({ children }: { children: ReactNode }) {
       setError(message(err));
     }
   }
-  // Following any link inside the drawer closes it on small screens.
+
   function closeOnNavigate(event: MouseEvent<HTMLElement>) {
     if ((event.target as HTMLElement).closest("a")) setDrawer(false);
   }
-  const link = ({ id, label, icon: Icon }: NavItem) => (
-    <Link
-      key={id}
-      href={`/w/${workspace.id}/${id}`}
-      className={`nav-item ${section === id ? "active" : ""}`}
-      aria-current={section === id ? "page" : undefined}
-    >
-      <Icon size={18} />
-      {label}
-      {section === id && <span className="nav-dot" />}
-    </Link>
-  );
-  const tools = TOOLS.filter((item) => allowed(item.id));
+
+  const renderNavLink = (item: NavItem, isSub = false) => {
+    const active = section === item.id;
+    const Icon = item.icon;
+    return (
+      <Link
+        key={item.id}
+        href={`/w/${workspace.id}/${item.id}`}
+        className={`boosend-nav-link ${active ? "active" : ""} ${isSub ? "sub-item" : ""}`}
+        aria-current={active ? "page" : undefined}
+        title={item.label}
+      >
+        <span
+          className="nav-icon-wrap"
+          style={{ color: item.color || undefined }}
+        >
+          <Icon size={18} />
+        </span>
+        {!collapsed && <span className="nav-label-text">{item.label}</span>}
+        {item.badge && !collapsed && (
+          <span className="nav-badge-pill">{item.badge}</span>
+        )}
+      </Link>
+    );
+  };
+
   return (
-    <div
-      className="app-shell"
-      style={{
-        ["--green" as string]:
-          !branding.primary_color || branding.primary_color === "#347359"
-            ? "var(--brand-action)"
-            : branding.primary_color,
-      }}
-    >
+    <div className={`app-shell-root ${collapsed ? "rail-collapsed" : ""}`}>
+      {/* Pitch-Black Modern Sidebar */}
       <aside
-        className={`sidebar ${drawer ? "open" : ""}`}
+        className={`boosend-sidebar ${drawer ? "drawer-open" : ""}`}
         id="workspace-sidebar"
         onClick={closeOnNavigate}
       >
-        <div className="sidebar-head">
-          <Brand name={branding.brand_name} logo={branding.logo_url} />
+        {/* Top Brand */}
+        <div className="sidebar-brand-row">
+          <Link href={`/w/${workspace.id}/overview`} className="brand-link">
+            <Brand name={branding.brand_name || "Nemio"} logo={branding.logo_url} />
+          </Link>
           <button
-            className="icon-button drawer-close"
+            className="icon-button mobile-close-btn"
             aria-label="Close navigation"
             onClick={() => setDrawer(false)}
           >
             <X size={18} />
           </button>
         </div>
-        <div className="workspace-select">
-          <span className="workspace-avatar">{initials(workspace.name)}</span>
-          <div>
-            <span className="tiny-label">WORKSPACE</span>
-            <select
-              aria-label="Current workspace"
-              value={workspace.id}
-              onChange={(event) =>
-                router.push(`/w/${event.target.value}/${section}`)
-              }
-            >
-              {workspaces.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <ChevronDown size={15} />
-        </div>
-        <MetaAccountSwitcher />
-        <div className="nav-label">WORKSPACE</div>
-        <nav aria-label="Workspace navigation">
-          {PRIMARY.filter((item) => allowed(item.id)).map(link)}
-          {/* Open by default so pinned apps are one click away; members may collapse it. */}
-          <details className="nav-apps" open>
-            <summary className="nav-item">
-              Apps
-              {docked.length > 0 && (
-                <span className="nav-count">{docked.length}</span>
-              )}
-              <ChevronDown size={15} />
-            </summary>
-            {docked.map(link)}
-            {link(APP_STORE)}
-          </details>
-          {tools.length > 0 && (
-            <details
-              className="nav-tools"
-              open={tools.some((item) => item.id === section)}
-            >
-              <summary className="nav-item">
-                Business tools <ChevronDown size={15} />
-              </summary>
-              {tools.map(link)}
-            </details>
-          )}
-        </nav>
-        <div className="sidebar-bottom">
-          <div className="foundation-card">
-            <span className="foundation-icon">
-              <Sparkles size={18} />
-            </span>
-            <strong>Need another home?</strong>
-            <p>Every workspace keeps its own team, channels and data.</p>
-            <button className="text-button" onClick={() => setCreating(true)}>
-              New workspace
-              <Plus size={15} />
-            </button>
-          </div>
-          <Link href={`/w/${workspace.id}/help`} className="nav-item">
-            <CircleHelp size={18} />
-            Getting started
-          </Link>
-          <div className="user-card">
-            <span className="user-avatar">
-              {initials(user.name || user.email)}
-            </span>
-            <div>
-              <strong>{user.name || "Your account"}</strong>
-              <span title={user.email}>{user.email}</span>
-              <span className="user-badges">
-                <span className="role-badge">{workspace.role}</span>
-                {plan && <span className="tier-badge">{plan}</span>}
-              </span>
+
+        {/* 1. Workspace Card */}
+        <div className="workspace-pill-card">
+          <div
+            className="workspace-pill-header"
+            onClick={() => setWorkspaceMenu(!workspaceMenu)}
+          >
+            <div className="workspace-avatar-sq">
+              {initials(workspace.name)}
             </div>
+            {!collapsed && (
+              <div className="workspace-pill-info">
+                <div className="workspace-name-row">
+                  <span className="workspace-title">{workspace.name}</span>
+                  <span className="default-tag">Default</span>
+                </div>
+                <span className="workspace-role">
+                  <ShieldCheck size={12} /> {workspace.role || "Owner"}
+                </span>
+              </div>
+            )}
+            {!collapsed && (
+              <ChevronDown
+                size={14}
+                className={`dropdown-arrow ${workspaceMenu ? "flip" : ""}`}
+              />
+            )}
+          </div>
+
+          {/* Workspace dropdown menu */}
+          {workspaceMenu && (
+            <div className="workspace-dropdown-popover">
+              <span className="popover-heading">WORKSPACES</span>
+              <div className="workspace-items-list">
+                {workspaces.map((item) => (
+                  <button
+                    key={item.id}
+                    className={`workspace-select-item ${item.id === workspace.id ? "current" : ""}`}
+                    onClick={() => {
+                      setWorkspaceMenu(false);
+                      router.push(`/w/${item.id}/${section}`);
+                    }}
+                  >
+                    <span className="item-initials">{initials(item.name)}</span>
+                    <span className="item-name">{item.name}</span>
+                    {item.id === workspace.id && (
+                      <span className="active-dot" />
+                    )}
+                  </button>
+                ))}
+              </div>
+              <button
+                className="add-workspace-btn"
+                onClick={() => {
+                  setWorkspaceMenu(false);
+                  setCreating(true);
+                }}
+              >
+                <Plus size={14} /> New workspace
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 2. Connected Meta Social Account Card */}
+        <div className="social-account-switcher-wrap">
+          <MetaAccountSwitcher />
+        </div>
+
+        {/* 3. Main Navigation List */}
+        <nav className="boosend-nav-menu" aria-label="Workspace navigation">
+          {PRIMARY_NAV.map((item) => renderNavLink(item))}
+
+          {/* Expandable Apps Accordion Group */}
+          <div className="nav-accordion-group">
             <button
-              className="icon-button"
+              type="button"
+              className={`boosend-nav-link accordion-header ${appsOpen ? "open" : ""}`}
+              onClick={() => setAppsOpen(!appsOpen)}
+            >
+              <span className="nav-icon-wrap">
+                <Layers size={18} />
+              </span>
+              {!collapsed && <span className="nav-label-text">Apps</span>}
+              {!collapsed && (
+                <span className="accordion-arrow">
+                  <ChevronDown size={14} className={appsOpen ? "flip" : ""} />
+                </span>
+              )}
+            </button>
+
+            {appsOpen && !collapsed && (
+              <div className="accordion-children">
+                {docked.map((item) => renderNavLink(item, true))}
+                <Link
+                  href={`/w/${workspace.id}/app-store`}
+                  className={`boosend-nav-link sub-item ${section === "app-store" ? "active" : ""}`}
+                >
+                  <span className="nav-icon-wrap">
+                    <LayoutGrid size={16} />
+                  </span>
+                  <span className="nav-label-text">Browse all apps</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Standalone Quick Channel Connectors */}
+          {DIRECT_CHANNELS.map((item) => renderNavLink(item))}
+
+          {/* Settings */}
+          {renderNavLink({
+            id: "settings",
+            label: "Settings",
+            icon: Settings,
+          })}
+        </nav>
+
+        {/* 4. Bottom User Profile Card */}
+        <div className="sidebar-bottom-user-wrap">
+          <div className="user-profile-card">
+            <div className="user-avatar-circle">
+              {initials(user.name || user.email)}
+            </div>
+            {!collapsed && (
+              <div className="user-info-text">
+                <div className="user-name-row">
+                  <span className="user-name" title={user.name || user.email}>
+                    {user.name || "My Account"}
+                  </span>
+                  <span className="lifetime-badge">{plan || "Lifetime"}</span>
+                </div>
+                <span className="user-email" title={user.email}>
+                  {user.email}
+                </span>
+              </div>
+            )}
+            <button
+              className="icon-button logout-btn"
               aria-label="Sign out"
               onClick={signOut}
+              title="Sign out"
             >
-              <LogOut size={17} />
+              <LogOut size={16} />
             </button>
           </div>
         </div>
       </aside>
+
+      {/* Mobile Drawer Backdrop */}
       {drawer && (
         <div
           className="drawer-backdrop"
@@ -315,81 +388,85 @@ export function Shell({ children }: { children: ReactNode }) {
           onClick={() => setDrawer(false)}
         />
       )}
-      <div className="main-shell">
-        <header className="topbar">
+
+      {/* Main Canvas Shell */}
+      <div className="main-content-canvas">
+        {/* Top Header Bar */}
+        <header className="canvas-topbar">
           <button
-            className="icon-button drawer-toggle"
+            className="icon-button mobile-drawer-toggle"
             aria-label="Open navigation"
-            aria-expanded={drawer}
-            aria-controls="workspace-sidebar"
             onClick={() => setDrawer(true)}
           >
-            <Menu size={18} />
+            <Menu size={20} />
           </button>
-          <div>
-            {workspace.name} <span>/</span>{" "}
-            <strong>{sectionLabel(section)}</strong>
-          </div>
-          {workspace.parent && (
-            <span
-              className="private-badge"
-              style={{
-                borderColor: "rgba(59, 130, 246, 0.35)",
-                color: "#93c5fd",
-                backgroundColor: "rgba(59, 130, 246, 0.08)",
-              }}
-            >
-              Agency Managed
+          <div className="breadcrumb-nav">
+            <span className="workspace-crumb">{workspace.name}</span>
+            <ChevronRight size={14} className="crumb-separator" />
+            <span className="section-crumb">
+              {section.charAt(0).toUpperCase() + section.slice(1)}
             </span>
-          )}
-          <span className="private-badge">
-            <ShieldCheck size={14} /> {workspace.role}
-          </span>
-          <button
-            className="icon-button mobile-signout"
-            aria-label="Sign out on mobile"
-            onClick={signOut}
-          >
-            <LogOut size={17} />
-          </button>
+          </div>
+          <div className="topbar-actions">
+            {workspace.parent && (
+              <span className="badge-agency">Agency Managed</span>
+            )}
+            <span className="badge-role">
+              <ShieldCheck size={13} /> {workspace.role}
+            </span>
+          </div>
         </header>
-        <main className="main-content">
-          <VerifyBanner user={user} />
-          <Announcements workspaceId={workspace.id} page={section} />
-          <ErrorNotice error={error} />
-          {children}
-        </main>
-        <UpgradePrompt
-          prefix={`/api/workspaces/${workspace.id}`}
-          agencyManaged={Boolean(workspace.parent)}
-        />
-        {!branding.hide_platform_branding && (
-          <footer className="app-footer">
-            <span>Made for more meaningful conversations.</span>
-            <span>Nemio</span>
-          </footer>
-        )}
+
+        {/* Page Content Body */}
+        <main className="canvas-body">{children}</main>
       </div>
+
+      {/* Create Workspace Modal */}
       {creating && (
-        <div className="modal-backdrop">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="new-workspace-title"
-            className="modal"
+        <div className="modal-backdrop" onClick={() => setCreating(false)}>
+          <div
+            className="modal-card-box"
+            onClick={(event) => event.stopPropagation()}
           >
-            <button
-              className="icon-button close-modal"
-              aria-label="Close dialog"
-              onClick={() => setCreating(false)}
-            >
-              <X size={20} />
-            </button>
-            <h2 id="new-workspace-title">Create a workspace</h2>
-            <p>Each workspace keeps its team and data separate.</p>
+            <div className="modal-header-row">
+              <h3>Create new workspace</h3>
+              <button
+                className="icon-button"
+                onClick={() => setCreating(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
             <ErrorNotice error={error} />
-            <WorkspaceForm create={create} busy={busy} />
-          </section>
+            <form onSubmit={createWorkspace} className="stacked-form">
+              <label>
+                <span>Workspace name</span>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="e.g. Acme Marketing"
+                  required
+                  autoFocus
+                />
+              </label>
+              <div className="modal-actions-row">
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() => setCreating(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="button primary"
+                  disabled={busy}
+                >
+                  {busy ? "Creating…" : "Create workspace"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
@@ -404,20 +481,19 @@ export function WorkspaceForm({
   busy: boolean;
 }) {
   return (
-    <form onSubmit={create}>
+    <form onSubmit={create} className="stacked-form">
       <label>
-        Workspace name
+        <span>Workspace name</span>
         <input
           name="name"
-          placeholder="e.g. Acme Studio"
-          maxLength={100}
+          maxLength={80}
+          placeholder="e.g. Acme Marketing"
           required
           autoFocus
         />
       </label>
       <button className="button primary" disabled={busy}>
         {busy ? "Creating…" : "Create workspace"}
-        <Plus size={16} />
       </button>
     </form>
   );

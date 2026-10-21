@@ -170,6 +170,9 @@ export type Automation = {
   published: Partial<FlowGraph>;
   revision: number;
   enabled: boolean;
+  status?: string;
+  runs_count?: number;
+  leads_count?: number;
   updated_at: string;
   installed_from: string | null;
   folder: string;

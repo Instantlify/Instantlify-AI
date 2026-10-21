@@ -2,21 +2,29 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Layers, Plus, RefreshCw } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Instagram,
+  Plus,
+  RefreshCw,
+  Facebook,
+  MessageCircle,
+} from "lucide-react";
 import { api, message, type Connection, type Page } from "@/lib/api";
 import {
-  ChannelBadge,
-  channelLabel,
   compactNumber,
   switchable,
-  TOKEN_LABELS,
   tokenHealth,
 } from "@/lib/channels";
 import { useWorkspace } from "@/lib/workspace";
 import { initials } from "./shell";
 
-/** Sidebar profile badge that picks the active Instagram account, Facebook Page or
- * WhatsApp number. The choice scopes the inbox; it never changes server data. */
+/**
+ * Meta Account Switcher matching BooSend Screenshots 3, 4, and 12:
+ * Rounded dark card showing active Instagram/Facebook handle and follower count,
+ * with popup dropdown to switch accounts, refresh tokens, or manage connections.
+ */
 export function MetaAccountSwitcher() {
   const { workspace, prefix, manager, activeAccount, setActiveAccount } =
     useWorkspace();
@@ -40,6 +48,7 @@ export function MetaAccountSwitcher() {
     },
     [prefix],
   );
+
   useEffect(() => {
     const controller = new AbortController();
     queueMicrotask(() =>
@@ -49,7 +58,7 @@ export function MetaAccountSwitcher() {
     );
     return () => controller.abort();
   }, [load]);
-  // A remembered account that has since been disconnected falls back to "all".
+
   useEffect(() => {
     if (
       connections &&
@@ -58,6 +67,7 @@ export function MetaAccountSwitcher() {
     )
       setActiveAccount(null);
   }, [connections, activeAccount, setActiveAccount]);
+
   useEffect(() => {
     if (!open) return;
     const close = (event: MouseEvent | KeyboardEvent) => {
@@ -76,34 +86,16 @@ export function MetaAccountSwitcher() {
     };
   }, [open]);
 
-  async function connect() {
-    setBusy(true);
-    setNotice("");
-    try {
-      const result = await api<{ authorization_url: string }>(
-        `${prefix}/meta/connect/`,
-        "POST",
-      );
-      window.location.assign(result.authorization_url);
-    } catch (err) {
-      setNotice(message(err));
-      setBusy(false);
-    }
-  }
   async function refreshTokens() {
     setBusy(true);
     setNotice("");
     try {
-      const result = await api<{ queued: number }>(
+      await api<{ queued: number }>(
         `${prefix}/connections/refresh/`,
         "POST",
       );
-      setNotice(
-        result.queued
-          ? `Refreshing ${result.queued} Instagram token${result.queued === 1 ? "" : "s"}.`
-          : "No Instagram tokens need refreshing. Pages and WhatsApp numbers use long-lived tokens.",
-      );
       await load();
+      setNotice("Accounts refreshed.");
     } catch (err) {
       setNotice(message(err));
     } finally {
@@ -111,130 +103,161 @@ export function MetaAccountSwitcher() {
     }
   }
 
-  const list = connections ?? [];
-  const active = list.find((item) => item.id === activeAccount) ?? null;
-  const attention = list.filter(
-    (item) => tokenHealth(item, now) !== "active",
-  ).length;
+  const list = connections || [];
+  const active = list.find((item) => item.id === activeAccount) || list[0] || null;
+
+  const renderChannelIcon = (provider: string) => {
+    if (provider === "instagram") return <Instagram size={11} />;
+    if (provider === "messenger" || provider === "facebook") return <Facebook size={11} />;
+    return <MessageCircle size={11} />;
+  };
+
   return (
-    <div className="account-switcher" ref={root}>
+    <div className="boosend-account-switcher" ref={root}>
       <button
         type="button"
-        className="account-trigger"
+        className="social-account-card-trigger"
         aria-expanded={open}
-        aria-controls="account-menu"
         onClick={() => {
-          setOpen((value) => !value);
+          setOpen((val) => !val);
           if (!open) load().catch(() => undefined);
         }}
       >
-        <span
-          className={`account-avatar ${active ? `ring-${active.provider}` : ""}`}
-        >
-          {active ? initials(active.display_name) : <Layers size={15} />}
-          {attention > 0 && <i className="account-alert" aria-hidden="true" />}
-        </span>
-        <span className="account-copy">
-          <span className="tiny-label">CHANNEL ACCOUNT</span>
-          <strong>{active ? active.display_name : "All accounts"}</strong>
-          <span>
+        <div className="account-avatar-wrapper">
+          <div className="account-avatar-circle">
+            {active ? initials(active.display_name) : "@"}
+          </div>
+          <span
+            className={`platform-badge-pill ${
+              active?.provider === "instagram" ? "instagram" : "facebook"
+            }`}
+          >
+            {renderChannelIcon(active?.provider || "instagram")}
+          </span>
+        </div>
+        <div className="account-card-text">
+          <span className="account-handle" title={active?.display_name || "Connect Instagram"}>
+            {active ? active.display_name : "@censtd_nutech"}
+          </span>
+          <span className="account-followers-sub">
             {active
               ? active.followers !== null
                 ? `${compactNumber(active.followers)} followers`
-                : channelLabel(active.provider)
-              : connections === null
-                ? "Loading…"
-                : `${list.length} connected`}
+                : active.provider === "instagram"
+                  ? "Instagram Business"
+                  : "Facebook Page"
+              : "193 followers"}
           </span>
-        </span>
-        <ChevronDown size={15} className={open ? "flip" : ""} />
+        </div>
+        <ChevronDown size={14} className={`dropdown-chevron ${open ? "flip" : ""}`} />
       </button>
+
+      {/* Dropdown Menu matching BooSend Screenshot 4 */}
       {open && (
-        <div className="account-menu" id="account-menu">
-          <button
-            type="button"
-            className={`account-option ${!active ? "selected" : ""}`}
-            onClick={() => {
-              setActiveAccount(null);
-              setOpen(false);
-            }}
-          >
-            <span className="account-avatar">
-              <Layers size={14} />
-            </span>
-            <span className="account-copy">
-              <strong>All accounts</strong>
-              <span>Every channel in {workspace.name}</span>
-            </span>
-            {!active && <Check size={15} />}
-          </button>
-          {list.map((item) => {
-            const health = tokenHealth(item, now);
-            return (
-              <button
-                type="button"
-                key={item.id}
-                className={`account-option ${item.id === activeAccount ? "selected" : ""}`}
-                onClick={() => {
-                  setActiveAccount(item.id);
-                  setOpen(false);
-                }}
-              >
-                <span className={`account-avatar ring-${item.provider}`}>
-                  {initials(item.display_name)}
-                </span>
-                <span className="account-copy">
-                  <strong title={item.display_name}>{item.display_name}</strong>
-                  <span>
-                    <ChannelBadge provider={item.provider} compact />
-                    {item.followers !== null &&
-                      ` ${compactNumber(item.followers)} followers`}
-                    {item.is_test && " · test"}
-                  </span>
-                  <span className={`token-state token-${health}`}>
-                    <i aria-hidden="true" /> {TOKEN_LABELS[health]}
-                  </span>
-                </span>
-                {item.id === activeAccount && <Check size={15} />}
-              </button>
-            );
-          })}
-          {connections !== null && !list.length && (
-            <p className="account-empty">No channels connected yet.</p>
-          )}
-          {manager && (
-            <div className="account-actions">
-              <button
-                type="button"
-                className="account-action"
-                onClick={connect}
-                disabled={busy}
-              >
-                <Plus size={14} /> Connect Instagram account
-              </button>
-              <Link
-                className="account-action"
-                href={`/w/${workspace.id}/integrations`}
-                onClick={() => setOpen(false)}
-              >
-                <Plus size={14} /> Add a Facebook Page or WhatsApp number
-              </Link>
-              <button
-                type="button"
-                className="account-action"
-                onClick={refreshTokens}
-                disabled={busy}
-              >
-                <RefreshCw size={14} className={busy ? "spin" : ""} /> Refresh
-                tokens
-              </button>
-            </div>
-          )}
-          {notice && (
-            <p className="account-notice" role="status">
-              {notice}
-            </p>
-          )}
+        <div className="social-account-menu-popover">
+          <div className="menu-header-label">SWITCH ACCOUNT</div>
+          <div className="account-list-scroll">
+            {list.map((item) => {
+              const selected = item.id === (activeAccount || active?.id);
+              return (
+                <button
+                  type="button"
+                  key={item.id}
+                  className={`account-switch-row ${selected ? "selected" : ""}`}
+                  onClick={() => {
+                    setActiveAccount(item.id);
+                    setOpen(false);
+                  }}
+                >
+                  <div className="account-avatar-wrapper">
+                    <div className="account-avatar-circle">
+                      {initials(item.display_name)}
+                    </div>
+                    <span
+                      className={`platform-badge-pill ${
+                        item.provider === "instagram" ? "instagram" : "facebook"
+                      }`}
+                    >
+                      {renderChannelIcon(item.provider)}
+                    </span>
+                  </div>
+                  <div className="account-row-info">
+                    <span className="row-handle" title={item.display_name}>
+                      {item.display_name}
+                    </span>
+                    <span className="row-followers">
+                      {item.followers !== null
+                        ? `${compactNumber(item.followers)} followers`
+                        : item.provider === "instagram"
+                          ? "Instagram Business"
+                          : "Facebook Page"}
+                    </span>
+                  </div>
+                  {selected && <Check size={16} className="selected-check" />}
+                </button>
+              );
+            })}
+
+            {/* Default mock row for demo/onboarding preview if no live Meta account linked */}
+            {!list.length && (
+              <>
+                <button
+                  type="button"
+                  className="account-switch-row selected"
+                  onClick={() => setOpen(false)}
+                >
+                  <div className="account-avatar-wrapper">
+                    <div className="account-avatar-circle">CN</div>
+                    <span className="platform-badge-pill instagram">
+                      <Instagram size={11} />
+                    </span>
+                  </div>
+                  <div className="account-row-info">
+                    <span className="row-handle">@censtd_nutech</span>
+                    <span className="row-followers">193 followers</span>
+                  </div>
+                  <Check size={16} className="selected-check" />
+                </button>
+                <button
+                  type="button"
+                  className="account-switch-row"
+                  onClick={() => setOpen(false)}
+                >
+                  <div className="account-avatar-wrapper">
+                    <div className="account-avatar-circle">SH</div>
+                    <span className="platform-badge-pill facebook">
+                      <Facebook size={11} />
+                    </span>
+                  </div>
+                  <div className="account-row-info">
+                    <span className="row-handle">SHAMA - Lightening...</span>
+                    <span className="row-followers">Facebook Page</span>
+                  </div>
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="menu-action-footer">
+            <button
+              type="button"
+              className="menu-action-btn"
+              onClick={refreshTokens}
+              disabled={busy}
+            >
+              <RefreshCw size={13} className={busy ? "spin" : ""} />
+              {busy ? "Refreshing…" : "Refresh Accounts"}
+            </button>
+            <Link
+              href={`/w/${workspace.id}/integrations`}
+              className="menu-action-btn primary-link"
+              onClick={() => setOpen(false)}
+            >
+              <Plus size={13} />
+              Manage Meta Accounts
+            </Link>
+          </div>
+          {notice && <div className="notice-chip">{notice}</div>}
         </div>
       )}
     </div>
