@@ -5006,5 +5006,330 @@
   text-align: center;
 }
 
+/* Channel Warning Notice Box (Screenshots 2 & 3) */
+.channel-warning-notice-box {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+/* Facebook Page Dropdown (Screenshot 4) */
+.fb-page-dropdown-container {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.fb-page-select-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.custom-select-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 10px;
+}
+
+.custom-select-box:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.native-page-select {
+  width: 100%;
+  padding: 8px 24px 8px 4px;
+  border: none;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0f172a;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.select-dropdown-chevron {
+  position: absolute;
+  right: 12px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+/* Opening Message Toggle Header (Screenshot 5) */
+.opening-msg-header {
+  border-top: none;
+  padding-top: 0;
+  margin-bottom: 4px;
+}
+
+/* STEP 6: NEXT STEPS CARDS (Screenshot 1) */
+.next-steps-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.next-step-feature-card {
+  border: 1px solid #bfdbfe;
+  background: #fcfdff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  transition: all 0.15s ease;
+}
+
+.next-step-feature-card:hover {
+  border-color: #93c5fd;
+}
+
+.next-step-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.next-step-card-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.next-step-card-sub {
+  font-size: 11.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.next-step-card-field-row {
+  margin-top: 12px;
+}
+
+.next-step-notice-text {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   MULTI-PLATFORM PHONE MOCKUP STYLING
+   ========================================================================== */
+
+/* Watermark when empty */
+.phone-empty-watermark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  margin: auto 20px;
+  color: #94a3b8;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.watermark-icon {
+  opacity: 0.4;
+}
+
+/* --- TELEGRAM MOCKUP (Screenshot 2) --- */
+.chat-avatar-badge.telegram {
+  background: #2aabee;
+  padding: 4px;
+}
+
+.telegram-bg {
+  background: #f4f6f8;
+}
+
+.telegram-bot-bubble {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.telegram-inline-btn {
+  background: #f0f4f8;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2aabee;
+  cursor: pointer;
+  text-align: center;
+}
+
+.telegram-pill {
+  background: #2aabee;
+}
+
+.telegram-bar {
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.tg-icon {
+  color: #94a3b8;
+}
+
+.tg-mic-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #2aabee;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* --- WHATSAPP MOCKUP (Screenshot 3) --- */
+.whatsapp-header {
+  background: #008069 !important;
+  color: #ffffff !important;
+}
+
+.chat-back-arrow.white,
+.chat-username.white,
+.chat-active-status.white,
+.chat-act-icon.white {
+  color: #ffffff !important;
+}
+
+.chat-avatar-badge.whatsapp {
+  background: #25d366;
+  padding: 4px;
+}
+
+.whatsapp-bg {
+  background: #efeae2;
+  background-image: radial-gradient(#d1d7db 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.whatsapp-bot-bubble {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 8px 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.whatsapp-action-btn {
+  background: #f0f2f5;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #008069;
+  cursor: pointer;
+}
+
+.whatsapp-pill {
+  background: #d9fdd3;
+  color: #111b21 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.whatsapp-bar {
+  background: #f0f2f5;
+  border-top: 1px solid #e2e8f0;
+}
+
+.wa-icon {
+  color: #54656f;
+}
+
+.wa-mic-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #00a884;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* --- FACEBOOK MESSENGER MOCKUP (Screenshots 4 & 5) --- */
+.chat-avatar-badge.facebook {
+  background: #1877f2;
+  padding: 4px;
+}
+
+.chat-act-icon.fb-blue {
+  color: #0084ff !important;
+}
+
+.fb-bot-bubble {
+  background: #f0f2f5;
+  border-radius: 16px;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fb-interactive-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0084ff;
+  cursor: pointer;
+  text-align: center;
+}
+
+.fb-interactive-btn:hover {
+  background: #f8fafc;
+}
+
+.fb-pill {
+  background: #0084ff !important;
+  color: #ffffff !important;
+  border-radius: 18px;
+}
+
+.fb-bar {
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.fb-input-icon {
+  color: #0084ff;
+}
+
+.fb-input-wrap {
+  border-radius: 18px;
+  background: #f0f2f5;
+  color: #65676b;
+}
+
 
 

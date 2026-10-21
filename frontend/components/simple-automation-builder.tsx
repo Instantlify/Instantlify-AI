@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Camera,
   Check,
+  ChevronDown,
   ChevronRight,
   Clock,
   ExternalLink,
@@ -19,13 +20,18 @@ import {
   MessageCircle,
   MessageSquare,
   Mic,
+  MoreVertical,
+  Paperclip,
   Pencil,
   Phone,
   Plus,
   Radio,
   Send,
+  Smile,
   Sparkles,
   Smartphone,
+  Tag,
+  UserCheck,
   Video,
   X,
   Zap,
@@ -41,7 +47,13 @@ interface SimpleAutomationBuilderProps {
 
 type Platform = "instagram" | "telegram" | "whatsapp" | "facebook";
 
-type TriggerType = "comment" | "story_reply" | "dm";
+type TriggerType =
+  | "comment"
+  | "story_reply"
+  | "dm"
+  | "telegram_bot_message"
+  | "whatsapp_number_message"
+  | "fb_page_message";
 
 type CommentScope = "specific" | "any" | "next";
 
@@ -73,18 +85,20 @@ export function SimpleAutomationBuilder({
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
 
   // Step 1: Platform
-  const [platform, setPlatform] = useState<Platform | null>("instagram");
+  const [platform, setPlatform] = useState<Platform>("instagram");
 
-  // Step 2: Trigger
+  // Step 2: Trigger per platform
   const [triggerType, setTriggerType] = useState<TriggerType>("story_reply");
   const [commentScope, setCommentScope] = useState<CommentScope>("specific");
   const [selectedPostId, setSelectedPostId] = useState<string>("p1");
+  const [selectedFbPage, setSelectedFbPage] = useState("SHAMA - Lightening The Path For Youth");
 
   // Step 3: Trigger Keywords
   const [keywordOption, setKeywordOption] = useState<KeywordOption>("any");
   const [specificKeywords, setSpecificKeywords] = useState("LINK, PRICE, INFO");
 
   // Step 4: Messages / Opening DM
+  const [sendOpeningMessage, setSendOpeningMessage] = useState(true);
   const [openingMessage, setOpeningMessage] = useState(
     "Hey! So happy you're here 😊\n\nTap below and I'll send you the link in just a sec ✨"
   );
@@ -98,6 +112,33 @@ export function SimpleAutomationBuilder({
   const [linkUrl, setLinkUrl] = useState("https://boosend.ai");
   const [followUp, setFollowUp] = useState(false);
 
+  // Step 6: Next steps (behind the scenes)
+  const [addTagEnabled, setAddTagEnabled] = useState(true);
+  const [selectedTag, setSelectedTag] = useState("lead-magnet");
+  const [assignTeamEnabled, setAssignTeamEnabled] = useState(true);
+  const [selectedTeamMember, setSelectedTeamMember] = useState("Jawad (Owner)");
+  const [transferAutomationEnabled, setTransferAutomationEnabled] = useState(true);
+
+  // When platform changes, set default sensible trigger
+  const handlePlatformChange = (p: Platform) => {
+    setPlatform(p);
+    if (p === "instagram") {
+      setTriggerType("story_reply");
+    } else if (p === "telegram") {
+      setTriggerType("telegram_bot_message");
+    } else if (p === "whatsapp") {
+      setTriggerType("whatsapp_number_message");
+    } else if (p === "facebook") {
+      setTriggerType("fb_page_message");
+    }
+  };
+
+  // Determine trigger wording in Step 3
+  const isCommentTrigger = triggerType === "comment";
+  const isStoryTrigger = triggerType === "story_reply";
+  const triggerMediumWord = isStoryTrigger ? "reply" : isCommentTrigger ? "comment" : "message";
+  const triggerMediumPlural = isStoryTrigger ? "replys" : isCommentTrigger ? "comments" : "messages";
+
   // Saving handler
   const handleSave = async (forceActive?: boolean) => {
     setSaving(true);
@@ -108,7 +149,7 @@ export function SimpleAutomationBuilder({
       name: automationName || "My automation",
       status: active ? "active" : "draft",
       trigger: {
-        kind: triggerType === "comment" ? "comment" : triggerType === "story_reply" ? "story_reply" : "keyword",
+        kind: triggerType,
         keyword: keywordOption === "specific" ? specificKeywords.split(",")[0]?.trim() || "LINK" : "*",
         channel: platform || "instagram",
       },
@@ -301,7 +342,7 @@ export function SimpleAutomationBuilder({
                   <button
                     type="button"
                     className={`platform-select-card ${platform === "instagram" ? "selected" : ""}`}
-                    onClick={() => setPlatform("instagram")}
+                    onClick={() => handlePlatformChange("instagram")}
                   >
                     <div className="platform-card-icon-box instagram">
                       <Instagram size={28} />
@@ -313,7 +354,7 @@ export function SimpleAutomationBuilder({
                   <button
                     type="button"
                     className={`platform-select-card ${platform === "telegram" ? "selected" : ""}`}
-                    onClick={() => setPlatform("telegram")}
+                    onClick={() => handlePlatformChange("telegram")}
                   >
                     <div className="platform-card-icon-box telegram">
                       <Send size={24} />
@@ -325,7 +366,7 @@ export function SimpleAutomationBuilder({
                   <button
                     type="button"
                     className={`platform-select-card ${platform === "whatsapp" ? "selected" : ""}`}
-                    onClick={() => setPlatform("whatsapp")}
+                    onClick={() => handlePlatformChange("whatsapp")}
                   >
                     <div className="platform-card-icon-box whatsapp">
                       <MessageCircle size={26} />
@@ -337,7 +378,7 @@ export function SimpleAutomationBuilder({
                   <button
                     type="button"
                     className={`platform-select-card ${platform === "facebook" ? "selected" : ""}`}
-                    onClick={() => setPlatform("facebook")}
+                    onClick={() => handlePlatformChange("facebook")}
                   >
                     <div className="platform-card-icon-box facebook">
                       <Facebook size={26} />
@@ -348,10 +389,10 @@ export function SimpleAutomationBuilder({
               </div>
             </div>
 
-            {/* STEP 2: How should this be triggered? */}
-            <div className={`stepper-step-item ${!platform ? "disabled-step" : ""}`}>
+            {/* STEP 2: How should this be triggered? (Tailored per platform) */}
+            <div className="stepper-step-item">
               <div className="step-badge-col">
-                <div className={`step-number-circle ${triggerType ? "completed" : "active"}`}>2</div>
+                <div className="step-number-circle completed">2</div>
                 <div className="step-connecting-line" />
               </div>
 
@@ -359,124 +400,217 @@ export function SimpleAutomationBuilder({
                 <h2 className="step-card-title">How should this be triggered?</h2>
                 <p className="step-card-subtitle">Pick what kicks off the automation.</p>
 
-                <div className="trigger-options-list">
-                  {/* Option 1: Comments on a post */}
-                  <div
-                    className={`trigger-option-card ${triggerType === "comment" ? "selected" : ""}`}
-                    onClick={() => setTriggerType("comment")}
-                  >
-                    <div className="trigger-radio-row">
-                      <span className={`custom-radio-circle ${triggerType === "comment" ? "checked" : ""}`} />
-                      <div>
-                        <div className="trigger-option-name">When someone comments on a post</div>
-                        <div className="trigger-option-desc">Watch a specific post or every post for new comments.</div>
-                      </div>
-                    </div>
-
-                    {/* Sub-selector when "comment" is selected */}
-                    {triggerType === "comment" && (
-                      <div className="comment-subselector-box" onClick={(e) => e.stopPropagation()}>
-                        <div className="comment-scope-tabs">
-                          <button
-                            type="button"
-                            className={`scope-tab-button ${commentScope === "specific" ? "active" : ""}`}
-                            onClick={() => setCommentScope("specific")}
-                          >
-                            <span className="tab-title">A specific post</span>
-                            <span className="tab-sub">Only comments on posts you choose.</span>
-                          </button>
-                          <button
-                            type="button"
-                            className={`scope-tab-button ${commentScope === "any" ? "active" : ""}`}
-                            onClick={() => setCommentScope("any")}
-                          >
-                            <span className="tab-title">Any post</span>
-                            <span className="tab-sub">Comments on every post you publish.</span>
-                          </button>
-                          <button
-                            type="button"
-                            className={`scope-tab-button ${commentScope === "next" ? "active" : ""}`}
-                            onClick={() => setCommentScope("next")}
-                          >
-                            <span className="tab-title">Next post</span>
-                            <span className="tab-sub">Your next post (Meta can take 5–10 min to register it).</span>
-                          </button>
+                {/* PLATFORM: INSTAGRAM */}
+                {platform === "instagram" && (
+                  <div className="trigger-options-list">
+                    {/* IG Option 1: Comments on a post */}
+                    <div
+                      className={`trigger-option-card ${triggerType === "comment" ? "selected" : ""}`}
+                      onClick={() => setTriggerType("comment")}
+                    >
+                      <div className="trigger-radio-row">
+                        <span className={`custom-radio-circle ${triggerType === "comment" ? "checked" : ""}`} />
+                        <div>
+                          <div className="trigger-option-name">When someone comments on a post</div>
+                          <div className="trigger-option-desc">Watch a specific post or every post for new comments.</div>
                         </div>
+                      </div>
 
-                        {/* Specific Post Selector Grid */}
-                        {commentScope === "specific" && (
-                          <div className="posts-picker-wrapper">
-                            <div className="posts-thumbnails-grid">
-                              {SAMPLE_POSTS.map((post) => (
-                                <button
-                                  type="button"
-                                  key={post.id}
-                                  className={`post-thumb-card bg-gradient-to-br ${post.color} ${selectedPostId === post.id ? "selected-post" : ""}`}
-                                  onClick={() => setSelectedPostId(post.id)}
-                                >
-                                  <div className="post-thumb-overlay">
-                                    <span className="post-metric">
-                                      <Heart size={11} fill="white" /> {post.likes}
-                                    </span>
-                                    <span className="post-metric">
-                                      <MessageSquare size={11} fill="white" /> {post.comments}
-                                    </span>
-                                  </div>
-                                  <div className="post-inner-label">{post.tag}</div>
-                                </button>
-                              ))}
-                            </div>
-                            <div className="posts-picker-footer">
-                              <span>Tap a post to select it.</span>
-                              <button type="button" className="load-more-link">Load more</button>
-                            </div>
+                      {triggerType === "comment" && (
+                        <div className="comment-subselector-box" onClick={(e) => e.stopPropagation()}>
+                          <div className="comment-scope-tabs">
+                            <button
+                              type="button"
+                              className={`scope-tab-button ${commentScope === "specific" ? "active" : ""}`}
+                              onClick={() => setCommentScope("specific")}
+                            >
+                              <span className="tab-title">A specific post</span>
+                              <span className="tab-sub">Only comments on posts you choose.</span>
+                            </button>
+                            <button
+                              type="button"
+                              className={`scope-tab-button ${commentScope === "any" ? "active" : ""}`}
+                              onClick={() => setCommentScope("any")}
+                            >
+                              <span className="tab-title">Any post</span>
+                              <span className="tab-sub">Comments on every post you publish.</span>
+                            </button>
+                            <button
+                              type="button"
+                              className={`scope-tab-button ${commentScope === "next" ? "active" : ""}`}
+                              onClick={() => setCommentScope("next")}
+                            >
+                              <span className="tab-title">Next post</span>
+                              <span className="tab-sub">Your next post (Meta can take 5–10 min to register it).</span>
+                            </button>
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Option 2: When someone replies to your story */}
-                  <div
-                    className={`trigger-option-card ${triggerType === "story_reply" ? "selected" : ""}`}
-                    onClick={() => setTriggerType("story_reply")}
-                  >
-                    <div className="trigger-radio-row">
-                      <span className={`custom-radio-circle ${triggerType === "story_reply" ? "checked" : ""}`} />
-                      <div>
-                        <div className="trigger-option-name">When someone replies to your story</div>
-                        <div className="trigger-option-desc">React to replies people send on your stories.</div>
+                          {commentScope === "specific" && (
+                            <div className="posts-picker-wrapper">
+                              <div className="posts-thumbnails-grid">
+                                {SAMPLE_POSTS.map((post) => (
+                                  <button
+                                    type="button"
+                                    key={post.id}
+                                    className={`post-thumb-card bg-gradient-to-br ${post.color} ${selectedPostId === post.id ? "selected-post" : ""}`}
+                                    onClick={() => setSelectedPostId(post.id)}
+                                  >
+                                    <div className="post-thumb-overlay">
+                                      <span className="post-metric">
+                                        <Heart size={11} fill="white" /> {post.likes}
+                                      </span>
+                                      <span className="post-metric">
+                                        <MessageSquare size={11} fill="white" /> {post.comments}
+                                      </span>
+                                    </div>
+                                    <div className="post-inner-label">{post.tag}</div>
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="posts-picker-footer">
+                                <span>Tap a post to select it.</span>
+                                <button type="button" className="load-more-link">Load more</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* IG Option 2: When someone replies to your story */}
+                    <div
+                      className={`trigger-option-card ${triggerType === "story_reply" ? "selected" : ""}`}
+                      onClick={() => setTriggerType("story_reply")}
+                    >
+                      <div className="trigger-radio-row">
+                        <span className={`custom-radio-circle ${triggerType === "story_reply" ? "checked" : ""}`} />
+                        <div>
+                          <div className="trigger-option-name">When someone replies to your story</div>
+                          <div className="trigger-option-desc">React to replies people send on your stories.</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* IG Option 3: When someone sends a message */}
+                    <div
+                      className={`trigger-option-card ${triggerType === "dm" ? "selected" : ""}`}
+                      onClick={() => setTriggerType("dm")}
+                    >
+                      <div className="trigger-radio-row">
+                        <span className={`custom-radio-circle ${triggerType === "dm" ? "checked" : ""}`} />
+                        <div>
+                          <div className="trigger-option-name">When someone sends a message</div>
+                          <div className="trigger-option-desc">Respond to any direct message that lands in your inbox.</div>
+                        </div>
                       </div>
                     </div>
                   </div>
+                )}
 
-                  {/* Option 3: When someone sends a message */}
-                  <div
-                    className={`trigger-option-card ${triggerType === "dm" ? "selected" : ""}`}
-                    onClick={() => setTriggerType("dm")}
-                  >
-                    <div className="trigger-radio-row">
-                      <span className={`custom-radio-circle ${triggerType === "dm" ? "checked" : ""}`} />
-                      <div>
-                        <div className="trigger-option-name">When someone sends a message</div>
-                        <div className="trigger-option-desc">Respond to any direct message that lands in your inbox.</div>
+                {/* PLATFORM: TELEGRAM (Screenshot 2) */}
+                {platform === "telegram" && (
+                  <div className="trigger-options-list">
+                    <div className="trigger-option-card selected">
+                      <div className="trigger-radio-row">
+                        <span className="custom-radio-circle checked" />
+                        <div>
+                          <div className="trigger-option-name">When someone messages your bot</div>
+                          <div className="trigger-option-desc">Run whenever a person sends your Telegram bot a message.</div>
+                        </div>
+                      </div>
+
+                      <div className="channel-warning-notice-box">
+                        No Telegram bots connected yet. Connect a bot first, then come back.
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
+
+                {/* PLATFORM: WHATSAPP (Screenshot 3) */}
+                {platform === "whatsapp" && (
+                  <div className="trigger-options-list">
+                    <div className="trigger-option-card selected">
+                      <div className="trigger-radio-row">
+                        <span className="custom-radio-circle checked" />
+                        <div>
+                          <div className="trigger-option-name">When someone messages your number</div>
+                          <div className="trigger-option-desc">Run whenever a person messages your WhatsApp business number.</div>
+                        </div>
+                      </div>
+
+                      <div className="channel-warning-notice-box">
+                        No WhatsApp numbers connected yet. Connect a number first, then come back.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* PLATFORM: FACEBOOK (Screenshot 4) */}
+                {platform === "facebook" && (
+                  <div className="trigger-options-list">
+                    {/* FB Option 1: When someone messages your Page */}
+                    <div
+                      className={`trigger-option-card ${triggerType === "fb_page_message" ? "selected" : ""}`}
+                      onClick={() => setTriggerType("fb_page_message")}
+                    >
+                      <div className="trigger-radio-row">
+                        <span className={`custom-radio-circle ${triggerType === "fb_page_message" ? "checked" : ""}`} />
+                        <div style={{ flex: 1 }}>
+                          <div className="trigger-option-name">When someone messages your Page</div>
+                          <div className="trigger-option-desc">Run whenever a person sends your Facebook Page a message.</div>
+
+                          {triggerType === "fb_page_message" && (
+                            <div className="fb-page-dropdown-container" onClick={(e) => e.stopPropagation()}>
+                              <label className="fb-page-select-label">Which Page should this connect to?</label>
+                              <div className="custom-select-box">
+                                <select
+                                  value={selectedFbPage}
+                                  onChange={(e) => setSelectedFbPage(e.target.value)}
+                                  className="native-page-select"
+                                >
+                                  <option value="SHAMA - Lightening The Path For Youth">
+                                    SHAMA - Lightening The Path For Youth
+                                  </option>
+                                  <option value="Nemio Official Community">Nemio Official Community</option>
+                                </select>
+                                <ChevronDown size={15} className="select-dropdown-chevron" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* FB Option 2: Comments on a post */}
+                    <div
+                      className={`trigger-option-card ${triggerType === "comment" ? "selected" : ""}`}
+                      onClick={() => setTriggerType("comment")}
+                    >
+                      <div className="trigger-radio-row">
+                        <span className={`custom-radio-circle ${triggerType === "comment" ? "checked" : ""}`} />
+                        <div>
+                          <div className="trigger-option-name">When someone comments on a post</div>
+                          <div className="trigger-option-desc">Watch a specific post or every post on your Page for new comments.</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* STEP 3: Which words should trigger it? */}
             <div className="stepper-step-item">
               <div className="step-badge-col">
-                <div className={`step-number-circle ${keywordOption ? "completed" : "active"}`}>3</div>
+                <div className="step-number-circle completed">3</div>
                 <div className="step-connecting-line" />
               </div>
 
               <div className="step-card-box">
                 <h2 className="step-card-title">Which words should trigger it?</h2>
-                <p className="step-card-subtitle">Decide which replys should kick things off.</p>
+                <p className="step-card-subtitle">
+                  Decide which {triggerMediumPlural} should kick things off.
+                </p>
 
                 <div className="trigger-options-list">
                   {/* Specific word */}
@@ -488,7 +622,9 @@ export function SimpleAutomationBuilder({
                       <span className={`custom-radio-circle ${keywordOption === "specific" ? "checked" : ""}`} />
                       <div style={{ flex: 1 }}>
                         <div className="trigger-option-name">A specific word or words</div>
-                        <div className="trigger-option-desc">Only run when the reply contains one of these.</div>
+                        <div className="trigger-option-desc">
+                          Only run when the {triggerMediumWord} contains one of these.
+                        </div>
                       </div>
                     </div>
 
@@ -515,7 +651,7 @@ export function SimpleAutomationBuilder({
                       <span className={`custom-radio-circle ${keywordOption === "any" ? "checked" : ""}`} />
                       <div>
                         <div className="trigger-option-name">Any word</div>
-                        <div className="trigger-option-desc">Run on every reply.</div>
+                        <div className="trigger-option-desc">Run on every {triggerMediumWord}.</div>
                       </div>
                     </div>
                   </div>
@@ -532,55 +668,75 @@ export function SimpleAutomationBuilder({
 
               <div className="step-card-box">
                 <h2 className="step-card-title">Set up your messages</h2>
-                
-                {/* Opening DM message box */}
+
                 <div className="message-setup-inner-card">
-                  <div className="message-editor-bubble">
-                    <textarea
-                      rows={3}
-                      value={openingMessage}
-                      onChange={(e) => setOpeningMessage(e.target.value)}
-                      placeholder="Type your opening message..."
-                      className="message-bubble-textarea"
-                    />
-
-                    <div className="message-button-input-row">
-                      <label className="button-input-label">Quick Action Button</label>
-                      <input
-                        type="text"
-                        value={openingButtonText}
-                        onChange={(e) => setOpeningButtonText(e.target.value)}
-                        placeholder="Button text"
-                        className="message-button-title-input"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Explainer callout: Why an opening DM? */}
-                  <div className="why-opening-dm-box">
-                    <div className="why-title">Why an opening DM?</div>
-                    <div className="why-body">
-                      If you're messaging a new person on Instagram, you only get one message until they accept.
-                      With an opening DM, you get the chance to talk with every single lead after they get the link.
-                    </div>
-                  </div>
-
-                  {/* Toggle 1: Ask them to follow first */}
-                  <div className="simple-feature-toggle-row">
+                  {/* Send opening message toggle header (Screenshot 5) */}
+                  <div className="simple-feature-toggle-row opening-msg-header">
                     <div>
-                      <div className="toggle-heading">Ask them to follow first</div>
-                      <div className="toggle-sub">Require a follow before they get the link.</div>
+                      <div className="toggle-heading">Send the opening message</div>
+                      <div className="toggle-sub">Send a friendly message to start the interaction.</div>
                     </div>
                     <button
                       type="button"
-                      className={`toggle-switch-pill ${askFollowFirst ? "active" : ""}`}
-                      onClick={() => setAskFollowFirst(!askFollowFirst)}
+                      className={`toggle-switch-pill ${sendOpeningMessage ? "active" : ""}`}
+                      onClick={() => setSendOpeningMessage(!sendOpeningMessage)}
                     >
                       <span className="toggle-switch-thumb" />
                     </button>
                   </div>
 
-                  {/* Toggle 2: Ask for their email */}
+                  {sendOpeningMessage && (
+                    <div className="message-editor-bubble">
+                      <textarea
+                        rows={3}
+                        value={openingMessage}
+                        onChange={(e) => setOpeningMessage(e.target.value)}
+                        placeholder="Type your opening message..."
+                        className="message-bubble-textarea"
+                      />
+
+                      <div className="message-button-input-row">
+                        <label className="button-input-label">Quick Action Button</label>
+                        <input
+                          type="text"
+                          value={openingButtonText}
+                          onChange={(e) => setOpeningButtonText(e.target.value)}
+                          placeholder="Button text"
+                          className="message-button-title-input"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Explainer callout: Why an opening DM? (For IG) */}
+                  {platform === "instagram" && (
+                    <div className="why-opening-dm-box">
+                      <div className="why-title">Why an opening DM?</div>
+                      <div className="why-body">
+                        If you're messaging a new person on Instagram, you only get one message until they accept.
+                        With an opening DM, you get the chance to talk with every single lead after they get the link.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Toggle: Ask them to follow first (IG only) */}
+                  {platform === "instagram" && (
+                    <div className="simple-feature-toggle-row">
+                      <div>
+                        <div className="toggle-heading">Ask them to follow first</div>
+                        <div className="toggle-sub">Require a follow before they get the link.</div>
+                      </div>
+                      <button
+                        type="button"
+                        className={`toggle-switch-pill ${askFollowFirst ? "active" : ""}`}
+                        onClick={() => setAskFollowFirst(!askFollowFirst)}
+                      >
+                        <span className="toggle-switch-thumb" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Toggle: Ask for their email */}
                   <div className="simple-feature-toggle-row">
                     <div>
                       <div className="toggle-heading">Ask for their email</div>
@@ -663,7 +819,7 @@ export function SimpleAutomationBuilder({
               </div>
             </div>
 
-            {/* STEP 6: Next steps */}
+            {/* STEP 6: Next steps (Screenshot 1) */}
             <div className="stepper-step-item">
               <div className="step-badge-col">
                 <div className="step-number-circle active">6</div>
@@ -671,7 +827,110 @@ export function SimpleAutomationBuilder({
 
               <div className="step-card-box">
                 <h2 className="step-card-title">Next steps</h2>
-                <p className="step-card-subtitle">Ready to publish your automation to your connected channel.</p>
+                <p className="step-card-subtitle">
+                  Optional, what should happen to the lead behind the scenes?
+                </p>
+
+                <div className="next-steps-cards-list">
+                  {/* Card 1: Add a tag */}
+                  <div className="next-step-feature-card">
+                    <div className="next-step-header-row">
+                      <div>
+                        <div className="next-step-card-name">Add a tag</div>
+                        <div className="next-step-card-sub">
+                          Label the lead so you can find and segment them later.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className={`toggle-switch-pill ${addTagEnabled ? "active" : ""}`}
+                        onClick={() => setAddTagEnabled(!addTagEnabled)}
+                      >
+                        <span className="toggle-switch-thumb" />
+                      </button>
+                    </div>
+
+                    {addTagEnabled && (
+                      <div className="next-step-card-field-row">
+                        <div className="custom-select-box">
+                          <select
+                            value={selectedTag}
+                            onChange={(e) => setSelectedTag(e.target.value)}
+                            className="native-page-select"
+                          >
+                            <option value="lead-magnet">lead-magnet</option>
+                            <option value="vip-customer">vip-customer</option>
+                            <option value="newsletter-subscriber">newsletter-subscriber</option>
+                            <option value="high-intent">high-intent</option>
+                          </select>
+                          <ChevronDown size={15} className="select-dropdown-chevron" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card 2: Assign a team member */}
+                  <div className="next-step-feature-card">
+                    <div className="next-step-header-row">
+                      <div>
+                        <div className="next-step-card-name">Assign a team member</div>
+                        <div className="next-step-card-sub">
+                          Hand the conversation to someone on your team.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className={`toggle-switch-pill ${assignTeamEnabled ? "active" : ""}`}
+                        onClick={() => setAssignTeamEnabled(!assignTeamEnabled)}
+                      >
+                        <span className="toggle-switch-thumb" />
+                      </button>
+                    </div>
+
+                    {assignTeamEnabled && (
+                      <div className="next-step-card-field-row">
+                        <div className="custom-select-box">
+                          <select
+                            value={selectedTeamMember}
+                            onChange={(e) => setSelectedTeamMember(e.target.value)}
+                            className="native-page-select"
+                          >
+                            <option value="Jawad (Owner)">Jawad (Owner)</option>
+                            <option value="Admin Support">Admin Support</option>
+                            <option value="Sales Agent 1">Sales Agent 1</option>
+                            <option value="Unassigned">Unassigned</option>
+                          </select>
+                          <ChevronDown size={15} className="select-dropdown-chevron" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card 3: Transfer to another automation */}
+                  <div className="next-step-feature-card">
+                    <div className="next-step-header-row">
+                      <div>
+                        <div className="next-step-card-name">Transfer to another automation</div>
+                        <div className="next-step-card-sub">
+                          Send the lead into a different automation to continue.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className={`toggle-switch-pill ${transferAutomationEnabled ? "active" : ""}`}
+                        onClick={() => setTransferAutomationEnabled(!transferAutomationEnabled)}
+                      >
+                        <span className="toggle-switch-thumb" />
+                      </button>
+                    </div>
+
+                    {transferAutomationEnabled && (
+                      <div className="next-step-notice-text">
+                        No automations are set up to receive a transfer yet. Add an &ldquo;automation transfer&rdquo; trigger to another automation first.
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 <div className="next-steps-actions-row">
                   <button
@@ -713,18 +972,9 @@ export function SimpleAutomationBuilder({
 
               {/* Phone Inner Screen Content */}
               <div className="iphone-screen-viewport">
-                {!platform ? (
-                  /* Empty state before selecting platform (Screenshot 2) */
-                  <div className="phone-empty-state">
-                    <Smartphone size={38} className="empty-phone-icon" />
-                    <p className="empty-phone-label">
-                      Select a platform to preview your automation
-                    </p>
-                  </div>
-                ) : (
-                  /* Active Chat Preview (Screenshots 3, 4, 5) */
+                {/* 1. INSTAGRAM DM PREVIEW */}
+                {platform === "instagram" && (
                   <div className="phone-chat-screen">
-                    {/* Instagram DM App Header */}
                     <div className="phone-chat-header">
                       <button type="button" className="chat-back-arrow">‹</button>
                       <div className="chat-avatar-badge">
@@ -742,9 +992,7 @@ export function SimpleAutomationBuilder({
                       </div>
                     </div>
 
-                    {/* Chat Messages Timeline */}
                     <div className="phone-chat-messages-scroll">
-                      {/* Step 2 indicator: comment or story trigger */}
                       {triggerType === "story_reply" && (
                         <div className="story-reply-context-banner">
                           <span>Replied to your story</span>
@@ -752,12 +1000,11 @@ export function SimpleAutomationBuilder({
                       )}
                       {triggerType === "comment" && (
                         <div className="story-reply-context-banner">
-                          <span>Commented on your post: "send link"</span>
+                          <span>Commented on your post: &ldquo;send link&rdquo;</span>
                         </div>
                       )}
 
-                      {/* Opening DM Bubble (from Step 4) */}
-                      {openingMessage && (
+                      {sendOpeningMessage && openingMessage && (
                         <div className="chat-bubble-row bot-row">
                           <div className="chat-bot-avatar">
                             <Instagram size={10} />
@@ -773,8 +1020,7 @@ export function SimpleAutomationBuilder({
                         </div>
                       )}
 
-                      {/* Simulated User Response Pill (from lead) */}
-                      {openingButtonText && (
+                      {sendOpeningMessage && openingButtonText && (
                         <div className="chat-bubble-row user-row">
                           <div className="chat-user-reply-pill">
                             {openingButtonText}
@@ -782,7 +1028,6 @@ export function SimpleAutomationBuilder({
                         </div>
                       )}
 
-                      {/* Step 5 Link Response Bubble */}
                       {linkMessage && (
                         <div className="chat-bubble-row bot-row">
                           <div className="chat-bot-avatar">
@@ -800,7 +1045,6 @@ export function SimpleAutomationBuilder({
                       )}
                     </div>
 
-                    {/* Bottom Instagram Input Bar */}
                     <div className="phone-chat-input-bar">
                       <div className="phone-camera-btn">
                         <Camera size={14} />
@@ -813,6 +1057,226 @@ export function SimpleAutomationBuilder({
                         <ImageIcon size={15} />
                         <Plus size={15} />
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. TELEGRAM PREVIEW (Screenshot 2) */}
+                {platform === "telegram" && (
+                  <div className="phone-chat-screen telegram-theme">
+                    <div className="phone-chat-header">
+                      <button type="button" className="chat-back-arrow">‹</button>
+                      <div className="chat-avatar-badge telegram">
+                        <Send size={14} className="avatar-brand-icon" />
+                      </div>
+                      <div className="chat-user-info">
+                        <span className="chat-username">Your Bot</span>
+                        <span className="chat-active-status">bot</span>
+                      </div>
+                      <div className="chat-header-actions">
+                        <Phone size={15} className="chat-act-icon" />
+                        <MoreVertical size={16} className="chat-act-icon" />
+                      </div>
+                    </div>
+
+                    <div className="phone-chat-messages-scroll telegram-bg">
+                      <div className="phone-empty-watermark">
+                        <MessageSquare size={32} className="watermark-icon" />
+                        <span>Your messages will appear here as you set them up.</span>
+                      </div>
+
+                      {sendOpeningMessage && openingMessage && (
+                        <div className="chat-bubble-row bot-row">
+                          <div className="chat-bubble telegram-bot-bubble">
+                            <div className="bubble-text">{openingMessage}</div>
+                            {openingButtonText && (
+                              <button type="button" className="telegram-inline-btn">
+                                {openingButtonText}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {sendOpeningMessage && openingButtonText && (
+                        <div className="chat-bubble-row user-row">
+                          <div className="chat-user-reply-pill telegram-pill">
+                            {openingButtonText}
+                          </div>
+                        </div>
+                      )}
+
+                      {linkMessage && (
+                        <div className="chat-bubble-row bot-row">
+                          <div className="chat-bubble telegram-bot-bubble">
+                            <div className="bubble-text">{linkMessage}</div>
+                            {linkButtonText && (
+                              <button type="button" className="telegram-inline-btn">
+                                {linkButtonText}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="phone-chat-input-bar telegram-bar">
+                      <Paperclip size={18} className="tg-icon" />
+                      <div className="phone-fake-input">
+                        <span>Message</span>
+                      </div>
+                      <Smile size={18} className="tg-icon" />
+                      <div className="tg-mic-circle">
+                        <Mic size={14} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. WHATSAPP PREVIEW (Screenshot 3) */}
+                {platform === "whatsapp" && (
+                  <div className="phone-chat-screen whatsapp-theme">
+                    <div className="phone-chat-header whatsapp-header">
+                      <button type="button" className="chat-back-arrow white">‹</button>
+                      <div className="chat-avatar-badge whatsapp">
+                        <MessageCircle size={14} className="avatar-brand-icon" />
+                      </div>
+                      <div className="chat-user-info white">
+                        <span className="chat-username white">Your Business</span>
+                        <span className="chat-active-status white">online</span>
+                      </div>
+                      <div className="chat-header-actions white">
+                        <Video size={16} className="chat-act-icon white" />
+                        <Phone size={15} className="chat-act-icon white" />
+                      </div>
+                    </div>
+
+                    <div className="phone-chat-messages-scroll whatsapp-bg">
+                      <div className="phone-empty-watermark whatsapp">
+                        <MessageCircle size={32} className="watermark-icon" />
+                        <span>Your messages will appear here as you set them up.</span>
+                      </div>
+
+                      {sendOpeningMessage && openingMessage && (
+                        <div className="chat-bubble-row bot-row">
+                          <div className="chat-bubble whatsapp-bot-bubble">
+                            <div className="bubble-text">{openingMessage}</div>
+                            {openingButtonText && (
+                              <button type="button" className="whatsapp-action-btn">
+                                {openingButtonText}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {sendOpeningMessage && openingButtonText && (
+                        <div className="chat-bubble-row user-row">
+                          <div className="chat-user-reply-pill whatsapp-pill">
+                            {openingButtonText}
+                          </div>
+                        </div>
+                      )}
+
+                      {linkMessage && (
+                        <div className="chat-bubble-row bot-row">
+                          <div className="chat-bubble whatsapp-bot-bubble">
+                            <div className="bubble-text">{linkMessage}</div>
+                            {linkButtonText && (
+                              <button type="button" className="whatsapp-action-btn">
+                                {linkButtonText}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="phone-chat-input-bar whatsapp-bar">
+                      <Smile size={18} className="wa-icon" />
+                      <div className="phone-fake-input">
+                        <span>Message</span>
+                      </div>
+                      <Paperclip size={18} className="wa-icon" />
+                      <Camera size={18} className="wa-icon" />
+                      <div className="wa-mic-circle">
+                        <Mic size={14} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. FACEBOOK MESSENGER PREVIEW (Screenshots 4 & 5) */}
+                {platform === "facebook" && (
+                  <div className="phone-chat-screen facebook-theme">
+                    <div className="phone-chat-header">
+                      <button type="button" className="chat-back-arrow">‹</button>
+                      <div className="chat-avatar-badge facebook">
+                        <Facebook size={14} className="avatar-brand-icon" />
+                      </div>
+                      <div className="chat-user-info">
+                        <span className="chat-username">Your Page</span>
+                        <span className="chat-active-status">Active now</span>
+                      </div>
+                      <div className="chat-header-actions fb-actions">
+                        <Video size={16} className="chat-act-icon fb-blue" />
+                        <Phone size={15} className="chat-act-icon fb-blue" />
+                      </div>
+                    </div>
+
+                    <div className="phone-chat-messages-scroll">
+                      {/* Incoming initial message from lead (Screenshot 4 & 5) */}
+                      <div className="chat-bubble-row user-row">
+                        <div className="chat-user-reply-pill fb-pill">
+                          Hey
+                        </div>
+                      </div>
+
+                      {/* Bot Opening Message Bubble */}
+                      {sendOpeningMessage && openingMessage && (
+                        <div className="chat-bubble-row bot-row">
+                          <div className="chat-bubble fb-bot-bubble">
+                            <div className="bubble-text">{openingMessage}</div>
+                            {openingButtonText && (
+                              <button type="button" className="fb-interactive-btn">
+                                {openingButtonText}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* User Click response */}
+                      {sendOpeningMessage && openingButtonText && (
+                        <div className="chat-bubble-row user-row">
+                          <div className="chat-user-reply-pill fb-pill">
+                            {openingButtonText}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Bot Link Response Bubble */}
+                      {linkMessage && (
+                        <div className="chat-bubble-row bot-row">
+                          <div className="chat-bubble fb-bot-bubble">
+                            <div className="bubble-text">{linkMessage}</div>
+                            {linkButtonText && (
+                              <button type="button" className="fb-interactive-btn">
+                                {linkButtonText}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="phone-chat-input-bar fb-bar">
+                      <ImageIcon size={18} className="fb-input-icon" />
+                      <div className="phone-fake-input fb-input-wrap">
+                        <span>Aa</span>
+                      </div>
+                      <Smile size={18} className="fb-input-icon" />
+                      <Mic size={18} className="fb-input-icon" />
                     </div>
                   </div>
                 )}
