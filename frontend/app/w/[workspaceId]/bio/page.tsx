@@ -26,7 +26,7 @@ const EMPTY: BioPage = {
   title: "",
   bio: "",
   avatar_url: "",
-  accent: "#347359",
+  accent: "#313a34",
   links: [],
   published: false,
 };
@@ -56,7 +56,11 @@ export default function BioPageEditor() {
           setPage({
             ...EMPTY,
             title: workspace.name,
-            accent: workspace.branding.primary_color || EMPTY.accent,
+            accent:
+              workspace.branding.primary_color &&
+              workspace.branding.primary_color !== "#347359"
+                ? workspace.branding.primary_color
+                : EMPTY.accent,
           });
         }
       })

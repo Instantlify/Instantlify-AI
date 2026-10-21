@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { KeyRound, Plug, Plus, Send, Webhook } from "lucide-react";
+import { ArrowRight, HelpCircle, KeyRound, Plug, Plus, Send, Webhook, Workflow } from "lucide-react";
 import {
   api,
   when,
@@ -138,6 +138,97 @@ const PROVIDERS: Record<string, ProviderSpec> = {
   },
 };
 
+type IntegrationExplainer = {
+  badge: string;
+  summary: string;
+  trigger: string;
+  step: string;
+  output: string;
+};
+
+const INTEGRATION_EXPLAINERS: Record<string, IntegrationExplainer> = {
+  google_calendar: {
+    badge: "Automation builder & AI tool step",
+    summary:
+      "Add a Google Calendar step to your automations to let customers check availability and book meetings directly inside Instagram DMs and WhatsApp.",
+    trigger: "Customer DMs: 'Can I book a call for tomorrow at 3pm?'",
+    step: "Google Calendar Check & Reserve Slot",
+    output: "Bot replies with confirmed booking link & calendar invite",
+  },
+  calcom: {
+    badge: "Calendar scheduling step",
+    summary:
+      "Allows the automation flow or AI agent to query open Cal.com slots and send personalized booking links.",
+    trigger: "Lead qualifies through DM questions",
+    step: "Fetch Next Available Cal.com Slot",
+    output: "One-click booking link sent in chat",
+  },
+  airtable: {
+    badge: "Database sync action",
+    summary:
+      "Syncs lead data, emails, and conversation variables to an Airtable Base immediately upon capture.",
+    trigger: "Lead submits email in comment-to-DM flow",
+    step: "Create or Update Record in Airtable",
+    output: "Row added to CRM table instantly",
+  },
+  notion: {
+    badge: "Knowledge & database sync",
+    summary:
+      "Creates a new Notion page for each qualified lead or reads knowledge base documents for AI responses.",
+    trigger: "Customer completes onboarding quiz",
+    step: "Append Page to Notion Database",
+    output: "Notification sent to team workspace",
+  },
+  gohighlevel: {
+    badge: "Omnichannel CRM sync",
+    summary:
+      "Pushes newly captured Meta contacts directly into your GoHighLevel location to trigger email/SMS workflows.",
+    trigger: "Lead generated via Instagram post comment",
+    step: "Upsert Contact into GoHighLevel Location",
+    output: "GHL nurture campaign initiated",
+  },
+  attio: {
+    badge: "Real-time CRM sync",
+    summary:
+      "Creates and updates people and company records in Attio with custom conversation metadata.",
+    trigger: "Inbound enquiry from business lead",
+    step: "Assert Person Record in Attio CRM",
+    output: "Deal created in pipeline",
+  },
+  slack: {
+    badge: "Team alert webhook",
+    summary:
+      "Sends notifications to Slack channels when hot leads are identified or when a customer requests a human agent.",
+    trigger: "Conversation marked 'needs_human' in Inbox",
+    step: "Post Alert to #sales-leads in Slack",
+    output: "Team claims conversation in 1 click",
+  },
+  elevenlabs: {
+    badge: "Voice synthesis engine",
+    summary:
+      "Converts text responses into lifelike AI audio notes that are delivered natively as Instagram and WhatsApp voice notes.",
+    trigger: "Customer triggers voice-enabled workflow",
+    step: "Generate ElevenLabs Voice Note (.m4a)",
+    output: "Delivered as native voice note in DM",
+  },
+  snapchat: {
+    badge: "Lead ad capture",
+    summary:
+      "Ingests Snapchat Lead Ad form submissions directly into your Nemio CRM pipeline for immediate automated outreach.",
+    trigger: "User submits Snapchat Instant Form",
+    step: "Ingest Lead Profile & Attributes",
+    output: "Contact added to CRM & notified",
+  },
+  stripe: {
+    badge: "Checkout & paywall step",
+    summary:
+      "Generates dynamic payment links inside conversations and automatically unlocks access or tags leads upon payment confirmation.",
+    trigger: "Customer requests paid offer or service",
+    step: "Create Dynamic Stripe Payment Link",
+    output: "Secure checkout delivered in chat bubble",
+  },
+};
+
 const CHANNEL_PROVIDERS = [
   { id: "whatsapp", label: "WhatsApp Business", account: "Phone number ID" },
   { id: "telegram", label: "Telegram Bot", account: "Bot user ID" },
@@ -193,6 +284,7 @@ export default function IntegrationsPage() {
     typeof window === "undefined" ? "" : window.location.origin,
   );
   const [loading, setLoading] = useState(true);
+  const [explaining, setExplaining] = useState<string | null>(null);
   const feedback = useFeedback();
 
   const load = useCallback(
@@ -546,6 +638,14 @@ export default function IntegrationsPage() {
                           Disconnect
                         </button>
                       )}
+                      <button
+                        type="button"
+                        className="text-button"
+                        style={{ fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--brand-muted)" }}
+                        onClick={() => setExplaining(provider)}
+                      >
+                        <HelpCircle size={13} /> What does this do?
+                      </button>
                     </div>
                   </div>
                 );
@@ -1103,6 +1203,87 @@ export default function IntegrationsPage() {
               </button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {explaining && (
+        <Modal
+          title={PROVIDERS[explaining]?.label || "Integration Details"}
+          onClose={() => setExplaining(null)}
+        >
+          {(() => {
+            const info = INTEGRATION_EXPLAINERS[explaining] || {
+              badge: "Automation Step",
+              summary: PROVIDERS[explaining]?.blurb || "Connect external services into your workflow canvas.",
+              trigger: "Inbound customer interaction (Comment, DM, or Story Reply)",
+              step: `Run ${PROVIDERS[explaining]?.label || "Integration"} action node`,
+              output: "Response data routed back into conversation",
+            };
+            return (
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div>
+                  <Pill tone="good">{info.badge}</Pill>
+                  <p style={{ marginTop: "10px", lineHeight: "1.6", color: "var(--brand-ink)" }}>
+                    {info.summary}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    backgroundColor: "var(--brand-canvas)",
+                    border: "1px solid var(--brand-line)",
+                    borderRadius: "12px",
+                    padding: "16px",
+                  }}
+                >
+                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "var(--brand-muted)" }}>
+                    How it works in workflow canvas
+                  </span>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      marginTop: "12px",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "var(--brand-action)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700 }}>
+                        1
+                      </div>
+                      <div style={{ flex: 1, fontSize: "13px" }}>
+                        <strong>Trigger:</strong> {info.trigger}
+                      </div>
+                    </div>
+                    <div style={{ paddingLeft: "11px", borderLeft: "2px dashed var(--brand-line)", marginLeft: "11px", height: "14px" }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "var(--brand-accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700 }}>
+                        2
+                      </div>
+                      <div style={{ flex: 1, fontSize: "13px" }}>
+                        <strong>Canvas Action:</strong> {info.step}
+                      </div>
+                    </div>
+                    <div style={{ paddingLeft: "11px", borderLeft: "2px dashed var(--brand-line)", marginLeft: "11px", height: "14px" }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "#10b981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700 }}>
+                        3
+                      </div>
+                      <div style={{ flex: 1, fontSize: "13px" }}>
+                        <strong>Delivered Result:</strong> {info.output}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+                  <button className="button primary small" onClick={() => setExplaining(null)}>
+                    Got it
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </Modal>
       )}
     </>

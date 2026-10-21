@@ -8,12 +8,13 @@ from apps.channels.ingress import (
 )
 from apps.channels.views import (
     ConnectionListView,
+    ConnectionRefreshView,
     LinkedInOAuthCallbackView,
     LinkedInOAuthStartView,
     MetaOAuthCallbackView,
     MetaOAuthStartView,
 )
-from apps.dashboard_api.views import WorkspaceStatusView, live, ready
+from apps.dashboard_api.views import TelemetryView, WorkspaceStatusView, live, ready
 from apps.platform_ops.public import (
     AnnouncementListView,
     AnnouncementSeenView,
@@ -86,7 +87,12 @@ urlpatterns = [
     path("api/invitations/accept/", AcceptInvitationView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/audit/", AuditListView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/status/", WorkspaceStatusView.as_view()),
+    path("api/workspaces/<uuid:workspace_id>/telemetry/", TelemetryView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/connections/", ConnectionListView.as_view()),
+    path(
+        "api/workspaces/<uuid:workspace_id>/connections/refresh/",
+        ConnectionRefreshView.as_view(),
+    ),
     path("api/workspaces/<uuid:workspace_id>/meta/connect/", MetaOAuthStartView.as_view()),
     path("api/meta/callback/", MetaOAuthCallbackView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/linkedin/connect/", LinkedInOAuthStartView.as_view()),

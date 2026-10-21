@@ -4,17 +4,28 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bot,
   CreditCard,
+  ExternalLink,
+  Hand,
+  MessageSquarePlus,
+  Paperclip,
   RefreshCw,
   Send,
+  Smile,
   StickyNote,
+  Timer,
+  Trash2,
   Wifi,
   WifiOff,
+  Workflow,
+  X,
+  Zap,
 } from "lucide-react";
 import {
   api,
   idempotencyKey,
   money,
   type Conversation,
+  type ConversationEvent,
   type Lead,
   type Member,
   type Message,
@@ -24,6 +35,7 @@ import {
 } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import { useWorkspaceSocket } from "@/lib/ws";
+import { ChannelBadge, META_CHANNELS } from "@/lib/channels";
 import { initials } from "@/components/shell";
 import {
   Empty,
@@ -36,30 +48,140 @@ import {
 import { TourMarker } from "@/components/growth";
 
 const STAGES = ["new", "qualified", "interested", "booked", "won", "lost"];
+const TABS = [
+  { id: "", label: "All channels" },
+  { id: "instagram", label: "Instagram Direct" },
+  { id: "messenger", label: "Facebook Messenger" },
+  { id: "whatsapp", label: "WhatsApp" },
+];
+const WINDOWED = new Set<string>(META_CHANNELS);
+const WINDOW_MS = 24 * 3600 * 1000;
+const EMOJI = [
+  "😊",
+  "😂",
+  "😍",
+  "🙏",
+  "👍",
+  "👋",
+  "🎉",
+  "🔥",
+  "💯",
+  "✨",
+  "❤️",
+  "🙌",
+  "😉",
+  "🤝",
+  "📅",
+  "✅",
+  "📩",
+  "🎁",
+  "💬",
+  "👀",
+  "🚀",
+  "💡",
+  "⏰",
+  "😅",
+];
+const DEFAULT_REPLIES = [
+  "Thanks for reaching out! How can I help?",
+  "Great question, let me check and get right back to you.",
+  "Here's the link you asked for:",
+];
+const EVENT_LABELS: Record<ConversationEvent["kind"], string> = {
+  triggered: "Automation triggered",
+  handoff: "Handed to the team",
+  link_click: "Link clicked",
+  booked: "Call booked",
+  paid: "Payment received",
+};
+
+const repliesKey = (workspaceId: string) =>
+  `nemio:quick-replies:${workspaceId}`;
+function loadReplies(workspaceId: string): string[] {
+  try {
+    const stored = JSON.parse(
+      localStorage.getItem(repliesKey(workspaceId)) || "null",
+    );
+    return Array.isArray(stored) &&
+      stored.every((item) => typeof item === "string")
+      ? stored
+      : DEFAULT_REPLIES;
+  } catch {
+    return DEFAULT_REPLIES;
+  }
+}
+
+/** Remaining Meta customer-service window, or null for channels without one. */
+function windowLeft(conversation: Conversation, now: number) {
+  if (!WINDOWED.has(conversation.provider)) return null;
+  if (!conversation.last_inbound_at) return 0;
+  return Math.max(
+    0,
+    new Date(conversation.last_inbound_at).getTime() + WINDOW_MS - now,
+  );
+}
+
+function countdown(ms: number) {
+  const minutes = Math.ceil(ms / 60000);
+  return minutes >= 60
+    ? `${Math.floor(minutes / 60)}h ${minutes % 60}m left`
+    : `${minutes}m left`;
+}
+
+function shortTime(value: string, now: number) {
+  const date = new Date(value);
+  return now - date.getTime() < 24 * 3600 * 1000
+    ? date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+    : date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 export default function InboxPage() {
-  const { workspace, user, prefix, manager } = useWorkspace();
+  const { workspace, user, prefix, manager, activeAccount, setActiveAccount } =
+    useWorkspace();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
+  // The CRM links here with ?conversation=<id>; the workspace layout renders pages
+  // only in the browser, so the URL is readable on first render.
+  const [selected, setSelected] = useState<string | null>(() =>
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("conversation"),
+  );
   const [messages, setMessages] = useState<Message[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [events, setEvents] = useState<ConversationEvent[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [search, setSearch] = useState("");
+  const [channel, setChannel] = useState("");
   const [filter, setFilter] = useState("all");
   const [draft, setDraft] = useState("");
   const [note, setNote] = useState("");
   const [live, setLive] = useState(false);
   const [loading, setLoading] = useState(true);
-  // Wall clock for the 24-hour window notice; refreshed with every poll.
+  const [picker, setPicker] = useState<"emoji" | "replies" | null>(null);
+  const [replies, setReplies] = useState<string[]>(() =>
+    loadReplies(workspace.id),
+  );
+  // Wall clock for the 24-hour window countdown; ticks every 30 seconds.
   const [now, setNow] = useState(() => Date.now());
+  const [attachedFile, setAttachedFile] = useState<{
+    name: string;
+    size: number;
+    url: string;
+    type: string;
+  } | null>(null);
   const feedback = useFeedback();
   const bodyRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadList = useCallback(
     async (signal?: AbortSignal) => {
+      const params = new URLSearchParams({ search });
+      if (channel) params.set("provider", channel);
+      if (activeAccount) params.set("connection", activeAccount);
       const page = await api<Page<Conversation>>(
-        `${prefix}/conversations/?search=${encodeURIComponent(search)}`,
+        `${prefix}/conversations/?${params.toString()}`,
         "GET",
         undefined,
         signal,
@@ -67,11 +189,11 @@ export default function InboxPage() {
       setConversations(page.results);
       return page.results;
     },
-    [prefix, search],
+    [prefix, search, channel, activeAccount],
   );
   const loadThread = useCallback(
     async (id: string, signal?: AbortSignal) => {
-      const [thread, internal] = await Promise.all([
+      const [thread, internal, milestones] = await Promise.all([
         api<Page<Message>>(
           `${prefix}/conversations/${id}/messages/`,
           "GET",
@@ -84,9 +206,16 @@ export default function InboxPage() {
           undefined,
           signal,
         ),
+        api<ConversationEvent[]>(
+          `${prefix}/conversations/${id}/events/`,
+          "GET",
+          undefined,
+          signal,
+        ),
       ]);
       setMessages([...thread.results].reverse());
       setNotes(internal);
+      setEvents(milestones);
     },
     [prefix],
   );
@@ -102,7 +231,11 @@ export default function InboxPage() {
     queueMicrotask(() =>
       loadList(controller.signal)
         .then((list) => {
-          setSelected((current) => current ?? list[0]?.id ?? null);
+          setSelected((current) =>
+            current && list.some((item) => item.id === current)
+              ? current
+              : (list[0]?.id ?? null),
+          );
         })
         .catch((err) => {
           if (!controller.signal.aborted)
@@ -112,12 +245,6 @@ export default function InboxPage() {
           if (!controller.signal.aborted) setLoading(false);
         }),
     );
-    api<Page<Member>>(`${prefix}/members/`, "GET", undefined, controller.signal)
-      .then((page) => setMembers(page.results))
-      .catch(() => undefined);
-    api<Page<Offer>>(`${prefix}/offers/`, "GET", undefined, controller.signal)
-      .then((page) => setOffers(page.results.filter((offer) => offer.active)))
-      .catch(() => undefined);
     const timer = window.setInterval(refreshAll, 10000);
     return () => {
       controller.abort();
@@ -125,6 +252,20 @@ export default function InboxPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadList]);
+  useEffect(() => {
+    const controller = new AbortController();
+    api<Page<Member>>(`${prefix}/members/`, "GET", undefined, controller.signal)
+      .then((page) => setMembers(page.results))
+      .catch(() => undefined);
+    api<Page<Offer>>(`${prefix}/offers/`, "GET", undefined, controller.signal)
+      .then((page) => setOffers(page.results.filter((offer) => offer.active)))
+      .catch(() => undefined);
+    const clock = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => {
+      controller.abort();
+      window.clearInterval(clock);
+    };
+  }, [prefix]);
   useEffect(() => {
     if (!selected) return;
     const controller = new AbortController();
@@ -139,7 +280,24 @@ export default function InboxPage() {
   }, [selected, loadThread]);
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight });
-  }, [messages, notes]);
+  }, [messages, notes, events]);
+  useEffect(() => {
+    if (!picker) return;
+    const close = (event: MouseEvent | KeyboardEvent) => {
+      if (
+        event instanceof KeyboardEvent
+          ? event.key === "Escape"
+          : !(event.target as HTMLElement).closest(".tool-anchor")
+      )
+        setPicker(null);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [picker]);
 
   const current = conversations.find((item) => item.id === selected) || null;
   const visible = conversations.filter((item) =>
@@ -151,6 +309,10 @@ export default function InboxPage() {
           ? item.assigned_to === null
           : item.status === filter,
   );
+  const accountName = activeAccount
+    ? conversations.find((item) => item.connection_id === activeAccount)
+        ?.connection_name
+    : null;
 
   async function patch(
     data: Partial<Pick<Conversation, "assigned_to" | "status" | "ai_enabled">>,
@@ -172,13 +334,19 @@ export default function InboxPage() {
     );
     setConversations((list) =>
       list.map((item) =>
-        item.id === current.id ? (updated ?? previous) : item,
+        item.id === current.id
+          ? updated
+            ? { ...item, ...updated }
+            : previous
+          : item,
       ),
     );
   }
   async function send() {
-    if (!current || !draft.trim()) return;
-    const text = draft.trim();
+    if (!current || (!draft.trim() && !attachedFile)) return;
+    const text = attachedFile
+      ? `[${attachedFile.type}: ${attachedFile.name}] ${draft.trim()}`.trim()
+      : draft.trim();
     await feedback.run(async () => {
       await api(
         `${prefix}/conversations/${current.id}/messages/`,
@@ -188,6 +356,7 @@ export default function InboxPage() {
         { "Idempotency-Key": idempotencyKey() },
       );
       setDraft("");
+      setAttachedFile(null);
       await loadThread(current.id);
       await loadList();
     });
@@ -228,6 +397,29 @@ export default function InboxPage() {
       await loadThread(current.id);
     }, "Payment link sent.");
   }
+  function insert(text: string) {
+    const field = composerRef.current;
+    const start = field?.selectionStart ?? draft.length;
+    const end = field?.selectionEnd ?? draft.length;
+    const next = (draft.slice(0, start) + text + draft.slice(end)).slice(
+      0,
+      2000,
+    );
+    setDraft(next);
+    setPicker(null);
+    requestAnimationFrame(() => {
+      field?.focus();
+      field?.setSelectionRange(start + text.length, start + text.length);
+    });
+  }
+  function saveReplies(next: string[]) {
+    setReplies(next);
+    try {
+      localStorage.setItem(repliesKey(workspace.id), JSON.stringify(next));
+    } catch {
+      // Storage unavailable: the replies last for this visit only.
+    }
+  }
 
   const timeline = [
     ...messages.map((item) => ({
@@ -240,12 +432,17 @@ export default function InboxPage() {
       at: item.created_at,
       item,
     })),
+    ...events.map((item) => ({
+      kind: "event" as const,
+      at: item.created_at,
+      item,
+    })),
   ].sort((a, b) => a.at.localeCompare(b.at));
-  const windowClosed =
-    current &&
-    ["instagram", "whatsapp", "messenger"].includes(current.provider) &&
-    (!current.last_inbound_at ||
-      now - new Date(current.last_inbound_at).getTime() > 24 * 3600 * 1000);
+  const left = current ? windowLeft(current, now) : null;
+  const windowClosed = left === 0;
+  const assignee = current
+    ? members.find((member) => member.user_id === current.assigned_to)
+    : undefined;
 
   return (
     <>
@@ -254,7 +451,7 @@ export default function InboxPage() {
         <div>
           <span className="eyebrow">INBOX</span>
           <h1>Every conversation, one place.</h1>
-          <p>Instagram, WhatsApp, Messenger and Telegram, live.</p>
+          <p>Instagram, Facebook Messenger and WhatsApp, live.</p>
         </div>
         <span className={`pill ${live ? "pill-good" : "pill-warn"}`}>
           {live ? <Wifi size={12} /> : <WifiOff size={12} />}
@@ -263,6 +460,32 @@ export default function InboxPage() {
       </div>
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
+      <div className="channel-tabs" role="tablist" aria-label="Channel">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id || "all"}
+            role="tab"
+            aria-selected={channel === tab.id}
+            className={channel === tab.id ? "on" : ""}
+            onClick={() => setChannel(tab.id)}
+          >
+            {tab.id && <ChannelBadge provider={tab.id} compact />}
+            {tab.label}
+          </button>
+        ))}
+        {activeAccount && (
+          <span className="account-chip">
+            Account: {accountName || "selected account"}
+            <button
+              className="icon-button"
+              aria-label="Show all accounts"
+              onClick={() => setActiveAccount(null)}
+            >
+              <X size={13} />
+            </button>
+          </span>
+        )}
+      </div>
       <div className="inbox">
         <aside className="inbox-list">
           <header>
@@ -292,28 +515,61 @@ export default function InboxPage() {
                 Loading conversations…
               </p>
             ) : visible.length ? (
-              visible.map((item) => (
-                <button
-                  key={item.id}
-                  className={`conversation-row ${item.id === selected ? "active" : ""}`}
-                  onClick={() => setSelected(item.id)}
-                >
-                  <span className="user-avatar">
-                    {initials(item.lead.name || "?")}
-                  </span>
-                  <span>
-                    <strong>{item.lead.name || "Unknown lead"}</strong>
-                    <span>
-                      {item.provider}
-                      {item.is_test ? " · test" : ""} · {item.lead.stage}
-                      {item.status === "needs_human" ? " · needs a human" : ""}
+              visible.map((item) => {
+                const awaiting = item.last_message?.direction === "inbound";
+                return (
+                  <button
+                    key={item.id}
+                    className={`conversation-row ${item.id === selected ? "active" : ""}`}
+                    onClick={() => setSelected(item.id)}
+                  >
+                    <span className="user-avatar">
+                      {initials(item.lead.name || "?")}
                     </span>
-                  </span>
-                  <time dateTime={item.updated_at}>
-                    {new Date(item.updated_at).toLocaleDateString()}
-                  </time>
-                </button>
-              ))
+                    <span className="conversation-copy">
+                      <span className="conversation-top">
+                        <strong>{item.lead.name || "Unknown lead"}</strong>
+                        <ChannelBadge provider={item.provider} compact />
+                      </span>
+                      <span className="conversation-snippet">
+                        {item.last_message
+                          ? `${item.last_message.direction === "outbound" ? "You: " : ""}${
+                              item.last_message.text ||
+                              (item.last_message.kind === "voice"
+                                ? "🎤 Voice note"
+                                : "Attachment")
+                            }`
+                          : "No messages yet"}
+                      </span>
+                      <span className="conversation-meta">
+                        {item.lead.stage}
+                        {item.is_test ? " · test" : ""}
+                        {item.status === "needs_human"
+                          ? " · needs a human"
+                          : ""}
+                      </span>
+                    </span>
+                    <span className="conversation-side">
+                      <time dateTime={item.updated_at}>
+                        {shortTime(
+                          item.last_message?.created_at ?? item.updated_at,
+                          now,
+                        )}
+                      </time>
+                      {awaiting && (
+                        <>
+                          <i
+                            className="unread-dot"
+                            title="Awaiting a reply"
+                            aria-hidden="true"
+                          />
+                          <span className="sr-only">Awaiting a reply</span>
+                        </>
+                      )}
+                    </span>
+                  </button>
+                );
+              })
             ) : (
               <Empty>No conversations match.</Empty>
             )}
@@ -322,23 +578,57 @@ export default function InboxPage() {
         {current ? (
           <section className="thread">
             <div className="thread-head">
-              <h2>{current.lead.name || "Unknown lead"}</h2>
+              <span className="user-avatar">
+                {initials(current.lead.name || "?")}
+              </span>
+              <div className="thread-title">
+                <h2>{current.lead.name || "Unknown lead"}</h2>
+                <span className="thread-sub">
+                  <ChannelBadge provider={current.provider} />
+                  <span className="muted-text">{current.connection_name}</span>
+                  {current.contact_link && (
+                    <a
+                      href={current.contact_link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-button"
+                    >
+                      Open chat <ExternalLink size={12} />
+                    </a>
+                  )}
+                </span>
+                {current.lead.tags.length > 0 && (
+                  <span className="tag-list">
+                    {current.lead.tags.map((tag) => (
+                      <Pill
+                        key={tag}
+                        tone={
+                          tag === "hot"
+                            ? "bad"
+                            : tag === "warm"
+                              ? "warn"
+                              : "neutral"
+                        }
+                      >
+                        {tag}
+                      </Pill>
+                    ))}
+                  </span>
+                )}
+              </div>
+              <span className="spacer" />
+              {left !== null && (
+                <span
+                  className={`window-chip ${windowClosed ? "closed" : left < 3600000 ? "soon" : ""}`}
+                  title="Meta allows free-form replies for 24 hours after the customer's last message."
+                >
+                  <Timer size={13} />
+                  {windowClosed ? "24h window closed" : countdown(left)}
+                </span>
+              )}
               <Pill tone={statusTone(current.status)}>
                 {current.status.replace("_", " ")}
               </Pill>
-              <Pill>{current.provider}</Pill>
-              <span className="spacer" />
-              <label className="field inline small">
-                <input
-                  type="checkbox"
-                  checked={current.ai_enabled}
-                  onChange={(event) =>
-                    patch({ ai_enabled: event.target.checked })
-                  }
-                  disabled={current.lead.opted_out}
-                />
-                <Bot size={14} /> AI replies
-              </label>
               <select
                 aria-label="Assign to"
                 value={current.assigned_to ?? ""}
@@ -352,7 +642,12 @@ export default function InboxPage() {
               >
                 <option value="">Unassigned</option>
                 {members
-                  .filter((member) => manager || member.email === user.email)
+                  .filter(
+                    (member) =>
+                      manager ||
+                      member.user_id === user.id ||
+                      member.user_id === current.assigned_to,
+                  )
                   .map((member) => (
                     <option key={member.id} value={member.user_id}>
                       {member.name || member.email}
@@ -390,20 +685,19 @@ export default function InboxPage() {
                         {new Date(entry.at).toLocaleString()} · internal note
                       </time>
                     </div>
-                  ) : (
-                    <div
-                      className={`bubble ${entry.item.direction}`}
-                      key={entry.item.id}
-                    >
-                      {entry.item.text ||
-                        (entry.item.kind === "voice" ? "🎤 Voice note" : "…")}
-                      <time>
-                        {new Date(entry.at).toLocaleString()}
-                        {entry.item.delivery_status
-                          ? ` · ${entry.item.delivery_status}`
-                          : ""}
-                      </time>
+                  ) : entry.kind === "event" ? (
+                    <div className="system-event" key={`e-${entry.item.id}`}>
+                      <Zap size={12} />
+                      <span>
+                        {EVENT_LABELS[entry.item.kind]}
+                        {entry.item.automation_name &&
+                          entry.item.kind === "triggered" &&
+                          `: ${entry.item.automation_name}`}
+                      </span>
+                      <time>{new Date(entry.at).toLocaleString()}</time>
                     </div>
+                  ) : (
+                    <MessageBubble key={entry.item.id} message={entry.item} />
                   ),
                 )
               ) : (
@@ -415,18 +709,85 @@ export default function InboxPage() {
                 <Empty>This lead opted out. Messaging is disabled.</Empty>
               ) : (
                 <>
+                  <div
+                    className="handoff-toggle"
+                    role="group"
+                    aria-label="Who replies"
+                  >
+                    <button
+                      className={current.ai_enabled ? "on" : ""}
+                      aria-pressed={current.ai_enabled}
+                      disabled={feedback.busy}
+                      onClick={() =>
+                        !current.ai_enabled &&
+                        patch({ ai_enabled: true, status: "open" })
+                      }
+                    >
+                      <Bot size={14} /> AI active
+                    </button>
+                    <button
+                      className={!current.ai_enabled ? "on human" : ""}
+                      aria-pressed={!current.ai_enabled}
+                      disabled={feedback.busy}
+                      onClick={() =>
+                        current.ai_enabled &&
+                        patch({ ai_enabled: false, assigned_to: user.id })
+                      }
+                    >
+                      <Hand size={14} /> Human takeover
+                    </button>
+                    <span className="muted-text">
+                      {current.ai_enabled
+                        ? "The AI agent answers new messages."
+                        : assignee
+                          ? `${assignee.name || assignee.email} is handling this conversation.`
+                          : "Your team answers this conversation."}
+                    </span>
+                  </div>
                   {windowClosed && (
                     <p className="muted-text">
                       The 24-hour messaging window has closed; wait for the
                       customer to write again.
                     </p>
                   )}
+                  {attachedFile && (
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "4px 10px",
+                        borderRadius: "8px",
+                        backgroundColor: "var(--brand-soft)",
+                        fontSize: "12px",
+                        marginBottom: "8px",
+                        border: "1px solid var(--brand-line)",
+                      }}
+                    >
+                      <Paperclip size={13} />
+                      <strong>{attachedFile.name}</strong>
+                      <span className="muted-text">
+                        ({(attachedFile.size / 1024).toFixed(0)} KB)
+                      </span>
+                      <button
+                        type="button"
+                        className="icon-button"
+                        style={{ width: "20px", height: "20px", padding: 0 }}
+                        onClick={() => setAttachedFile(null)}
+                        aria-label="Remove attachment"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )}
                   <textarea
+                    ref={composerRef}
                     placeholder="Write a reply…"
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     maxLength={2000}
                     aria-label="Reply"
+                    disabled={windowClosed}
                     onKeyDown={(event) => {
                       if (
                         event.key === "Enter" &&
@@ -435,14 +796,136 @@ export default function InboxPage() {
                         send();
                     }}
                   />
-                  <div className="row">
+                  <div className="row composer-tools">
                     <button
                       className="button primary small"
                       onClick={send}
-                      disabled={feedback.busy || !draft.trim()}
+                      disabled={
+                        feedback.busy ||
+                        (!draft.trim() && !attachedFile) ||
+                        windowClosed
+                      }
                     >
                       Send <Send size={14} />
                     </button>
+                    <button
+                      type="button"
+                      className="icon-button"
+                      aria-label="Attach file"
+                      title="Attach file (images, PDFs, audio)"
+                      disabled={windowClosed}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Paperclip size={16} />
+                    </button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      style={{ display: "none" }}
+                      accept="image/*,.pdf,audio/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setAttachedFile({
+                            name: file.name,
+                            size: file.size,
+                            type: file.type.startsWith("image/")
+                              ? "Image"
+                              : file.type.startsWith("audio/")
+                                ? "Audio"
+                                : "Document",
+                            url: URL.createObjectURL(file),
+                          });
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                    <div className="tool-anchor">
+                      <button
+                        className="icon-button"
+                        aria-label="Quick replies"
+                        aria-expanded={picker === "replies"}
+                        onClick={() =>
+                          setPicker(picker === "replies" ? null : "replies")
+                        }
+                      >
+                        <MessageSquarePlus size={16} />
+                      </button>
+                      {picker === "replies" && (
+                        <div className="tool-pop replies-pop">
+                          <strong className="small">Quick replies</strong>
+                          {replies.map((reply, index) => (
+                            <div
+                              className="reply-row"
+                              key={`${index}-${reply}`}
+                            >
+                              <button onClick={() => insert(reply)}>
+                                {reply}
+                              </button>
+                              <button
+                                className="icon-button"
+                                aria-label="Delete quick reply"
+                                onClick={() =>
+                                  saveReplies(
+                                    replies.filter((_, i) => i !== index),
+                                  )
+                                }
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          ))}
+                          {!replies.length && (
+                            <p className="muted-text">
+                              No quick replies saved.
+                            </p>
+                          )}
+                          <button
+                            className="text-button"
+                            disabled={
+                              !draft.trim() || replies.includes(draft.trim())
+                            }
+                            onClick={() =>
+                              saveReplies([...replies, draft.trim()].slice(-20))
+                            }
+                          >
+                            Save current reply
+                          </button>
+                          <small className="muted-text">
+                            Saved in this browser.
+                          </small>
+                        </div>
+                      )}
+                    </div>
+                    <div className="tool-anchor">
+                      <button
+                        className="icon-button"
+                        aria-label="Insert emoji"
+                        aria-expanded={picker === "emoji"}
+                        onClick={() =>
+                          setPicker(picker === "emoji" ? null : "emoji")
+                        }
+                      >
+                        <Smile size={16} />
+                      </button>
+                      {picker === "emoji" && (
+                        <div
+                          className="tool-pop emoji-pop"
+                          role="group"
+                          aria-label="Emoji"
+                        >
+                          {EMOJI.map((emoji) => (
+                            <button
+                              key={emoji}
+                              onClick={() => insert(emoji)}
+                              aria-label={`Insert ${emoji}`}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     {offers.length > 0 && (
                       <select
                         aria-label="Send payment link"
@@ -474,12 +957,7 @@ export default function InboxPage() {
                       onChange={(event) => setNote(event.target.value)}
                       maxLength={5000}
                       aria-label="Internal note"
-                      style={{
-                        flex: "1 1 200px",
-                        padding: "8px 10px",
-                        border: "1px solid var(--line)",
-                        borderRadius: 7,
-                      }}
+                      className="note-input"
                     />
                     <button
                       className="button secondary small"
@@ -504,12 +982,7 @@ export default function InboxPage() {
                         if (event.target.value !== current.lead.email)
                           updateLead({ email: event.target.value });
                       }}
-                      style={{
-                        width: "100%",
-                        padding: "6px 8px",
-                        border: "1px solid var(--line)",
-                        borderRadius: 6,
-                      }}
+                      className="lead-email"
                     />
                   </dd>
                   <dt>Stage</dt>
@@ -528,27 +1001,6 @@ export default function InboxPage() {
                       ))}
                     </select>
                   </dd>
-                  <dt>Tags</dt>
-                  <dd className="tag-list">
-                    {current.lead.tags.length ? (
-                      current.lead.tags.map((tag) => (
-                        <Pill
-                          key={tag}
-                          tone={
-                            tag === "hot"
-                              ? "bad"
-                              : tag === "warm"
-                                ? "warn"
-                                : "neutral"
-                          }
-                        >
-                          {tag}
-                        </Pill>
-                      ))
-                    ) : (
-                      <span className="muted-text">none yet</span>
-                    )}
-                  </dd>
                   {Object.entries(current.lead.fields).map(([key, value]) => (
                     <FieldRow key={key} label={key} value={value} />
                   ))}
@@ -562,13 +1014,57 @@ export default function InboxPage() {
               <Empty>
                 {loading
                   ? "Loading…"
-                  : "No conversations yet. Connect a channel or simulate a test message under Integrations."}
+                  : channel || activeAccount
+                    ? "No conversations on this channel or account yet."
+                    : "No conversations yet. Connect a channel or simulate a test message under Integrations."}
               </Empty>
             </div>
           </section>
         )}
       </div>
     </>
+  );
+}
+
+const SENDER_BADGES: Record<
+  Exclude<Message["sender"], "customer" | "human">,
+  { label: string; icon: typeof Bot }
+> = {
+  ai: { label: "AI Agent", icon: Bot },
+  automation: { label: "Automation", icon: Workflow },
+  api: { label: "API", icon: Zap },
+};
+
+/** Customer on the left in alabaster; AI and automations in deep forest on the
+ * right; teammates in slate with their initials. */
+function MessageBubble({ message }: { message: Message }) {
+  const badge =
+    message.sender === "customer" || message.sender === "human"
+      ? null
+      : SENDER_BADGES[message.sender];
+  return (
+    <div className={`bubble ${message.direction} sender-${message.sender}`}>
+      {message.sender === "human" && (
+        <span
+          className="bubble-author"
+          title={message.author_name || "Teammate"}
+        >
+          {initials(message.author_name || "Team")}
+        </span>
+      )}
+      {badge && (
+        <span className="bubble-badge">
+          <badge.icon size={11} /> {badge.label}
+        </span>
+      )}
+      <span className="bubble-text">
+        {message.text || (message.kind === "voice" ? "🎤 Voice note" : "…")}
+      </span>
+      <time>
+        {new Date(message.created_at).toLocaleString()}
+        {message.delivery_status ? ` · ${message.delivery_status}` : ""}
+      </time>
+    </div>
   );
 }
 

@@ -47,7 +47,13 @@ const percent = (value: number) => `${Math.round(value * 100)}%`;
 export default function AnalyticsPage() {
   const { prefix, manager } = useWorkspace();
   const [period, setPeriod] = useState("30d");
-  const [automation, setAutomation] = useState("");
+  // "View analytics" on an automation links here with ?automation=<id>. The workspace
+  // layout renders pages only in the browser, so the URL is readable on first render.
+  const [automation, setAutomation] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : new URLSearchParams(window.location.search).get("automation") || "",
+  );
   const [provider, setProvider] = useState("");
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [funnel, setFunnel] = useState<Funnel | null>(null);

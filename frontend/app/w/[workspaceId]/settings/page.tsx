@@ -259,7 +259,11 @@ export default function SettingsPage() {
                 <input
                   name="primary_color"
                   type="color"
-                  defaultValue={own?.primary_color || "#347359"}
+                  defaultValue={
+                    own?.primary_color && own.primary_color !== "#347359"
+                      ? own.primary_color
+                      : "#313a34"
+                  }
                 />
               </label>
               <label>

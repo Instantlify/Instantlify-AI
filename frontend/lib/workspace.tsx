@@ -19,7 +19,20 @@ export type WorkspaceContextValue = {
   manager: boolean;
   prefix: string;
   refresh: () => Promise<void>;
+  /** Channel connection chosen in the account switcher; null shows every account. */
+  activeAccount: string | null;
+  setActiveAccount: (connectionId: string | null) => void;
 };
+
+const accountKey = (workspaceId: string) => `nemio:account:${workspaceId}`;
+
+function storedAccount(workspaceId: string) {
+  try {
+    return localStorage.getItem(accountKey(workspaceId));
+  } catch {
+    return null;
+  }
+}
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
@@ -48,6 +61,27 @@ export function WorkspaceProvider({
   const refresh = useCallback(async () => {
     setWorkspaces(await loadWorkspaces());
   }, []);
+  // The selection is per workspace and per browser: a convenience, not shared state.
+  const [selection, setSelection] = useState(() => ({
+    workspaceId,
+    account: storedAccount(workspaceId),
+  }));
+  const activeAccount =
+    selection.workspaceId === workspaceId
+      ? selection.account
+      : storedAccount(workspaceId);
+  const setActiveAccount = useCallback(
+    (account: string | null) => {
+      setSelection({ workspaceId, account });
+      try {
+        if (account) localStorage.setItem(accountKey(workspaceId), account);
+        else localStorage.removeItem(accountKey(workspaceId));
+      } catch {
+        // Storage may be unavailable; the choice then lasts for this visit only.
+      }
+    },
+    [workspaceId],
+  );
   useEffect(() => {
     try {
       localStorage.setItem("nemio:last-workspace", workspaceId);
@@ -66,9 +100,11 @@ export function WorkspaceProvider({
             manager: workspace.role !== "agent",
             prefix: `/api/workspaces/${workspace.id}`,
             refresh,
+            activeAccount,
+            setActiveAccount,
           }
         : null,
-    [user, workspace, workspaces, refresh],
+    [user, workspace, workspaces, refresh, activeAccount, setActiveAccount],
   );
   if (!value) return null;
   return (

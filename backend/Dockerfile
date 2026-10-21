@@ -12,10 +12,9 @@ WORKDIR /app
 RUN useradd --create-home --uid 10001 app && chown app:app /app
 USER app
 
-RUN python -m venv /app/.venv
+RUN uv venv /app/.venv
 COPY --chown=app:app requirements.txt pyproject.toml ./
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --no-cache -r requirements.txt
 
 COPY --chown=app:app config ./config
 COPY --chown=app:app apps ./apps

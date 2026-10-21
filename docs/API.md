@@ -24,7 +24,7 @@ Prefix: `/api/workspaces/`.
 | Method | Path | Access |
 | --- | --- | --- |
 | GET, POST | `/api/workspaces/` | List own memberships (with effective `branding`); create `{name}` |
-| GET, PATCH | `/{id}/` | Any member / owner+admin `{name}` |
+| GET, PATCH | `/{id}/` | Any member / owner+admin `{name, pinned_apps}`; `pinned_apps` lists App Store apps docked in the sidebar (`bio`, `calendar`) |
 | GET | `/{id}/members/` | Any member |
 | PATCH, DELETE | `/{id}/members/{membership_id}/` | Owner changes roles; owner removes admins/agents, admin removes agents, anyone may leave |
 | GET, POST | `/{id}/invitations/` | Owner/admin. `{email, role}` → one-time `accept_url`; pending invitations hold a seat |
@@ -35,6 +35,7 @@ Prefix: `/api/workspaces/`.
 | GET | `/api/public/branding/` | Anonymous; branding for the request host (custom domains) |
 | GET | `/{id}/audit/` | Owner/admin |
 | GET | `/{id}/status/` | Dependency checks + pending jobs |
+| GET | `/{id}/telemetry/` | Owner/admin; last 14 days: daily inbound per Meta channel, contacts captured, AI engagement rate, per-channel volume, median first reply and top trigger |
 | GET, POST | `/{id}/data-operations/` | Owner; `{kind: export|delete, password, confirmation}` |
 | GET | `/{id}/data-operations/{pk}/download/` | Export archive |
 
@@ -42,14 +43,15 @@ Prefix: `/api/workspaces/`.
 
 | Method | Path | Notes |
 | --- | --- | --- |
-| GET | `/{id}/connections/` | Never returns credentials |
+| GET | `/{id}/connections/` | Never returns credentials; includes `followers` (Instagram profile) and `last_refreshed_at` |
+| POST | `/{id}/connections/refresh/` | Owner/admin; queues an immediate token refresh for every active Instagram connection → `{queued}` |
 | POST | `/{id}/meta/connect/` | Instagram OAuth start |
 | GET | `/api/meta/callback/` | OAuth callback (plan channel limit enforced) |
 | POST | `/{id}/channels/connect/` | `{provider: whatsapp|telegram|messenger, external_account_id, display_name, access_token}` (live mode) or `is_test` |
 | POST | `/{id}/channels/{pk}/simulate/` | Local test inbound `{text, kind, sender_id}` |
 | POST | `/{id}/channels/{pk}/disconnect/` | |
 | GET | `/{id}/deliveries/` | Outbound delivery log |
-| GET/POST | `/webhooks/instagram/`, `/webhooks/whatsapp/`, `/webhooks/messenger/` | Meta verification + signed events |
+| GET/POST | `/webhooks/instagram/`, `/webhooks/whatsapp/`, `/webhooks/messenger/` | Meta verification + signed events; Messenger also ingests Page `feed` comments (subscribe the Page to `feed`) |
 | POST | `/webhooks/telegram/{connection_id}/` | Secret-token verified |
 
 ## Automations, templates, experiments and analytics
@@ -57,8 +59,12 @@ Prefix: `/api/workspaces/`.
 | Method | Path | Notes |
 | --- | --- | --- |
 | GET, POST | `/{id}/automations/` | `{name, draft}` |
-| GET, PATCH | `/{id}/automations/{pk}/` | Draft editing; `enabled` toggles a published flow |
-| POST | `/{id}/automations/{pk}/publish/` | `{graph}` validated (node kinds, buttons, cycles, triggers) |
+| GET, PATCH, DELETE | `/{id}/automations/{pk}/` | Draft editing; `enabled` toggles a published flow; `folder` groups it. DELETE is refused while an A/B experiment uses it |
+| POST | `/{id}/automations/{pk}/duplicate/` | Copy of the working draft, disabled |
+| POST | `/{id}/automations/{pk}/transfer/` | `{workspace, reason}`; caller must manage both workspaces; arrives disabled |
+| GET | `/{id}/automations/stats/` | `{automation_id: {runs, reach}}`, all time |
+| POST | `/{id}/automations/generate/` | `{prompt}`; drafts a validated, disabled flow with the workspace's AI model (metered as `flow_generation`) |
+| POST | `/{id}/automations/{pk}/publish/` | `{graph}` validated (node kinds, buttons, cycles, triggers). A trigger's optional `channel` (`instagram`, `messenger`, `whatsapp`, …) limits it to that provider; blank matches all |
 | GET | `/{id}/automations/{pk}/export/` | Portable JSON (`format: nemio.automation`) |
 | POST | `/{id}/automations/import/` | `{template}` or multipart `file` → new draft |
 | GET | `/{id}/automation-runs/` | Conversation states |
@@ -76,12 +82,16 @@ Prefix: `/api/workspaces/`.
 
 | Method | Path | Notes |
 | --- | --- | --- |
-| GET | `/{id}/conversations/?search=` | Agents see unassigned + own |
+| GET | `/{id}/conversations/?search=&provider=&connection=` | Agents see unassigned + own; rows carry `connection_id`, `connection_name`, `contact_link` (WhatsApp) and a `last_message` preview |
 | PATCH | `/{id}/conversations/{pk}/` | `assigned_to`, `status` (`open`, `closed`, `needs_human`), `ai_enabled` |
-| GET, POST | `/{id}/conversations/{pk}/messages/` | POST `{text}` + `Idempotency-Key` |
+| GET, POST | `/{id}/conversations/{pk}/messages/` | POST `{text}` + `Idempotency-Key`; messages carry `sender` (`customer`, `ai`, `human`, `automation`, `api`) and `author_name` |
+| GET | `/{id}/conversations/{pk}/events/` | Thread milestones: automation triggered, handoff, link click, booked, paid |
 | GET, POST | `/{id}/conversations/{pk}/notes/` | Internal notes |
 | POST | `/{id}/conversations/{pk}/payment-link/` | `{offer}` + `Idempotency-Key`; sends a checkout link |
-| GET | `/{id}/leads/` · GET, PATCH `/{id}/leads/{pk}/` | |
+| GET | `/{id}/leads/?search=&stage=&provider=&page_size=` | CRM rows with `channels`, `conversation_id`, `assigned_to`, `message_count`; up to 200 per page |
+| GET, PATCH | `/{id}/leads/{pk}/` | |
+| POST | `/{id}/leads/bulk/` | `{ids, action: tag|untag|stage, value}` on leads the caller can see |
+| POST | `/{id}/leads/broadcast/` | Owner/admin; `{ids, text}` + `Idempotency-Key` → `{queued, skipped}`; leads outside Meta's 24-hour window are skipped |
 | POST | `/{id}/leads/{pk}/merge/` · `/{id}/leads/{pk}/sync/` | Merge duplicates; push to Airtable/Notion/GoHighLevel/Attio |
 | GET, POST | `/{id}/integrations/` | `{provider, credentials, options, is_test}`; providers: google_calendar, calcom, airtable, notion, gohighlevel, attio, slack, elevenlabs, stripe. Responses carry `status` (`active`, `reconnect_required`, `disconnected`); saving credentials resets it to `active` |
 | POST | `/{id}/integrations/{provider}/oauth/` | Owner/admin; `google_calendar` or `slack` → `{authorization_url, mode}`. 503 until the provider app is configured (local fake mode returns a test callback) |

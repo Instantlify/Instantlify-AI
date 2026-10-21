@@ -56,6 +56,10 @@ class Message(TenantModel):
     attachments = EncryptedTextField(default="[]")
     event = models.OneToOneField("channels.WebhookEvent", null=True, on_delete=models.SET_NULL)
     delivery = models.OneToOneField("channels.Delivery", null=True, on_delete=models.SET_NULL)
+    # Teammate who wrote an outbound reply; null for customers, AI, flows and the API.
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
     # "" (not a voice note), pending, processing, complete, failed.
     transcription_status = models.CharField(max_length=20, blank=True)
 

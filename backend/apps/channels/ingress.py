@@ -46,6 +46,25 @@ def normalize_meta(payload, provider):
                         "attachments": [],
                     },
                 )
+            if (
+                provider == "messenger"
+                and change.get("field") == "feed"
+                and value.get("item") == "comment"
+                and value.get("verb") == "add"
+                # The Page's own replies arrive on the same feed; never answer ourselves.
+                and str(value.get("from", {}).get("id", "")) not in {"", account_id}
+            ):
+                yield (
+                    account_id,
+                    "comment:" + str(value["comment_id"]),
+                    {
+                        "sender_id": str(value["from"]["id"]),
+                        "text": value.get("message", ""),
+                        "kind": "comment",
+                        "comment_id": str(value["comment_id"]),
+                        "attachments": [],
+                    },
+                )
             if provider == "whatsapp":
                 account_id = str(value.get("metadata", {}).get("phone_number_id", ""))
                 for message in value.get("messages", []):

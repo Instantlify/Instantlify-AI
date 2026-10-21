@@ -465,6 +465,42 @@ class FallbackProvider:
             return self.secondary.complete(messages, tools)
 
 
+# A fixed, valid comment-to-DM flow so local flow generation works without a model.
+FAKE_FLOW = json.dumps(
+    {
+        "name": "[Local test] Comment to DM lead magnet",
+        "start": "ask",
+        "triggers": [{"kind": "comment", "keyword": "SEND", "channel": "instagram"}],
+        "nodes": [
+            {
+                "id": "ask",
+                "data": {
+                    "kind": "send_message",
+                    "text": "Thanks for commenting! What's the best email for your guide?",
+                },
+            },
+            {"id": "email", "data": {"kind": "wait", "variable": "email"}},
+            {
+                "id": "guide",
+                "data": {
+                    "kind": "send_buttons",
+                    "text": "Thanks! Here is your guide.",
+                    "buttons": [
+                        {"type": "web_url", "url": "https://example.com", "title": "Get the guide"}
+                    ],
+                },
+            },
+            {"id": "done", "data": {"kind": "end"}},
+        ],
+        "edges": [
+            {"source": "ask", "target": "email"},
+            {"source": "email", "target": "guide"},
+            {"source": "guide", "target": "done"},
+        ],
+    }
+)
+
+
 class FakeLLMProvider:
     def complete(self, messages, tools):
         last = messages[-1] if messages else {}
@@ -473,6 +509,9 @@ class FakeLLMProvider:
             return Completion(
                 '{"sentiment":"neutral","urgency":"normal","intent":"question"}', [], 5, 5
             )
+        first = messages[0] if messages and isinstance(messages[0], dict) else {}
+        if str(first.get("content", "")).startswith("You are the Nemio flow designer"):
+            return Completion(FAKE_FLOW, [], 40, 120)
         return Completion(
             "[Local test] Thanks for reaching out. What would you like to know?", [], 20, 15
         )

@@ -40,6 +40,8 @@ import {
   type NodeKind,
 } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
+import { channelLabel } from "@/lib/channels";
+import { KIND_CHANNELS, TRIGGER_LABELS } from "@/lib/meta-templates";
 import { ErrorNotice, Pill, SuccessNotice, useFeedback } from "@/components/ui";
 import { TourMarker } from "@/components/growth";
 
@@ -468,17 +470,57 @@ export default function BuilderPage() {
                 aria-label="Trigger kind"
                 value={trigger.kind}
                 onChange={(event) => {
+                  const kind = event.target.value;
                   const next = [...triggers];
-                  next[index] = { ...trigger, kind: event.target.value };
+                  // A channel that cannot carry the new kind falls back to "any".
+                  next[index] = {
+                    ...trigger,
+                    kind,
+                    channel: KIND_CHANNELS[kind].includes(trigger.channel || "")
+                      ? trigger.channel
+                      : "",
+                  };
                   setTriggers(next);
                   setDirty(true);
                 }}
               >
                 {TRIGGER_KINDS.map((kind) => (
                   <option key={kind} value={kind}>
-                    {kind.replace("_", " ")}
+                    {TRIGGER_LABELS[kind]}
                   </option>
                 ))}
+              </select>
+              <select
+                aria-label="Trigger channel"
+                value={trigger.channel || ""}
+                onChange={(event) => {
+                  const next = [...triggers];
+                  next[index] = { ...trigger, channel: event.target.value };
+                  setTriggers(next);
+                  setDirty(true);
+                }}
+              >
+                <option value="">
+                  {KIND_CHANNELS[trigger.kind]?.length > 1
+                    ? "Any channel"
+                    : `${channelLabel(KIND_CHANNELS[trigger.kind]?.[0] ?? "")} (only channel)`}
+                </option>
+                {KIND_CHANNELS[trigger.kind]?.length > 1 &&
+                  KIND_CHANNELS[trigger.kind].map((provider) => (
+                    <option key={provider} value={provider}>
+                      {channelLabel(provider)} only
+                    </option>
+                  ))}
+                {/* A channel set through the API (Telegram, LinkedIn) stays selectable. */}
+                {trigger.channel &&
+                  !(
+                    KIND_CHANNELS[trigger.kind]?.length > 1 &&
+                    KIND_CHANNELS[trigger.kind].includes(trigger.channel)
+                  ) && (
+                    <option value={trigger.channel}>
+                      {channelLabel(trigger.channel)} only
+                    </option>
+                  )}
               </select>
               <div className="row" style={{ flexWrap: "nowrap" }}>
                 <input
@@ -524,8 +566,9 @@ export default function BuilderPage() {
             </button>
           )}
           <p className="muted-text">
-            Keywords match whole words, case-insensitively. Comment triggers
-            reply privately to the comment first.
+            Keywords match whole words, case-insensitively. Comment triggers on
+            Instagram posts and Facebook Page posts reply privately to the
+            comment first. WhatsApp supports message triggers only.
           </p>
         </aside>
         <div className="builder-canvas">

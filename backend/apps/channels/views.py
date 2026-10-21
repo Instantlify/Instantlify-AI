@@ -27,12 +27,50 @@ class ConnectionSerializer(serializers.ModelSerializer):
     # Soft-locked after a downgrade: still live, read-only for configuration.
     locked = serializers.SerializerMethodField()
 
+    # Public profile facts for the account switcher; never the raw profile blob.
+    followers = serializers.SerializerMethodField()
+
     def get_locked(self, obj):
         return obj.pk in self.context.get("locked", set())
 
+    def get_followers(self, obj):
+        value = (obj.profile or {}).get("followers_count")
+        return value if isinstance(value, int) and value >= 0 else None
+
     class Meta:
         model = ChannelConnection
-        fields = ["id", "provider", "display_name", "expires_at", "is_test", "status", "locked"]
+        fields = [
+            "id",
+            "provider",
+            "display_name",
+            "expires_at",
+            "is_test",
+            "status",
+            "locked",
+            "followers",
+            "last_refreshed_at",
+        ]
+
+
+class ConnectionRefreshView(APIView):
+    """Queue an immediate token refresh for every active Instagram connection. Other
+    Meta channels use long-lived Page or system-user tokens with no refresh grant."""
+
+    def post(self, request, workspace_id):
+        member = workspace_membership(request, workspace_id, ["owner", "admin"])
+        from apps.tenants.dispatch import enqueue_once
+
+        from .tasks import refresh_connection
+
+        connections = ChannelConnection.objects.for_workspace(member.workspace).filter(
+            provider="instagram", status="active"
+        )
+        ids = list(connections.values_list("pk", flat=True))
+        connections.update(refresh_due_at=timezone.now())
+        for pk in ids:
+            enqueue_once(refresh_connection, member.workspace_id, pk, ttl=300)
+        audit(member.workspace, request.user, "channel.refresh_requested", member.workspace_id)
+        return Response({"queued": len(ids)}, status=202)
 
 
 class ConnectionListView(generics.ListAPIView):

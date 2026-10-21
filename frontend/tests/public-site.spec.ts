@@ -377,6 +377,7 @@ test("workspace navigation remains usable on desktop and mobile", async ({
       logo_url: "",
       hide_platform_branding: false,
     },
+    pinned_apps: ["bio", "calendar"],
   };
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -390,6 +391,15 @@ test("workspace navigation remains usable on desktop and mobile", async ({
     if (path.includes("/analytics/funnel/"))
       return route.fulfill({
         json: { unique_leads: 0, steps: [], revenue_cents: 0 },
+      });
+    if (path.endsWith("/telemetry/"))
+      return route.fulfill({
+        json: {
+          since: "2026-10-08",
+          days: [],
+          totals: { inbound: 0, contacts: 0, conversations: 0, ai_rate: null },
+          channels: [],
+        },
       });
     if (path.endsWith("/status/"))
       return route.fulfill({
@@ -470,9 +480,23 @@ test("Instagram connection follows the API redirect and workspace Continue stays
     id: "onboarding-check",
     name: "My workspace",
     role: "owner",
+    parent: null,
+    branding: { brand_name: "Nemio", primary_color: "", logo_url: "" },
+    pinned_apps: [],
   };
   await page.route("**/api/workspaces/", (route) =>
     route.fulfill({ json: { results: [workspace] } }),
+  );
+  // The workspace shell loads the signed-in user; without it the page returns to sign-in.
+  await page.route("**/api/auth/me/", (route) =>
+    route.fulfill({
+      json: {
+        id: 1,
+        name: "Alex",
+        email: "alex@example.com",
+        email_verified: true,
+      },
+    }),
   );
   await page.route("**/api/growth/wizard/", (route) =>
     route.fulfill({

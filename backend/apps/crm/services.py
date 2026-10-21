@@ -239,6 +239,7 @@ def queue_reply(
         text=text[:2000],
         delivery=item,
         kind="voice" if media_url else "text",
+        author=actor,
     )
     conversation.last_outbound_at = when
     conversation.save()

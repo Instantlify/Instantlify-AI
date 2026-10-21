@@ -200,7 +200,7 @@ function Auth({
         ["--green" as string]:
           branding?.primary_color && branding.primary_color !== "#347359"
             ? branding.primary_color
-            : "#5546e8",
+            : "var(--brand-action)",
       }}
     >
       <TrackVisit page="/auth" />

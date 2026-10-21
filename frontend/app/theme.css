@@ -1,0 +1,28 @@
+/* Brand tokens shared by the public site, auth and client workspace. */
+:root {
+  --brand-accent: #768870;
+  --brand-action: #3e4e42;
+  --brand-action-hover: #5c7461;
+  --brand-ink: #252c26;
+  --brand-muted: #687063;
+  --brand-line: #e2e7de;
+  --brand-paper: #fafbf7;
+  --brand-canvas: #f6f7f2;
+  --brand-surface: #ffffff;
+  --brand-soft: #edf0e8;
+  --brand-sidebar: #1b221d;
+  --brand-sidebar-raised: #202721;
+  --brand-olive: #6f8265;
+  --brand-radius: 14px;
+  --brand-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.03), 0 6px 18px rgba(27, 34, 29, 0.04);
+
+  /* Meta channel accents: brand colour on a soft container pill. */
+  --channel-instagram: #e1306c;
+  --channel-instagram-soft: rgba(225, 48, 108, 0.1);
+  --channel-messenger: #1877f2;
+  --channel-messenger-soft: rgba(24, 119, 242, 0.1);
+  --channel-whatsapp: #128c4a;
+  --channel-whatsapp-dot: #25d366;
+  --channel-whatsapp-soft: rgba(37, 211, 102, 0.1);
+}

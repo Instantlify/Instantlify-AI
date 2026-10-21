@@ -27,7 +27,7 @@
   font-weight: 600;
 }
 .nd-jump a:hover {
-  color: #b84220;
+  color: #52634d;
 }
 .nd-section {
   padding: 66px 6%;
@@ -93,7 +93,7 @@
   margin-bottom: 13px;
 }
 .nd-channel-title > svg {
-  color: #c95831;
+  color: #77906a;
   flex-shrink: 0;
 }
 .nd-channel-title h3 {
@@ -130,7 +130,7 @@
   border: 1px solid #e4e2d3;
   border-radius: 12px;
   padding: 23px;
-  background: #f8f5ee;
+  background: #f3f4f2;
 }
 .nd-label {
   font-size: 9px;
@@ -173,8 +173,8 @@
 }
 .nd-offer-art {
   min-height: 160px;
-  background: #df7550;
-  color: #fff6e5;
+  background: #596d56;
+  color: #f2f4f0;
   border-radius: 6px;
   padding: 25px;
   position: relative;
@@ -196,7 +196,7 @@
   position: absolute;
   right: -20px;
   bottom: -30px;
-  color: #ed9d7b;
+  color: #8fa187;
 }
 .nd-channel-steps {
   margin-top: 20px;
@@ -309,8 +309,8 @@
   display: grid;
   place-items: center;
   border-radius: 5px;
-  background: #f4ead9;
-  color: #a57836;
+  background: #e7e9e4;
+  color: #687e5d;
   flex-shrink: 0;
 }
 .nd-node strong {
@@ -567,10 +567,10 @@
 }
 .nd-contact-tags > span {
   font-size: 9px;
-  background: #f3e8d4;
+  background: #e4e7e0;
   border-radius: 4px;
   padding: 6px 9px;
-  color: #957240;
+  color: #657a5b;
 }
 .nd-contact-tags > span:first-child {
   background: #eaf0df;
@@ -637,7 +637,7 @@
   grid-template-columns: 1.3fr 1fr;
   gap: 60px;
   align-items: center;
-  background: #fbf5ee;
+  background: #f5f6f3;
 }
 .nd-voice-copy > p {
   font-size: 14px;
@@ -649,8 +649,8 @@
   gap: 18px;
 }
 .nd-voice-card {
-  background: #fffdfa;
-  border: 1px solid #ecddc8;
+  background: #fdfdfc;
+  border: 1px solid #dbded6;
   padding: 30px;
   border-radius: 14px;
   text-align: center;
@@ -665,8 +665,8 @@
   place-items: center;
   border-radius: 50%;
   margin: 25px auto 15px;
-  background: #eab995;
-  color: #9b6238;
+  background: #bdc7b8;
+  color: #64795a;
   font-family: Georgia, serif;
   font-size: 27px;
   font-style: italic;
@@ -691,7 +691,7 @@
 }
 .nd-wave i {
   width: 3px;
-  background: #d88b58;
+  background: #778b70;
   border-radius: 10px;
   flex-shrink: 1;
 }
@@ -703,9 +703,9 @@
   gap: 8px;
   align-items: center;
   font-size: 11px;
-  border: 1px solid #e7d4b6;
-  color: #8e6540;
-  background: #f9efdf;
+  border: 1px solid #cdd4c9;
+  color: #627658;
+  background: #eceeea;
   padding: 12px 15px;
   border-radius: 5px;
 }
@@ -713,12 +713,12 @@
   display: block;
   margin-top: 13px;
   font-size: 9px;
-  color: #9b8b72;
+  color: #809974;
 }
 .nd-voice-provider {
   margin-top: 25px;
   padding-top: 20px;
-  border-top: 1px solid #eee3d2;
+  border-top: 1px solid #e1e4dc;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -745,8 +745,8 @@
   border-radius: 10px;
 }
 .nd-sales-grid > article:last-child {
-  background: #f9f2e9;
-  border-color: #e9decf;
+  background: #f1f3ef;
+  border-color: #dde0d8;
 }
 .nd-sales-icon {
   width: 44px;
@@ -759,8 +759,8 @@
   margin-bottom: 23px;
 }
 .nd-sales-grid > article:last-child .nd-sales-icon {
-  background: #f1e2ce;
-  color: #a37843;
+  background: #e0e3dc;
+  color: #6d8462;
 }
 .nd-sales-grid h3 {
   font-size: 21px;
@@ -887,7 +887,7 @@
   margin-top: 8px;
 }
 .nd-catalog {
-  background: #f8f6ef;
+  background: #f4f5f2;
   border-radius: 15px;
   max-width: 1200px;
   padding: 45px;

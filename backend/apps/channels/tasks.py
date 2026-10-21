@@ -201,13 +201,11 @@ def send_delivery(workspace_id, delivery_id):
                 "text": payload["text"],
                 "idempotency_key": item.idempotency_key,
             }
-            if not connection.is_test and connection.provider == "instagram":
+            if not connection.is_test and connection.provider in {"instagram", "messenger"}:
                 kwargs.update(
                     buttons=payload.get("buttons"),
                     private_reply=payload.get("private_reply", False),
                 )
-            elif not connection.is_test and connection.provider == "messenger":
-                kwargs.update(buttons=payload.get("buttons"))
             message_id = adapter.send_message(**kwargs)
         if not message_id:
             raise AmbiguousDelivery()

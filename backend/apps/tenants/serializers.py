@@ -5,7 +5,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from .models import AuditEvent, Membership, Workspace
+from .models import PINNABLE_APPS, AuditEvent, Membership, Workspace
 
 
 class SignupSerializer(serializers.Serializer):
@@ -45,9 +45,18 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 
         return effective_branding(obj)
 
+    def validate_pinned_apps(self, value):
+        if (
+            not isinstance(value, list)
+            or len(set(value)) != len(value)
+            or any(item not in PINNABLE_APPS for item in value)
+        ):
+            raise serializers.ValidationError("Pin each available app at most once.")
+        return value
+
     class Meta:
         model = Workspace
-        fields = ["id", "name", "created_at", "role", "parent", "branding"]
+        fields = ["id", "name", "created_at", "role", "parent", "branding", "pinned_apps"]
         read_only_fields = ["id", "created_at", "role", "parent", "branding"]
 
 

@@ -12,6 +12,8 @@ class Automation(TenantModel):
     updated_at = models.DateTimeField(auto_now=True)
     # Marketplace template this automation was installed from, if any (no FK: other tenant).
     installed_from = models.UUIDField(null=True, blank=True)
+    # Free-form grouping for the folders view; blank means unfiled.
+    folder = models.CharField(max_length=60, blank=True)
 
     class Meta:
         ordering = ["-updated_at", "id"]
@@ -21,6 +23,8 @@ class Trigger(TenantModel):
     automation = models.ForeignKey(Automation, on_delete=models.CASCADE)
     kind = models.CharField(max_length=20)
     keyword = models.CharField(max_length=100)
+    # Provider this trigger listens on; blank matches every connected channel.
+    channel = models.CharField(max_length=30, blank=True)
 
 
 class Node(TenantModel):

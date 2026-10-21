@@ -13,6 +13,13 @@ const workspace = {
     support_email: "",
     hide_platform_branding: false,
   },
+  pinned_apps: ["bio", "calendar"],
+};
+const telemetry = {
+  since: "2026-10-08",
+  days: [],
+  totals: { inbound: 0, contacts: 0, conversations: 0, ai_rate: null },
+  channels: [],
 };
 
 test.beforeEach(async ({ page }) => {
@@ -20,7 +27,12 @@ test.beforeEach(async ({ page }) => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/auth/me/")
       return route.fulfill({
-        json: { id: 1, name: "Alex", email: "alex@example.com" },
+        json: {
+          id: 1,
+          name: "Alex",
+          email: "alex@example.com",
+          email_verified: true,
+        },
       });
     if (path === "/api/workspaces/")
       return route.fulfill({ json: { results: [workspace], count: 1 } });
@@ -37,6 +49,9 @@ test.beforeEach(async ({ page }) => {
     if (path.endsWith("/agent-audit/"))
       return route.fulfill({ json: { runs: [], tools: [], usage: [] } });
     if (path.endsWith("/agent/")) return route.fulfill({ json: {} });
+    if (path.endsWith("/telemetry/")) return route.fulfill({ json: telemetry });
+    if (path.endsWith("/automations/stats/"))
+      return route.fulfill({ json: {} });
     if (path.includes("/analytics/funnel/"))
       return route.fulfill({
         json: {
@@ -191,10 +206,14 @@ test("preview presents an answer and knowledge without enabling the agent", asyn
 test("mobile workspace tools stay inside the viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/w/${id}/automations`);
+  // On phones the sidebar is an off-canvas drawer opened from the top bar.
+  await page.getByRole("button", { name: "Open navigation" }).click();
   await page.locator(".nav-tools > summary").click();
   await expect(
     page.getByRole("link", { name: "Integrations", exact: true }),
   ).toBeVisible();
+  await page.getByRole("link", { name: "Integrations", exact: true }).click();
+  await expect(page.locator(".sidebar")).not.toHaveClass(/open/);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

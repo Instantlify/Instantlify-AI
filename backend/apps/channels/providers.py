@@ -36,14 +36,15 @@ class MessengerAdapter(InstagramAdapter):
     def __init__(self, connection):
         self.connection = connection
 
-    def _send(self, recipient_id, message):
+    def _send(self, recipient_id, message, private_reply=False):
         body = request(
             "POST",
             f"https://graph.facebook.com/{settings.META_API_VERSION}/{self.connection.external_account_id}/messages",
             side_effect=True,
             headers={"Authorization": f"Bearer {self.connection.access_token}"},
             json={
-                "recipient": {"id": recipient_id},
+                # A private reply answers a Page comment in Messenger, addressed by comment ID.
+                "recipient": {"comment_id" if private_reply else "id": recipient_id},
                 "messaging_type": "RESPONSE",
                 "message": message,
             },
@@ -52,7 +53,9 @@ class MessengerAdapter(InstagramAdapter):
             raise AmbiguousDelivery()
         return body["message_id"]
 
-    def send_message(self, *, recipient_id, text, idempotency_key, buttons=None):
+    def send_message(
+        self, *, recipient_id, text, idempotency_key, buttons=None, private_reply=False
+    ):
         message = {"text": text}
         if buttons:
             message = {
@@ -61,7 +64,7 @@ class MessengerAdapter(InstagramAdapter):
                     "payload": {"template_type": "button", "text": text, "buttons": buttons},
                 }
             }
-        return self._send(recipient_id, message)
+        return self._send(recipient_id, message, private_reply)
 
     def send_voice_note(self, *, recipient_id, media_url, idempotency_key):
         return self._send(

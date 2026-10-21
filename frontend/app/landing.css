@@ -1,8 +1,8 @@
 .nm-landing {
-  --nm-ink: #24251f;
-  --nm-muted: #66675e;
-  --nm-orange: #eb663c;
-  --nm-paper: #fffef9;
+  --nm-ink: var(--brand-ink);
+  --nm-muted: var(--brand-muted);
+  --nm-accent: var(--brand-action);
+  --nm-paper: var(--brand-paper);
   color: var(--nm-ink);
   background: var(--nm-paper);
   font-family: Arial, sans-serif;
@@ -21,7 +21,7 @@
 .nm-landing button:focus-visible,
 .nm-landing summary:focus-visible,
 .nm-landing input:focus-visible {
-  outline: 3px solid #b84220;
+  outline: 3px solid #52634d;
   outline-offset: 5px;
 }
 .nm-landing section[id] {
@@ -29,7 +29,7 @@
 }
 .nm-announcement {
   background: #24251f;
-  color: #fff8eb;
+  color: #f5f6f4;
   display: flex;
   justify-content: center;
   gap: 28px;
@@ -41,7 +41,7 @@
   display: flex;
   gap: 5px;
   align-items: center;
-  color: #f7b59f;
+  color: #c9d1c5;
 }
 .nm-nav {
   position: sticky;
@@ -65,7 +65,7 @@
   gap: 9px;
 }
 .nm-landing .brand-icon {
-  background: var(--nm-orange);
+  background: var(--nm-accent);
   color: white;
   border-radius: 11px;
   width: 34px;
@@ -81,7 +81,7 @@
 }
 .nm-nav-links > a:hover,
 .nm-footer a:hover {
-  color: #b84220;
+  color: #52634d;
 }
 .nm-nav-actions {
   display: flex;
@@ -91,7 +91,7 @@
   font-weight: 600;
 }
 .nm-button {
-  background: var(--nm-orange);
+  background: var(--nm-accent);
   color: #fff !important;
   display: inline-flex;
   align-items: center;
@@ -105,10 +105,10 @@
   transition:
     background 0.15s,
     transform 0.15s;
-  box-shadow: 0 3px 0 #ad3d211c;
+  box-shadow: 0 3px 0 #6276581c;
 }
 .nm-button:hover {
-  background: #ce4d29;
+  background: var(--brand-action-hover);
   transform: translateY(-2px);
 }
 .nm-button.small {
@@ -200,7 +200,7 @@
   font-family: Georgia, serif;
   font-weight: 400;
   letter-spacing: -2.5px;
-  color: #cc512f;
+  color: #596d56;
 }
 .nm-hero-copy > p {
   font-size: 15px;
@@ -221,7 +221,7 @@
   font-weight: 600;
 }
 .nm-text-link:hover {
-  color: #b84220;
+  color: #52634d;
 }
 .nm-play {
   display: inline-flex;
@@ -255,11 +255,11 @@
 }
 .nm-hero-scene {
   position: relative;
-  background: #f4eadd;
+  background: #e9ebe6;
   border-radius: 16px;
   padding: 26px 31px 61px;
   transform: rotate(1.5deg);
-  background-image: radial-gradient(#d6c8b880 0.8px, transparent 0.8px);
+  background-image: radial-gradient(#c5cec080 0.8px, transparent 0.8px);
   background-size: 14px 14px;
 }
 .nm-scene-caption {
@@ -274,7 +274,7 @@
   border: 1px solid #e2e2d7;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 12px 25px #3a311512;
+  box-shadow: 0 12px 25px #262d2212;
   min-width: 0;
   text-align: left;
   transform: rotate(0deg);
@@ -362,8 +362,8 @@
   border-bottom-left-radius: 2px;
 }
 .nm-bubble.outgoing {
-  color: #4b372c;
-  background: #f8e7db;
+  color: #394433;
+  background: #eaece7;
   border-bottom-right-radius: 2px;
   align-self: flex-end;
 }
@@ -371,7 +371,7 @@
   display: flex;
   gap: 5px;
   font-size: 8px;
-  color: #b74a27;
+  color: #69805e;
   align-self: flex-end;
   margin-bottom: -5px;
   align-items: center;
@@ -410,7 +410,7 @@
   color: #56584b;
 }
 .nm-demo-next:hover {
-  background: #f2eadc;
+  background: #e7eae4;
 }
 .nm-float {
   display: flex;
@@ -419,9 +419,9 @@
   left: -27px;
   gap: 12px;
   align-items: center;
-  border: 1px solid #e6e1d5;
+  border: 1px solid #dee2d9;
   background: #fffefa;
-  box-shadow: 0 6px 20px #372d1510;
+  box-shadow: 0 6px 20px #242c2010;
   padding: 17px 22px;
   border-radius: 8px;
   transform: rotate(-3deg);
@@ -432,8 +432,8 @@
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: #f6e9c6;
-  color: #986820;
+  background: #dfe2da;
+  color: #576a4e;
 }
 .nm-float strong {
   font-size: 11px;
@@ -449,7 +449,7 @@
   right: -25px;
   top: -28px;
   font-size: 70px;
-  color: #eb663c;
+  color: #8ea483;
   font-family: Georgia, serif;
   line-height: 1;
   transform: rotate(15deg);
@@ -534,8 +534,8 @@
   border-radius: 5px;
 }
 .nm-scenario-list button.active {
-  background: #f9eee2;
-  border-color: #e7d4bf;
+  background: #eef0eb;
+  border-color: #d1d8ce;
 }
 .nm-scenario-list button > svg {
   margin-left: auto;
@@ -679,7 +679,7 @@
   display: grid;
   grid-template-columns: 1.2fr 1fr;
   gap: 80px;
-  background: #f7f4ec;
+  background: #f2f3f0;
   border: 1px solid #e9e6da;
   padding: 47px;
   border-radius: 10px;
@@ -764,7 +764,7 @@
   font-size: 10px;
 }
 .nm-filter button.active {
-  background: #f0ecdf;
+  background: #e8eae5;
   color: #24251f;
 }
 .nm-search {
@@ -821,12 +821,12 @@
   border-radius: 8px;
   font-weight: 700;
   font-size: 12px;
-  background: #ede8df;
+  background: #e6e9e3;
   color: #6e6655;
 }
 .tone-channels {
-  background: #f8e6d9;
-  color: #bc6139;
+  background: #e9ebe6;
+  color: #748d68;
 }
 .tone-crm {
   background: #eee9f8;
@@ -845,8 +845,8 @@
   color: #7060ab;
 }
 .tone-automation {
-  background: #f7eadb;
-  color: #bc8541;
+  background: #e9ece6;
+  color: #78916c;
 }
 .nm-subnote {
   font-size: 10px;
@@ -859,7 +859,7 @@
   text-align: center;
 }
 .nm-toolkit {
-  background: #f8f5ed;
+  background: #f3f4f1;
   max-width: none;
 }
 .nm-toolkit > .nm-section-head,
@@ -899,7 +899,7 @@
   color: #657848;
 }
 .nm-planned {
-  background: #ece8dc;
+  background: #e5e7e1;
   color: #7b7564;
 }
 .nm-tool-grid p {
@@ -949,7 +949,7 @@
   color: #747765;
 }
 .nm-compare tbody td:last-child {
-  background: #faf1e7;
+  background: #f1f2ef;
 }
 .nm-start {
   padding-top: 10px;
@@ -963,7 +963,7 @@
   display: block;
   font-family: Georgia, serif;
   font-size: 39px;
-  color: #c9bca4;
+  color: #b4bfae;
   margin-bottom: 20px;
   font-style: italic;
 }
@@ -993,16 +993,16 @@
   border-color: #e0e1d3;
 }
 .nm-pricing .plan-card.featured {
-  border-color: #dd7952;
-  box-shadow: 0 0 0 1px #dd7952;
+  border-color: #92a788;
+  box-shadow: 0 0 0 1px #92a788;
 }
 .nm-pricing .plan-badge {
-  background: #eb663c;
+  background: var(--brand-action);
   color: white;
 }
 .nm-pricing .button.primary {
-  background: #eb663c;
-  border-color: #eb663c;
+  background: var(--brand-action);
+  border-color: var(--brand-action);
   color: white;
   border-radius: 6px;
 }
@@ -1010,9 +1010,9 @@
   margin-top: 20px;
 }
 .nm-pricing .pricing-unavailable {
-  border: 1px solid #e6e2d6;
+  border: 1px solid #dfe2da;
   border-radius: 12px;
-  background: #f8f5ec;
+  background: #f2f4f0;
   padding: 35px;
   text-align: center;
 }
@@ -1068,7 +1068,7 @@
   margin: 0 5% 40px;
   padding: 65px 40px;
   text-align: center;
-  background: #f3dfc6;
+  background: #dde1d8;
   border-radius: 15px;
   position: relative;
   overflow: hidden;
@@ -1083,14 +1083,14 @@
 .nm-closing p {
   font-size: 12px;
   margin-bottom: 25px;
-  color: #87755e;
+  color: #6d8461;
 }
 .nm-closing-star {
   position: absolute;
   right: 8%;
   top: 50px;
   font-size: 130px;
-  color: #e5c39b;
+  color: #bdc8b8;
   transform: rotate(20deg);
   pointer-events: none;
 }

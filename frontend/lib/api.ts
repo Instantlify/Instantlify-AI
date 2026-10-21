@@ -23,6 +23,8 @@ export type Workspace = {
   created_at: string;
   parent: string | null;
   branding: Branding;
+  /** App Store apps pinned to the sidebar dock, in order. */
+  pinned_apps?: string[];
 };
 export type Member = {
   id: string;
@@ -53,6 +55,8 @@ export type Connection = {
   is_test: boolean;
   status: string;
   locked: boolean;
+  followers: number | null;
+  last_refreshed_at: string | null;
 };
 export type Status = { checks: Record<string, boolean>; pending_jobs: number };
 export type Page<T> = { results: T[]; count: number; next: string | null };
@@ -75,8 +79,20 @@ export type Conversation = {
   status: "open" | "closed" | "needs_human";
   ai_enabled: boolean;
   last_inbound_at: string | null;
+  last_outbound_at: string | null;
   updated_at: string;
+  connection_id: string;
+  connection_name: string;
+  /** Direct link to the contact on its channel, when the channel has one. */
+  contact_link: string;
+  last_message: {
+    text: string;
+    kind: string;
+    direction: "inbound" | "outbound";
+    created_at: string;
+  } | null;
 };
+export type MessageSender = "customer" | "ai" | "human" | "automation" | "api";
 export type Message = {
   id: string;
   direction: "inbound" | "outbound";
@@ -84,6 +100,23 @@ export type Message = {
   kind: string;
   created_at: string;
   delivery_status: string | null;
+  sender: MessageSender;
+  author_name: string;
+};
+export type ConversationEvent = {
+  id: number;
+  kind: "triggered" | "handoff" | "link_click" | "booked" | "paid";
+  automation_name: string;
+  amount_cents: number;
+  created_at: string;
+};
+/** A CRM row: the lead plus its channels and who is working it. */
+export type LeadRow = Lead & {
+  channels: string[];
+  conversation_id: string | null;
+  assigned_to: number | null;
+  message_count: number;
+  created_at: string;
 };
 export type Note = {
   id: string;
@@ -109,9 +142,15 @@ export type FlowNodeData = {
   variable?: string;
   equals?: string;
 };
+export type FlowTrigger = {
+  kind: string;
+  keyword: string;
+  /** Provider the trigger listens on; blank or absent means every channel. */
+  channel?: string;
+};
 export type FlowGraph = {
   start: string;
-  triggers: { kind: string; keyword: string }[];
+  triggers: FlowTrigger[];
   nodes: {
     id: string;
     data: FlowNodeData;
@@ -133,7 +172,10 @@ export type Automation = {
   enabled: boolean;
   updated_at: string;
   installed_from: string | null;
+  folder: string;
+  created_at: string;
 };
+export type AutomationStats = Record<string, { runs: number; reach: number }>;
 export type AutomationRun = {
   id: string;
   automation_id: string;
@@ -211,6 +253,32 @@ export type AgentAudit = {
     cost: string;
     status: string;
     created_at: string;
+  }[];
+};
+
+export type TelemetryDay = {
+  date: string;
+  instagram: number;
+  messenger: number;
+  whatsapp: number;
+  other: number;
+  contacts: number;
+};
+export type Telemetry = {
+  since: string;
+  days: TelemetryDay[];
+  totals: {
+    inbound: number;
+    contacts: number;
+    conversations: number;
+    ai_rate: number | null;
+  };
+  channels: {
+    provider: string;
+    inbound: number;
+    conversations: number;
+    median_response_minutes: number | null;
+    top_automation: { name: string; runs: number } | null;
   }[];
 };
 

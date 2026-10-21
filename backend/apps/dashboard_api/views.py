@@ -37,6 +37,14 @@ def ready(request):
     )
 
 
+class TelemetryView(APIView):
+    def get(self, request, workspace_id):
+        from .telemetry import telemetry
+
+        member = workspace_membership(request, workspace_id, ["owner", "admin"])
+        return Response(telemetry(member.workspace_id))
+
+
 class WorkspaceStatusView(APIView):
     def get(self, request, workspace_id):
         member = workspace_membership(request, workspace_id)

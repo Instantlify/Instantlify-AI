@@ -1,11 +1,13 @@
 import json
 import secrets
+import uuid
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, serializers
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -37,6 +39,22 @@ class ConversationSerializer(serializers.ModelSerializer):
     lead = serializers.SerializerMethodField()
     provider = serializers.CharField(source="identity.connection.provider", read_only=True)
     is_test = serializers.BooleanField(source="identity.connection.is_test", read_only=True)
+    connection_id = serializers.UUIDField(source="identity.connection_id", read_only=True)
+    connection_name = serializers.CharField(
+        source="identity.connection.display_name", read_only=True
+    )
+    contact_link = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
+
+    def get_contact_link(self, obj):
+        # WhatsApp identities are phone numbers; other channels use opaque scoped IDs.
+        if obj.identity.connection.provider == "whatsapp":
+            digits = "".join(ch for ch in obj.identity.external_id if ch.isdigit())
+            return f"https://wa.me/{digits}" if digits else ""
+        return ""
+
+    def get_last_message(self, obj):
+        return self.context.get("snippets", {}).get(obj.pk)
 
     def get_lead(self, obj):
         lead = obj.identity.lead
@@ -61,7 +79,12 @@ class ConversationSerializer(serializers.ModelSerializer):
             "status",
             "ai_enabled",
             "last_inbound_at",
+            "last_outbound_at",
             "updated_at",
+            "connection_id",
+            "connection_name",
+            "contact_link",
+            "last_message",
         ]
 
 
@@ -76,7 +99,41 @@ class ConversationList(generics.ListAPIView):
                 Q(identity__lead__name__icontains=search)
                 | Q(identity__lead__email__icontains=search)
             )
-        return query
+        provider = self.request.query_params.get("provider", "")[:30]
+        if provider:
+            query = query.filter(identity__connection__provider=provider)
+        connection = self.request.query_params.get("connection", "")
+        if connection:
+            try:
+                query = query.filter(identity__connection_id=uuid.UUID(connection))
+            except ValueError:
+                raise serializers.ValidationError("Invalid connection.") from None
+        return query.annotate(
+            last_message_id=Subquery(
+                Message.objects.for_workspace(self.kwargs["workspace_id"])
+                .filter(conversation=OuterRef("pk"))
+                .order_by("-created_at", "-id")
+                .values("pk")[:1]
+            )
+        )
+
+    def get_serializer(self, *args, **kwargs):
+        # Message text is encrypted at rest, so the page's previews are one bulk read.
+        if args and isinstance(args[0], list):
+            ids = [item.last_message_id for item in args[0] if item.last_message_id]
+            snippets = {
+                message.conversation_id: {
+                    "text": message.text[:140],
+                    "kind": message.kind,
+                    "direction": message.direction,
+                    "created_at": message.created_at,
+                }
+                for message in Message.objects.for_workspace(self.kwargs["workspace_id"]).filter(
+                    pk__in=ids
+                )
+            }
+            kwargs["context"] = {**self.get_serializer_context(), "snippets": snippets}
+        return super().get_serializer(*args, **kwargs)
 
 
 class ConversationDetail(APIView):
@@ -114,12 +171,50 @@ class ConversationDetail(APIView):
         return Response(ConversationSerializer(conversation).data)
 
 
+# Who produced an outbound message, read from the delivery's idempotency-key prefix,
+# which every sending path sets (see the queue_reply callers).
+SENDER_PREFIXES = {
+    "agent-reply": "ai",
+    "voice": "ai",
+    "handoff": "ai",
+    "flow": "automation",
+    "broadcast": "human",
+    "human": "human",
+    "payment": "human",
+    "api": "api",
+    "mcp": "api",
+}
+
+
 class MessageSerializer(serializers.ModelSerializer):
     delivery_status = serializers.CharField(source="delivery.status", default=None, read_only=True)
+    sender = serializers.SerializerMethodField()
+    author_name = serializers.SerializerMethodField()
+
+    def get_sender(self, obj):
+        if obj.direction == "inbound":
+            return "customer"
+        if obj.author_id:
+            return "human"
+        key = obj.delivery.idempotency_key if obj.delivery else ""
+        return SENDER_PREFIXES.get(key.split(":", 1)[0], "human")
+
+    def get_author_name(self, obj):
+        author = obj.author
+        return (author.first_name or author.email) if author else ""
 
     class Meta:
         model = Message
-        fields = ["id", "direction", "text", "kind", "created_at", "delivery_status"]
+        fields = [
+            "id",
+            "direction",
+            "text",
+            "kind",
+            "created_at",
+            "delivery_status",
+            "sender",
+            "author_name",
+        ]
 
 
 class MessageList(generics.ListAPIView):
@@ -132,7 +227,7 @@ class MessageList(generics.ListAPIView):
         return (
             Message.objects.for_workspace(conversation.workspace_id)
             .filter(conversation=conversation)
-            .select_related("delivery")
+            .select_related("delivery", "author")
             .order_by("-created_at", "-id")
         )
 
@@ -171,6 +266,33 @@ class NotesView(APIView):
         return Response({"id": note.id}, status=201)
 
 
+class ConversationEventsView(APIView):
+    """System milestones in a thread (flow triggered, handoff, booking, payment) for
+    the inbox timeline, read from the append-only funnel trail."""
+
+    KINDS = ["triggered", "handoff", "link_click", "booked", "paid"]
+
+    def get(self, request, workspace_id, pk):
+        from apps.analytics.models import FunnelEvent
+        from apps.automations.models import Automation
+
+        conversation = get_object_or_404(conversations_for(request, workspace_id), pk=pk)
+        events = list(
+            FunnelEvent.objects.for_workspace(workspace_id)
+            .filter(conversation_id=conversation.pk, kind__in=self.KINDS)
+            .order_by("created_at", "id")
+            .values("id", "kind", "automation_id", "amount_cents", "created_at")[:200]
+        )
+        names = dict(
+            Automation.objects.for_workspace(workspace_id)
+            .filter(pk__in={event["automation_id"] for event in events} - {None})
+            .values_list("pk", "name")
+        )
+        for event in events:
+            event["automation_name"] = names.get(event.pop("automation_id"), "")
+        return Response(events)
+
+
 class LeadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lead
@@ -183,28 +305,187 @@ class LeadSerializer(serializers.ModelSerializer):
         return value
 
 
+class LeadRowSerializer(LeadSerializer):
+    """A CRM table row: the lead plus where it came from and who is working it."""
+
+    channels = serializers.SerializerMethodField()
+    conversation_id = serializers.SerializerMethodField()
+    assigned_to = serializers.SerializerMethodField()
+    message_count = serializers.IntegerField(read_only=True)
+
+    def _conversations(self, obj):
+        return [
+            identity.conversation
+            for identity in obj.identities
+            if getattr(identity, "conversation", None) is not None
+        ]
+
+    def get_channels(self, obj):
+        return sorted({identity.connection.provider for identity in obj.identities})
+
+    def get_conversation_id(self, obj):
+        conversations = self._conversations(obj)
+        return max(conversations, key=lambda item: item.updated_at).pk if conversations else None
+
+    def get_assigned_to(self, obj):
+        conversations = self._conversations(obj)
+        if not conversations:
+            return None
+        return max(conversations, key=lambda item: item.updated_at).assigned_to_id
+
+    class Meta(LeadSerializer.Meta):
+        fields = LeadSerializer.Meta.fields + [
+            "channels",
+            "conversation_id",
+            "assigned_to",
+            "message_count",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class LeadPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = "page_size"
+    max_page_size = 200
+
+
+def visible_leads(request, workspace_id):
+    """Leads the caller may edit: those behind a conversation they can see."""
+    ids = conversations_for(request, workspace_id).values_list("identity__lead_id", flat=True)
+    return Lead.objects.for_workspace(workspace_id).filter(pk__in=ids)
+
+
 class LeadList(generics.ListAPIView):
-    serializer_class = LeadSerializer
+    serializer_class = LeadRowSerializer
+    pagination_class = LeadPagination
 
     def get_queryset(self):
         member = workspace_membership(self.request, self.kwargs["workspace_id"])
-        query = Lead.objects.for_workspace(member.workspace_id)
+        workspace_id = member.workspace_id
+        query = Lead.objects.for_workspace(workspace_id)
         if member.role == "agent":
-            ids = conversations_for(self.request, member.workspace_id).values_list(
+            ids = conversations_for(self.request, workspace_id).values_list(
                 "identity__lead_id", flat=True
             )
             query = query.filter(pk__in=ids)
-        return query
+        params = self.request.query_params
+        search = params.get("search", "")[:100]
+        if search:
+            query = query.filter(Q(name__icontains=search) | Q(email__icontains=search))
+        if params.get("stage"):
+            query = query.filter(stage=params["stage"][:20])
+        if params.get("provider"):
+            query = query.filter(
+                pk__in=ChannelIdentity.objects.for_workspace(workspace_id)
+                .filter(connection__provider=params["provider"][:30])
+                .values("lead_id")
+            )
+        return (
+            query.annotate(
+                message_count=Count("channelidentity__conversation__message", distinct=True)
+            )
+            # Grouped queries drop Meta.ordering; pagination needs a stable order.
+            .order_by("-created_at", "-id")
+            .prefetch_related(
+                Prefetch(
+                    "channelidentity_set",
+                    queryset=ChannelIdentity.objects.for_workspace(workspace_id).select_related(
+                        "connection", "conversation"
+                    ),
+                    to_attr="identities",
+                )
+            )
+        )
+
+
+class LeadIdsSerializer(serializers.Serializer):
+    ids = serializers.ListField(child=serializers.UUIDField(), min_length=1, max_length=200)
+
+
+class LeadBulkView(APIView):
+    """Apply a tag or a stage to many leads at once, with the same visibility and
+    side effects (audit, lead.updated webhook) as editing each lead."""
+
+    @transaction.atomic
+    def post(self, request, workspace_id):
+        member = workspace_membership(request, workspace_id)
+        body = LeadIdsSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        action = request.data.get("action")
+        value = request.data.get("value")
+        if action == "stage":
+            if not isinstance(value, str):
+                raise serializers.ValidationError("Invalid stage.")
+            value = LeadSerializer().validate_stage(value)
+        elif action in {"tag", "untag"}:
+            if not isinstance(value, str) or not 1 <= len(value.strip()) <= 40:
+                raise serializers.ValidationError("A tag needs 1–40 characters.")
+            value = value.strip()
+        else:
+            raise serializers.ValidationError("Choose a bulk action.")
+        from apps.public_api.services import emit, lead_payload
+
+        leads = list(
+            visible_leads(request, workspace_id)
+            .filter(pk__in=body.validated_data["ids"])
+            .select_for_update()
+        )
+        for lead in leads:
+            if action == "stage":
+                lead.stage = value
+            elif action == "tag" and value not in lead.tags:
+                lead.tags = [*lead.tags, value]
+            elif action == "untag":
+                lead.tags = [tag for tag in lead.tags if tag != value]
+            lead.save(update_fields=["stage", "tags"])
+            audit(member.workspace, request.user, "lead.updated", lead.id)
+            emit(workspace_id, "lead.updated", lead_payload(lead))
+        return Response({"updated": len(leads)})
+
+
+class LeadBroadcastView(APIView):
+    """Send one message to selected leads. Meta only allows free-form messages inside
+    the 24-hour customer-service window, so leads outside it are skipped, not queued."""
+
+    def post(self, request, workspace_id):
+        member = workspace_membership(request, workspace_id, ["owner", "admin"])
+        body = LeadIdsSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        text = request.data.get("text")
+        key = request.headers.get("Idempotency-Key", "")
+        if (
+            not isinstance(text, str)
+            or not 1 <= len(text.strip()) <= 2000
+            or not 1 <= len(key) <= 100
+        ):
+            raise serializers.ValidationError(
+                "Supply text (1–2000 characters) and an Idempotency-Key."
+            )
+        conversations = conversations_for(request, workspace_id).filter(
+            identity__lead_id__in=body.validated_data["ids"]
+        )
+        queued = skipped = 0
+        for conversation in conversations:
+            try:
+                queue_reply(
+                    conversation,
+                    text.strip(),
+                    f"broadcast:{key}:{conversation.pk}",
+                    actor=request.user,
+                )
+                queued += 1
+            except serializers.ValidationError:
+                skipped += 1
+        audit(member.workspace, request.user, "leads.broadcast", workspace_id)
+        return Response({"queued": queued, "skipped": skipped})
 
 
 class LeadDetail(generics.RetrieveUpdateAPIView):
     serializer_class = LeadSerializer
 
     def get_queryset(self):
-        ids = conversations_for(self.request, self.kwargs["workspace_id"]).values_list(
-            "identity__lead_id", flat=True
-        )
-        return Lead.objects.for_workspace(self.kwargs["workspace_id"]).filter(pk__in=ids)
+        return visible_leads(self.request, self.kwargs["workspace_id"])
 
     def perform_update(self, serializer):
         from apps.public_api.services import emit, lead_payload

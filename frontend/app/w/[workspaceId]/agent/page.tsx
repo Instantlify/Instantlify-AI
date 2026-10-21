@@ -328,7 +328,7 @@ export default function AgentPage() {
                         style={{
                           cursor: manager ? "pointer" : "default",
                           border: isSelected
-                            ? "2px solid var(--primary, #6366f1)"
+                            ? "2px solid var(--green)"
                             : "1px solid var(--border)",
                           background: isSelected
                             ? "var(--active-card-bg, rgba(99, 102, 241, 0.08))"

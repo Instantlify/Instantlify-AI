@@ -2,6 +2,7 @@ import re
 from datetime import timedelta
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -81,11 +82,28 @@ def validate_graph(graph):
         raise ValidationError("Set 1–20 keyword triggers.")
     for trigger in triggers:
         if (
-            trigger.get("kind") not in {"dm", "comment", "story_reply", "live_comment"}
-            or not 1 <= len(trigger.get("keyword", "")) <= 100
+            not isinstance(trigger, dict)
+            or not isinstance(trigger.get("kind"), str)
+            or trigger["kind"] not in TRIGGER_CHANNELS
+            or not isinstance(trigger.get("keyword"), str)
+            or not 1 <= len(trigger["keyword"]) <= 100
         ):
             raise ValidationError("Invalid trigger.")
+        channel = trigger.get("channel") or ""
+        if not isinstance(channel, str) or (
+            channel and channel not in TRIGGER_CHANNELS[trigger["kind"]]
+        ):
+            raise ValidationError("That trigger is not available on the chosen channel.")
     return graph
+
+
+# Channels each trigger kind can arrive on; a blank channel on a trigger means "any".
+TRIGGER_CHANNELS = {
+    "dm": {"instagram", "messenger", "whatsapp", "telegram", "linkedin"},
+    "comment": {"instagram", "messenger", "linkedin"},
+    "story_reply": {"instagram"},
+    "live_comment": {"instagram"},
+}
 
 
 @transaction.atomic
@@ -116,7 +134,11 @@ def publish(automation, graph, actor):
         )
     for trigger in graph["triggers"]:
         Trigger.objects.for_workspace(automation.workspace_id).create(
-            workspace_id=automation.workspace_id, automation=automation, **trigger
+            workspace_id=automation.workspace_id,
+            automation=automation,
+            kind=trigger["kind"],
+            keyword=trigger["keyword"],
+            channel=trigger.get("channel") or "",
         )
     automation.published = graph
     automation.draft = graph
@@ -181,11 +203,13 @@ def route_message(message, payload):
         return
     # Cooldown only stops a flow from re-triggering; the agent may still answer.
     cooling = bool(state and state.cooldown_until and state.cooldown_until > timezone.now())
+    provider = message.conversation.identity.connection.provider
     for trigger in (
         []
         if cooling
         else Trigger.objects.for_workspace(message.workspace_id)
         .filter(automation__enabled=True, kind=payload.get("kind", "dm"))
+        .filter(Q(channel="") | Q(channel=provider))
         .select_related("automation")
         .order_by("created_at", "id")
     ):
@@ -224,6 +248,19 @@ def route_message(message, payload):
             audit(message.conversation.workspace, None, "agent.run_queued", run.id)
 
 
+def in_experiment(automation):
+    """Whether any A/B experiment uses this automation as an arm. Queried through the
+    tenant manager: the reverse relations use the default manager, which fails closed
+    and would always answer no."""
+    from apps.analytics.models import Experiment
+
+    return (
+        Experiment.objects.for_workspace(automation.workspace_id)
+        .filter(Q(control=automation) | Q(variant=automation))
+        .exists()
+    )
+
+
 def duplicate(automation, target_workspace, actor):
     """Copy an automation's full graph into another (or the same) workspace. The copy
     is a disabled draft with its own rows, so editing either never touches the other,
@@ -250,7 +287,7 @@ def transfer(automation, target_workspace, *, operator, reason):
         raise ValueError("A transfer needs a reason.")
     if str(automation.workspace_id) == str(target_workspace.pk):
         raise ValueError("The automation already belongs to that workspace.")
-    if automation.experiments_as_control.exists() or automation.experiments_as_variant.exists():
+    if in_experiment(automation):
         raise ValueError("End the A/B experiment using this automation before moving it.")
     with transaction.atomic():
         source = automation.workspace_id

@@ -21,6 +21,14 @@ class User(AbstractUser):
         constraints = [models.UniqueConstraint(Lower("email"), name="user_email_ci_unique")]
 
 
+# App Store apps a workspace can pin; the client catalog uses the same IDs.
+PINNABLE_APPS = ("bio", "calendar", "shield", "deeplinks", "webchat")
+
+
+def default_pinned_apps():
+    return ["bio", "calendar"]
+
+
 class Workspace(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
@@ -29,6 +37,8 @@ class Workspace(models.Model):
     parent = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="clients"
     )
+    # App Store apps shown in the sidebar dock, in order. Shared by every member.
+    pinned_apps = models.JSONField(default=default_pinned_apps, blank=True)
 
     class Meta:
         ordering = ["created_at", "id"]
