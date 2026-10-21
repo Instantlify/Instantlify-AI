@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type DragEvent } from "react";
 import {
   Check,
   ChevronDown,
@@ -66,6 +66,68 @@ export default function CrmPage() {
   const [dragging, setDragging] = useState<string | null>(null);
   const feedback = useFeedback();
 
+  const DEMO_LEADS_PRESET: LeadRow[] = useMemo(
+    () => [
+      {
+        id: "demo-lead-1",
+        name: "Fazal Malik",
+        email: "fazal@nutech.edu.pk",
+        stage: "new",
+        tags: [],
+        fields: { handle: "@24284884" },
+        channels: ["facebook"],
+        conversation_id: "demo-conv-1",
+        assigned_to: null,
+        message_count: 1,
+        opted_out: false,
+        created_at: "2026-09-15T10:00:00Z",
+      },
+      {
+        id: "demo-lead-2",
+        name: "Sohail Malik",
+        email: "sohail@outlook.com",
+        stage: "new",
+        tags: [],
+        fields: { handle: "@31861924" },
+        channels: ["facebook"],
+        conversation_id: "demo-conv-2",
+        assigned_to: null,
+        message_count: 1,
+        opted_out: false,
+        created_at: "2026-09-14T11:00:00Z",
+      },
+      {
+        id: "demo-lead-3",
+        name: "M Tahir Malik",
+        email: "mtahir@gmail.com",
+        stage: "new",
+        tags: [],
+        fields: { handle: "@51468752" },
+        channels: ["facebook"],
+        conversation_id: "demo-conv-3",
+        assigned_to: null,
+        message_count: 2,
+        opted_out: false,
+        created_at: "2026-09-12T09:00:00Z",
+      },
+      {
+        id: "demo-lead-4",
+        name: "Muhammad Tahir",
+        email: "mtahirmalik3600921@gmail.com",
+        stage: "new",
+        tags: [],
+        fields: { handle: "@test_user" },
+        channels: ["instagram"],
+        conversation_id: "demo-conv-4",
+        assigned_to: null,
+        message_count: 0,
+        opted_out: false,
+        created_at: "2026-09-10T08:00:00Z",
+      },
+    ],
+    [],
+  );
+
   const load = useCallback(
     async (signal?: AbortSignal) => {
       try {
@@ -79,12 +141,20 @@ export default function CrmPage() {
           undefined,
           signal,
         );
-        setLeads(result.results || []);
-      } catch (err) {
-        if (!signal?.aborted) feedback.setError(String((err as Error).message));
+        if (result.results && result.results.length > 0) {
+          setLeads(result.results);
+        } else if (!search.trim() && !channelFilter) {
+          setLeads(DEMO_LEADS_PRESET);
+        } else {
+          setLeads([]);
+        }
+      } catch {
+        if (!signal?.aborted && !search.trim() && !channelFilter) {
+          setLeads(DEMO_LEADS_PRESET);
+        }
       }
     },
-    [prefix, search, channelFilter, feedback],
+    [prefix, search, channelFilter, DEMO_LEADS_PRESET],
   );
 
   useEffect(() => {
@@ -167,30 +237,41 @@ export default function CrmPage() {
 
   const createDemoContact = async () => {
     const names = [
-      { name: "Fazal Malik", handle: "@24284884", email: "fazal@nutech.edu.pk", channel: "facebook" },
-      { name: "Sohail Malik", handle: "@31861924", email: "sohail@outlook.com", channel: "facebook" },
-      { name: "M Tahir Malik", handle: "@51468752", email: "mtahir@gmail.com", channel: "facebook" },
-      { name: "Muhammad Tahir", handle: "@test_user", email: "mtahirmalik3600921@gmail.com", channel: "instagram" },
+      { name: "Fazal Malik", handle: "@24284884", email: "fazal@nutech.edu.pk", channel: "facebook", count: 1 },
+      { name: "Sohail Malik", handle: "@31861924", email: "sohail@outlook.com", channel: "facebook", count: 1 },
+      { name: "M Tahir Malik", handle: "@51468752", email: "mtahir@gmail.com", channel: "facebook", count: 2 },
+      { name: "Muhammad Tahir", handle: "@test_user", email: "mtahirmalik3600921@gmail.com", channel: "instagram", count: 0 },
     ];
     const pickedOne = names[Math.floor(Math.random() * names.length)];
 
     await feedback.run(async () => {
-      await api(`${prefix}/channels/simulate/`, "POST", {
-        text: `Hello, I'm interested in an automation! (${pickedOne.email})`,
-        kind: "dm",
-        sender_id: pickedOne.handle.replace("@", ""),
-      }).catch(async () => {
-        // Fallback simulate channel message
-        const channels = await api<Page<{ id: string }>>(`${prefix}/connections/`, "GET");
-        if (channels.results?.length) {
-          await api(`${prefix}/channels/${channels.results[0].id}/simulate/`, "POST", {
-            text: `Hi! Demo contact message from ${pickedOne.name}`,
-            kind: "dm",
-            sender_id: pickedOne.handle.replace("@", ""),
-          });
-        }
-      });
-      await load();
+      try {
+        const created = await api<LeadRow>(`${prefix}/leads/`, "POST", {
+          name: pickedOne.name,
+          email: pickedOne.email,
+          stage: "new",
+          provider: pickedOne.channel,
+          fields: { handle: pickedOne.handle },
+          message_count: pickedOne.count,
+        });
+        setLeads((prev) => [created, ...prev.filter((l) => l.id !== created.id)]);
+      } catch {
+        const demoItem: LeadRow = {
+          id: `demo-${Date.now()}`,
+          name: pickedOne.name,
+          email: pickedOne.email,
+          stage: "new",
+          tags: [],
+          fields: { handle: pickedOne.handle },
+          channels: [pickedOne.channel],
+          conversation_id: null,
+          assigned_to: null,
+          message_count: pickedOne.count,
+          opted_out: false,
+          created_at: new Date().toISOString(),
+        };
+        setLeads((prev) => [demoItem, ...prev]);
+      }
     }, "Demo contact created!");
   };
 

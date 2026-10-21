@@ -1264,44 +1264,105 @@ export default function IntegrationsPage() {
           onClose={() => setConfiguring("")}
         >
           <form className="form-grid" onSubmit={saveIntegration}>
-            <label className="inline">
+            <label
+              className="inline"
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: "10px",
+                marginBottom: "18px",
+                cursor: "pointer",
+                fontSize: "13.5px",
+                fontWeight: 500,
+                color: "#1e293b",
+              }}
+            >
               <input
                 type="checkbox"
                 name="is_test"
                 checked={testMode}
                 onChange={(e) => setTestMode(e.target.checked)}
+                style={{
+                  width: "18px",
+                  height: "18px",
+                  accentColor: "#0f1117",
+                  margin: 0,
+                  cursor: "pointer",
+                }}
               />
               Use local test simulation (no live external API calls)
             </label>
 
             {!testMode && (
               <>
-                <label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "14px", fontSize: "13px", fontWeight: 600, color: "#334155" }}>
                   API Key or Secret Token
                   <input
                     name="cred_api_key"
                     type="password"
                     placeholder="Enter your API token"
+                    style={{
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "8px",
+                      padding: "10px 12px",
+                      fontSize: "13.5px",
+                      outline: "none",
+                      color: "#0f172a",
+                    }}
                     required
                   />
                 </label>
-                <label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "14px", fontSize: "13px", fontWeight: 600, color: "#334155" }}>
                   Account / Workspace ID (optional)
-                  <input name="cred_account_id" placeholder="e.g. workspace_123" />
+                  <input
+                    name="cred_account_id"
+                    placeholder="e.g. workspace_123"
+                    style={{
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "8px",
+                      padding: "10px 12px",
+                      fontSize: "13.5px",
+                      outline: "none",
+                      color: "#0f172a",
+                    }}
+                  />
                 </label>
               </>
             )}
 
-            <div className="form-actions" style={{ marginTop: "12px" }}>
-              <button className="button primary" disabled={feedback.busy}>
-                {feedback.busy ? "Connecting…" : "Save Integration"}
-              </button>
+            <div className="form-actions" style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end", gap: "10px" }}>
               <button
                 type="button"
                 className="button secondary"
                 onClick={() => setConfiguring("")}
+                style={{
+                  background: "#ffffff",
+                  color: "#334155",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "8px",
+                  padding: "9px 16px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
               >
                 Cancel
+              </button>
+              <button
+                type="submit"
+                className="button primary"
+                disabled={feedback.busy}
+                style={{
+                  background: "#0f1117",
+                  color: "#ffffff",
+                  border: "1px solid #0f1117",
+                  borderRadius: "8px",
+                  padding: "9px 18px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                {feedback.busy ? "Connecting…" : "Save Integration"}
               </button>
             </div>
           </form>

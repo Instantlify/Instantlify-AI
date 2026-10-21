@@ -1063,6 +1063,9 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  max-width: 1380px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .automations-header-row {

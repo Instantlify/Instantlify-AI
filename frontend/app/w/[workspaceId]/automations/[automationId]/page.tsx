@@ -226,6 +226,37 @@ export default function BuilderPage() {
   const feedback = useFeedback();
 
   useEffect(() => {
+    if (automationId === "new") {
+      const defaultFlow: FlowGraph = {
+        start: "1",
+        triggers: [{ kind: "comment", keyword: "START" }],
+        nodes: [
+          {
+            id: "1",
+            position: { x: 100, y: 100 },
+            data: { kind: "send_message", text: "Welcome! Here is your requested info." },
+          },
+        ],
+        edges: [],
+      };
+      setAutomation({
+        id: "new",
+        workspace: workspace.id,
+        name: "New Automation",
+        enabled: false,
+        status: "draft",
+        trigger: { kind: "keyword", keyword: "START", channel: "instagram" },
+        draft: defaultFlow,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as unknown as Automation);
+      const flow = toFlow(defaultFlow);
+      setNodes(flow.nodes);
+      setEdges(flow.edges);
+      setStart("1");
+      setTriggers(defaultFlow.triggers);
+      return;
+    }
     const controller = new AbortController();
     api<Automation>(
       `${prefix}/automations/${automationId}/`,
@@ -248,7 +279,7 @@ export default function BuilderPage() {
       });
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefix, automationId]);
+  }, [prefix, automationId, workspace.id]);
 
   useEffect(() => {
     setNodes((list) =>
@@ -360,6 +391,16 @@ export default function BuilderPage() {
   }
   async function save() {
     await feedback.run(async () => {
+      if (automationId === "new") {
+        const created = await api<Automation>(`${prefix}/automations/`, "POST", {
+          name: automation?.name || "New Automation",
+          status: "draft",
+          trigger: triggers?.[0] || { kind: "keyword", keyword: "START", channel: "instagram" },
+          draft: graph,
+        });
+        window.location.replace(`/w/${workspace.id}/automations/${created.id}`);
+        return;
+      }
       const updated = await api<Automation>(
         `${prefix}/automations/${automationId}/`,
         "PATCH",

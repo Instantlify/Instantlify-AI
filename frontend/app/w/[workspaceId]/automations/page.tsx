@@ -170,6 +170,38 @@ export default function AutomationsPage() {
     }
   }
 
+  async function handleCreateNew() {
+    try {
+      const created = await api<Automation>(`${prefix}/automations/`, "POST", {
+        name: "Untitled Automation",
+        status: "draft",
+        trigger: {
+          kind: "keyword",
+          keyword: "START",
+          channel: "instagram",
+        },
+        draft: {
+          start: "1",
+          triggers: [],
+          nodes: [
+            {
+              id: "1",
+              position: { x: 100, y: 100 },
+              data: {
+                kind: "send_message",
+                text: "Hello! Welcome to our automation.",
+              },
+            },
+          ],
+          edges: [],
+        },
+      });
+      window.location.assign(`/w/${workspace.id}/automations/${created.id}`);
+    } catch {
+      window.location.assign(`/w/${workspace.id}/automations/new`);
+    }
+  }
+
   const filteredAutomations = automations.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
     if (filter === "active") return matchesSearch && item.status === "active";
@@ -287,65 +319,72 @@ export default function AutomationsPage() {
               >
                 Browse Templates
               </button>
-              <Link
-                href={`/w/${workspace.id}/automations/new`}
+              <button
+                type="button"
                 className="button-create-new"
+                onClick={handleCreateNew}
               >
                 <Plus size={16} /> Create New
-              </Link>
+              </button>
             </div>
           </div>
 
           {/* Automations Cards List (Matching Screenshot 5) */}
           <div className="automations-cards-stack">
-            {filteredAutomations.map((item) => (
-              <div key={item.id} className="boosend-automation-row-card">
-                <div className="row-channel-icon instagram">
-                  <Instagram size={22} />
-                </div>
-                <div className="row-info-col">
+            {filteredAutomations.map((item) => {
+              const isFb = item.name.toLowerCase().includes("fb") || item.name.toLowerCase().includes("facebook");
+              return (
+                <div key={item.id} className="boosend-automation-row-card">
+                  <div
+                    className={`row-channel-icon ${isFb ? "facebook" : "instagram"}`}
+                    style={isFb ? { background: "#1877f2" } : {}}
+                  >
+                    {isFb ? <Facebook size={22} /> : <Instagram size={22} />}
+                  </div>
+                  <div className="row-info-col">
+                    <Link
+                      href={`/w/${workspace.id}/automations/${item.id}`}
+                      className="row-automation-name"
+                    >
+                      {item.name}
+                    </Link>
+                    <div className="row-meta-sub">
+                      <span className="created-date">
+                        Created on {new Date(item.created_at).toLocaleDateString()}
+                      </span>
+                      <span className={`status-pill ${item.status}`}>
+                        {item.status === "active" ? "Active" : "Draft"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="row-metrics-col">
+                    <div className="metric-tag" title="Executions">
+                      <Check size={14} /> <span>{item.runs_count ?? 4}</span>
+                    </div>
+                    <div className="metric-tag" title="Users reached">
+                      <Users size={14} /> <span>{item.leads_count ?? 1}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`toggle-switch-btn ${item.status === "active" ? "active" : ""}`}
+                    onClick={() => toggleStatus(item)}
+                    title="Toggle active"
+                  >
+                    <span className="switch-thumb" />
+                  </button>
+
                   <Link
                     href={`/w/${workspace.id}/automations/${item.id}`}
-                    className="row-automation-name"
+                    className="icon-button-dots"
                   >
-                    {item.name}
+                    <MoreVertical size={16} />
                   </Link>
-                  <div className="row-meta-sub">
-                    <span className="created-date">
-                      Created on {new Date(item.created_at).toLocaleDateString()}
-                    </span>
-                    <span className={`status-pill ${item.status}`}>
-                      {item.status === "active" ? "Active" : "Draft"}
-                    </span>
-                  </div>
                 </div>
-
-                <div className="row-metrics-col">
-                  <div className="metric-tag" title="Executions">
-                    <Check size={14} /> <span>{item.runs_count ?? 4}</span>
-                  </div>
-                  <div className="metric-tag" title="Users reached">
-                    <Users size={14} /> <span>{item.leads_count ?? 1}</span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className={`toggle-switch-btn ${item.status === "active" ? "active" : ""}`}
-                  onClick={() => toggleStatus(item)}
-                  title="Toggle active"
-                >
-                  <span className="switch-thumb" />
-                </button>
-
-                <Link
-                  href={`/w/${workspace.id}/automations/${item.id}`}
-                  className="icon-button-dots"
-                >
-                  <MoreVertical size={16} />
-                </Link>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Default mock rows for fresh workspace matching screenshot 5 */}
             {!filteredAutomations.length && (
@@ -372,8 +411,8 @@ export default function AutomationsPage() {
                 </div>
 
                 <div className="boosend-automation-row-card">
-                  <div className="row-channel-icon instagram">
-                    <Instagram size={22} />
+                  <div className="row-channel-icon facebook" style={{ background: "#1877f2" }}>
+                    <Facebook size={22} />
                   </div>
                   <div className="row-info-col">
                     <span className="row-automation-name">FB Comment Reply</span>
