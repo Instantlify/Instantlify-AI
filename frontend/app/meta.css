@@ -2410,8 +2410,154 @@
   white-space: nowrap;
 }
 
+/* ==========================================================================
+   BooSend App Store: 3-Column Banner Cards & Menu Actions
+   Matches Screenshot 11
+   ========================================================================== */
+.boosend-appstore-page {
+  padding: 28px 32px 60px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.boosend-appstore-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.boosend-appstore-card {
+  background: #ffffff;
+  border: 1px solid #edf2f7;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.boosend-appstore-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  border-color: #e2e8f0;
+}
+
+.boosend-appstore-banner {
+  height: 150px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.boosend-appstore-content {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: space-between;
+}
+
+.boosend-appstore-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.boosend-appstore-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #1e293b;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.boosend-appstore-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.boosend-appstore-desc {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin-top: 12px;
+  margin-bottom: 20px;
+  flex-grow: 1;
+}
+
+.boosend-appstore-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.boosend-appstore-btn-open {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.boosend-appstore-btn-open:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.boosend-appstore-btn-pin {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.boosend-appstore-btn-pin:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.boosend-appstore-btn-soon {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px;
+  border-radius: 8px;
+  width: 100%;
+  text-align: center;
+}
+
 @media (max-width: 1100px) {
-  .boosend-integrations-grid {
+  .boosend-integrations-grid,
+  .boosend-appstore-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -2440,8 +2586,10 @@
   .metrics-cards-grid,
   .templates-catalog-grid,
   .boosend-integrations-grid,
+  .boosend-appstore-grid,
   .integrations-cards-grid {
     grid-template-columns: 1fr;
   }
 }
+
 
