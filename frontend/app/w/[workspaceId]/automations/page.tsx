@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Check,
+  ChevronRight,
+  Facebook,
   Folder,
   GitBranch,
   Instagram,
@@ -18,10 +20,12 @@ import {
   ToggleLeft,
   ToggleRight,
   Users,
-  Facebook,
+  Workflow,
+  Zap,
 } from "lucide-react";
 import { api, type Automation, type Page } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
+import { SimpleAutomationBuilder } from "@/components/simple-automation-builder";
 
 // Template definitions matching BooSend Screenshot 2
 const TEMPLATES_LIST = [
@@ -78,6 +82,22 @@ export default function AutomationsPage() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [notice, setNotice] = useState("");
+  const [builderMode, setBuilderMode] = useState<"simple" | null>(null);
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const createMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        createMenuRef.current &&
+        !createMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowCreateMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const loadAutomations = useCallback(
     async (signal?: AbortSignal) => {
@@ -209,6 +229,20 @@ export default function AutomationsPage() {
     return matchesSearch;
   });
 
+  if (builderMode === "simple") {
+    return (
+      <SimpleAutomationBuilder
+        workspaceId={workspace.id}
+        workspaceName={workspace.name}
+        onBack={() => setBuilderMode(null)}
+        onSaved={(_saved) => {
+          setBuilderMode(null);
+          loadAutomations();
+        }}
+      />
+    );
+  }
+
   return (
     <div className="automations-page-container">
       {/* Page Header with List vs Templates Toggle */}
@@ -319,13 +353,68 @@ export default function AutomationsPage() {
               >
                 Browse Templates
               </button>
-              <button
-                type="button"
-                className="button-create-new"
-                onClick={handleCreateNew}
-              >
-                <Plus size={16} /> Create New
-              </button>
+              <div className="create-new-button-wrapper" ref={createMenuRef}>
+                <button
+                  type="button"
+                  className="button-create-new"
+                  onClick={() => setShowCreateMenu(!showCreateMenu)}
+                >
+                  <Plus size={16} /> Create New
+                </button>
+
+                {showCreateMenu && (
+                  <div className="choose-builder-popover">
+                    <div className="choose-builder-header">CHOOSE HOW TO BUILD</div>
+
+                    {/* Option 1: Simple automation */}
+                    <button
+                      type="button"
+                      className="builder-option-item"
+                      onClick={() => {
+                        setShowCreateMenu(false);
+                        setBuilderMode("simple");
+                      }}
+                    >
+                      <div className="builder-option-icon simple">
+                        <Zap size={18} />
+                      </div>
+                      <div className="builder-option-text">
+                        <div className="builder-option-title-row">
+                          <span className="builder-option-name">Simple automation</span>
+                          <span className="builder-easiest-pill">EASIEST</span>
+                        </div>
+                        <div className="builder-option-desc">
+                          Guided, step-by-step. Perfect if you just want comment-to-DM.
+                        </div>
+                      </div>
+                      <ChevronRight size={16} className="builder-option-chevron" />
+                    </button>
+
+                    {/* Option 2: Advanced builder */}
+                    <button
+                      type="button"
+                      className="builder-option-item"
+                      onClick={() => {
+                        setShowCreateMenu(false);
+                        handleCreateNew();
+                      }}
+                    >
+                      <div className="builder-option-icon advanced">
+                        <Workflow size={18} />
+                      </div>
+                      <div className="builder-option-text">
+                        <div className="builder-option-title-row">
+                          <span className="builder-option-name">Advanced builder</span>
+                        </div>
+                        <div className="builder-option-desc">
+                          Full canvas with triggers, branching and every node type.
+                        </div>
+                      </div>
+                      <ChevronRight size={16} className="builder-option-chevron" />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
