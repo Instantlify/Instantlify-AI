@@ -71,6 +71,18 @@ const SAMPLE_POSTS = [
   { id: "p8", likes: 43, comments: 4, color: "from-fuchsia-800 via-pink-900 to-zinc-900", tag: "Meeting" },
 ];
 
+// Sample Facebook posts (matching Screenshot 2: posters and "Text post" cards)
+const FB_SAMPLE_POSTS = [
+  { id: "fb1", isText: false, color: "from-emerald-800 via-teal-900 to-zinc-900", title: "Debate Club" },
+  { id: "fb2", isText: false, color: "from-stone-800 via-amber-950 to-zinc-900", title: "Youth Wing" },
+  { id: "fb3", isText: false, color: "from-amber-900 via-stone-900 to-slate-950", title: "Bayan-e-Pak" },
+  { id: "fb4", isText: false, color: "from-slate-800 via-blue-950 to-zinc-900", title: "Conference" },
+  { id: "fb5", isText: true, text: "Text post" },
+  { id: "fb6", isText: true, text: "Text post" },
+  { id: "fb7", isText: false, color: "from-indigo-950 via-slate-900 to-zinc-900", title: "Live Session" },
+  { id: "fb8", isText: true, text: "Text post" },
+];
+
 export function SimpleAutomationBuilder({
   workspaceId,
   workspaceName = "censtd_nutech",
@@ -85,17 +97,20 @@ export function SimpleAutomationBuilder({
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
 
   // Step 1: Platform
-  const [platform, setPlatform] = useState<Platform>("instagram");
+  const [platform, setPlatform] = useState<Platform>("facebook");
 
   // Step 2: Trigger per platform
-  const [triggerType, setTriggerType] = useState<TriggerType>("story_reply");
+  const [triggerType, setTriggerType] = useState<TriggerType>("fb_page_message");
   const [commentScope, setCommentScope] = useState<CommentScope>("specific");
   const [selectedPostId, setSelectedPostId] = useState<string>("p1");
+  const [selectedFbPostId, setSelectedFbPostId] = useState<string>("fb1");
+  const [fbCommentScope, setFbCommentScope] = useState<"specific" | "any">("specific");
   const [selectedFbPage, setSelectedFbPage] = useState("SHAMA - Lightening The Path For Youth");
 
   // Step 3: Trigger Keywords
-  const [keywordOption, setKeywordOption] = useState<KeywordOption>("any");
-  const [specificKeywords, setSpecificKeywords] = useState("LINK, PRICE, INFO");
+  const [keywordOption, setKeywordOption] = useState<KeywordOption>("specific");
+  const [keywordChips, setKeywordChips] = useState<string[]>([]);
+  const [keywordInput, setKeywordInput] = useState("");
 
   // Step 4: Messages / Opening DM
   const [sendOpeningMessage, setSendOpeningMessage] = useState(true);
@@ -114,16 +129,16 @@ export function SimpleAutomationBuilder({
 
   // Step 6: Next steps (behind the scenes)
   const [addTagEnabled, setAddTagEnabled] = useState(true);
-  const [selectedTag, setSelectedTag] = useState("lead-magnet");
+  const [selectedTag, setSelectedTag] = useState("Select or Create a New Tag, Type It And Press Enter");
   const [assignTeamEnabled, setAssignTeamEnabled] = useState(true);
-  const [selectedTeamMember, setSelectedTeamMember] = useState("Jawad (Owner)");
+  const [selectedTeamMember, setSelectedTeamMember] = useState("");
   const [transferAutomationEnabled, setTransferAutomationEnabled] = useState(true);
 
   // When platform changes, set default sensible trigger
   const handlePlatformChange = (p: Platform) => {
     setPlatform(p);
     if (p === "instagram") {
-      setTriggerType("story_reply");
+      setTriggerType("comment");
     } else if (p === "telegram") {
       setTriggerType("telegram_bot_message");
     } else if (p === "whatsapp") {
@@ -131,6 +146,22 @@ export function SimpleAutomationBuilder({
     } else if (p === "facebook") {
       setTriggerType("fb_page_message");
     }
+  };
+
+  // Add keyword chip on Enter or comma
+  const handleKeywordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const trimmed = keywordInput.trim().replace(/^,|,$/g, "");
+      if (trimmed && !keywordChips.includes(trimmed)) {
+        setKeywordChips([...keywordChips, trimmed]);
+        setKeywordInput("");
+      }
+    }
+  };
+
+  const removeKeywordChip = (chipToRemove: string) => {
+    setKeywordChips(keywordChips.filter((c) => c !== chipToRemove));
   };
 
   // Determine trigger wording in Step 3
@@ -150,16 +181,16 @@ export function SimpleAutomationBuilder({
       status: active ? "active" : "draft",
       trigger: {
         kind: triggerType,
-        keyword: keywordOption === "specific" ? specificKeywords.split(",")[0]?.trim() || "LINK" : "*",
-        channel: platform || "instagram",
+        keyword: keywordOption === "specific" && keywordChips.length ? keywordChips.join(",") : "*",
+        channel: platform || "facebook",
       },
       draft: {
         start: "1",
         triggers: [
           {
             kind: triggerType,
-            keyword: keywordOption === "specific" ? specificKeywords : "*",
-            channel: platform || "instagram",
+            keyword: keywordOption === "specific" && keywordChips.length ? keywordChips.join(",") : "*",
+            channel: platform || "facebook",
           },
         ],
         nodes: [
@@ -190,8 +221,8 @@ export function SimpleAutomationBuilder({
             triggers: [
               {
                 kind: triggerType,
-                keyword: keywordOption === "specific" ? specificKeywords : "*",
-                channel: platform || "instagram",
+                keyword: keywordOption === "specific" && keywordChips.length ? keywordChips.join(",") : "*",
+                channel: platform || "facebook",
               },
             ],
             nodes: [
@@ -545,7 +576,7 @@ export function SimpleAutomationBuilder({
                   </div>
                 )}
 
-                {/* PLATFORM: FACEBOOK (Screenshot 4) */}
+                {/* PLATFORM: FACEBOOK (Screenshots 2 & 3) */}
                 {platform === "facebook" && (
                   <div className="trigger-options-list">
                     {/* FB Option 1: When someone messages your Page */}
@@ -581,16 +612,96 @@ export function SimpleAutomationBuilder({
                       </div>
                     </div>
 
-                    {/* FB Option 2: Comments on a post */}
+                    {/* FB Option 2: Comments on a post (Screenshot 2) */}
                     <div
                       className={`trigger-option-card ${triggerType === "comment" ? "selected" : ""}`}
                       onClick={() => setTriggerType("comment")}
                     >
                       <div className="trigger-radio-row">
                         <span className={`custom-radio-circle ${triggerType === "comment" ? "checked" : ""}`} />
-                        <div>
+                        <div style={{ flex: 1 }}>
                           <div className="trigger-option-name">When someone comments on a post</div>
                           <div className="trigger-option-desc">Watch a specific post or every post on your Page for new comments.</div>
+
+                          {triggerType === "comment" && (
+                            <div className="comment-subselector-box" onClick={(e) => e.stopPropagation()}>
+                              {/* FB only has 2 tabs: A specific post & Any post */}
+                              <div className="comment-scope-tabs fb-two-tabs">
+                                <button
+                                  type="button"
+                                  className={`scope-tab-button ${fbCommentScope === "specific" ? "active" : ""}`}
+                                  onClick={() => setFbCommentScope("specific")}
+                                >
+                                  <span className="tab-title">A specific post</span>
+                                  <span className="tab-sub">Only comments on posts you choose.</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`scope-tab-button ${fbCommentScope === "any" ? "active" : ""}`}
+                                  onClick={() => setFbCommentScope("any")}
+                                >
+                                  <span className="tab-title">Any post</span>
+                                  <span className="tab-sub">Comments on every post you publish.</span>
+                                </button>
+                              </div>
+
+                              <div className="fb-page-dropdown-container" style={{ marginTop: 10, paddingTop: 10 }}>
+                                <label className="fb-page-select-label">Which Page should this connect to?</label>
+                                <div className="custom-select-box">
+                                  <select
+                                    value={selectedFbPage}
+                                    onChange={(e) => setSelectedFbPage(e.target.value)}
+                                    className="native-page-select"
+                                  >
+                                    <option value="SHAMA - Lightening The Path For Youth">
+                                      SHAMA - Lightening The Path For Youth
+                                    </option>
+                                    <option value="Nemio Official Community">Nemio Official Community</option>
+                                  </select>
+                                  <ChevronDown size={15} className="select-dropdown-chevron" />
+                                </div>
+                              </div>
+
+                              {fbCommentScope === "specific" && (
+                                <div className="posts-picker-wrapper" style={{ marginTop: 12 }}>
+                                  <div className="posts-thumbnails-grid fb-grid-scroll">
+                                    {FB_SAMPLE_POSTS.map((post) => (
+                                      <button
+                                        type="button"
+                                        key={post.id}
+                                        className={`post-thumb-card ${
+                                          post.isText
+                                            ? "fb-text-post-card"
+                                            : `bg-gradient-to-br ${post.color}`
+                                        } ${selectedFbPostId === post.id ? "selected-post" : ""}`}
+                                        onClick={() => setSelectedFbPostId(post.id)}
+                                      >
+                                        {post.isText ? (
+                                          <div className="text-post-label">{post.text}</div>
+                                        ) : (
+                                          <>
+                                            <div className="post-thumb-overlay">
+                                              <span className="post-metric">
+                                                <Heart size={11} fill="white" /> 18
+                                              </span>
+                                              <span className="post-metric">
+                                                <MessageSquare size={11} fill="white" /> 3
+                                              </span>
+                                            </div>
+                                            <div className="post-inner-label">{post.title}</div>
+                                          </>
+                                        )}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <div className="posts-picker-footer">
+                                    <span>Tap a post to select it.</span>
+                                    <button type="button" className="load-more-link">Load more</button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -599,7 +710,7 @@ export function SimpleAutomationBuilder({
               </div>
             </div>
 
-            {/* STEP 3: Which words should trigger it? */}
+            {/* STEP 3: Which words should trigger it? (Screenshot 3) */}
             <div className="stepper-step-item">
               <div className="step-badge-col">
                 <div className="step-number-circle completed">3</div>
@@ -613,7 +724,7 @@ export function SimpleAutomationBuilder({
                 </p>
 
                 <div className="trigger-options-list">
-                  {/* Specific word */}
+                  {/* Specific word (Screenshot 3) */}
                   <div
                     className={`trigger-option-card ${keywordOption === "specific" ? "selected" : ""}`}
                     onClick={() => setKeywordOption("specific")}
@@ -625,21 +736,38 @@ export function SimpleAutomationBuilder({
                         <div className="trigger-option-desc">
                           Only run when the {triggerMediumWord} contains one of these.
                         </div>
+
+                        {keywordOption === "specific" && (
+                          <div className="specific-keywords-input-box" onClick={(e) => e.stopPropagation()}>
+                            {keywordChips.length > 0 && (
+                              <div className="keyword-chips-row">
+                                {keywordChips.map((chip) => (
+                                  <span key={chip} className="keyword-chip-tag">
+                                    {chip}
+                                    <button
+                                      type="button"
+                                      onClick={() => removeKeywordChip(chip)}
+                                      className="chip-remove-btn"
+                                    >
+                                      ×
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            <input
+                              type="text"
+                              value={keywordInput}
+                              onChange={(e) => setKeywordInput(e.target.value)}
+                              onKeyDown={handleKeywordKeyDown}
+                              placeholder="Press Enter to add a new word"
+                              className="keyword-press-enter-field"
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
-
-                    {keywordOption === "specific" && (
-                      <div className="specific-keywords-input-box" onClick={(e) => e.stopPropagation()}>
-                        <label className="keyword-input-label">Trigger keywords (separated by commas)</label>
-                        <input
-                          type="text"
-                          value={specificKeywords}
-                          onChange={(e) => setSpecificKeywords(e.target.value)}
-                          placeholder="e.g. LINK, PRICE, START, INFO"
-                          className="keyword-text-field"
-                        />
-                      </div>
-                    )}
                   </div>
 
                   {/* Any word */}
@@ -670,7 +798,7 @@ export function SimpleAutomationBuilder({
                 <h2 className="step-card-title">Set up your messages</h2>
 
                 <div className="message-setup-inner-card">
-                  {/* Send opening message toggle header (Screenshot 5) */}
+                  {/* Send opening message toggle header */}
                   <div className="simple-feature-toggle-row opening-msg-header">
                     <div>
                       <div className="toggle-heading">Send the opening message</div>
@@ -696,7 +824,6 @@ export function SimpleAutomationBuilder({
                       />
 
                       <div className="message-button-input-row">
-                        <label className="button-input-label">Quick Action Button</label>
                         <input
                           type="text"
                           value={openingButtonText}
@@ -754,7 +881,7 @@ export function SimpleAutomationBuilder({
               </div>
             </div>
 
-            {/* STEP 5: Now time to send the link */}
+            {/* STEP 5: Now time to send the link (Screenshot 1) */}
             <div className="stepper-step-item">
               <div className="step-badge-col">
                 <div className="step-number-circle completed">5</div>
@@ -776,24 +903,21 @@ export function SimpleAutomationBuilder({
                     />
 
                     {/* Button title & URL */}
-                    <div className="link-action-inputs">
+                    <div className="link-action-inputs-stacked">
                       <input
                         type="text"
                         value={linkButtonText}
                         onChange={(e) => setLinkButtonText(e.target.value)}
                         placeholder="Button text (e.g. Just click here)"
-                        className="message-button-title-input"
+                        className="message-button-title-input centered-text"
                       />
-                      <div className="link-url-field-wrap">
-                        <LinkIcon size={14} className="url-icon" />
-                        <input
-                          type="url"
-                          value={linkUrl}
-                          onChange={(e) => setLinkUrl(e.target.value)}
-                          placeholder="https://..."
-                          className="link-url-input"
-                        />
-                      </div>
+                      <input
+                        type="url"
+                        value={linkUrl}
+                        onChange={(e) => setLinkUrl(e.target.value)}
+                        placeholder="https://boosend.ai"
+                        className="link-url-input-clean"
+                      />
                     </div>
 
                     <button type="button" className="add-another-link-btn">
@@ -801,7 +925,7 @@ export function SimpleAutomationBuilder({
                     </button>
                   </div>
 
-                  {/* Follow up toggle */}
+                  {/* Follow up toggle (Screenshot 1) */}
                   <div className="simple-feature-toggle-row">
                     <div>
                       <div className="toggle-heading">Follow up</div>
@@ -822,7 +946,7 @@ export function SimpleAutomationBuilder({
             {/* STEP 6: Next steps (Screenshot 1) */}
             <div className="stepper-step-item">
               <div className="step-badge-col">
-                <div className="step-number-circle active">6</div>
+                <div className="step-number-circle completed">6</div>
               </div>
 
               <div className="step-card-box">
@@ -832,7 +956,7 @@ export function SimpleAutomationBuilder({
                 </p>
 
                 <div className="next-steps-cards-list">
-                  {/* Card 1: Add a tag */}
+                  {/* Card 1: Add a tag (Screenshot 1) */}
                   <div className="next-step-feature-card">
                     <div className="next-step-header-row">
                       <div>
@@ -858,6 +982,9 @@ export function SimpleAutomationBuilder({
                             onChange={(e) => setSelectedTag(e.target.value)}
                             className="native-page-select"
                           >
+                            <option value="Select or Create a New Tag, Type It And Press Enter">
+                              Select or Create a New Tag, Type It And Press Enter
+                            </option>
                             <option value="lead-magnet">lead-magnet</option>
                             <option value="vip-customer">vip-customer</option>
                             <option value="newsletter-subscriber">newsletter-subscriber</option>
@@ -869,7 +996,7 @@ export function SimpleAutomationBuilder({
                     )}
                   </div>
 
-                  {/* Card 2: Assign a team member */}
+                  {/* Card 2: Assign a team member (Screenshot 1) */}
                   <div className="next-step-feature-card">
                     <div className="next-step-header-row">
                       <div>
@@ -895,10 +1022,10 @@ export function SimpleAutomationBuilder({
                             onChange={(e) => setSelectedTeamMember(e.target.value)}
                             className="native-page-select"
                           >
+                            <option value="">Select a team member</option>
                             <option value="Jawad (Owner)">Jawad (Owner)</option>
                             <option value="Admin Support">Admin Support</option>
                             <option value="Sales Agent 1">Sales Agent 1</option>
-                            <option value="Unassigned">Unassigned</option>
                           </select>
                           <ChevronDown size={15} className="select-dropdown-chevron" />
                         </div>
@@ -906,7 +1033,7 @@ export function SimpleAutomationBuilder({
                     )}
                   </div>
 
-                  {/* Card 3: Transfer to another automation */}
+                  {/* Card 3: Transfer to another automation (Screenshot 1) */}
                   <div className="next-step-feature-card">
                     <div className="next-step-header-row">
                       <div>
@@ -1061,7 +1188,7 @@ export function SimpleAutomationBuilder({
                   </div>
                 )}
 
-                {/* 2. TELEGRAM PREVIEW (Screenshot 2) */}
+                {/* 2. TELEGRAM PREVIEW */}
                 {platform === "telegram" && (
                   <div className="phone-chat-screen telegram-theme">
                     <div className="phone-chat-header">
@@ -1084,40 +1211,6 @@ export function SimpleAutomationBuilder({
                         <MessageSquare size={32} className="watermark-icon" />
                         <span>Your messages will appear here as you set them up.</span>
                       </div>
-
-                      {sendOpeningMessage && openingMessage && (
-                        <div className="chat-bubble-row bot-row">
-                          <div className="chat-bubble telegram-bot-bubble">
-                            <div className="bubble-text">{openingMessage}</div>
-                            {openingButtonText && (
-                              <button type="button" className="telegram-inline-btn">
-                                {openingButtonText}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {sendOpeningMessage && openingButtonText && (
-                        <div className="chat-bubble-row user-row">
-                          <div className="chat-user-reply-pill telegram-pill">
-                            {openingButtonText}
-                          </div>
-                        </div>
-                      )}
-
-                      {linkMessage && (
-                        <div className="chat-bubble-row bot-row">
-                          <div className="chat-bubble telegram-bot-bubble">
-                            <div className="bubble-text">{linkMessage}</div>
-                            {linkButtonText && (
-                              <button type="button" className="telegram-inline-btn">
-                                {linkButtonText}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     <div className="phone-chat-input-bar telegram-bar">
@@ -1133,7 +1226,7 @@ export function SimpleAutomationBuilder({
                   </div>
                 )}
 
-                {/* 3. WHATSAPP PREVIEW (Screenshot 3) */}
+                {/* 3. WHATSAPP PREVIEW */}
                 {platform === "whatsapp" && (
                   <div className="phone-chat-screen whatsapp-theme">
                     <div className="phone-chat-header whatsapp-header">
@@ -1156,40 +1249,6 @@ export function SimpleAutomationBuilder({
                         <MessageCircle size={32} className="watermark-icon" />
                         <span>Your messages will appear here as you set them up.</span>
                       </div>
-
-                      {sendOpeningMessage && openingMessage && (
-                        <div className="chat-bubble-row bot-row">
-                          <div className="chat-bubble whatsapp-bot-bubble">
-                            <div className="bubble-text">{openingMessage}</div>
-                            {openingButtonText && (
-                              <button type="button" className="whatsapp-action-btn">
-                                {openingButtonText}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {sendOpeningMessage && openingButtonText && (
-                        <div className="chat-bubble-row user-row">
-                          <div className="chat-user-reply-pill whatsapp-pill">
-                            {openingButtonText}
-                          </div>
-                        </div>
-                      )}
-
-                      {linkMessage && (
-                        <div className="chat-bubble-row bot-row">
-                          <div className="chat-bubble whatsapp-bot-bubble">
-                            <div className="bubble-text">{linkMessage}</div>
-                            {linkButtonText && (
-                              <button type="button" className="whatsapp-action-btn">
-                                {linkButtonText}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     <div className="phone-chat-input-bar whatsapp-bar">
@@ -1206,7 +1265,7 @@ export function SimpleAutomationBuilder({
                   </div>
                 )}
 
-                {/* 4. FACEBOOK MESSENGER PREVIEW (Screenshots 4 & 5) */}
+                {/* 4. FACEBOOK MESSENGER PREVIEW (Screenshots 1, 2, 3) */}
                 {platform === "facebook" && (
                   <div className="phone-chat-screen facebook-theme">
                     <div className="phone-chat-header">
@@ -1225,14 +1284,14 @@ export function SimpleAutomationBuilder({
                     </div>
 
                     <div className="phone-chat-messages-scroll">
-                      {/* Incoming initial message from lead (Screenshot 4 & 5) */}
+                      {/* Incoming lead message (Screenshot 1) */}
                       <div className="chat-bubble-row user-row">
                         <div className="chat-user-reply-pill fb-pill">
                           Hey
                         </div>
                       </div>
 
-                      {/* Bot Opening Message Bubble */}
+                      {/* Bot Opening Message Bubble (Screenshot 1) */}
                       {sendOpeningMessage && openingMessage && (
                         <div className="chat-bubble-row bot-row">
                           <div className="chat-bubble fb-bot-bubble">
@@ -1246,7 +1305,7 @@ export function SimpleAutomationBuilder({
                         </div>
                       )}
 
-                      {/* User Click response */}
+                      {/* Follower reply pill (Screenshot 1) */}
                       {sendOpeningMessage && openingButtonText && (
                         <div className="chat-bubble-row user-row">
                           <div className="chat-user-reply-pill fb-pill">
@@ -1255,7 +1314,7 @@ export function SimpleAutomationBuilder({
                         </div>
                       )}
 
-                      {/* Bot Link Response Bubble */}
+                      {/* Bot Resource Link Bubble (Screenshot 1) */}
                       {linkMessage && (
                         <div className="chat-bubble-row bot-row">
                           <div className="chat-bubble fb-bot-bubble">

@@ -5331,5 +5331,107 @@
   color: #65676b;
 }
 
+/* Facebook 2-tab Scope */
+.fb-two-tabs {
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+.fb-grid-scroll {
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.fb-text-post-card {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.text-post-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* Step 3: Keyword press enter chips */
+.keyword-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.keyword-chip-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.chip-remove-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  margin-left: 2px;
+}
+
+.keyword-press-enter-field {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  outline: none;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.keyword-press-enter-field:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+/* Step 5: Stacked Link Inputs (Screenshot 1) */
+.link-action-inputs-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.centered-text {
+  text-align: center;
+}
+
+.link-url-input-clean {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  outline: none;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.link-url-input-clean:focus {
+  border-color: #2563eb;
+}
+
+
 
 
