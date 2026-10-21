@@ -1703,6 +1703,327 @@
 }
 
 /* ==========================================================================
+   BooSend CRM: Toolbar, Contacts Table, Kanban & Pagination
+   Matches Screenshot 10
+   ========================================================================== */
+.boosend-crm-page {
+  padding: 24px 32px 60px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.boosend-crm-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.boosend-crm-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 14px;
+  width: 320px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.15s ease;
+}
+
+.boosend-crm-search-box:focus-within {
+  border-color: #0f172a;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
+}
+
+.boosend-crm-search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: #0f172a;
+  width: 100%;
+}
+
+.boosend-crm-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.boosend-crm-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.boosend-crm-selected-count {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.boosend-crm-bulk-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.boosend-crm-bulk-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.boosend-crm-campaign-btn {
+  background: #0f1117;
+  border: none;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s ease;
+}
+
+.boosend-crm-campaign-btn:hover {
+  background: #000000;
+}
+
+.boosend-crm-subbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.boosend-crm-view-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.boosend-crm-add-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.boosend-crm-add-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.boosend-crm-toggle-group {
+  display: inline-flex;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 3px;
+  border: 1px solid #e2e8f0;
+}
+
+.boosend-crm-toggle-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.boosend-crm-toggle-btn.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.boosend-crm-filter-btn {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.boosend-crm-filter-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.boosend-crm-table-card {
+  background: #ffffff;
+  border: 1px solid #edf2f7;
+  border-radius: 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+}
+
+.boosend-crm-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.boosend-crm-table th {
+  padding: 14px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  background: #fafbfd;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.boosend-crm-table td {
+  padding: 16px 18px;
+  font-size: 13px;
+  color: #0f172a;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.boosend-crm-table tr:hover td {
+  background: #fafbfc;
+}
+
+.boosend-crm-table tr.picked td {
+  background: #f0f7ff;
+}
+
+.boosend-checkbox-round {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: #ffffff;
+}
+
+.boosend-checkbox-round.checked {
+  background: #0f172a;
+  border-color: #0f172a;
+}
+
+.boosend-crm-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.boosend-crm-channel-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.boosend-crm-assign-pill {
+  border: 1px dashed #cbd5e1;
+  background: #fafbfd;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.boosend-crm-assign-pill:hover {
+  border-color: #94a3b8;
+  color: #0f172a;
+  background: #ffffff;
+}
+
+.boosend-crm-stage-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.boosend-crm-stage-dot:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.boosend-crm-footer-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.boosend-crm-perpage-select {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 12px;
+  color: #334155;
+  padding: 3px 6px;
+  outline: none;
+}
+
+
+/* ==========================================================================
    BooSend Integrations Catalog, Cards, Categories, & Explainer Modal
    Matches Screenshots 5, 6, 7
    ========================================================================== */
