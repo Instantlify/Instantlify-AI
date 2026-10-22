@@ -50,6 +50,7 @@ from apps.crm.views import (
     MergeLeadView,
     MessageList,
     NotesView,
+    RefreshLeadView,
     SyncLeadView,
 )
 from apps.marketplace.views import (
@@ -124,6 +125,7 @@ urlpatterns = [
     path(P + "leads/broadcast/", LeadBroadcastView.as_view()),
     path(P + "leads/<uuid:pk>/", LeadDetail.as_view()),
     path(P + "leads/<uuid:pk>/merge/", MergeLeadView.as_view()),
+    path(P + "leads/<uuid:pk>/refresh/", RefreshLeadView.as_view()),
     path(P + "leads/<uuid:pk>/sync/", SyncLeadView.as_view()),
     path(P + "integrations/", IntegrationList.as_view()),
     path(P + "integrations/<uuid:pk>/", IntegrationDetail.as_view()),

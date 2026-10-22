@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
+  Contact,
   ArrowUpRight,
   Bot,
   ChevronDown,
@@ -43,6 +45,7 @@ import { useWorkspace } from "@/lib/workspace";
 import { useWorkspaceSocket } from "@/lib/ws";
 import { ChannelBadge, ChannelIcon, META_CHANNELS } from "@/lib/channels";
 import { initials } from "@/components/shell";
+import { ContactAvatar } from "@/components/contact-avatar";
 import {
   Empty,
   ErrorNotice,
@@ -236,6 +239,16 @@ export default function InboxPage() {
     queueMicrotask(() =>
       loadList(controller.signal)
         .then((list) => {
+          // A conversation linked from the CRM may sit on another account than the
+          // switcher shows; widen to all accounts rather than silently opening another.
+          if (
+            linked &&
+            activeAccount &&
+            !list.some((item) => item.id === linked)
+          ) {
+            setActiveAccount(null);
+            return;
+          }
           setSelected((current) =>
             current && list.some((item) => item.id === current)
               ? current
@@ -561,8 +574,6 @@ export default function InboxPage() {
           ) : visible.length > 0 ? (
             visible.map((item) => {
               const isActive = item.id === selected;
-              const firstLetter =
-                item.lead.name?.charAt(0).toUpperCase() || "?";
               const awaiting = item.last_message?.direction === "inbound";
               const lastText = item.last_message
                 ? `${item.last_message.direction === "outbound" ? "You: " : ""}${
@@ -580,12 +591,15 @@ export default function InboxPage() {
                   className={`boosend-conv-item ${isActive ? "active" : ""}`}
                   onClick={() => setSelected(item.id)}
                 >
-                  <div className="boosend-conv-avatar">
-                    {firstLetter}
+                  <ContactAvatar
+                    name={item.lead.name || "?"}
+                    avatarUrl={item.lead.avatar_url}
+                    className="boosend-conv-avatar"
+                  >
                     <span className="conv-channel-mark" title={item.provider}>
                       <ChannelIcon provider={item.provider} size={10} />
                     </span>
-                  </div>
+                  </ContactAvatar>
                   <div className="boosend-conv-info">
                     <div className="boosend-conv-top">
                       <span className="boosend-conv-name">
@@ -643,12 +657,19 @@ export default function InboxPage() {
             {/* Header bar */}
             <div className="boosend-chat-header">
               <div className="boosend-chat-user-head">
-                <div className="boosend-conv-avatar inbox-head-avatar">
-                  {initials(current.lead.name || "?")}
-                </div>
+                <ContactAvatar
+                  name={current.lead.name || "?"}
+                  avatarUrl={current.lead.avatar_url}
+                  className="boosend-conv-avatar inbox-head-avatar"
+                />
                 <div>
                   <div className="boosend-chat-user-title">
                     {current.lead.name || "Unknown lead"}
+                    {current.lead.handle && (
+                      <span className="inbox-head-handle">
+                        {current.lead.handle}
+                      </span>
+                    )}
                   </div>
                   <div className="boosend-chat-user-sub">
                     <ChannelBadge provider={current.provider} compact />
@@ -1099,6 +1120,23 @@ export default function InboxPage() {
               <X size={14} />
             </button>
           </div>
+          <div className="inbox-info-profile">
+            <ContactAvatar
+              name={current.lead.name || "?"}
+              avatarUrl={current.lead.avatar_url}
+              size={48}
+            />
+            <div>
+              <strong>{current.lead.name || "Unknown lead"}</strong>
+              {current.lead.handle && <span>{current.lead.handle}</span>}
+            </div>
+          </div>
+          <Link
+            className="button secondary small"
+            href={`/w/${workspace.id}/crm?contact=${current.lead.id}`}
+          >
+            <Contact size={13} /> View in CRM
+          </Link>
           <dl className="lead-panel">
             <dt>Email</dt>
             <dd>

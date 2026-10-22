@@ -42,6 +42,8 @@ def lead_payload(lead):
     return {
         "id": str(lead.id),
         "name": lead.name,
+        "handle": lead.handle,
+        "avatar_url": lead.avatar_url,
         "email": lead.email,
         "stage": lead.stage,
         "tags": lead.tags,

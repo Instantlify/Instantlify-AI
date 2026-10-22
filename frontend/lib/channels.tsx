@@ -5,7 +5,7 @@ import { BrandIcon, type BrandName } from "./brand-icons";
 /** Meta channels lead every channel list; the rest follow in this order. */
 export const META_CHANNELS = ["instagram", "messenger", "whatsapp"] as const;
 
-const CHANNELS: Record<
+export const CHANNELS: Record<
   string,
   { label: string; short: string; brand?: BrandName }
 > = {

@@ -72,6 +72,18 @@ class MessengerAdapter(InstagramAdapter):
             {"attachment": {"type": "audio", "payload": {"url": media_url, "is_reusable": False}}},
         )
 
+    def fetch_profile(self, sender_id):
+        body = request(
+            "GET",
+            f"https://graph.facebook.com/{settings.META_API_VERSION}/{sender_id}",
+            headers={"Authorization": f"Bearer {self.connection.access_token}"},
+            params={"fields": "first_name,last_name,profile_pic"},
+        )
+        name = " ".join(
+            part for part in (body.get("first_name", ""), body.get("last_name", "")) if part
+        )
+        return {"name": name, "handle": "", "avatar_url": str(body.get("profile_pic") or "")}
+
     def hide_comment(self, comment_id):
         request(
             "POST",
@@ -112,6 +124,14 @@ class TelegramAdapter(InstagramAdapter):
         return str(
             self.call("sendVoice", {"chat_id": recipient_id, "voice": media_url})["message_id"]
         )
+
+    def fetch_profile(self, sender_id):
+        chat = self.call("getChat", {"chat_id": sender_id})
+        name = " ".join(
+            part for part in (chat.get("first_name", ""), chat.get("last_name", "")) if part
+        ) or str(chat.get("title") or "")
+        username = str(chat.get("username") or "")
+        return {"name": name, "handle": "@" + username if username else "", "avatar_url": ""}
 
     def configure_webhook(self, url):
         return self.call(

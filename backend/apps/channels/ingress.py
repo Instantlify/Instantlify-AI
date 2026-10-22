@@ -40,6 +40,9 @@ def normalize_meta(payload, provider):
                     "comment:" + str(value["id"]),
                     {
                         "sender_id": str(value["from"]["id"]),
+                        "sender_handle": "@" + value["from"]["username"]
+                        if value["from"].get("username")
+                        else "",
                         "text": value.get("text", ""),
                         "kind": "live_comment" if change["field"] == "live_comments" else "comment",
                         "comment_id": str(value["id"]),
@@ -59,6 +62,7 @@ def normalize_meta(payload, provider):
                     "comment:" + str(value["comment_id"]),
                     {
                         "sender_id": str(value["from"]["id"]),
+                        "sender_name": str(value["from"].get("name") or ""),
                         "text": value.get("message", ""),
                         "kind": "comment",
                         "comment_id": str(value["comment_id"]),
@@ -67,12 +71,21 @@ def normalize_meta(payload, provider):
                 )
             if provider == "whatsapp":
                 account_id = str(value.get("metadata", {}).get("phone_number_id", ""))
+                # WhatsApp has no profile endpoint; the webhook names the sender instead.
+                names = {
+                    str(contact.get("wa_id", "")): str(contact.get("profile", {}).get("name", ""))
+                    for contact in value.get("contacts", [])
+                    if isinstance(contact, dict)
+                }
                 for message in value.get("messages", []):
                     yield (
                         account_id,
                         message["id"],
                         {
                             "sender_id": message["from"],
+                            "sender_name": names.get(str(message["from"]), ""),
+                            "sender_handle": "+"
+                            + "".join(ch for ch in str(message["from"]) if ch.isdigit()),
                             "text": message.get("text", {}).get("body", ""),
                             "kind": "dm",
                             "attachments": [{"type": "audio", "media_id": message["audio"]["id"]}]
@@ -173,6 +186,17 @@ def telegram_webhook(request, connection_id):
                         str(payload["update_id"]),
                         {
                             "sender_id": str(message["chat"]["id"]),
+                            "sender_name": " ".join(
+                                part
+                                for part in (
+                                    message["chat"].get("first_name", ""),
+                                    message["chat"].get("last_name", ""),
+                                )
+                                if part
+                            ),
+                            "sender_handle": "@" + message["chat"]["username"]
+                            if message["chat"].get("username")
+                            else "",
                             "text": payload.get("callback_query", {}).get("data")
                             or message.get("text", ""),
                             "kind": "dm",

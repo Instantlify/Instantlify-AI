@@ -1,93 +1,115 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
 import {
   Check,
   ChevronDown,
-  Columns,
   Download,
   Filter,
   Kanban as KanbanIcon,
   List,
-  Mail,
-  Megaphone,
   MessageSquare,
-  MessagesSquare,
   Plus,
   Rocket,
   Search,
-  Settings,
-  Tag,
   UserPlus,
-  X,
 } from "lucide-react";
 import {
   api,
   idempotencyKey,
   message,
+  type Connection,
+  type Integration,
   type Lead,
   type LeadRow,
   type Member,
   type Page,
 } from "@/lib/api";
-import { BrandIcon, type BrandName } from "@/lib/brand-icons";
-import { ChannelIcon, channelLabel } from "@/lib/channels";
+import { BrandIcon, isBrand } from "@/lib/brand-icons";
+import { CHANNELS, ChannelIcon, channelLabel } from "@/lib/channels";
 import { useWorkspace } from "@/lib/workspace";
-import { initials } from "@/components/shell";
-import { ErrorNotice, Modal, Pill, SuccessNotice, useFeedback } from "@/components/ui";
+import { ContactAvatar } from "@/components/contact-avatar";
+import { ContactPanel, STAGES, relativeTime } from "@/components/contact-panel";
+import {
+  ErrorNotice,
+  Modal,
+  SuccessNotice,
+  useFeedback,
+} from "@/components/ui";
 
-const STAGES = [
-  { id: "new", label: "No Stage" },
-  { id: "qualified", label: "Qualified" },
-  { id: "interested", label: "Interested" },
-  { id: "booked", label: "Booked" },
-  { id: "won", label: "Won" },
-  { id: "lost", label: "Lost" },
-];
+const PAGE_SIZES = [25, 50, 100];
 
-const CHANNEL_BADGES: Record<string, { brand: BrandName; background: string }> = {
-  instagram: {
-    brand: "instagram",
-    background:
-      "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)",
-  },
-  messenger: { brand: "messenger", background: "#0084ff" },
-  whatsapp: { brand: "whatsapp", background: "#25d366" },
-  telegram: { brand: "telegram", background: "#26a5e4" },
-  linkedin: { brand: "linkedin", background: "#0a66c2" },
-};
+const stageLabel = (id: string) =>
+  STAGES.find((stage) => stage.id === (id || "new"))?.label ?? id;
 
-const stageLabel = (id: string) => {
-  if (id === "new" || !id) return "No Stage";
-  return STAGES.find((s) => s.id === id)?.label ?? id;
-};
+/** Brand-coloured channel mark for one identity. */
+function ChannelMark({ provider, title }: { provider: string; title: string }) {
+  const brand = CHANNELS[provider]?.brand;
+  if (!brand || !isBrand(brand)) {
+    return (
+      <span className="crm-channel-mark generic" title={title}>
+        <ChannelIcon provider={provider} size={13} />
+      </span>
+    );
+  }
+  return (
+    <span className={`crm-channel-mark brand-${brand}`} title={title}>
+      <BrandIcon name={brand} size={13} mono />
+    </span>
+  );
+}
+
+function csvEscape(value: unknown) {
+  const text = String(value ?? "");
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
 
 export default function CrmPage() {
   const { workspace, prefix, manager } = useWorkspace();
+  // The inbox links here with ?contact=<id> to open a person directly.
+  const linkedContact = useSearchParams().get("contact");
   const [leads, setLeads] = useState<LeadRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [nextPage, setNextPage] = useState<string | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  const [connections, setConnections] = useState<Connection[] | null>(null);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"table" | "kanban">("table");
   const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
   const [channelFilter, setChannelFilter] = useState("");
+  const [pageSize, setPageSize] = useState(25);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showBulkMenu, setShowBulkMenu] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [campaignModal, setCampaignModal] = useState(false);
   const [addContactModal, setAddContactModal] = useState(false);
-  const [assigningLead, setAssigningLead] = useState<LeadRow | null>(null);
+  const [openId, setOpenId] = useState<string | null>(linkedContact);
   const [tagInput, setTagInput] = useState("");
-  const [dragging, setDragging] = useState<string | null>(null);
   const feedback = useFeedback();
+
+  // Debounce typing so the API is not hit on every keystroke.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setQuery(search.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
       try {
-        const params = new URLSearchParams({ page_size: "200" });
-        if (search.trim()) params.set("search", search.trim());
-        if (channelFilter) params.set("provider", channelFilter);
-
+        const params = new URLSearchParams({ page_size: String(pageSize) });
+        if (query) params.set("search", query);
+        if (channelFilter === "manual") params.set("source", "manual");
+        else if (channelFilter) params.set("provider", channelFilter);
         const result = await api<Page<LeadRow>>(
           `${prefix}/leads/?${params.toString()}`,
           "GET",
@@ -95,22 +117,30 @@ export default function CrmPage() {
           signal,
         );
         setLeads(result.results || []);
+        setTotal(result.count);
+        setNextPage(result.next);
         setPicked(
           (prev) =>
-            new Set(result.results.filter((lead) => prev.has(lead.id)).map((lead) => lead.id)),
+            new Set(
+              result.results
+                .filter((lead) => prev.has(lead.id))
+                .map((lead) => lead.id),
+            ),
         );
       } catch (err) {
         if (!signal?.aborted) feedback.setError(message(err));
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [prefix, search, channelFilter],
+    [prefix, query, channelFilter, pageSize],
   );
 
   useEffect(() => {
     const controller = new AbortController();
     queueMicrotask(() => {
-      load(controller.signal).finally(() => setLoading(false));
+      load(controller.signal).finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
     });
     return () => controller.abort();
   }, [load]);
@@ -120,56 +150,89 @@ export default function CrmPage() {
     api<Page<Member>>(`${prefix}/members/`, "GET", undefined, controller.signal)
       .then((res) => setMembers(res.results || []))
       .catch(() => undefined);
+    api<Page<Connection>>(
+      `${prefix}/connections/`,
+      "GET",
+      undefined,
+      controller.signal,
+    )
+      .then((res) => setConnections(res.results || []))
+      .catch(() => setConnections([]));
+    if (manager)
+      api<Integration[] | Page<Integration>>(
+        `${prefix}/integrations/`,
+        "GET",
+        undefined,
+        controller.signal,
+      )
+        .then((res) => setIntegrations(Array.isArray(res) ? res : res.results))
+        .catch(() => undefined);
     return () => controller.abort();
-  }, [prefix]);
+  }, [prefix, manager]);
 
-  const togglePick = (id: string) => {
+  // A contact linked from elsewhere may not be on the first page: fetch it alone.
+  useEffect(() => {
+    if (!linkedContact || leads.some((lead) => lead.id === linkedContact))
+      return;
+    const controller = new AbortController();
+    api<LeadRow>(
+      `${prefix}/leads/${linkedContact}/`,
+      "GET",
+      undefined,
+      controller.signal,
+    )
+      .then((lead) =>
+        setLeads((list) =>
+          list.some((item) => item.id === lead.id) ? list : [lead, ...list],
+        ),
+      )
+      .catch(() => undefined);
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedContact, prefix]);
+
+  const loadMore = async () => {
+    if (!nextPage) return;
+    try {
+      const url = new URL(nextPage, window.location.origin);
+      const result = await api<Page<LeadRow>>(
+        `${prefix}/leads/?${url.searchParams.toString()}`,
+      );
+      setLeads((list) => [...list, ...result.results]);
+      setNextPage(result.next);
+    } catch (err) {
+      feedback.setError(message(err));
+    }
+  };
+
+  const togglePick = (id: string) =>
     setPicked((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
 
-  const toggleSelectAll = () => {
-    if (picked.size === leads.length && leads.length > 0) {
-      setPicked(new Set());
-    } else {
-      setPicked(new Set(leads.map((l) => l.id)));
-    }
-  };
+  const isAllSelected = leads.length > 0 && picked.size === leads.length;
+  const toggleSelectAll = () =>
+    setPicked(
+      isAllSelected ? new Set() : new Set(leads.map((lead) => lead.id)),
+    );
+
+  const replaceLead = (lead: LeadRow) =>
+    setLeads((list) => list.map((item) => (item.id === lead.id ? lead : item)));
 
   const moveStage = async (lead: LeadRow, newStage: string) => {
     const prev = lead.stage;
-    setLeads((list) =>
-      list.map((item) => (item.id === lead.id ? { ...item, stage: newStage } : item)),
-    );
+    replaceLead({ ...lead, stage: newStage });
     try {
-      await api<Lead>(`${prefix}/leads/${lead.id}/`, "PATCH", { stage: newStage });
+      await api<Lead>(`${prefix}/leads/${lead.id}/`, "PATCH", {
+        stage: newStage,
+      });
     } catch (err) {
-      setLeads((list) =>
-        list.map((item) => (item.id === lead.id ? { ...item, stage: prev } : item)),
-      );
+      replaceLead({ ...lead, stage: prev });
       feedback.setError(message(err));
     }
-  };
-
-  // Assignment belongs to the contact's latest conversation, not the lead itself.
-  const assignMember = async (lead: LeadRow, memberId: number | null) => {
-    if (!lead.conversation_id) return;
-    const done = await feedback.run(async () => {
-      await api(`${prefix}/conversations/${lead.conversation_id}/`, "PATCH", {
-        assigned_to: memberId,
-      });
-      setLeads((list) =>
-        list.map((item) =>
-          item.id === lead.id ? { ...item, assigned_to: memberId } : item,
-        ),
-      );
-      return true;
-    });
-    if (done) setAssigningLead(null);
   };
 
   const bulkAction = async (action: "tag" | "stage", value: string) => {
@@ -190,22 +253,27 @@ export default function CrmPage() {
   const createContact = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const done = await feedback.run(async () => {
-      const created = await api<LeadRow>(`${prefix}/leads/`, "POST", {
-        name: String(data.get("name") || "").trim(),
-        email: String(data.get("email") || "").trim(),
-        stage: "new",
-      });
+    const created = await feedback.run(
+      () =>
+        api<LeadRow>(`${prefix}/leads/`, "POST", {
+          name: String(data.get("name") || "").trim(),
+          email: String(data.get("email") || "").trim(),
+          stage: "new",
+        }),
+      "Contact created.",
+    );
+    if (created) {
       setLeads((prev) => [created, ...prev]);
-      return true;
-    }, "Contact created.");
-    if (done) setAddContactModal(false);
+      setTotal((count) => count + 1);
+      setAddContactModal(false);
+      setOpenId(created.id);
+    }
   };
 
   const handleBroadcast = async (text: string) => {
     const ids = picked.size ? Array.from(picked) : leads.map((lead) => lead.id);
     await feedback.run(async () => {
-      await api<{ queued: number; skipped: number }>(
+      const result = await api<{ queued: number; skipped: number }>(
         `${prefix}/leads/broadcast/`,
         "POST",
         { ids, text },
@@ -213,50 +281,143 @@ export default function CrmPage() {
         { "Idempotency-Key": idempotencyKey() },
       );
       setCampaignModal(false);
-    }, "Campaign broadcast queued!");
+      feedback.setNotice(
+        `Queued for ${result.queued} contact${result.queued === 1 ? "" : "s"}` +
+          (result.skipped
+            ? `; ${result.skipped} skipped (outside the 24-hour window or opted out).`
+            : "."),
+      );
+    });
+  };
+
+  const exportCsv = () => {
+    const head = [
+      "name",
+      "handle",
+      "email",
+      "channels",
+      "stage",
+      "tags",
+      "messages",
+      "last_activity_at",
+      "created_at",
+    ];
+    const rows = leads.map((lead) =>
+      [
+        lead.name,
+        lead.handle,
+        lead.email,
+        lead.channels.join("|"),
+        lead.stage,
+        lead.tags.join("|"),
+        lead.message_count,
+        lead.last_activity_at ?? "",
+        lead.created_at,
+      ]
+        .map(csvEscape)
+        .join(","),
+    );
+    const blob = new Blob([[head.join(","), ...rows].join("\n")], {
+      type: "text/csv",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${workspace.name.replace(/[^a-z0-9]+/gi, "-")}-contacts.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const memberName = (userId: number | null) => {
-    const member = members.find((m) => m.user_id === userId);
+    const member = members.find((item) => item.user_id === userId);
     return member ? member.name || member.email : "";
   };
 
-  // The contact's first channel as a brand-coloured badge; hand-added contacts have none.
-  const channelIcon = (channels: string[]) => {
-    const provider = channels[0];
-    const badge = provider ? CHANNEL_BADGES[provider] : undefined;
-    if (!provider) return <span style={{ color: "#cbd5e1" }}>—</span>;
-    if (!badge) return <ChannelIcon provider={provider} size={13} />;
-    return (
-      <div
-        className="boosend-crm-channel-icon"
-        style={{ background: badge.background, color: "#ffffff" }}
-        title={channelLabel(provider)}
-      >
-        <BrandIcon name={badge.brand} size={13} mono />
-      </div>
+  const liveConnections = useMemo(
+    () => (connections ?? []).filter((item) => item.status !== "disconnected"),
+    [connections],
+  );
+  const filterOptions = useMemo(() => {
+    const providers = Array.from(
+      new Set([
+        ...liveConnections.map((item) => item.provider),
+        ...leads.flatMap((lead) => lead.channels),
+      ]),
     );
-  };
+    return providers.map((provider) => ({
+      id: provider,
+      label: channelLabel(provider),
+    }));
+  }, [liveConnections, leads]);
+  const openLead = openId ? leads.find((lead) => lead.id === openId) : null;
+  const noChannels = connections !== null && liveConnections.length === 0;
 
-  const isAllSelected = leads.length > 0 && picked.size === leads.length;
+  const channelMarks = (lead: LeadRow) =>
+    lead.identities.length ? (
+      <div className="crm-channel-marks">
+        {lead.identities.map((identity) => (
+          <ChannelMark
+            key={identity.id}
+            provider={identity.provider}
+            title={`${channelLabel(identity.provider)} · ${identity.connection_name}`}
+          />
+        ))}
+      </div>
+    ) : (
+      <span className="subtle" title="Added by hand; not on a channel yet">
+        —
+      </span>
+    );
 
   return (
     <div className="boosend-crm-page">
-      {/* Top Toolbar matching Screenshot 10 */}
+      <div className="crm-heading">
+        <div>
+          <h1>Contacts</h1>
+          <p>
+            Everyone who messages or comments on your connected Instagram,
+            Facebook and WhatsApp accounts lands here with the profile Meta
+            reports. Open a contact to chat, tag, assign and take notes.
+          </p>
+        </div>
+        <span className="crm-count" aria-live="polite">
+          {total} contact{total === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      {noChannels && (
+        <section className="connect-prompt" role="region" aria-label="Connect">
+          <BrandIcon name="instagram" size={22} />
+          <div>
+            <strong>No channel connected yet</strong>
+            <p>
+              Contacts come from the people who message your Instagram, Facebook
+              Page or WhatsApp number. Connect an account and they fill in here
+              automatically.
+            </p>
+          </div>
+          <Link
+            className="button primary"
+            href={`/w/${workspace.id}/integrations?tab=channels`}
+          >
+            Connect account
+          </Link>
+        </section>
+      )}
+
       <div className="boosend-crm-topbar">
-        {/* Search contacts input */}
         <div className="boosend-crm-search-box">
           <Search size={15} color="#94a3b8" />
           <input
             type="text"
             className="boosend-crm-search-input"
-            placeholder="Search contacts..."
+            placeholder="Search by name, @handle or email…"
+            aria-label="Search contacts"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
-        {/* Right actions: Selected count + Bulk Actions + Campaign button */}
         <div className="boosend-crm-actions-right">
           <span className="boosend-crm-selected-count">
             {picked.size} selected of {leads.length}
@@ -276,92 +437,58 @@ export default function CrmPage() {
             </button>
 
             {showBulkMenu && (
-              <div
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  top: "calc(100% + 6px)",
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "12px",
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-                  padding: "10px",
-                  zIndex: 40,
-                  minWidth: "220px",
-                }}
-              >
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", padding: "4px 8px" }}>
-                  CHANGE STAGE
-                </div>
-                {STAGES.map((s) => (
+              <div className="crm-menu" role="menu">
+                <div className="crm-menu-title">Change stage</div>
+                {STAGES.map((stage) => (
                   <button
-                    key={s.id}
+                    key={stage.id}
                     type="button"
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "6px 8px",
-                      fontSize: "12px",
-                      border: "none",
-                      background: "transparent",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      color: "#334155",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f1f5f9")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                    onClick={() => bulkAction("stage", s.id)}
+                    role="menuitem"
+                    className="crm-menu-item"
+                    onClick={() => bulkAction("stage", stage.id)}
                   >
-                    Move to {s.label}
+                    Move to {stage.label}
                   </button>
                 ))}
-                <div style={{ borderTop: "1px solid #e2e8f0", margin: "6px 0", paddingTop: "6px" }}>
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (tagInput.trim()) bulkAction("tag", tagInput.trim());
-                    }}
-                    style={{ display: "flex", gap: "6px" }}
-                  >
-                    <input
-                      style={{
-                        fontSize: "12px",
-                        padding: "4px 8px",
-                        border: "1px solid #cbd5e1",
-                        borderRadius: "6px",
-                        width: "100%",
-                      }}
-                      placeholder="Add tag..."
-                      aria-label="Tag to apply"
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                    />
-                    <button
-                      type="submit"
-                      style={{
-                        fontSize: "11px",
-                        padding: "4px 8px",
-                        background: "#0f172a",
-                        color: "#fff",
-                        borderRadius: "6px",
-                        border: "none",
-                      }}
-                      aria-label="Apply tag"
-                    >
-                      Apply
-                    </button>
-                  </form>
-                </div>
+                <form
+                  className="crm-menu-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (tagInput.trim()) bulkAction("tag", tagInput.trim());
+                  }}
+                >
+                  <input
+                    placeholder="Add tag..."
+                    aria-label="Tag to apply"
+                    maxLength={40}
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                  />
+                  <button type="submit" aria-label="Apply tag">
+                    Apply
+                  </button>
+                </form>
               </div>
             )}
           </div>
+
+          <button
+            type="button"
+            className="boosend-crm-filter-btn"
+            onClick={exportCsv}
+            disabled={!leads.length}
+            title="Download the loaded contacts as CSV"
+          >
+            <Download size={13} />
+            Export
+          </button>
 
           {manager && (
             <button
               type="button"
               className="boosend-crm-campaign-btn"
               onClick={() => setCampaignModal(true)}
+              disabled={!leads.length}
             >
               <Rocket size={14} />
               Campaign
@@ -370,21 +497,18 @@ export default function CrmPage() {
         </div>
       </div>
 
-      {/* Sub-toolbar: (+) Add Contact, [Table / Kanban], Filter */}
       <div className="boosend-crm-subbar">
         <div className="boosend-crm-view-pills">
-          {/* Add contact button */}
           <button
             type="button"
             className="boosend-crm-add-btn"
-            title="Create contact"
+            title="Add a contact by hand"
             aria-label="Create contact"
             onClick={() => setAddContactModal(true)}
           >
             <Plus size={16} />
           </button>
 
-          {/* View toggle: Table vs Kanban */}
           <div className="boosend-crm-toggle-group">
             <button
               type="button"
@@ -404,60 +528,46 @@ export default function CrmPage() {
             </button>
           </div>
 
-          {/* Filter dropdown button */}
           <div style={{ position: "relative" }}>
             <button
               type="button"
               className="boosend-crm-filter-btn"
+              aria-expanded={showFilterMenu}
               onClick={() => setShowFilterMenu((v) => !v)}
             >
               <Filter size={13} />
               Filter
               {channelFilter && (
-                <span style={{ fontSize: "10px", background: "#0f172a", color: "#fff", padding: "1px 6px", borderRadius: "9999px" }}>
-                  {channelLabel(channelFilter)}
+                <span className="crm-filter-chip">
+                  {channelFilter === "manual"
+                    ? "Added by hand"
+                    : channelLabel(channelFilter)}
                 </span>
               )}
             </button>
 
             {showFilterMenu && (
-              <div
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  top: "calc(100% + 6px)",
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "12px",
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-                  padding: "6px",
-                  zIndex: 30,
-                  minWidth: "160px",
-                }}
-              >
-                {["", "instagram", "messenger", "whatsapp"].map((ch) => (
+              <div className="crm-menu left" role="menu">
+                {[
+                  { id: "", label: "All contacts" },
+                  ...filterOptions,
+                  { id: "manual", label: "Added by hand" },
+                ].map((option) => (
                   <button
-                    key={ch}
+                    key={option.id}
                     type="button"
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "8px 10px",
-                      fontSize: "12px",
-                      border: "none",
-                      background: channelFilter === ch ? "#f1f5f9" : "transparent",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      color: "#334155",
-                      fontWeight: channelFilter === ch ? 600 : 400,
-                    }}
+                    role="menuitemradio"
+                    aria-checked={channelFilter === option.id}
+                    className={`crm-menu-item ${channelFilter === option.id ? "active" : ""}`}
                     onClick={() => {
-                      setChannelFilter(ch);
+                      setChannelFilter(option.id);
                       setShowFilterMenu(false);
                     }}
                   >
-                    {ch ? channelLabel(ch) : "All Channels"}
+                    {option.id && option.id !== "manual" && (
+                      <ChannelIcon provider={option.id} size={12} />
+                    )}
+                    {option.label}
                   </button>
                 ))}
               </div>
@@ -469,10 +579,9 @@ export default function CrmPage() {
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
 
-      {/* Main Table View matching Screenshot 10 */}
       {view === "table" ? (
         <div className="boosend-crm-table-card">
-          <table className="boosend-crm-table">
+          <table className="boosend-crm-table crm-table">
             <thead>
               <tr>
                 <th style={{ width: "40px" }}>
@@ -487,202 +596,174 @@ export default function CrmPage() {
                     {isAllSelected && <Check size={11} color="#ffffff" />}
                   </button>
                 </th>
-                <th style={{ width: "80px" }}>Photo</th>
-                <th>Name</th>
-                <th>Channel</th>
+                <th>Contact</th>
+                <th>Channels</th>
                 <th>Tags</th>
                 <th>Assigned</th>
                 <th>Messages</th>
-                <th style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  Stage
-                  <Settings size={12} color="#94a3b8" />
-                </th>
+                <th>Last activity</th>
+                <th>Stage</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: "center", padding: "40px", color: "#94a3b8" }}>
+                  <td colSpan={8} className="crm-empty">
                     Loading contacts…
                   </td>
                 </tr>
               ) : leads.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: "center", padding: "50px 20px" }}>
-                    <div style={{ maxWidth: "380px", margin: "0 auto" }}>
-                      <div
-                        style={{
-                          width: "48px",
-                          height: "48px",
-                          borderRadius: "50%",
-                          background: "#f1f5f9",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          margin: "0 auto 12px",
-                          color: "#64748b",
-                        }}
-                      >
+                  <td colSpan={8} className="crm-empty">
+                    <div className="crm-empty-card">
+                      <span className="crm-empty-icon">
                         <UserPlus size={22} />
-                      </div>
-                      <h4 style={{ fontSize: "15px", fontWeight: 600, color: "#0f172a", margin: "0 0 6px" }}>
-                        No contacts yet
+                      </span>
+                      <h4>
+                        {query || channelFilter
+                          ? "No contacts match"
+                          : "No contacts yet"}
                       </h4>
-                      <p style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.5, margin: "0 0 16px" }}>
-                        Leads appear here automatically when someone comments, replies to a story, or sends a DM.
+                      <p>
+                        {query || channelFilter
+                          ? "Try another name, handle or channel filter."
+                          : noChannels
+                            ? "Connect an Instagram, Facebook or WhatsApp account and every person who messages it shows up here."
+                            : "The first person to DM, comment or reply to a story on a connected account appears here with their name and photo."}
                       </p>
-                      <button
-                        type="button"
-                        className="boosend-btn-create"
-                        style={{ margin: "0 auto" }}
-                        onClick={() => setAddContactModal(true)}
-                      >
-                        <Plus size={14} /> Add a contact
-                      </button>
+                      {!query && !channelFilter && (
+                        <div className="crm-empty-actions">
+                          {noChannels ? (
+                            <Link
+                              className="button primary small"
+                              href={`/w/${workspace.id}/integrations?tab=channels`}
+                            >
+                              Connect a channel
+                            </Link>
+                          ) : (
+                            <Link
+                              className="button primary small"
+                              href={`/w/${workspace.id}/integrations?tab=channels`}
+                            >
+                              Send a test message
+                            </Link>
+                          )}
+                          <button
+                            type="button"
+                            className="button secondary small"
+                            onClick={() => setAddContactModal(true)}
+                          >
+                            <Plus size={13} /> Add by hand
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
               ) : (
                 leads.map((lead) => {
                   const isPicked = picked.has(lead.id);
-                  const firstLetter = lead.name?.charAt(0).toUpperCase() || "U";
-                  const handle = lead.fields?.handle || "";
-                  const convUrl = lead.conversation_id
-                    ? `/w/${workspace.id}/inbox?conversation=${lead.conversation_id}`
-                    : null;
-
+                  const name = lead.name || "Unknown contact";
                   return (
-                    <tr key={lead.id} className={isPicked ? "picked" : ""}>
-                      {/* Checkbox */}
+                    <tr
+                      key={lead.id}
+                      className={`${isPicked ? "picked" : ""} ${openId === lead.id ? "open" : ""}`}
+                    >
                       <td>
                         <button
                           type="button"
                           role="checkbox"
                           aria-checked={isPicked}
-                          aria-label={`Select ${lead.name || "contact"}`}
+                          aria-label={`Select ${name}`}
                           className={`boosend-checkbox-round ${isPicked ? "checked" : ""}`}
                           onClick={() => togglePick(lead.id)}
                         >
                           {isPicked && <Check size={11} color="#ffffff" />}
                         </button>
                       </td>
-
-                      {/* Photo Avatar */}
                       <td>
-                        <div className="boosend-crm-avatar">{firstLetter}</div>
+                        <button
+                          type="button"
+                          className="crm-contact-cell"
+                          aria-label={`Open ${name}`}
+                          onClick={() => setOpenId(lead.id)}
+                        >
+                          <ContactAvatar
+                            name={name}
+                            avatarUrl={lead.avatar_url}
+                          />
+                          <span className="crm-contact-text">
+                            <strong>{name}</strong>
+                            {(lead.handle || lead.email) && (
+                              <span>{lead.handle || lead.email}</span>
+                            )}
+                          </span>
+                        </button>
                       </td>
-
-                      {/* Name + Handle + Email */}
+                      <td>{channelMarks(lead)}</td>
                       <td>
-                        <div>
-                          {convUrl ? (
-                            <Link
-                              href={convUrl}
-                              style={{
-                                color: "#0f172a",
-                                fontWeight: 600,
-                                fontSize: "14px",
-                                textDecoration: "none",
-                              }}
-                            >
-                              {lead.name || "Unknown Lead"}
-                            </Link>
-                          ) : (
-                            <span style={{ color: "#0f172a", fontWeight: 600, fontSize: "14px" }}>
-                              {lead.name || "Unknown Lead"}
-                            </span>
-                          )}
-                          {handle && (
-                            <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "2px" }}>
-                              {handle}
-                            </div>
-                          )}
-                          {lead.email && (
-                            <div style={{ fontSize: "11px", color: "#64748b", marginTop: "1px" }}>
-                              ✉ {lead.email}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Channel Icon */}
-                      <td>{channelIcon(lead.channels || [])}</td>
-
-                      {/* Tags */}
-                      <td>
-                        {lead.tags && lead.tags.length > 0 ? (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                            {lead.tags.map((t) => (
-                              <span
-                                key={t}
-                                style={{
-                                  fontSize: "11px",
-                                  background: "#f1f5f9",
-                                  color: "#475569",
-                                  padding: "2px 8px",
-                                  borderRadius: "6px",
-                                }}
-                              >
-                                {t}
+                        {lead.tags.length ? (
+                          <div className="crm-tags">
+                            {lead.tags.slice(0, 3).map((tag) => (
+                              <span key={tag} className="crm-tag">
+                                {tag}
                               </span>
                             ))}
+                            {lead.tags.length > 3 && (
+                              <span className="crm-tag">
+                                +{lead.tags.length - 3}
+                              </span>
+                            )}
                           </div>
                         ) : (
-                          <span style={{ color: "#cbd5e1" }}>—</span>
+                          <span className="subtle">—</span>
                         )}
                       </td>
-
-                      {/* Assigned */}
                       <td>
                         {!lead.conversation_id ? (
                           <span
-                            style={{ color: "#cbd5e1" }}
+                            className="subtle"
                             title="Assign once the contact has a conversation"
                           >
                             —
                           </span>
                         ) : lead.assigned_to ? (
-                          <span style={{ fontSize: "12px", color: "#334155", fontWeight: 500 }}>
+                          <span className="crm-assignee">
                             {memberName(lead.assigned_to)}
                           </span>
                         ) : (
                           <button
                             type="button"
                             className="boosend-crm-assign-pill"
-                            onClick={() => setAssigningLead(lead)}
+                            onClick={() => setOpenId(lead.id)}
                           >
                             <Plus size={11} /> Assign
                           </button>
                         )}
                       </td>
-
-                      {/* Messages count */}
                       <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "5px", color: "#64748b", fontSize: "13px" }}>
+                        <span className="crm-messages">
                           <MessageSquare size={13} color="#94a3b8" />
                           {lead.message_count || 0}
-                        </div>
+                        </span>
                       </td>
-
-                      {/* Stage dot + selector */}
+                      <td>
+                        <span className="subtle">
+                          {lead.last_activity_at
+                            ? relativeTime(lead.last_activity_at)
+                            : "—"}
+                        </span>
+                      </td>
                       <td>
                         <select
-                          aria-label={`Stage for ${lead.name || "contact"}`}
+                          className="crm-stage-select"
+                          aria-label={`Stage for ${name}`}
                           value={lead.stage || "new"}
                           onChange={(e) => moveStage(lead, e.target.value)}
-                          style={{
-                            border: "none",
-                            background: "transparent",
-                            fontSize: "12px",
-                            color: "#64748b",
-                            cursor: "pointer",
-                            outline: "none",
-                            fontWeight: 500,
-                          }}
                         >
-                          {STAGES.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              ● {s.label}
+                          {STAGES.map((stage) => (
+                            <option key={stage.id} value={stage.id}>
+                              ● {stage.label}
                             </option>
                           ))}
                         </select>
@@ -694,104 +775,110 @@ export default function CrmPage() {
             </tbody>
           </table>
 
-          {/* Bottom Pagination matching Screenshot 10 */}
           <div className="boosend-crm-footer-pager">
-            <span>All contacts loaded</span>
+            <span>
+              Showing {leads.length} of {total}
+            </span>
+            {nextPage && (
+              <button type="button" className="text-button" onClick={loadMore}>
+                Load more
+              </button>
+            )}
             <span>·</span>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span>Per page:</span>
-              <select className="boosend-crm-perpage-select" defaultValue="25">
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
+            <label className="crm-perpage">
+              Per page
+              <select
+                className="boosend-crm-perpage-select"
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+              >
+                {PAGE_SIZES.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
               </select>
-            </div>
+            </label>
           </div>
         </div>
       ) : (
-        /* Kanban Pipeline View */
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${STAGES.length}, minmax(220px, 1fr))`, gap: "16px", overflowX: "auto" }}>
-          {STAGES.map((s) => {
+        <div className="crm-kanban">
+          {STAGES.map((stage) => {
             const columnLeads = leads.filter(
-              (l) => (l.stage || "new") === s.id,
+              (l) => (l.stage || "new") === stage.id,
             );
-
             return (
               <div
-                key={s.id}
-                style={{
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "14px",
-                  padding: "14px",
-                  minHeight: "450px",
-                }}
+                key={stage.id}
+                className="crm-kanban-column"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
                   const droppedId = e.dataTransfer.getData("text/plain");
-                  const targetLead = leads.find((l) => l.id === droppedId);
-                  if (targetLead) moveStage(targetLead, s.id);
+                  const target = leads.find((l) => l.id === droppedId);
+                  if (target && target.stage !== stage.id)
+                    moveStage(target, stage.id);
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#64748b" }} />
-                    <strong style={{ fontSize: "13px", color: "#0f172a" }}>{s.label}</strong>
-                  </div>
-                  <span style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", background: "#e2e8f0", padding: "1px 7px", borderRadius: "9999px" }}>
-                    {columnLeads.length}
-                  </span>
+                <div className="crm-kanban-head">
+                  <strong>{stage.label}</strong>
+                  <span>{columnLeads.length}</span>
                 </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {columnLeads.map((lead) => (
-                    <div
-                      key={lead.id}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("text/plain", lead.id);
-                        setDragging(lead.id);
-                      }}
-                      onDragEnd={() => setDragging(null)}
-                      style={{
-                        background: "#ffffff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "10px",
-                        padding: "12px",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                        cursor: "grab",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <div className="boosend-crm-avatar" style={{ width: "26px", height: "26px", fontSize: "11px" }}>
-                          {lead.name?.charAt(0).toUpperCase() || "U"}
-                        </div>
-                        <strong style={{ fontSize: "13px", color: "#0f172a" }}>{lead.name || "Unknown"}</strong>
-                      </div>
-                      <select
-                        className="kanban-stage-select"
-                        aria-label={`Move ${lead.name || "contact"} to stage`}
-                        value={lead.stage || "new"}
-                        onChange={(e) => moveStage(lead, e.target.value)}
+                <div className="crm-kanban-cards">
+                  {columnLeads.map((lead) => {
+                    const name = lead.name || "Unknown contact";
+                    return (
+                      <div
+                        key={lead.id}
+                        className="crm-kanban-card"
+                        draggable
+                        onDragStart={(e) =>
+                          e.dataTransfer.setData("text/plain", lead.id)
+                        }
                       >
-                        {STAGES.map((stage) => (
-                          <option key={stage.id} value={stage.id}>
-                            {stage.label}
-                          </option>
-                        ))}
-                      </select>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
-                        {channelIcon(lead.channels || [])}
-                        <div style={{ fontSize: "11px", color: "#94a3b8", display: "flex", alignItems: "center", gap: "4px" }}>
-                          <MessageSquare size={11} /> {lead.message_count || 0}
+                        <button
+                          type="button"
+                          className="crm-contact-cell"
+                          aria-label={`Open ${name}`}
+                          onClick={() => setOpenId(lead.id)}
+                        >
+                          <ContactAvatar
+                            name={name}
+                            avatarUrl={lead.avatar_url}
+                            size={28}
+                          />
+                          <span className="crm-contact-text">
+                            <strong>{name}</strong>
+                            {lead.handle && <span>{lead.handle}</span>}
+                          </span>
+                        </button>
+                        <select
+                          className="kanban-stage-select"
+                          aria-label={`Move ${name} to stage`}
+                          value={lead.stage || "new"}
+                          onChange={(e) => moveStage(lead, e.target.value)}
+                        >
+                          {STAGES.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="crm-kanban-foot">
+                          {channelMarks(lead)}
+                          <span className="crm-messages">
+                            <MessageSquare size={11} />{" "}
+                            {lead.message_count || 0}
+                          </span>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {columnLeads.length === 0 && (
-                    <div style={{ textAlign: "center", padding: "20px 0", color: "#cbd5e1", fontSize: "12px" }}>
-                      Drop contacts here
+                    <div className="crm-kanban-empty">
+                      {stage.id === "new"
+                        ? "New contacts land here"
+                        : `Drop contacts to mark ${stageLabel(stage.id).toLowerCase()}`}
                     </div>
                   )}
                 </div>
@@ -801,38 +888,53 @@ export default function CrmPage() {
         </div>
       )}
 
-      {/* Campaign Broadcast Modal */}
+      {openLead && (
+        <ContactPanel
+          lead={openLead}
+          leads={leads}
+          members={members}
+          integrations={integrations}
+          prefix={prefix}
+          workspaceId={workspace.id}
+          manager={manager}
+          onClose={() => setOpenId(null)}
+          onChange={replaceLead}
+          onDelete={(id) => {
+            setLeads((list) => list.filter((item) => item.id !== id));
+            setTotal((count) => Math.max(0, count - 1));
+            if (openId === id) setOpenId(null);
+          }}
+        />
+      )}
+
       {campaignModal && (
         <Modal title="Launch Campaign" onClose={() => setCampaignModal(false)}>
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              const text = String(new FormData(e.currentTarget).get("message") || "").trim();
+              const text = String(
+                new FormData(e.currentTarget).get("message") || "",
+              ).trim();
               if (text) handleBroadcast(text);
             }}
           >
-            <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "14px", lineHeight: 1.5 }}>
-              Send an outreach message to <strong>{picked.size || leads.length}</strong> selected contacts.
-              Meta allows outbound messages inside the 24-hour service window.
+            <p className="modal-copy">
+              Send one message to <strong>{picked.size || leads.length}</strong>{" "}
+              {picked.size ? "selected" : "loaded"} contacts. Meta only delivers
+              free-form messages inside the 24-hour service window, so people
+              who wrote earlier are skipped.
             </p>
-            <label style={{ display: "block", marginBottom: "12px" }}>
-              <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>Message Content</span>
+            <label>
+              Message
               <textarea
                 name="message"
                 rows={4}
                 required
-                placeholder="Hi {{first_name}}, thanks for reaching out..."
-                style={{
-                  width: "100%",
-                  marginTop: "6px",
-                  padding: "10px",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: "8px",
-                  fontSize: "13px",
-                }}
+                maxLength={2000}
+                placeholder="Hi! Thanks for reaching out…"
               />
             </label>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+            <div className="modal-actions">
               <button
                 type="button"
                 className="button secondary small"
@@ -851,6 +953,11 @@ export default function CrmPage() {
       {addContactModal && (
         <Modal title="Create contact" onClose={() => setAddContactModal(false)}>
           <form onSubmit={createContact}>
+            <p className="modal-copy">
+              Contacts normally arrive on their own when someone messages a
+              connected account. Add one by hand to keep notes on a person
+              before they write to you.
+            </p>
             <ErrorNotice error={feedback.error} />
             <label>
               Name
@@ -864,36 +971,6 @@ export default function CrmPage() {
               Create contact
             </button>
           </form>
-        </Modal>
-      )}
-
-      {/* Assign Member Modal */}
-      {assigningLead && (
-        <Modal
-          title={`Assign ${assigningLead.name || "Contact"}`}
-          onClose={() => setAssigningLead(null)}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <button
-              type="button"
-              className="button secondary"
-              style={{ textAlign: "left" }}
-              onClick={() => assignMember(assigningLead, null)}
-            >
-              Unassigned
-            </button>
-            {members.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                className="button secondary"
-                style={{ textAlign: "left" }}
-                onClick={() => assignMember(assigningLead, m.user_id)}
-              >
-                {m.name || m.email}
-              </button>
-            ))}
-          </div>
         </Modal>
       )}
     </div>

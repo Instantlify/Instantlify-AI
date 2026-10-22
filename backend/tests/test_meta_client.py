@@ -213,6 +213,7 @@ def test_facebook_page_feed_comments_are_normalized():
             "comment:post_1_c9",
             {
                 "sender_id": "fb-user",
+                "sender_name": "",
                 "text": "SEND",
                 "kind": "comment",
                 "comment_id": "post_1_c9",

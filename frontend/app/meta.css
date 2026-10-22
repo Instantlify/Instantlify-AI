@@ -7881,3 +7881,669 @@ button.boosend-checkbox-round:focus-visible {
     max-width: 85%;
   }
 }
+
+/* Contacts: photo avatars, channel marks, the contact panel and its sections. */
+.contact-avatar {
+  border-radius: 50%;
+  background: var(--text-primary);
+  color: #ffffff;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+.contact-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.crm-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.crm-heading h1 {
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+.crm-heading p {
+  margin: 0;
+  max-width: 640px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.crm-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+.boosend-crm-page .connect-prompt {
+  margin-bottom: 18px;
+}
+.crm-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  z-index: 40;
+  min-width: 220px;
+}
+.crm-menu.left {
+  right: auto;
+  left: 0;
+  min-width: 180px;
+}
+.crm-menu-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+.crm-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 7px 8px;
+  font-size: 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #334155;
+}
+.crm-menu-item:hover,
+.crm-menu-item.active {
+  background: #f1f5f9;
+}
+.crm-menu-item.active {
+  font-weight: 600;
+}
+.crm-menu-form {
+  display: flex;
+  gap: 6px;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 6px;
+  padding-top: 8px;
+}
+.crm-menu-form input {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  width: 100%;
+}
+.crm-menu-form button {
+  font-size: 11px;
+  padding: 4px 10px;
+  background: #0f172a;
+  color: #fff;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+.crm-filter-chip {
+  font-size: 10px;
+  background: #0f172a;
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 9999px;
+}
+.boosend-crm-filter-btn:disabled,
+.boosend-crm-campaign-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.crm-contact-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  max-width: 100%;
+}
+.crm-contact-cell:hover strong {
+  text-decoration: underline;
+}
+.crm-contact-cell:focus-visible {
+  outline: 2px solid var(--brand-action);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.crm-contact-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.crm-contact-text strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.crm-contact-text span {
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.crm-table tr.open td {
+  background: #f8fafc;
+}
+.crm-channel-marks {
+  display: inline-flex;
+  gap: 4px;
+}
+.crm-channel-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  background: #64748b;
+}
+.crm-channel-mark.generic {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+.crm-channel-mark.brand-instagram {
+  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+}
+.crm-channel-mark.brand-messenger {
+  background: #0084ff;
+}
+.crm-channel-mark.brand-whatsapp {
+  background: #25d366;
+}
+.crm-channel-mark.brand-telegram {
+  background: #26a5e4;
+}
+.crm-channel-mark.brand-linkedin {
+  background: #0a66c2;
+}
+.crm-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.crm-tag {
+  font-size: 11px;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.crm-assignee {
+  font-size: 12px;
+  color: #334155;
+  font-weight: 500;
+}
+.crm-messages {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #64748b;
+  font-size: 13px;
+}
+.crm-stage-select {
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+  outline: none;
+  font-weight: 500;
+}
+.crm-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+}
+.crm-empty-card {
+  max-width: 420px;
+  margin: 0 auto;
+}
+.crm-empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  color: #64748b;
+}
+.crm-empty-card h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 6px;
+}
+.crm-empty-card p {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+.crm-empty-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.crm-perpage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.crm-kanban {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(220px, 1fr));
+  gap: 16px;
+  overflow-x: auto;
+}
+.crm-kanban-column {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  min-height: 450px;
+}
+.crm-kanban-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #0f172a;
+}
+.crm-kanban-head span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #e2e8f0;
+  padding: 1px 7px;
+  border-radius: 9999px;
+}
+.crm-kanban-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.crm-kanban-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  cursor: grab;
+}
+.crm-kanban-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+.crm-kanban-empty {
+  text-align: center;
+  padding: 20px 0;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+.modal-copy {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Contact panel: a right-hand drawer over the table. */
+.contact-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.25);
+  z-index: 60;
+}
+.contact-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(460px, 100vw);
+  background: #ffffff;
+  border-left: 1px solid #e2e8f0;
+  box-shadow: -12px 0 32px rgba(15, 23, 42, 0.12);
+  z-index: 61;
+  overflow-y: auto;
+  padding: 20px 22px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.contact-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.contact-panel-title {
+  flex: 1;
+  min-width: 0;
+}
+.contact-name-input {
+  width: 100%;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 2px 6px;
+  margin-left: -6px;
+  background: transparent;
+}
+.contact-name-input:hover,
+.contact-name-input:focus {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  outline: none;
+}
+.contact-panel-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+.contact-panel-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.contact-panel-actions .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.contact-delete {
+  color: #b91c1c;
+}
+.contact-confirm {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 13px;
+  color: #7f1d1d;
+}
+.contact-confirm p {
+  margin: 0 0 10px;
+}
+.contact-confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.contact-section h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin: 0 0 8px;
+}
+.contact-section label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #475569;
+}
+.contact-section input,
+.contact-section select {
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  min-width: 0;
+}
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.contact-channels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.contact-channels li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 12px;
+}
+.contact-channel-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.contact-channel-text strong {
+  font-size: 13px;
+  color: #0f172a;
+}
+.contact-channel-text span {
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.contact-hint {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0;
+}
+.contact-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.contact-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  color: #334155;
+  padding: 3px 6px 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.contact-tag button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  padding: 2px;
+  color: #64748b;
+  border-radius: 50%;
+}
+.contact-tag button:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+.contact-inline-form {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.contact-inline-form input,
+.contact-inline-form select {
+  flex: 1;
+}
+.contact-inline-form .button {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.contact-details {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  font-size: 12px;
+}
+.contact-details dt {
+  color: #94a3b8;
+  font-size: 11px;
+}
+.contact-details dd {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  word-break: break-word;
+}
+.contact-recent,
+.contact-notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.contact-recent li {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.contact-recent li[data-direction="outbound"] {
+  background: #ecfdf5;
+}
+.contact-recent li span,
+.contact-notes time {
+  font-size: 11px;
+  color: #94a3b8;
+}
+.contact-recent p,
+.contact-notes p {
+  margin: 2px 0;
+  color: #0f172a;
+  white-space: pre-wrap;
+}
+.contact-recent time {
+  font-size: 10px;
+  color: #94a3b8;
+}
+.contact-notes li {
+  border-left: 3px solid #fde68a;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .crm-heading {
+    flex-direction: column;
+  }
+  .contact-grid,
+  .contact-details {
+    grid-template-columns: 1fr;
+  }
+  .contact-inline-form {
+    flex-wrap: wrap;
+  }
+}
+
+/* Inbox: the contact's channel photo in the list, thread head and details panel. */
+.contact-avatar.boosend-conv-avatar {
+  background: #ffffff;
+  color: var(--text-primary);
+  overflow: visible;
+}
+.contact-avatar.boosend-conv-avatar img {
+  border-radius: 50%;
+}
+.inbox-head-handle {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #94a3b8;
+}
+.inbox-info-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.inbox-info-profile > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.inbox-info-profile strong {
+  font-size: 14px;
+  color: #0f172a;
+}
+.inbox-info-profile span {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.inbox-info-panel > .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  width: fit-content;
+}

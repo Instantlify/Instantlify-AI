@@ -64,15 +64,32 @@ export type Page<T> = { results: T[]; count: number; next: string | null };
 export type Lead = {
   id: string;
   name: string;
+  /** @username or phone number as the channel reports it. */
+  handle: string;
+  avatar_url: string;
   email: string;
   stage: string;
   tags: string[];
   fields: Record<string, string>;
   opted_out: boolean;
+  profile_synced_at: string | null;
+  created_at: string;
 };
+/** One channel account the contact has written from. */
+export type LeadIdentity = {
+  id: string;
+  provider: string;
+  connection_id: string;
+  connection_name: string;
+  external_id: string;
+  conversation_id: string | null;
+  contact_link: string;
+};
+/** The contact as the inbox sees it on each conversation row. */
+export type ConversationLead = Omit<Lead, "profile_synced_at" | "created_at">;
 export type Conversation = {
   id: string;
-  lead: Lead;
+  lead: ConversationLead;
   provider: string;
   is_test: boolean;
   assigned_to: number | null;
@@ -113,10 +130,11 @@ export type ConversationEvent = {
 /** A CRM row: the lead plus its channels and who is working it. */
 export type LeadRow = Lead & {
   channels: string[];
+  identities: LeadIdentity[];
   conversation_id: string | null;
   assigned_to: number | null;
   message_count: number;
-  created_at: string;
+  last_activity_at: string | null;
 };
 export type Note = {
   id: string;

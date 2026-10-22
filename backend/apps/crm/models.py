@@ -12,12 +12,21 @@ class Lead(TenantModel):
     tags = models.JSONField(default=list)
     fields = models.JSONField(default=dict)
     opted_out = models.BooleanField(default=False)
+    # Public profile as the channel reports it: @username or phone, and a photo URL.
+    handle = models.CharField(max_length=150, blank=True)
+    avatar_url = models.URLField(max_length=1000, blank=True)
+    profile_synced_at = models.DateTimeField(null=True, blank=True)
+    # Set when a first message arrives; the enrichment worker fetches the profile.
+    profile_due_at = models.DateTimeField(null=True, blank=True)
     # Debounced AI intent classification; set on inbound messages, cleared when claimed.
     segment_due_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at", "-id"]
-        indexes = [models.Index(fields=["segment_due_at"])]
+        indexes = [
+            models.Index(fields=["segment_due_at"]),
+            models.Index(fields=["profile_due_at"]),
+        ]
 
 
 class ChannelIdentity(TenantModel):

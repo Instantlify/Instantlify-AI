@@ -51,7 +51,10 @@ def receive(event, payload):
         )
         if not identity:
             lead = Lead.objects.for_workspace(event.workspace_id).create(
-                workspace_id=event.workspace_id, name=payload["sender_id"]
+                workspace_id=event.workspace_id,
+                name=(payload.get("sender_name") or payload["sender_id"])[:150],
+                handle=(payload.get("sender_handle") or "")[:150],
+                profile_due_at=timezone.now(),
             )
             identity = ChannelIdentity.objects.for_workspace(event.workspace_id).create(
                 workspace_id=event.workspace_id,
@@ -101,8 +104,47 @@ def receive(event, payload):
         pass  # a hidden or deleted comment is kept in the inbox but starts nothing
     else:
         handle_inbound(msg, identity.lead, payload)
+    if identity.lead.profile_due_at:
+        from apps.tenants.dispatch import enqueue_once
+
+        from .tasks import enrich_lead
+
+        lead_pk = identity.lead_id
+        transaction.on_commit(lambda: enqueue_once(enrich_lead, event.workspace_id, lead_pk))
     transaction.on_commit(lambda: notify(event.workspace_id))
     return msg
+
+
+def sync_profile(lead):
+    """Pull the person's public profile from the channel they last used. Keeps a name
+    the team typed; only replaces one that is still the raw channel ID or blank."""
+    from apps.channels.adapters import IntegrationUnavailable, adapter_for
+
+    identities = list(
+        ChannelIdentity.objects.for_workspace(lead.workspace_id)
+        .filter(lead=lead)
+        .select_related("connection")
+        .order_by("-created_at")
+    )
+    profile = {}
+    for identity in identities:
+        try:
+            profile = adapter_for(identity.connection).fetch_profile(identity.external_id) or {}
+        except (IntegrationUnavailable, NotImplementedError):
+            continue
+        if profile:
+            break
+    external_ids = {identity.external_id for identity in identities}
+    if profile.get("name") and (not lead.name or lead.name in external_ids):
+        lead.name = str(profile["name"])[:150]
+    if profile.get("handle"):
+        lead.handle = str(profile["handle"])[:150]
+    if profile.get("avatar_url"):
+        lead.avatar_url = str(profile["avatar_url"])[:1000]
+    lead.profile_synced_at = timezone.now()
+    lead.profile_due_at = None
+    lead.save(update_fields=["name", "handle", "avatar_url", "profile_synced_at", "profile_due_at"])
+    return lead
 
 
 def has_voice(attachments):

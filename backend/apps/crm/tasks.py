@@ -91,6 +91,10 @@ def dispatch_inbound_jobs():
         "workspace_id", "pk"
     )[:50]:
         enqueue_once(segment_lead, wid, pk, ttl=90)
+    for wid, pk in Lead.all_objects.filter(profile_due_at__lte=timezone.now()).values_list(
+        "workspace_id", "pk"
+    )[:50]:
+        enqueue_once(enrich_lead, wid, pk, ttl=90)
     # A worker lost mid-transcription must not leave the message invisible to routing.
     Message.all_objects.filter(
         transcription_status="processing", created_at__lt=timezone.now() - timedelta(minutes=15)
@@ -191,6 +195,35 @@ def transcribe_message(workspace_id, message_id):
         if text.strip():
             handle_inbound(message, conversation.identity.lead, {"kind": message.kind})
         transaction.on_commit(lambda: notify(workspace_id))
+
+
+@shared_task(ignore_result=True, soft_time_limit=60, time_limit=90)
+@pause_guard("messaging")
+def enrich_lead(workspace_id, lead_id):
+    """Replace a raw channel ID with the person's name, handle and photo."""
+    from .services import sync_profile
+
+    with transaction.atomic():
+        lead = (
+            Lead.objects.for_workspace(workspace_id)
+            .select_for_update()
+            .filter(pk=lead_id, profile_due_at__isnull=False)
+            .first()
+        )
+        if not lead:
+            return
+        try:
+            sync_profile(lead)
+        except ProviderError as exc:
+            # Rate limits retry later; anything else gives up without blocking inbound.
+            lead.profile_due_at = (
+                timezone.now() + timedelta(seconds=getattr(exc, "delay", 0))
+                if getattr(exc, "delay", None)
+                else None
+            )
+            lead.save(update_fields=["profile_due_at"])
+            return
+    transaction.on_commit(lambda: notify(workspace_id))
 
 
 @shared_task(ignore_result=True, soft_time_limit=60, time_limit=90)

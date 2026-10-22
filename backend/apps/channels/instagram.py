@@ -55,6 +55,20 @@ class LiveInstagramAdapter(InstagramAdapter):
     def headers(self):
         return {"Authorization": f"Bearer {self.connection.access_token}"}
 
+    def fetch_profile(self, sender_id):
+        body = request(
+            "GET",
+            f"https://graph.instagram.com/{settings.META_API_VERSION}/{sender_id}",
+            headers=self.headers(),
+            params={"fields": "name,username,profile_pic"},
+        )
+        username = str(body.get("username") or "")
+        return {
+            "name": str(body.get("name") or username or ""),
+            "handle": "@" + username if username else "",
+            "avatar_url": str(body.get("profile_pic") or ""),
+        }
+
     def hide_comment(self, comment_id):
         request(
             "POST",

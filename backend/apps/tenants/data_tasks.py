@@ -83,7 +83,18 @@ def export_tables():
         ),
         "leads": (
             Lead,
-            ["id", "name", "email", "stage", "tags", "fields", "opted_out", "created_at"],
+            [
+                "id",
+                "name",
+                "handle",
+                "avatar_url",
+                "email",
+                "stage",
+                "tags",
+                "fields",
+                "opted_out",
+                "created_at",
+            ],
         ),
         "identities": (ChannelIdentity, ["id", "lead_id", "connection_id", "external_id"]),
         "conversations": (

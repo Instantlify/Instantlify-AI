@@ -3,7 +3,7 @@ import secrets
 import uuid
 
 from django.db import transaction
-from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
+from django.db.models import Count, Max, OuterRef, Prefetch, Q, Subquery
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, serializers
@@ -47,11 +47,7 @@ class ConversationSerializer(serializers.ModelSerializer):
     last_message = serializers.SerializerMethodField()
 
     def get_contact_link(self, obj):
-        # WhatsApp identities are phone numbers; other channels use opaque scoped IDs.
-        if obj.identity.connection.provider == "whatsapp":
-            digits = "".join(ch for ch in obj.identity.external_id if ch.isdigit())
-            return f"https://wa.me/{digits}" if digits else ""
-        return ""
+        return contact_link(obj.identity)
 
     def get_last_message(self, obj):
         return self.context.get("snippets", {}).get(obj.pk)
@@ -61,6 +57,8 @@ class ConversationSerializer(serializers.ModelSerializer):
         return {
             "id": lead.id,
             "name": lead.name,
+            "handle": lead.handle,
+            "avatar_url": lead.avatar_url,
             "email": lead.email,
             "stage": lead.stage,
             "tags": lead.tags,
@@ -296,22 +294,67 @@ class ConversationEventsView(APIView):
 class LeadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lead
-        fields = ["id", "name", "email", "stage", "tags", "fields", "opted_out"]
-        read_only_fields = ["id"]
+        fields = [
+            "id",
+            "name",
+            "handle",
+            "avatar_url",
+            "email",
+            "stage",
+            "tags",
+            "fields",
+            "opted_out",
+            "profile_synced_at",
+            "created_at",
+        ]
+        read_only_fields = ["id", "avatar_url", "profile_synced_at", "created_at"]
 
     def validate_stage(self, value):
         if value not in {"new", "qualified", "interested", "booked", "won", "lost"}:
             raise serializers.ValidationError("Invalid stage.")
         return value
 
+    def validate_tags(self, value):
+        if not isinstance(value, list) or len(value) > 50:
+            raise serializers.ValidationError("Tags must be a list of up to 50 entries.")
+        tags = []
+        for tag in value:
+            if not isinstance(tag, str) or not 1 <= len(tag.strip()) <= 40:
+                raise serializers.ValidationError("Each tag needs 1–40 characters.")
+            if tag.strip() not in tags:
+                tags.append(tag.strip())
+        return tags
+
+    def validate_fields(self, value):
+        if (
+            not isinstance(value, dict)
+            or len(value) > 50
+            or any(
+                not isinstance(key, str) or not 1 <= len(key) <= 60 or len(str(item)) > 500
+                for key, item in value.items()
+            )
+        ):
+            raise serializers.ValidationError("Fields must be a small map of short values.")
+        return value
+
+
+def contact_link(identity):
+    # WhatsApp identities are phone numbers; other channels use opaque scoped IDs.
+    if identity.connection.provider == "whatsapp":
+        digits = "".join(ch for ch in identity.external_id if ch.isdigit())
+        return f"https://wa.me/{digits}" if digits else ""
+    return ""
+
 
 class LeadRowSerializer(LeadSerializer):
     """A CRM table row: the lead plus where it came from and who is working it."""
 
     channels = serializers.SerializerMethodField()
+    identities = serializers.SerializerMethodField()
     conversation_id = serializers.SerializerMethodField()
     assigned_to = serializers.SerializerMethodField()
     message_count = serializers.IntegerField(read_only=True)
+    last_activity_at = serializers.DateTimeField(read_only=True, default=None)
 
     def _conversations(self, obj):
         return [
@@ -322,6 +365,21 @@ class LeadRowSerializer(LeadSerializer):
 
     def get_channels(self, obj):
         return sorted({identity.connection.provider for identity in obj.identities})
+
+    def get_identities(self, obj):
+        return [
+            {
+                "id": identity.id,
+                "provider": identity.connection.provider,
+                "connection_id": identity.connection_id,
+                "connection_name": identity.connection.display_name,
+                "external_id": identity.external_id,
+                "conversation_id": getattr(identity, "conversation", None)
+                and identity.conversation.pk,
+                "contact_link": contact_link(identity),
+            }
+            for identity in obj.identities
+        ]
 
     def get_conversation_id(self, obj):
         conversations = self._conversations(obj)
@@ -336,10 +394,11 @@ class LeadRowSerializer(LeadSerializer):
     class Meta(LeadSerializer.Meta):
         fields = LeadSerializer.Meta.fields + [
             "channels",
+            "identities",
             "conversation_id",
             "assigned_to",
             "message_count",
-            "created_at",
+            "last_activity_at",
         ]
         read_only_fields = fields
 
@@ -351,9 +410,35 @@ class LeadPagination(PageNumberPagination):
 
 
 def visible_leads(request, workspace_id):
-    """Leads the caller may edit: those behind a conversation they can see."""
-    ids = conversations_for(request, workspace_id).values_list("identity__lead_id", flat=True)
-    return Lead.objects.for_workspace(workspace_id).filter(pk__in=ids)
+    """Leads the caller may edit. Managers see every contact, including ones added by
+    hand; agents only those behind a conversation they can see."""
+    member = workspace_membership(request, workspace_id)
+    query = Lead.objects.for_workspace(workspace_id)
+    if member.role == "agent":
+        ids = conversations_for(request, workspace_id).values_list("identity__lead_id", flat=True)
+        query = query.filter(pk__in=ids)
+    return query
+
+
+def lead_rows(query, workspace_id):
+    """Annotate and prefetch what LeadRowSerializer renders."""
+    return (
+        query.annotate(
+            message_count=Count("channelidentity__conversation__message", distinct=True),
+            last_activity_at=Max("channelidentity__conversation__updated_at"),
+        )
+        # Grouped queries drop Meta.ordering; pagination needs a stable order.
+        .order_by("-created_at", "-id")
+        .prefetch_related(
+            Prefetch(
+                "channelidentity_set",
+                queryset=ChannelIdentity.objects.for_workspace(workspace_id).select_related(
+                    "connection", "conversation"
+                ),
+                to_attr="identities",
+            )
+        )
+    )
 
 
 class LeadList(generics.ListCreateAPIView):
@@ -376,48 +461,37 @@ class LeadList(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         lead = serializer.instance
+        audit(lead.workspace, self.request.user, "lead.created", lead.id)
         # A new contact has no channel identities yet, so nothing to count.
         lead.identities = []
         lead.message_count = 0
+        lead.last_activity_at = None
         return Response(LeadRowSerializer(lead).data, status=201)
 
     def get_queryset(self):
-        member = workspace_membership(self.request, self.kwargs["workspace_id"])
-        workspace_id = member.workspace_id
-        query = Lead.objects.for_workspace(workspace_id)
-        if member.role == "agent":
-            ids = conversations_for(self.request, workspace_id).values_list(
-                "identity__lead_id", flat=True
-            )
-            query = query.filter(pk__in=ids)
+        workspace_id = self.kwargs["workspace_id"]
+        query = visible_leads(self.request, workspace_id)
         params = self.request.query_params
         search = params.get("search", "")[:100]
         if search:
-            query = query.filter(Q(name__icontains=search) | Q(email__icontains=search))
+            query = query.filter(
+                Q(name__icontains=search) | Q(email__icontains=search) | Q(handle__icontains=search)
+            )
         if params.get("stage"):
             query = query.filter(stage=params["stage"][:20])
+        if params.get("tag"):
+            query = query.filter(tags__icontains=params["tag"][:40])
         if params.get("provider"):
             query = query.filter(
                 pk__in=ChannelIdentity.objects.for_workspace(workspace_id)
                 .filter(connection__provider=params["provider"][:30])
                 .values("lead_id")
             )
-        return (
-            query.annotate(
-                message_count=Count("channelidentity__conversation__message", distinct=True)
-            )
-            # Grouped queries drop Meta.ordering; pagination needs a stable order.
-            .order_by("-created_at", "-id")
-            .prefetch_related(
-                Prefetch(
-                    "channelidentity_set",
-                    queryset=ChannelIdentity.objects.for_workspace(workspace_id).select_related(
-                        "connection", "conversation"
-                    ),
-                    to_attr="identities",
-                )
-            )
-        )
+        elif params.get("source") == "channel":
+            query = query.filter(channelidentity__isnull=False).distinct()
+        elif params.get("source") == "manual":
+            query = query.filter(channelidentity__isnull=True)
+        return lead_rows(query, workspace_id)
 
 
 class LeadIdsSerializer(serializers.Serializer):
@@ -502,11 +576,25 @@ class LeadBroadcastView(APIView):
         return Response({"queued": queued, "skipped": skipped})
 
 
-class LeadDetail(generics.RetrieveUpdateAPIView):
+class LeadDetail(generics.RetrieveUpdateDestroyAPIView):
+    """One contact with its channels and conversations. Reads and updates answer in
+    the row shape the CRM renders, so the panel never needs a second request."""
+
     serializer_class = LeadSerializer
 
     def get_queryset(self):
-        return visible_leads(self.request, self.kwargs["workspace_id"])
+        return lead_rows(
+            visible_leads(self.request, self.kwargs["workspace_id"]), self.kwargs["workspace_id"]
+        )
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response(LeadRowSerializer(self.get_object()).data)
+
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object(), data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(LeadRowSerializer(self.get_object()).data)
 
     def perform_update(self, serializer):
         from apps.public_api.services import emit, lead_payload
@@ -514,6 +602,37 @@ class LeadDetail(generics.RetrieveUpdateAPIView):
         lead = serializer.save()
         audit(lead.workspace, self.request.user, "lead.updated", lead.id)
         emit(lead.workspace_id, "lead.updated", lead_payload(lead))
+
+    def perform_destroy(self, lead):
+        member = workspace_membership(self.request, self.kwargs["workspace_id"], ["owner", "admin"])
+        audit(member.workspace, self.request.user, "lead.deleted", lead.id)
+        lead.delete()
+
+
+class RefreshLeadView(APIView):
+    """Re-read the person's name, handle and photo from their channel right now."""
+
+    def post(self, request, workspace_id, pk):
+        from .services import sync_profile
+
+        workspace_membership(request, workspace_id, ["owner", "admin"])
+        lead = get_object_or_404(visible_leads(request, workspace_id), pk=pk)
+        if not ChannelIdentity.objects.for_workspace(workspace_id).filter(lead=lead).exists():
+            raise serializers.ValidationError(
+                "This contact has not messaged any connected channel yet."
+            )
+        from apps.channels.transport import ProviderError
+
+        try:
+            sync_profile(lead)
+        except ProviderError:
+            raise serializers.ValidationError(
+                "The channel did not return a profile. Try again in a moment."
+            ) from None
+        row = get_object_or_404(
+            lead_rows(visible_leads(request, workspace_id), workspace_id), pk=pk
+        )
+        return Response(LeadRowSerializer(row).data)
 
 
 class MergeLeadView(APIView):
@@ -531,10 +650,30 @@ class MergeLeadView(APIView):
         target.tags = sorted(set(target.tags + source.tags))
         target.opted_out = target.opted_out or source.opted_out
         target.fields = {**source.fields, **target.fields}
-        target.save(update_fields=["tags", "opted_out", "fields"])
+        target.email = target.email or source.email
+        target.handle = target.handle or source.handle
+        target.avatar_url = target.avatar_url or source.avatar_url
+        # A typed name beats a raw channel ID left by a contact that was never enriched.
+        if (
+            target.name
+            in {
+                "",
+                *ChannelIdentity.objects.for_workspace(workspace_id)
+                .filter(lead=target)
+                .values_list("external_id", flat=True),
+            }
+            and source.name
+        ):
+            target.name = source.name
+        target.save(
+            update_fields=["tags", "opted_out", "fields", "email", "handle", "avatar_url", "name"]
+        )
         source.delete()
         audit(member.workspace, request.user, "leads.merged", target.id)
-        return Response(LeadSerializer(target).data)
+        row = get_object_or_404(
+            lead_rows(visible_leads(request, workspace_id), workspace_id), pk=pk
+        )
+        return Response(LeadRowSerializer(row).data)
 
 
 class IntegrationSerializer(serializers.ModelSerializer):

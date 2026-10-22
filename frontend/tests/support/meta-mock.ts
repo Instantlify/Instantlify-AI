@@ -64,26 +64,62 @@ const days = Array.from({ length: 14 }, (_, index) => ({
   other: 0,
   contacts: 1 + (index % 3),
 }));
-const lead = (n: number, stage: string, channel: string) => ({
-  id: `l-${n}`,
-  name: ["Maya Chen", "Omar Haddad", "Lena Fischer", "Diego Ruiz"][n],
-  email: n % 2 ? "" : `lead${n}@example.com`,
-  stage,
-  tags: n === 0 ? ["hot"] : [],
-  fields: {},
-  opted_out: false,
-  channels: [channel],
-  conversation_id: `v-${n}`,
-  assigned_to: n === 1 ? 1 : null,
-  message_count: 3 + n,
-  created_at: iso(-n * 864e5),
-});
+const HANDLES = ["@maya.chen", "+15550100", "", "@diego.ruiz"];
+const lead = (n: number, stage: string, channel: string) => {
+  const connection = connections.find((c) => c.provider === channel)!;
+  return {
+    id: `l-${n}`,
+    name: ["Maya Chen", "Omar Haddad", "Lena Fischer", "Diego Ruiz"][n],
+    handle: HANDLES[n],
+    avatar_url: n === 0 ? "https://cdn.example.com/maya.jpg" : "",
+    email: n % 2 ? "" : `lead${n}@example.com`,
+    stage,
+    tags: n === 0 ? ["hot"] : [],
+    fields: n === 0 ? { City: "Lahore" } : {},
+    opted_out: false,
+    profile_synced_at: n === 2 ? null : iso(-3600e3),
+    created_at: iso(-n * 864e5),
+    channels: [channel],
+    identities: [
+      {
+        id: `i-${n}`,
+        provider: channel,
+        connection_id: connection.id,
+        connection_name: connection.display_name,
+        external_id: `ext-${n}`,
+        conversation_id: `v-${n}`,
+        contact_link: channel === "whatsapp" ? "https://wa.me/15550100" : "",
+      },
+    ],
+    conversation_id: `v-${n}`,
+    assigned_to: n === 1 ? 1 : null,
+    message_count: 3 + n,
+    last_activity_at: iso(-(n + 1) * 3600e3),
+  };
+};
 export const leads = [
   lead(0, "new", "instagram"),
   lead(1, "qualified", "whatsapp"),
   lead(2, "booked", "messenger"),
   lead(3, "new", "instagram"),
 ];
+/** A contact added by hand: no channel, no conversation. */
+export const manualLead = {
+  ...lead(1, "new", "whatsapp"),
+  id: "l-manual",
+  name: "Priya Shah",
+  handle: "",
+  avatar_url: "",
+  email: "priya@example.com",
+  tags: [],
+  profile_synced_at: null,
+  channels: [],
+  identities: [],
+  conversation_id: null,
+  assigned_to: null,
+  message_count: 0,
+  last_activity_at: null,
+};
 const conversation = (n: number, provider: string, inboundAgoMs: number) => ({
   id: `v-${n}`,
   lead: leads[n],
@@ -183,8 +219,17 @@ export const automations = [
   },
 ];
 
+// A 1x1 PNG standing in for a contact's Meta profile photo.
+const PIXEL = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64",
+);
+
 export async function mockApi(page: Page) {
   const patches: { path: string; body: unknown }[] = [];
+  await page.route("https://cdn.example.com/**", (route) =>
+    route.fulfill({ contentType: "image/png", body: PIXEL }),
+  );
   await page.route("**/api/**", (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -203,18 +248,38 @@ export async function mockApi(page: Page) {
         return route.fulfill({
           status: 201,
           json: {
+            ...manualLead,
             id: "l-new",
-            tags: [],
-            fields: {},
-            opted_out: false,
-            ...request.postDataJSON(),
-            channels: [],
-            conversation_id: null,
-            assigned_to: null,
-            message_count: 0,
             created_at: iso(0),
+            ...request.postDataJSON(),
           },
         });
+      // Contact panel: edits echo the row, refresh fills the profile, merge keeps
+      // the target, delete answers 204.
+      const leadMatch = path.match(/\/leads\/([^/]+)\/(refresh\/|merge\/)?$/);
+      if (path.startsWith(`${p}/leads/`) && leadMatch) {
+        const row = [...leads, manualLead].find(
+          (item) => item.id === leadMatch[1],
+        );
+        if (!row) return route.fulfill({ status: 404, json: {} });
+        if (request.method() === "DELETE")
+          return route.fulfill({ status: 204, body: "" });
+        if (leadMatch[2] === "refresh/")
+          return route.fulfill({
+            json: {
+              ...row,
+              name: "Maya Chen",
+              handle: "@maya.chen",
+              avatar_url: "https://cdn.example.com/maya.jpg",
+              profile_synced_at: iso(0),
+            },
+          });
+        if (leadMatch[2] === "merge/")
+          return route.fulfill({
+            json: { ...row, email: row.email || manualLead.email },
+          });
+        return route.fulfill({ json: { ...row, ...request.postDataJSON() } });
+      }
       if (path === `${p}/deeplinks/`)
         return route.fulfill({
           status: 201,
@@ -339,8 +404,18 @@ export async function mockApi(page: Page) {
         ],
       });
     if (path.endsWith("/notes/")) return route.fulfill({ json: [] });
-    if (path === `${p}/leads/`)
-      return route.fulfill({ json: { results: leads, count: 4, next: null } });
+    if (path === `${p}/leads/`) {
+      const source = new URL(request.url()).searchParams.get("source");
+      const rows = source === "manual" ? [manualLead] : leads;
+      return route.fulfill({
+        json: { results: rows, count: rows.length, next: null },
+      });
+    }
+    const leadRow = [...leads, manualLead].find(
+      (item) => path === `${p}/leads/${item.id}/`,
+    );
+    if (leadRow) return route.fulfill({ json: leadRow });
+    if (path === `${p}/integrations/`) return route.fulfill({ json: [] });
     if (path.endsWith("/members/"))
       return route.fulfill({
         json: {

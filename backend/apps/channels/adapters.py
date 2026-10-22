@@ -63,6 +63,11 @@ class ChannelAdapter(ABC):
     def publish_container(self, container_id: str) -> str:
         raise NotImplementedError("unsupported_provider")
 
+    def fetch_profile(self, sender_id: str) -> dict:
+        """Public facts about a person who messaged: name, handle and avatar_url. Channels
+        without a profile lookup return {} and keep whatever the webhook carried."""
+        return {}
+
 
 class InstagramAdapter(ChannelAdapter):
     def send_message(self, **kwargs):
@@ -121,6 +126,15 @@ class FakeChannelAdapter(InstagramAdapter):
 
     def delete_comment(self, comment_id):
         self.moderated.append(("delete", comment_id))
+
+    def fetch_profile(self, sender_id):
+        # Deterministic, so the simulator and tests show a person rather than an ID.
+        words = [part for part in sender_id.replace("_", "-").split("-") if part]
+        return {
+            "name": " ".join(word.capitalize() for word in words) or sender_id,
+            "handle": "@" + sender_id.lower().replace("-", "."),
+            "avatar_url": "",
+        }
 
     def refresh_token(self, credentials):
         return Credentials(
