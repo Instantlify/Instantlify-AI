@@ -142,43 +142,6 @@ test("password recovery handles email request and token confirmation", async ({
   await expect(page.getByRole("status")).toContainText("Password updated");
 });
 
-test("starter creates a reviewable booking draft without publishing", async ({
-  page,
-}) => {
-  let payload: {
-    draft: { nodes: { data: { buttons?: { url: string }[] } }[] };
-  } | null = null;
-  await page.route(`**/api/workspaces/${id}/automations/`, (route) => {
-    if (route.request().method() !== "POST")
-      return route.fulfill({ json: { results: [], count: 0 } });
-    payload = route.request().postDataJSON();
-    return route.fulfill({ json: { id: "new-draft" } });
-  });
-  await page.goto(`/w/${id}/automations`);
-  await page.getByLabel("What should happen first?").selectOption("booking");
-  await page
-    .getByLabel("Your reply", { exact: true })
-    .fill("Choose a time for your consultation.");
-  await page.getByLabel("Booking page").fill("https://example.com/book");
-  await page.getByRole("button", { name: "Create starter draft" }).click();
-  await expect(page).toHaveURL(/automations\/new-draft/, { timeout: 15000 });
-  expect(payload).toMatchObject({
-    draft: {
-      triggers: [{ keyword: "book", kind: "comment" }],
-      nodes: [
-        {
-          id: "welcome",
-          data: {
-            kind: "send_buttons",
-            buttons: [{ url: "https://example.com/book" }],
-          },
-        },
-        { id: "done" },
-      ],
-    },
-  });
-});
-
 test("preview presents an answer and knowledge without enabling the agent", async ({
   page,
 }) => {

@@ -8547,3 +8547,11 @@ button.boosend-checkbox-round:focus-visible {
   margin-bottom: 14px;
   width: fit-content;
 }
+
+/* Automations list: empty workspace row. */
+.row-channel-icon.automations-empty-icon {
+  background: #0f172a;
+}
+.automations-empty-row .row-automation-name {
+  cursor: default;
+}

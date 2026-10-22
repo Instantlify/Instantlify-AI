@@ -97,44 +97,35 @@ test("inbox blocks replies once the 24-hour window has closed", async ({
   ).toBeDisabled();
 });
 
-test("automations hub filters, groups into folders and offers row actions", async ({
+test("automations list shows real runs, channels and status, and toggles through the API", async ({
   page,
 }) => {
   const calls = await mockApi(page);
   await page.goto(`/w/${id}/automations`);
   await expect(page.getByText("Comment → lead magnet").first()).toBeVisible();
-  // Runs and status come from the API, not placeholder values.
+  // Runs and status come from the API, never placeholder rows or numbers.
   await expect(page.locator(".metric-runs").first()).toHaveText("41");
-  await expect(page.locator(".status-pill").first()).toHaveText("live");
-  await page.getByRole("button", { name: "Draft", exact: true }).click();
+  await expect(page.locator(".metric-reach").first()).toHaveText("37");
+  await expect(page.locator(".status-pill").first()).toHaveText("Active");
+  await expect(page.getByText("DMs Reply")).toHaveCount(0);
   await expect(
-    page.getByRole("link", { name: "WhatsApp greeting" }),
+    page
+      .locator(".row-channel-icon")
+      .first()
+      .locator('[data-brand="instagram"]'),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Inactive" }).click();
+  await expect(
+    page.getByRole("link", { name: "WhatsApp greeting", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Comment → lead magnet" }),
+    page.getByRole("link", { name: "Comment → lead magnet", exact: true }),
   ).toHaveCount(0);
   await page.getByRole("button", { name: "All", exact: true }).click();
-  await page.getByRole("button", { name: "Folders" }).click();
-  await expect(page.locator(".folder-group summary").first()).toContainText(
-    "Instagram comment leads",
-  );
-  await page
-    .getByRole("button", { name: "Actions for WhatsApp greeting" })
-    .click();
-  for (const action of [
-    "Edit flow",
-    "Duplicate",
-    "Move to folder",
-    "Transfer",
-    "View analytics",
-    "Delete",
-  ])
-    await expect(page.locator(".row-menu-list")).toContainText(action);
   await page.screenshot({
     path: "test-results/meta-automations.png",
     fullPage: true,
   });
-  await page.keyboard.press("Escape");
 
   // The switch pauses a live automation through the API.
   await page

@@ -162,9 +162,9 @@ test("build and publish a comment → DM automation", async ({ page }) => {
   ).toBeVisible();
   await nav(page, "Automation");
   await expect(
-    page.getByRole("link", { name: "Untitled automation" }),
+    page.getByRole("link", { name: "Untitled automation", exact: true }),
   ).toBeVisible();
-  await expect(page.locator(".status-pill").first()).toHaveText("live");
+  await expect(page.locator(".status-pill").first()).toHaveText("Active");
   await expect(
     page.getByRole("switch", { name: "Untitled automation active" }),
   ).toBeChecked();
