@@ -360,7 +360,9 @@ test("signup preserves the selected plan through onboarding", async ({
     route.fulfill({ json: workspace }),
   );
   await page.getByRole("button", { name: "Open my workspace" }).click();
-  await expect(page).toHaveURL(/payments\/\?plan=pro&interval=annual/);
+  await expect(page).toHaveURL(
+    /settings\/?\?tab=subscription&plan=pro&interval=annual/,
+  );
 });
 
 test("workspace navigation remains usable on desktop and mobile", async ({

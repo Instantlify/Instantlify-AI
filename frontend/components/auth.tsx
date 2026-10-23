@@ -90,7 +90,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
         const selected = new URLSearchParams(window.location.search);
         const plan = selected.get("plan");
         const destination = plan
-          ? `payments?plan=${encodeURIComponent(plan)}&interval=${selected.get("interval") === "annual" ? "annual" : "monthly"}`
+          ? `settings?tab=subscription&plan=${encodeURIComponent(plan)}&interval=${selected.get("interval") === "annual" ? "annual" : "monthly"}`
           : "overview";
         router.replace(`/w/${chosen}/${destination}`);
       } catch (err) {

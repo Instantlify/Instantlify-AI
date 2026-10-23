@@ -98,6 +98,14 @@ def process_job(workspace_id, job_id):
                 )
                 if not price or not price.stripe_price_id:
                     raise ValueError("price_not_configured")
+                if account.subscription_id and account.status in LIVE_STATUSES:
+                    # Already subscribed: a second Checkout would bill twice. Stripe's
+                    # portal shows the switch to the chosen plan and prorates it.
+                    session = plan_change_session(workspace_id, account, price, job)
+                    job.result = json.dumps({"url": session.url})
+                    job.status = "complete"
+                    job.save()
+                    return
                 line_items = [{"price": price.stripe_price_id, "quantity": 1}]
                 if price.stripe_meter_price_id:
                     line_items.append({"price": price.stripe_meter_price_id})
@@ -130,10 +138,48 @@ def process_job(workspace_id, job_id):
                 )
             job.result = json.dumps({"url": session.url})
             job.status = "complete"
-        except (stripe.StripeError, ValueError):
+        except (stripe.StripeError, ValueError) as exc:
             job.status = "failed"
-            job.result = json.dumps({"error": "billing_provider_error"})
+            code = "already_on_plan" if str(exc) == "already_on_plan" else "billing_provider_error"
+            job.result = json.dumps({"error": code})
         job.save()
+
+
+LIVE_STATUSES = {"active", "trialing", "past_due"}
+
+
+def plan_change_session(workspace_id, account, price, job):
+    """A portal session opened on the confirm step for switching to ``price``."""
+    subscription = stripe.Subscription.retrieve(
+        account.subscription_id, api_key=settings.STRIPE_SECRET_KEY
+    )
+    items = []
+    for item in subscription["items"]["data"]:
+        metered = (item["price"].get("recurring") or {}).get("usage_type") == "metered"
+        target = price.stripe_meter_price_id if metered else price.stripe_price_id
+        if target and target != item["price"]["id"]:
+            items.append(
+                {"id": item["id"], "price": target, **({} if metered else {"quantity": 1})}
+            )
+    if not items:
+        raise ValueError("already_on_plan")
+    return stripe.billing_portal.Session.create(
+        api_key=settings.STRIPE_SECRET_KEY,
+        customer=account.customer_id,
+        return_url=payments_url(workspace_id, "?billing=success"),
+        flow_data={
+            "type": "subscription_update_confirm",
+            "subscription_update_confirm": {
+                "subscription": account.subscription_id,
+                "items": items,
+            },
+            "after_completion": {
+                "type": "redirect",
+                "redirect": {"return_url": payments_url(workspace_id, "?billing=success")},
+            },
+        },
+        idempotency_key=str(job.id),
+    )
 
 
 @shared_task(ignore_result=True)

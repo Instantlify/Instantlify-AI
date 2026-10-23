@@ -144,7 +144,7 @@ export default function Onboarding() {
         const plan = query.get("plan");
         router.replace(
           plan
-            ? `/w/${workspace.id}/payments?plan=${encodeURIComponent(plan)}&interval=${query.get("interval") === "annual" ? "annual" : "monthly"}`
+            ? `/w/${workspace.id}/settings?tab=subscription&plan=${encodeURIComponent(plan)}&interval=${query.get("interval") === "annual" ? "annual" : "monthly"}`
             : `/w/${workspace.id}/overview`,
         );
       } catch (err) {

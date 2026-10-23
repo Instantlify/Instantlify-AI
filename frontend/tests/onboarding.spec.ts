@@ -56,6 +56,7 @@ async function simulate(page: Page, text: string, kind = "dm") {
 test("sign up, create a workspace and connect a test channel", async ({
   page,
 }) => {
+  test.slow(); // real signup against the live backend
   await page.goto("/");
   await page
     .getByRole("link", { name: "Get started", exact: true })

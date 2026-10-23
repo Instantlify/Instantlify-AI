@@ -38,6 +38,8 @@ def owners(workspace_id):
 def _send(template, membership, context):
     from apps.platform_ops.growth import TemplateMissing, send_transactional_email
 
+    from .services import payments_url
+
     try:
         send_transactional_email(
             template,
@@ -45,7 +47,7 @@ def _send(template, membership, context):
             {
                 "name": membership.user.first_name or "there",
                 "workspace": membership.workspace.name,
-                "billing_url": f"{settings.PUBLIC_APP_URL}/w/{membership.workspace_id}/payments",
+                "billing_url": payments_url(membership.workspace_id),
                 **context,
             },
         )

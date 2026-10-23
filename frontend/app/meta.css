@@ -8555,3 +8555,6 @@ button.boosend-checkbox-round:focus-visible {
 .automations-empty-row .row-automation-name {
   cursor: default;
 }
+
+.credit-activity{margin-top:20px;display:grid;gap:8px}
+.credit-activity td:nth-child(2){text-transform:capitalize}

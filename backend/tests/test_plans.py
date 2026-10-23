@@ -195,6 +195,53 @@ def test_checkout_uses_the_plan_price_for_the_chosen_interval(client, workspace,
     assert kwargs["subscription_data"]["metadata"]["interval"] == "annual"
 
 
+def test_upgrading_a_live_subscription_opens_the_stripe_plan_change(client, workspace, settings):
+    """A second Checkout would bill twice: a subscriber picks a plan and Stripe's portal
+    opens on the confirm step for that exact switch."""
+    settings.STRIPE_SECRET_KEY = "sk_test_x"
+    price = price_for("scale", "monthly", stripe_price_id="price_scale_month")
+    price.stripe_meter_price_id = "price_scale_meter"
+    price.save()
+    account = account_for(workspace.pk)
+    account.customer_id, account.subscription_id, account.status = "cus_1", "sub_1", "active"
+    account.save()
+    client.post(
+        f"/api/workspaces/{workspace.pk}/billing/",
+        {"kind": "checkout", "plan": "scale", "interval": "monthly"},
+        format="json",
+        HTTP_IDEMPOTENCY_KEY="up1",
+    )
+    job = BillingJob.objects.for_workspace(workspace).get(request_key="up1")
+    subscription = {
+        "items": {
+            "data": [
+                {"id": "si_base", "price": {"id": "price_pro_month", "recurring": {}}},
+                {
+                    "id": "si_meter",
+                    "price": {"id": "price_pro_meter", "recurring": {"usage_type": "metered"}},
+                },
+            ]
+        }
+    }
+    with (
+        patch("stripe.Subscription.retrieve", return_value=subscription),
+        patch("stripe.billing_portal.Session.create") as portal,
+        patch("stripe.checkout.Session.create") as checkout,
+    ):
+        portal.return_value.url = "https://billing.stripe.com/p/x"
+        billing_tasks.process_job(str(workspace.pk), str(job.id))
+    job.refresh_from_db()
+    assert json.loads(job.result) == {"url": "https://billing.stripe.com/p/x"}
+    checkout.assert_not_called()
+    flow = portal.call_args.kwargs["flow_data"]
+    assert flow["type"] == "subscription_update_confirm"
+    assert flow["subscription_update_confirm"]["items"] == [
+        {"id": "si_base", "price": "price_scale_month", "quantity": 1},
+        {"id": "si_meter", "price": "price_scale_meter"},
+    ]
+    assert "settings?tab=subscription" in portal.call_args.kwargs["return_url"]
+
+
 def test_subscription_webhook_maps_price_to_plan_and_interval(workspace):
     price_for("scale", "annual", stripe_price_id="price_scale_year")
     account = account_for(workspace.pk)
@@ -241,13 +288,14 @@ def test_a_tier_with_subscribers_cannot_be_deleted(workspace):
 def test_stripe_returns_land_in_the_workspace_not_on_the_marketing_page(workspace, settings):
     """PUBLIC_APP_URL is the anonymous marketing page: it offers "Sign in" and "Get
     started" whatever the session says, so someone who just paid reads it as having been
-    signed out. Every Stripe return has to come back to their own Payments page."""
+    signed out. Every Stripe return has to come back to their own Subscription tab."""
     from apps.billing.services import payments_url
 
     settings.PUBLIC_APP_URL = "https://app.example.com"
     url = payments_url(workspace.pk, "?billing=success")
-    assert url == f"https://app.example.com/w/{workspace.pk}/payments?billing=success"
-    assert payments_url(workspace.pk).endswith(f"/w/{workspace.pk}/payments")
+    base = f"https://app.example.com/w/{workspace.pk}/settings?tab=subscription"
+    assert url == f"{base}&billing=success"
+    assert payments_url(workspace.pk) == base
 
 
 def test_no_stripe_return_points_at_the_bare_app_url():

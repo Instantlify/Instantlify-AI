@@ -2,20 +2,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Plus, ShoppingBag } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   api,
-  limit,
   money,
   when,
-  type Billing,
-  type Credits,
   type Offer,
   type Page,
   type Payment,
 } from "@/lib/api";
-import { startCheckout } from "@/lib/billing";
-import { PlanCards, type Interval } from "@/components/plans";
 import { useWorkspace } from "@/lib/workspace";
 import {
   CopyField,
@@ -49,15 +44,10 @@ export default function PaymentsPage() {
   const owner = workspace.role === "owner";
   const [offers, setOffers] = useState<Offer[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [billing, setBilling] = useState<Billing | null>(null);
-  const [credits, setCredits] = useState<Credits | null>(null);
   const [loading, setLoading] = useState(true);
   const [origin] = useState(() =>
     typeof window === "undefined" ? "" : window.location.origin,
   );
-  const [pendingPlan, setPendingPlan] = useState("");
-  const [interval, setInterval] = useState<Interval>("monthly");
-  const [preferredPlan, setPreferredPlan] = useState("");
   const feedback = useFeedback();
 
   const load = useCallback(
@@ -70,22 +60,8 @@ export default function PaymentsPage() {
       ]);
       setOffers(offerPage.results);
       setPayments(paid);
-      if (owner) {
-        const [plan, credit] = await Promise.all([
-          api<Billing>(`${prefix}/billing/`, "GET", undefined, signal),
-          api<Credits>(`${prefix}/billing/credits/`, "GET", undefined, signal),
-        ]);
-        setBilling(plan);
-        setCredits(credit);
-        const query = new URLSearchParams(window.location.search);
-        setPreferredPlan(
-          plan.catalog.find((item) => item.slug === query.get("plan"))?.name ||
-            "",
-        );
-        if (query.get("interval") === "annual") setInterval("annual");
-      }
     },
-    [prefix, manager, owner],
+    [prefix, manager],
   );
 
   useEffect(() => {
@@ -137,57 +113,8 @@ export default function PaymentsPage() {
     });
   }
 
-  async function startBilling(
-    kind: "checkout" | "portal",
-    plan = "",
-    interval: Interval = "monthly",
-  ) {
-    setPendingPlan(plan || kind);
-    await feedback.run(async () => {
-      window.location.assign(
-        await startCheckout(prefix, { kind, plan, interval }),
-      );
-    });
-    setPendingPlan("");
-  }
-
-  async function buyCredits(amountCents: number) {
-    setPendingPlan(`credits-${amountCents}`);
-    await feedback.run(async () => {
-      window.location.assign(
-        await startCheckout(prefix, {
-          kind: "credits",
-          amount_cents: amountCents,
-        }),
-      );
-    });
-    setPendingPlan("");
-  }
-
-  async function saveAutoTopup(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    await feedback.run(async () => {
-      setCredits(
-        await api<Credits>(`${prefix}/billing/credits/`, "PATCH", {
-          auto_topup_enabled: data.get("enabled") === "on",
-          auto_topup_threshold_cents: Math.round(
-            Number(data.get("threshold")) * 100,
-          ),
-          auto_topup_amount_cents: Math.round(Number(data.get("amount")) * 100),
-        }),
-      );
-    }, "Auto top-up settings saved.");
-  }
-
   const offerName = (id: string) =>
     offers.find((item) => item.id === id)?.name || "Deleted offer";
-  const usageShare = billing
-    ? Math.min(
-        100,
-        Math.round((billing.used / (billing.usage_limit || 1)) * 100),
-      )
-    : 0;
 
   return (
     <>
@@ -195,7 +122,7 @@ export default function PaymentsPage() {
       <PageHeading
         eyebrow="Payments"
         title="Close the loop in chat."
-        text="Offers the AI agent and your team can sell inside a conversation, and your plan with Nemio."
+        text="Offers the AI agent and your team can sell inside a conversation."
       />
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
@@ -336,268 +263,14 @@ export default function PaymentsPage() {
             </Panel>
           )}
 
-          {owner && billing && (
-            <Panel
-              title="Your plan"
-              aside={
-                <Pill tone={statusTone(billing.status)}>{billing.status}</Pill>
-              }
-            >
-              {workspace.parent && (
-                <div
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: 6,
-                    background: "var(--surface-subtle, #f0fdf4)",
-                    border: "1px solid var(--border, #bbf7d0)",
-                    color: "var(--text, #166534)",
-                    fontSize: "0.875rem",
-                    marginBottom: 16,
-                  }}
-                >
-                  <strong>Agency-managed plan:</strong> This workspace is
-                  managed under a parent agency. Subscription tiers, feature
-                  gates, and prepaid AI credits roll up to and are covered by
-                  your managing agency.
-                </div>
-              )}
-              <div className="three-col">
-                <div className="card">
-                  <span className="muted-text">Plan</span>
-                  <h3 style={{ textTransform: "capitalize" }}>
-                    {billing.plan}
-                  </h3>
-                  <span className="muted-text">
-                    Period started {when(billing.period_start)}
-                  </span>
-                </div>
-                <div className="card">
-                  <span className="muted-text">AI messages this period</span>
-                  <h3>
-                    {billing.used} / {limit(billing.usage_limit)}
-                  </h3>
-                  <div className="funnel-bar" aria-hidden="true">
-                    <i style={{ width: `${usageShare}%` }} />
-                  </div>
-                </div>
-                <div className="card">
-                  <span className="muted-text">Limits</span>
-                  <h3>
-                    {limit(billing.seat_limit)} seats ·{" "}
-                    {limit(billing.channel_limit)} channels
-                  </h3>
-                  <span className="muted-text">
-                    Pending invitations hold a seat.
-                  </span>
-                </div>
-              </div>
-              {workspace.parent ? (
-                <p className="muted-text" style={{ marginTop: 16 }}>
-                  Subscription changes, upgrades, and billing management for
-                  this workspace are administered by your parent agency account.
-                </p>
-              ) : billing.stripe_configured ? (
-                <>
-                  <div style={{ marginTop: 18 }}>
-                    {preferredPlan && (
-                      <p style={{ marginBottom: 16 }}>
-                        You selected {preferredPlan}. Review your plan below
-                        before continuing.
-                      </p>
-                    )}
-                    <PlanCards
-                      plans={billing.catalog.filter((p) => p.slug !== "free")}
-                      interval={interval}
-                      onInterval={setInterval}
-                      currentPlan={billing.plan}
-                      currentInterval={billing.interval}
-                      busySlug={pendingPlan}
-                      trialDays={billing.trial_days}
-                      onChoose={(slug, chosen) =>
-                        startBilling("checkout", slug, chosen)
-                      }
-                    />
-                  </div>
-                  <div className="form-actions" style={{ marginTop: 16 }}>
-                    <button
-                      className="button secondary"
-                      disabled={feedback.busy}
-                      onClick={() => startBilling("portal")}
-                    >
-                      {pendingPlan === "portal" ? "Opening…" : "Manage billing"}
-                      <ShoppingBag size={16} />
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <p className="muted-text" style={{ marginTop: 16 }}>
-                  Stripe is not configured for this deployment, so plans cannot
-                  be changed here.
-                </p>
-              )}
-            </Panel>
-          )}
-          {owner && credits && (
-            <Panel
-              title="AI credits"
-              aside={
-                credits.billing_mode === "byo_key"
-                  ? "Using your own API key"
-                  : "Prepaid, debited per model call"
-              }
-            >
-              {credits.billing_mode === "byo_key" ? (
-                <Empty>
-                  This workspace uses its own provider key, so no credits are
-                  debited. Switch the AI agent to platform credits to use
-                  Nemio&apos;s key and prepaid balance instead.
-                </Empty>
-              ) : (
-                <div className="stack">
-                  <div className="three-col">
-                    <div className="card">
-                      <span className="muted-text">Balance</span>
-                      <h3>
-                        {money(Math.round(Number(credits.balance_cents)))}
-                      </h3>
-                      {credits.rate && (
-                        <span className="small muted-text">
-                          {credits.rate.model}:{" "}
-                          {money(
-                            Math.round(
-                              Number(credits.rate.input_per_million_cents),
-                            ),
-                          )}{" "}
-                          in ·{" "}
-                          {money(
-                            Math.round(
-                              Number(credits.rate.output_per_million_cents),
-                            ),
-                          )}{" "}
-                          out, per million tokens
-                        </span>
-                      )}
-                    </div>
-                    <div className="card">
-                      <span className="muted-text">Buy credits</span>
-                      <div className="form-actions">
-                        {credits.topup_options.map((cents) => (
-                          <button
-                            key={cents}
-                            className="button small primary"
-                            disabled={
-                              feedback.busy || !credits.stripe_configured
-                            }
-                            onClick={() => buyCredits(cents)}
-                          >
-                            {pendingPlan === `credits-${cents}`
-                              ? "Opening…"
-                              : money(cents)}
-                          </button>
-                        ))}
-                      </div>
-                      {!credits.stripe_configured && (
-                        <span className="small muted-text">
-                          Stripe is not configured for this deployment.
-                        </span>
-                      )}
-                    </div>
-                    <div className="card">
-                      <span className="muted-text">Auto top-up</span>
-                      <form className="form-grid" onSubmit={saveAutoTopup}>
-                        <label className="inline">
-                          <input
-                            type="checkbox"
-                            name="enabled"
-                            defaultChecked={credits.auto_topup_enabled}
-                            disabled={!credits.has_payment_method}
-                          />
-                          Enabled{" "}
-                          {!credits.has_payment_method &&
-                            "(make one top-up first to save a card)"}
-                        </label>
-                        <label>
-                          When balance drops below ($)
-                          <input
-                            name="threshold"
-                            type="number"
-                            min={0}
-                            step="1"
-                            defaultValue={
-                              credits.auto_topup_threshold_cents / 100
-                            }
-                          />
-                        </label>
-                        <label>
-                          Top up by ($)
-                          <input
-                            name="amount"
-                            type="number"
-                            min={5}
-                            step="1"
-                            defaultValue={credits.auto_topup_amount_cents / 100}
-                          />
-                        </label>
-                        {credits.auto_topup_failed_at && (
-                          <span className="small muted-text">
-                            The last automatic top-up failed on{" "}
-                            {when(credits.auto_topup_failed_at)} and was
-                            switched off.
-                          </span>
-                        )}
-                        <div className="form-actions">
-                          <button
-                            className="button small secondary"
-                            disabled={feedback.busy}
-                          >
-                            Save
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                  {credits.transactions.length ? (
-                    <Table
-                      head={["When", "Type", "Detail", "Amount", "Balance"]}
-                    >
-                      {credits.transactions.slice(0, 20).map((row) => (
-                        <tr key={row.id}>
-                          <td>{when(row.created_at)}</td>
-                          <td>
-                            <Pill tone={statusTone(row.status)}>
-                              {row.type.replace("_", " ")}
-                            </Pill>
-                          </td>
-                          <td>
-                            {row.model
-                              ? `${row.model} · ${row.tokens_in} in / ${row.tokens_out} out`
-                              : row.description}
-                          </td>
-                          <td>
-                            {(Number(row.amount_cents) / 100).toLocaleString(
-                              undefined,
-                              {
-                                style: "currency",
-                                currency: "USD",
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 4,
-                              },
-                            )}
-                          </td>
-                          <td>
-                            {money(
-                              Math.round(Number(row.remaining_balance_cents)),
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </Table>
-                  ) : (
-                    <Empty>No credit activity yet.</Empty>
-                  )}
-                </div>
-              )}
-            </Panel>
+          {owner && (
+            <p className="muted-text">
+              Your Nemio plan and AI credits are under{" "}
+              <Link href={`/w/${workspace.id}/settings?tab=subscription`}>
+                Settings → Subscription
+              </Link>
+              .
+            </p>
           )}
         </div>
       )}

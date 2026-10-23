@@ -235,7 +235,7 @@ def test_first_checkout_carries_the_trial(workspace, settings):
         return create.call_args.kwargs["subscription_data"]
 
     assert run_job("first")["trial_period_days"] == 7
-    account.subscription_id = "sub_old"
+    account.subscription_id, account.status = "sub_old", "canceled"  # a re-subscribe
     account.save()
     assert "trial_period_days" not in run_job("again")
 

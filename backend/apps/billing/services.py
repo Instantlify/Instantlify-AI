@@ -13,11 +13,12 @@ from .models import BillingAccount
 def payments_url(workspace_id, query=""):
     """Where someone lands when Stripe sends them back.
 
-    Their own Payments page, never PUBLIC_APP_URL: that is the anonymous marketing
-    page, which offers "Sign in" and "Get started" whatever the session says. Someone
-    who has just paid reads that as having been signed out.
+    Their own Settings > Subscription tab, never PUBLIC_APP_URL: that is the anonymous
+    marketing page, which offers "Sign in" and "Get started" whatever the session says.
+    Someone who has just paid reads that as having been signed out.
     """
-    return f"{settings.PUBLIC_APP_URL}/w/{workspace_id}/payments{query}"
+    extra = f"&{query.lstrip('?')}" if query else ""
+    return f"{settings.PUBLIC_APP_URL}/w/{workspace_id}/settings?tab=subscription{extra}"
 
 
 def account_for(workspace_id):

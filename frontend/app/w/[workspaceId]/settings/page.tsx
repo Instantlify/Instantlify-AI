@@ -51,10 +51,18 @@ import {
   type Page,
   type User as ApiUser,
   type Workspace,
+  when,
 } from "@/lib/api";
 import { BrandIcon } from "@/lib/brand-icons";
 import { loadWorkspaces, useWorkspace } from "@/lib/workspace";
-import { ErrorNotice, SuccessNotice, useFeedback } from "@/components/ui";
+import {
+  ErrorNotice,
+  SuccessNotice,
+  Table,
+  useFeedback,
+} from "@/components/ui";
+import { startCheckout } from "@/lib/billing";
+import { PlanCards, type Interval } from "@/components/plans";
 
 type SettingsTab = "profile" | "meta" | "team" | "subscription" | "workspaces";
 
@@ -132,6 +140,10 @@ export default function SettingsPage() {
   const [autoRechargeEnabled, setAutoRechargeEnabled] = useState(false);
   const [autoRechargeThreshold, setAutoRechargeThreshold] = useState("2.00");
   const [autoRechargeAmount, setAutoRechargeAmount] = useState("10");
+  const [planInterval, setPlanInterval] = useState<Interval>("monthly");
+  const [pendingPlan, setPendingPlan] = useState("");
+  const [preferredPlan, setPreferredPlan] = useState("");
+  const plansRef = useRef<HTMLDivElement>(null);
 
   // Workspaces state (real workspaces & branding)
   const [allWorkspaces, setAllWorkspaces] = useState<Workspace[]>([workspace]);
@@ -235,6 +247,26 @@ export default function SettingsPage() {
   useEffect(() => {
     loadBillingAndCredits();
   }, [prefix]);
+
+  // Stripe and the pricing page send people back to ?tab=subscription.
+  useEffect(() => {
+    queueMicrotask(() => {
+      const query = new URLSearchParams(window.location.search);
+      if (query.get("tab") === "subscription") setActiveTab("subscription");
+      if (query.get("interval") === "annual") setPlanInterval("annual");
+      if (query.get("plan")) setPreferredPlan(query.get("plan") || "");
+      if (query.get("billing") === "success")
+        feedback.setNotice("Your plan is updated. It can take a moment to show here.");
+      if (query.get("credits") === "success")
+        feedback.setNotice("Credits added. Your balance updates in a moment.");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (preferredPlan && billing && activeTab === "subscription")
+      plansRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [preferredPlan, billing, activeTab]);
 
   // 5. Load Workspaces and Branding
   useEffect(() => {
@@ -367,54 +399,39 @@ export default function SettingsPage() {
     }, `Invitation for ${email} revoked.`);
   };
 
-  // Customer Portal / Billing
+  // Customer Portal / Billing (redirects to Stripe-hosted customer portal)
   const handleOpenCustomerPortal = async () => {
     await feedback.run(async () => {
-      const job = await api<BillingJob>(
-        `${prefix}/billing/`,
-        "POST",
-        {
-          kind: "portal",
-          plan: billing?.plan || "pro",
-          interval: billing?.interval || "monthly",
-        },
-        undefined,
-        {
-          "Idempotency-Key": crypto.randomUUID(),
-        }
-      );
-      if (job.result?.url) {
-        window.location.assign(job.result.url);
-      } else {
-        window.location.assign(`/w/${workspace.id}/payments`);
-      }
-    });
+      const url = await startCheckout(prefix, { kind: "portal" });
+      window.location.assign(url);
+    }, "Redirecting to Stripe Customer Portal…");
+  };
+
+  // Plans: a new subscriber goes to Stripe Checkout, a subscriber to Stripe's
+  // plan-change confirmation for the plan they picked.
+  const handleChoosePlan = async (slug: string, chosen: Interval) => {
+    setPendingPlan(slug);
+    await feedback.run(async () => {
+      const url = await startCheckout(prefix, {
+        kind: "checkout",
+        plan: slug,
+        interval: chosen,
+      });
+      window.location.assign(url);
+    }, "Opening Stripe…");
+    setPendingPlan("");
   };
 
   // AI Credits topup
   const handleTopUpCredits = async (amountDollars: number) => {
     setSelectedTopUp(amountDollars);
     await feedback.run(async () => {
-      const job = await api<BillingJob>(
-        `${prefix}/billing/`,
-        "POST",
-        {
-          kind: "credits",
-          plan: billing?.plan || "pro",
-          interval: billing?.interval || "monthly",
-          amount_cents: amountDollars * 100,
-        },
-        undefined,
-        {
-          "Idempotency-Key": crypto.randomUUID(),
-        }
-      );
-      if (job.result?.url) {
-        window.location.assign(job.result.url);
-      } else {
-        await loadBillingAndCredits();
-      }
-    }, `Initiating top-up for $${amountDollars}...`);
+      const url = await startCheckout(prefix, {
+        kind: "credits",
+        amount_cents: amountDollars * 100,
+      });
+      window.location.assign(url);
+    }, `Redirecting to Stripe checkout for $${amountDollars}...`);
   };
 
   // Save Auto Recharge settings
@@ -1033,6 +1050,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   className="customer-portal-white-btn"
+                  disabled={feedback.busy}
                   onClick={handleOpenCustomerPortal}
                 >
                   <span className="portal-dollar-icon">$</span> Customer Portal
@@ -1040,7 +1058,9 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   className="upgrade-plan-black-btn"
-                  onClick={() => window.location.assign(`/w/${workspace.id}/payments`)}
+                  onClick={() =>
+                    plansRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
                 >
                   Upgrade Plan
                 </button>
@@ -1180,7 +1200,83 @@ export default function SettingsPage() {
                 </div>
                 <div className="credits-rem-val">{creditBalanceDisplay}</div>
               </div>
+
+              {credits && credits.transactions.length > 0 && (
+                <div className="credit-activity">
+                  <label className="field-label">Recent credit activity</label>
+                  <Table head={["When", "Type", "Detail", "Amount", "Balance"]}>
+                    {credits.transactions.slice(0, 10).map((row) => (
+                      <tr key={row.id}>
+                        <td>{when(row.created_at)}</td>
+                        <td>{row.type.replace("_", " ")}</td>
+                        <td>
+                          {row.model
+                            ? `${row.model} · ${row.tokens_in} in / ${row.tokens_out} out`
+                            : row.description}
+                        </td>
+                        <td>
+                          {(Number(row.amount_cents) / 100).toLocaleString(undefined, {
+                            style: "currency",
+                            currency: "USD",
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 4,
+                          })}
+                        </td>
+                        <td>{money(Math.round(Number(row.remaining_balance_cents)))}</td>
+                      </tr>
+                    ))}
+                  </Table>
+                </div>
+              )}
             </div>
+          </div>
+
+          {/* Card 3: Plans */}
+          <div className="settings-card" ref={plansRef} id="plans">
+            <div className="settings-card-header">
+              <div className="card-header-icon-title">
+                <Sparkles size={18} className="card-icon gold-icon" />
+                <div>
+                  <h2 className="card-title">Plans</h2>
+                  <p className="card-subtitle">
+                    Pick a plan to subscribe or switch. Payment and confirmation happen in Stripe.
+                  </p>
+                </div>
+              </div>
+            </div>
+            {!billing ? (
+              <p className="card-subtitle">Loading plans…</p>
+            ) : workspace.parent ? (
+              <p className="card-subtitle">
+                This workspace is managed by your agency, which handles its plan and billing.
+              </p>
+            ) : workspace.role !== "owner" ? (
+              <p className="card-subtitle">Only the workspace owner can change the plan.</p>
+            ) : !billing.stripe_configured ? (
+              <p className="card-subtitle">
+                Stripe is not configured for this deployment, so plans cannot be changed here.
+              </p>
+            ) : (
+              <>
+                {preferredPlan && (
+                  <p className="card-subtitle" style={{ marginBottom: 12 }}>
+                    You picked{" "}
+                    {billing.catalog.find((p) => p.slug === preferredPlan)?.name || preferredPlan}{" "}
+                    on the pricing page. Choose it below to continue.
+                  </p>
+                )}
+                <PlanCards
+                  plans={billing.catalog.filter((p) => p.slug !== "free")}
+                  interval={planInterval}
+                  onInterval={setPlanInterval}
+                  currentPlan={billing.plan}
+                  currentInterval={billing.interval}
+                  busySlug={pendingPlan}
+                  trialDays={billing.trial_days}
+                  onChoose={handleChoosePlan}
+                />
+              </>
+            )}
           </div>
         </div>
       )}
