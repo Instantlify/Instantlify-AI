@@ -340,7 +340,7 @@ test("signup preserves the selected plan through onboarding", async ({
   );
   await page.route("**/api/growth/wizard/", (route) =>
     route.fulfill({
-      json: { step: "payment", completed: [], finished: false },
+      json: { step: "workspace", completed: [], finished: false },
     }),
   );
   await page.goto("/auth?mode=signup&plan=pro&interval=annual");
@@ -359,10 +359,89 @@ test("signup preserves the selected plan through onboarding", async ({
   await page.route("**/api/workspaces/test-workspace/", (route) =>
     route.fulfill({ json: workspace }),
   );
-  await page.getByRole("button", { name: "Open my workspace" }).click();
-  await expect(page).toHaveURL(
-    /settings\/?\?tab=subscription&plan=pro&interval=annual/,
+  let checkout: unknown;
+  await page.route("**/api/growth/funnel/", (route) =>
+    route.fulfill({ json: { recorded: true } }),
   );
+  await page.route("**/api/workspaces/test-workspace/billing/**", (route) => {
+    if (route.request().method() === "POST") {
+      checkout = route.request().postDataJSON();
+      return route.fulfill({
+        status: 202,
+        json: {
+          id: "job-1",
+          status: "complete",
+          result: { url: "https://checkout.stripe.com/c/onboarding" },
+        },
+      });
+    }
+    return route.fulfill({
+      json: {
+        plan: "free",
+        stripe_configured: true,
+        trial_days: 7,
+        catalog: [
+          {
+            slug: "free",
+            name: "Free",
+            is_featured: false,
+            prices: [],
+            limits: {
+              max_instagram_accounts: 1,
+              max_contacts: 500,
+              team_seats: 1,
+              max_ai_messages: 100,
+              ai_agent_enabled: false,
+              integrations_unlocked: false,
+              content_scheduling_enabled: false,
+              voice_notes_enabled: false,
+            },
+          },
+          {
+            slug: "pro",
+            name: "Pro",
+            is_featured: true,
+            limits: {
+              max_instagram_accounts: 1,
+              max_contacts: 500,
+              team_seats: 1,
+              max_ai_messages: 100,
+              ai_agent_enabled: false,
+              integrations_unlocked: false,
+              content_scheduling_enabled: false,
+              voice_notes_enabled: false,
+            },
+            prices: [
+              { interval: "monthly", price_cents: 2500, configured: true },
+              { interval: "annual", price_cents: 24000, configured: true },
+            ],
+          },
+        ],
+      },
+    });
+  });
+  await page.route("https://checkout.stripe.com/**", (route) =>
+    route.fulfill({ contentType: "text/html", body: "<h1>Stripe</h1>" }),
+  );
+  await page.getByRole("button", { name: "Continue to plans" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Choose a plan" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("You picked Pro on the pricing page."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Annual" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.getByRole("button", { name: "Choose plan" }).click();
+  await expect(page).toHaveURL("https://checkout.stripe.com/c/onboarding");
+  expect(checkout).toEqual({
+    kind: "checkout",
+    plan: "pro",
+    interval: "annual",
+    return_to: "onboarding",
+  });
 });
 
 test("workspace navigation remains usable on desktop and mobile", async ({
@@ -536,13 +615,15 @@ test("Instagram connection follows the API redirect and workspace Continue stays
     page.getByRole("heading", { name: "Name your workspace" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Open my workspace", exact: true }),
+    page.getByRole("button", { name: "Continue to plans", exact: true }),
   ).toBeEnabled();
   await page.getByLabel("Workspace name").fill("Connected Studio");
   await page
-    .getByRole("button", { name: "Open my workspace", exact: true })
+    .getByRole("button", { name: "Continue to plans", exact: true })
     .click();
-  await expect(page).toHaveURL(/onboarding-check\/overview/);
+  await expect(
+    page.getByRole("heading", { name: "Choose a plan" }),
+  ).toBeVisible();
 });
 
 test("Instagram immediate completion clears busy state for the workspace step", async ({
@@ -571,6 +652,6 @@ test("Instagram immediate completion clears busy state for the workspace step", 
     page.getByRole("heading", { name: "Name your workspace" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Open my workspace", exact: true }),
+    page.getByRole("button", { name: "Continue to plans", exact: true }),
   ).toBeEnabled();
 });

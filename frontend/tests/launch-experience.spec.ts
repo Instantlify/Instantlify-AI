@@ -73,21 +73,56 @@ test("short onboarding skips optional setup and shows unique leads", async ({
   page,
 }) => {
   const completed: string[] = [];
+  const chosen: string[] = [];
   await page.route("**/api/growth/funnel/", (route) => {
     const data = route.request().postDataJSON();
     if (data.status === "skipped") completed.push(data.step);
+    if (data.status === "completed") chosen.push(data.step);
     return route.fulfill({ json: { recorded: true } });
   });
+  await page.route(`**/api/workspaces/${id}/billing/`, (route) =>
+    route.fulfill({
+      json: {
+        plan: "free",
+        stripe_configured: false,
+        trial_days: 0,
+        catalog: [
+          {
+            slug: "free",
+            name: "Free",
+            is_featured: false,
+            prices: [],
+            limits: {
+              max_instagram_accounts: 1,
+              max_contacts: 500,
+              team_seats: 1,
+              max_ai_messages: 100,
+              ai_agent_enabled: false,
+              integrations_unlocked: false,
+              content_scheduling_enabled: false,
+              voice_notes_enabled: false,
+            },
+          },
+        ],
+      },
+    }),
+  );
   await page.goto("/onboarding");
   await page
     .getByRole("button", { name: "I’ll connect my account later" })
     .click();
   await page.getByLabel("Workspace name").fill("Test Studio");
-  await page.getByRole("button", { name: "Open my workspace" }).click();
+  await page.getByRole("button", { name: "Continue to plans" }).click();
+  // A plan is required: no way past this step without choosing one.
+  await expect(
+    page.getByRole("heading", { name: "Choose a plan" }),
+  ).toBeVisible();
+  await expect(page.getByText("100 ai messages per period")).toBeVisible();
+  await page.getByRole("button", { name: "Continue with Free" }).click();
   await expect(page).toHaveURL(new RegExp(`/w/${id}/overview`));
-  expect(completed).toEqual(
-    expect.arrayContaining(["team", "integrations", "payment"]),
-  );
+  expect(completed).toEqual(expect.arrayContaining(["team", "integrations"]));
+  expect(completed).not.toContain("payment");
+  expect(chosen).toEqual(expect.arrayContaining(["workspace", "payment"]));
   await expect(
     page
       .locator(".stat-card")

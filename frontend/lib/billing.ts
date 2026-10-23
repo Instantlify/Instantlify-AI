@@ -5,6 +5,7 @@ export const BILLING_ERRORS: Record<string, string> = {
   billing_provider_error:
     "The billing provider rejected the request. Please try again.",
   price_not_configured: "That plan has no price configured yet.",
+  already_on_plan: "You are already on that plan.",
 };
 
 /** Starts a Stripe Checkout or Billing Portal session and resolves to its URL.
@@ -16,6 +17,7 @@ export async function startCheckout(
     plan?: string;
     interval?: string;
     amount_cents?: number;
+    return_to?: "onboarding";
   },
 ): Promise<string> {
   const job = await api<BillingJob>(

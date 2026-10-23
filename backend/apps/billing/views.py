@@ -184,6 +184,7 @@ class BillingView(APIView):
                 "plan": plan,
                 "interval": interval,
                 "amount_cents": amount if kind == "credits" else 0,
+                "return_to": "onboarding" if request.data.get("return_to") == "onboarding" else "",
             },
         )
         return Response(

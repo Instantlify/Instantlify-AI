@@ -14,7 +14,7 @@ from apps.tenants.dispatch import enqueue_once
 from apps.tenants.services import audit
 
 from .models import BillingAccount, BillingEvent, BillingJob, PlanPrice
-from .services import account_for, payments_url
+from .services import account_for, payments_url, return_url
 
 MAX_REPORT_ATTEMPTS = 10
 # Subscription states in which metered usage is billable. Canceled, unpaid or
@@ -130,8 +130,8 @@ def process_job(workspace_id, job_id):
                     customer=account.customer_id,
                     mode="subscription",
                     line_items=line_items,
-                    success_url=payments_url(workspace_id, "?billing=success"),
-                    cancel_url=payments_url(workspace_id, "?billing=cancelled"),
+                    success_url=return_url(job, "?billing=success"),
+                    cancel_url=return_url(job, "?billing=cancelled"),
                     subscription_data=subscription_data,
                     idempotency_key=str(job.id),
                     **({"discounts": [{"coupon": promotion["coupon"]}]} if promotion else {}),
@@ -166,7 +166,7 @@ def plan_change_session(workspace_id, account, price, job):
     return stripe.billing_portal.Session.create(
         api_key=settings.STRIPE_SECRET_KEY,
         customer=account.customer_id,
-        return_url=payments_url(workspace_id, "?billing=success"),
+        return_url=return_url(job, "?billing=success"),
         flow_data={
             "type": "subscription_update_confirm",
             "subscription_update_confirm": {
@@ -175,7 +175,7 @@ def plan_change_session(workspace_id, account, price, job):
             },
             "after_completion": {
                 "type": "redirect",
-                "redirect": {"return_url": payments_url(workspace_id, "?billing=success")},
+                "redirect": {"return_url": return_url(job, "?billing=success")},
             },
         },
         idempotency_key=str(job.id),

@@ -21,6 +21,15 @@ def payments_url(workspace_id, query=""):
     return f"{settings.PUBLIC_APP_URL}/w/{workspace_id}/settings?tab=subscription{extra}"
 
 
+def return_url(job, query=""):
+    """Stripe return for a billing job: the signup wizard while someone is still
+    choosing their first plan, otherwise the Subscription tab."""
+    if job.return_to == "onboarding":
+        extra = f"?{query.lstrip('?')}" if query else ""
+        return f"{settings.PUBLIC_APP_URL}/onboarding/{extra}"
+    return payments_url(job.workspace_id, query)
+
+
 def account_for(workspace_id):
     from .reseller import effective_billing_workspace_id
 

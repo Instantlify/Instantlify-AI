@@ -191,6 +191,8 @@ class BillingJob(TenantModel):
     interval = models.CharField(max_length=10, default="monthly")
     # Credit top-ups (kind="credits").
     amount_cents = models.PositiveIntegerField(default=0)
+    # "onboarding" sends Stripe back to the signup wizard instead of Settings.
+    return_to = models.CharField(max_length=20, blank=True)
     request_key = models.CharField(max_length=100)
     status = models.CharField(max_length=20, default="pending")
     result = EncryptedTextField(default="{}")

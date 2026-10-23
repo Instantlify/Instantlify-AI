@@ -77,8 +77,12 @@ test("sign up, create a workspace and connect a test channel", async ({
     .click();
   await page.getByLabel("Workspace name").fill("E2E Studio");
   await page
-    .getByRole("button", { name: "Open my workspace", exact: true })
+    .getByRole("button", { name: "Continue to plans", exact: true })
     .click();
+  await expect(
+    page.getByRole("heading", { name: "Choose a plan" }),
+  ).toBeVisible({ timeout: 30000 });
+  await page.getByRole("button", { name: "Continue with Free" }).click();
   await expect(page).toHaveURL(/\/w\/[0-9a-f-]+\/overview/, { timeout: 30000 });
   workspaceUrl = page.url().replace(/\/overview.*$/, "");
   await expect(

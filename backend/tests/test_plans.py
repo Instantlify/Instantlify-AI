@@ -195,6 +195,28 @@ def test_checkout_uses_the_plan_price_for_the_chosen_interval(client, workspace,
     assert kwargs["subscription_data"]["metadata"]["interval"] == "annual"
 
 
+def test_a_plan_chosen_during_onboarding_returns_to_the_wizard(client, workspace, settings):
+    settings.STRIPE_SECRET_KEY = "sk_test_x"
+    settings.PUBLIC_APP_URL = "https://app.example.com"
+    price_for("pro", "monthly", stripe_price_id="price_pro_month")
+    account = account_for(workspace.pk)
+    account.customer_id = "cus_1"
+    account.save()
+    client.post(
+        f"/api/workspaces/{workspace.pk}/billing/",
+        {"kind": "checkout", "plan": "pro", "interval": "monthly", "return_to": "onboarding"},
+        format="json",
+        HTTP_IDEMPOTENCY_KEY="ob1",
+    )
+    job = BillingJob.objects.for_workspace(workspace).get(request_key="ob1")
+    with patch("stripe.checkout.Session.create") as create:
+        create.return_value.url = "https://checkout.stripe.com/x"
+        billing_tasks.process_job(str(workspace.pk), str(job.id))
+    kwargs = create.call_args.kwargs
+    assert kwargs["success_url"] == "https://app.example.com/onboarding/?billing=success"
+    assert kwargs["cancel_url"] == "https://app.example.com/onboarding/?billing=cancelled"
+
+
 def test_upgrading_a_live_subscription_opens_the_stripe_plan_change(client, workspace, settings):
     """A second Checkout would bill twice: a subscriber picks a plan and Stripe's portal
     opens on the confirm step for that exact switch."""
