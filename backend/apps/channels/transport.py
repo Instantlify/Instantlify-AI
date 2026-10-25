@@ -56,7 +56,7 @@ def request(method, url, *, side_effect=False, **kwargs):
         raise
 
 
-def _request(method, url, *, side_effect=False, **kwargs):
+def _request(method, url, *, side_effect=False, empty_success=False, **kwargs):
     try:
         response = httpx.request(
             method, url, timeout=httpx.Timeout(15, connect=5), follow_redirects=False, **kwargs
@@ -73,6 +73,8 @@ def _request(method, url, *, side_effect=False, **kwargs):
         if side_effect:
             raise AmbiguousDelivery()
         raise RetryableError(30)
+    if empty_success and response.status_code in {202, 204} and not response.content:
+        return {"accepted": True, "status_code": response.status_code}
     try:
         body = response.json()
     except ValueError:

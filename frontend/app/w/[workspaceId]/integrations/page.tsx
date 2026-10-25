@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import {
   ArrowRight,
   Calendar,
@@ -37,9 +43,20 @@ import {
 import { BrandIcon } from "@/lib/brand-icons";
 import { useSearchParams } from "next/navigation";
 import { useWorkspace } from "@/lib/workspace";
-import { CopyField, Empty, ErrorNotice, Modal, Pill, statusTone, SuccessNotice, Table, useFeedback } from "@/components/ui";
+import {
+  CopyField,
+  Empty,
+  ErrorNotice,
+  Modal,
+  Pill,
+  statusTone,
+  SuccessNotice,
+  Table,
+  useFeedback,
+} from "@/components/ui";
 import { IntegrationAnimatedExplainer } from "@/components/integration-animated-explainer";
 import { IntegrationConfigureView } from "@/components/integration-configure-view";
+import { integrationConfiguration } from "@/lib/integration-credentials";
 import { ChannelsPanel } from "@/components/channels-panel";
 
 type Category =
@@ -95,8 +112,12 @@ export default function IntegrationsPage() {
 
   // Other pages link straight to a tab with ?tab=channels or ?tab=developer.
   const requestedTab = useSearchParams().get("tab");
-  const [activeTab, setActiveTab] = useState<"gallery" | "channels" | "developer">(
-    requestedTab === "channels" || requestedTab === "developer" ? requestedTab : "gallery",
+  const [activeTab, setActiveTab] = useState<
+    "gallery" | "channels" | "developer"
+  >(
+    requestedTab === "channels" || requestedTab === "developer"
+      ? requestedTab
+      : "gallery",
   );
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
   const [explainingApp, setExplainingApp] = useState<AppItem | null>(null);
@@ -134,7 +155,12 @@ export default function IntegrationsPage() {
               undefined,
               signal,
             ).catch(() => ({ results: [] as Integration[] })),
-            api<Page<APIKey>>(`${prefix}/api-keys/`, "GET", undefined, signal).catch(() => ({
+            api<Page<APIKey>>(
+              `${prefix}/api-keys/`,
+              "GET",
+              undefined,
+              signal,
+            ).catch(() => ({
               results: [] as APIKey[],
             })),
             api<Page<WebhookSubscription>>(
@@ -169,7 +195,8 @@ export default function IntegrationsPage() {
     queueMicrotask(() => {
       load(controller.signal)
         .catch((err) => {
-          if (!controller.signal.aborted) feedback.setError(String(err.message));
+          if (!controller.signal.aborted)
+            feedback.setError(String(err.message));
         })
         .finally(() => {
           if (!controller.signal.aborted) setLoading(false);
@@ -179,12 +206,15 @@ export default function IntegrationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
-  async function connectOAuth(provider: string) {
+  async function connectOAuth(
+    provider: string,
+    options: Record<string, string> = {},
+  ) {
     await feedback.run(async () => {
       const started = await api<{ authorization_url: string }>(
         `${prefix}/integrations/${provider}/oauth/`,
         "POST",
-        {},
+        { options },
       );
       window.location.assign(started.authorization_url);
     });
@@ -203,7 +233,12 @@ export default function IntegrationsPage() {
   async function disconnectIntegration(providerKey: string) {
     const current = integrations.find((i) => i.provider === providerKey);
     if (!current) return;
-    if (!window.confirm("Disconnect integration? Stored credentials will be removed.")) return;
+    if (
+      !window.confirm(
+        "Disconnect integration? Stored credentials will be removed.",
+      )
+    )
+      return;
     await feedback.run(async () => {
       await api(`${prefix}/integrations/${current.id}/`, "DELETE");
       setIntegrations((list) => list.filter((item) => item.id !== current.id));
@@ -264,10 +299,14 @@ export default function IntegrationsPage() {
     const data = new FormData(event.currentTarget);
     const events = WEBHOOK_EVENTS.filter((name) => data.get(name) === "on");
     await feedback.run(async () => {
-      const created = await api<WebhookSubscription>(`${prefix}/webhooks/`, "POST", {
-        url: data.get("url"),
-        events,
-      });
+      const created = await api<WebhookSubscription>(
+        `${prefix}/webhooks/`,
+        "POST",
+        {
+          url: data.get("url"),
+          events,
+        },
+      );
       setSubscriptions((list) => [created, ...list]);
       setNewSecret(created.secret || "");
       setNewToken(created.token || "");
@@ -279,7 +318,9 @@ export default function IntegrationsPage() {
     if (!window.confirm("Remove this webhook subscription?")) return;
     await feedback.run(async () => {
       await api(`${prefix}/webhooks/${subscription.id}/`, "DELETE");
-      setSubscriptions((list) => list.filter((item) => item.id !== subscription.id));
+      setSubscriptions((list) =>
+        list.filter((item) => item.id !== subscription.id),
+      );
     }, "Webhook removed.");
   }
 
@@ -289,7 +330,8 @@ export default function IntegrationsPage() {
       id: "google-sheets",
       name: "Google Sheets",
       category: ["Data & Records"],
-      description: "Connect Google Sheets to read and write data in your automations",
+      description:
+        "Connect Google Sheets to read and write data in your automations",
       providerKey: "google_sheets",
       iconBg: "#e6f4ea",
       iconColor: "#137333",
@@ -325,7 +367,8 @@ export default function IntegrationsPage() {
       id: "gmail",
       name: "Gmail",
       category: ["Email"],
-      description: "Connect Gmail to send emails directly from your automations",
+      description:
+        "Connect Gmail to send emails directly from your automations",
       providerKey: "gmail",
       iconBg: "#fce8e6",
       iconColor: "#ea4335",
@@ -342,7 +385,8 @@ export default function IntegrationsPage() {
       id: "outlook",
       name: "Outlook",
       category: ["Email"],
-      description: "Connect Outlook to send emails directly from your automations",
+      description:
+        "Connect Outlook to send emails directly from your automations",
       providerKey: "outlook",
       iconBg: "#e1f0fa",
       iconColor: "#0078d4",
@@ -446,7 +490,8 @@ export default function IntegrationsPage() {
       id: "jotform",
       name: "JotForm",
       category: ["Workflow Tools"],
-      description: "Connect JotForm to let AI collect form responses during conversations",
+      description:
+        "Connect JotForm to let AI collect form responses during conversations",
       providerKey: "jotform",
       iconBg: "#fff7ed",
       iconColor: "#ea580c",
@@ -463,7 +508,8 @@ export default function IntegrationsPage() {
       id: "n8n",
       name: "N8N",
       category: ["Workflow Tools"],
-      description: "Connect N8N workflows to extend your automations with custom logic",
+      description:
+        "Connect N8N workflows to extend your automations with custom logic",
       providerKey: "n8n",
       iconBg: "#fdf2f8",
       iconColor: "#db2777",
@@ -498,7 +544,8 @@ export default function IntegrationsPage() {
       id: "slack",
       name: "Slack",
       category: ["Team Chat"],
-      description: "Connect Slack workspaces to send notifications from your automations",
+      description:
+        "Connect Slack workspaces to send notifications from your automations",
       providerKey: "slack",
       oauthSupported: true,
       oauthAction: "slack",
@@ -517,7 +564,8 @@ export default function IntegrationsPage() {
       id: "discord",
       name: "Discord",
       category: ["Team Chat"],
-      description: "Connect Discord servers to send notifications from your automations",
+      description:
+        "Connect Discord servers to send notifications from your automations",
       providerKey: "discord",
       iconBg: "#eef2ff",
       iconColor: "#4f46e5",
@@ -534,7 +582,8 @@ export default function IntegrationsPage() {
       id: "shopify",
       name: "Shopify",
       category: ["Payments", "CRM & Contacts"],
-      description: "Connect your Shopify store for product discovery in AI agents.",
+      description:
+        "Connect your Shopify store for product discovery in AI agents.",
       providerKey: "shopify",
       iconBg: "#f0fdf4",
       iconColor: "#16a34a",
@@ -551,8 +600,10 @@ export default function IntegrationsPage() {
       id: "notavo",
       name: "Notavo",
       category: ["Knowledge Base"],
-      description: "Connect your Notavo knowledge bases to power AI automations in Nemio.",
+      description:
+        "Connect your Notavo knowledge bases to power AI automations in Nemio.",
       providerKey: "notavo",
+      status: "coming_soon",
       iconBg: "#faf5ff",
       iconColor: "#6b21a8",
       logo: <BrandIcon name="notavo" size={22} />,
@@ -571,6 +622,7 @@ export default function IntegrationsPage() {
       description:
         "Connect your ZorroMail Transactional Email account to send emails directly from your automations",
       providerKey: "zorromail",
+      status: "coming_soon",
       iconBg: "#f8fafc",
       iconColor: "#0f172a",
       logo: <BrandIcon name="zorromail" size={22} />,
@@ -586,7 +638,8 @@ export default function IntegrationsPage() {
       id: "klaviyo",
       name: "Klaviyo",
       category: ["Email Marketing"],
-      description: "Connect your Klaviyo account to automatically sync your contacts to your list",
+      description:
+        "Connect your Klaviyo account to automatically sync your contacts to your list",
       providerKey: "klaviyo",
       iconBg: "#f0fdf4",
       iconColor: "#15803d",
@@ -621,7 +674,8 @@ export default function IntegrationsPage() {
       id: "stripe",
       name: "Stripe",
       category: ["Payments"],
-      description: "Connect your Stripe account to use Stripe-powered features across Nemio.",
+      description:
+        "Connect your Stripe account to use Stripe-powered features across Nemio.",
       providerKey: "stripe",
       iconBg: "#eef2ff",
       iconColor: "#4338ca",
@@ -640,6 +694,7 @@ export default function IntegrationsPage() {
       category: ["Voice & AI Media"],
       description: "Connect Poppy AI for intelligent automation responses",
       providerKey: "poppy_ai",
+      status: "coming_soon",
       iconBg: "#fff1f2",
       iconColor: "#f43f5e",
       logo: <BrandIcon name="poppy" size={22} />,
@@ -690,7 +745,8 @@ export default function IntegrationsPage() {
       id: "retell",
       name: "Retell",
       category: ["Voice & AI Media"],
-      description: "Connect Retell for realtime AI voice calls in your automations",
+      description:
+        "Connect Retell for realtime AI voice calls in your automations",
       providerKey: "retell",
       iconBg: "#f8fafc",
       iconColor: "#0f172a",
@@ -726,7 +782,8 @@ export default function IntegrationsPage() {
       id: "salesforce",
       name: "Salesforce",
       category: ["CRM & Contacts"],
-      description: "Enterprise CRM sync for enterprise pipelines and account management.",
+      description:
+        "Enterprise CRM sync for enterprise pipelines and account management.",
       status: "coming_soon",
       iconBg: "#f0f9ff",
       iconColor: "#0284c7",
@@ -736,7 +793,8 @@ export default function IntegrationsPage() {
       id: "hubspot",
       name: "HubSpot",
       category: ["CRM & Contacts"],
-      description: "Inbound CRM, deal pipelines, and marketing hub synchronization.",
+      description:
+        "Inbound CRM, deal pipelines, and marketing hub synchronization.",
       status: "coming_soon",
       iconBg: "#fff7ed",
       iconColor: "#ea580c",
@@ -746,7 +804,8 @@ export default function IntegrationsPage() {
       id: "zapier",
       name: "Zapier",
       category: ["Workflow Tools"],
-      description: "Connect 5,000+ external apps via Zapier instant zaps and triggers.",
+      description:
+        "Connect 5,000+ external apps via Zapier instant zaps and triggers.",
       status: "coming_soon",
       iconBg: "#fff7ed",
       iconColor: "#f97316",
@@ -773,15 +832,6 @@ export default function IntegrationsPage() {
       return;
     }
 
-    if (app.oauthSupported && app.oauthAction === "google_calendar") {
-      connectOAuth("google_calendar");
-      return;
-    }
-    if (app.oauthSupported && app.oauthAction === "slack") {
-      connectOAuth("slack");
-      return;
-    }
-
     // Open configuration screen
     if (app.providerKey || app.id) {
       setConfiguring(app.providerKey || app.id);
@@ -805,13 +855,22 @@ export default function IntegrationsPage() {
           onBack={() => setConfiguring("")}
           onSave={async (credentials, isTest) => {
             await feedback.run(async () => {
-              const saved = await api<Integration>(`${prefix}/integrations/`, "POST", {
-                provider: configuredApp.providerKey || configuredApp.id,
-                credentials,
-                options: {},
-                enabled: true,
-                is_test: isTest,
-              });
+              const saved = await api<Integration>(
+                `${prefix}/integrations/`,
+                "POST",
+                {
+                  provider: configuredApp.providerKey || configuredApp.id,
+                  ...integrationConfiguration(
+                    configuredApp.providerKey || configuredApp.id,
+                    credentials,
+                    integrations.find(
+                      (item) => item.provider === configuredApp.providerKey,
+                    )?.options,
+                  ),
+                  enabled: true,
+                  is_test: isTest,
+                },
+              );
               setIntegrations((list) => [
                 ...list.filter((item) => item.provider !== saved.provider),
                 saved,
@@ -825,35 +884,35 @@ export default function IntegrationsPage() {
               configuredApp.providerKey === "google_sheets" ||
               configuredApp.providerKey === "gmail"
             ) {
-              try {
-                await connectOAuth("google");
-              } catch {
-                await feedback.run(async () => {
-                  const saved = await api<Integration>(`${prefix}/integrations/`, "POST", {
-                    provider: configuredApp.providerKey || configuredApp.id,
-                    credentials,
-                    options: {},
-                    enabled: true,
-                    is_test: isTest,
-                  });
-                  setIntegrations((list) => [
-                    ...list.filter((item) => item.provider !== saved.provider),
-                    saved,
-                  ]);
-                  setConfiguring("");
-                }, `${configuredApp.name} connected successfully!`);
-              }
+              await connectOAuth(
+                configuredApp.providerKey || "google_calendar",
+                integrationConfiguration(
+                  configuredApp.providerKey || configuredApp.id,
+                  credentials,
+                ).options,
+              );
+            } else if (configuredApp.oauthAction === "slack") {
+              await connectOAuth("slack");
             } else if (configuredApp.oauthAction === "meta") {
               await connectMeta();
             } else {
               await feedback.run(async () => {
-                const saved = await api<Integration>(`${prefix}/integrations/`, "POST", {
-                  provider: configuredApp.providerKey || configuredApp.id,
-                  credentials,
-                  options: {},
-                  enabled: true,
-                  is_test: isTest,
-                });
+                const saved = await api<Integration>(
+                  `${prefix}/integrations/`,
+                  "POST",
+                  {
+                    provider: configuredApp.providerKey || configuredApp.id,
+                    ...integrationConfiguration(
+                      configuredApp.providerKey || configuredApp.id,
+                      credentials,
+                      integrations.find(
+                        (item) => item.provider === configuredApp.providerKey,
+                      )?.options,
+                    ),
+                    enabled: true,
+                    is_test: isTest,
+                  },
+                );
                 setIntegrations((list) => [
                   ...list.filter((item) => item.provider !== saved.provider),
                   saved,
@@ -942,7 +1001,10 @@ export default function IntegrationsPage() {
                     <div className="boosend-int-card-head">
                       <div
                         className="boosend-int-logo"
-                        style={{ backgroundColor: app.iconBg, color: app.iconColor }}
+                        style={{
+                          backgroundColor: app.iconBg,
+                          color: app.iconColor,
+                        }}
                       >
                         {app.logo}
                       </div>
@@ -961,10 +1023,29 @@ export default function IntegrationsPage() {
                         Coming Soon
                       </span>
                     ) : connected ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="boosend-btn-what"
+                          onClick={() =>
+                            setConfiguring(app.providerKey || app.id)
+                          }
+                        >
+                          Configure
+                        </button>
                         <span className="boosend-pill-connected">
                           <CheckCircle2 size={13} />
-                          Connected
+                          {integrations.find(
+                            (item) => item.provider === app.providerKey,
+                          )?.is_test
+                            ? "Test connection"
+                            : "Configured"}
                         </span>
                         <button
                           type="button"
@@ -994,6 +1075,63 @@ export default function IntegrationsPage() {
                         What does this do?
                       </button>
                     )}
+                    {connected && app.providerKey === "jotform" && (
+                      <button
+                        type="button"
+                        className="boosend-btn-what"
+                        disabled={feedback.busy}
+                        onClick={() =>
+                          void feedback.run(async () => {
+                            const integration = integrations.find(
+                              (item) => item.provider === "jotform",
+                            );
+                            if (!integration) return;
+                            const result = await api<{
+                              created: number;
+                              matched_existing: number;
+                              skipped: number;
+                            }>(
+                              `${prefix}/integrations/${integration.id}/contacts/`,
+                              "POST",
+                              {},
+                            );
+                            feedback.setNotice(
+                              `${result.created} contacts created, ${result.matched_existing} matched, ${result.skipped} skipped. Imported contacts appear in CRM; no messages are sent.`,
+                            );
+                          })
+                        }
+                      >
+                        Import form contacts
+                      </button>
+                    )}
+                    {connected &&
+                      [
+                        "google_sheets",
+                        "airtable",
+                        "notion",
+                        "shopify",
+                      ].includes(app.providerKey || "") && (
+                        <button
+                          type="button"
+                          className="boosend-btn-what"
+                          disabled={feedback.busy}
+                          onClick={() =>
+                            void feedback.run(async () => {
+                              const integration = integrations.find(
+                                (item) => item.provider === app.providerKey,
+                              );
+                              if (!integration) return;
+                              await api(
+                                `${prefix}/integrations/${integration.id}/knowledge/`,
+                                "POST",
+                                {},
+                              );
+                            }, "Knowledge snapshot imported. Indexing progress appears in AI knowledge settings.")
+                          }
+                        >
+                          Import knowledge snapshot
+                        </button>
+                      )}
                   </div>
                 </div>
               );
@@ -1002,20 +1140,62 @@ export default function IntegrationsPage() {
         </>
       ) : (
         /* Developer Tools Tab (API Keys & Outbound Webhooks without cluttering main view) */
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px", marginTop: "12px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "24px",
+            marginTop: "12px",
+          }}
+        >
           {/* Connectors overview */}
           <div className="boosend-int-card" style={{ padding: "20px" }}>
-            <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "#0f172a" }}>
+            <h3
+              style={{
+                fontSize: "16px",
+                fontWeight: 700,
+                margin: 0,
+                color: "#0f172a",
+              }}
+            >
               Ready-made Connectors
             </h3>
-            <p style={{ fontSize: "13px", color: "#64748b", margin: "6px 0 16px" }}>
-              Pre-built packages living in <code>connectors/</code>. Authenticate with an API key below.
+            <p
+              style={{
+                fontSize: "13px",
+                color: "#64748b",
+                margin: "6px 0 16px",
+              }}
+            >
+              Pre-built packages living in <code>connectors/</code>.
+              Authenticate with an API key below.
             </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "12px",
+              }}
+            >
               {[
-                { name: "Zapier", brand: "zapier" as const, path: "connectors/zapier", text: "Instant triggers & message actions" },
-                { name: "n8n", brand: "n8n" as const, path: "connectors/n8n", text: "Community node: Trigger + CRM node" },
-                { name: "Make.com", brand: "make" as const, path: "connectors/make", text: "Custom app: Watch events & search leads" },
+                {
+                  name: "Zapier",
+                  brand: "zapier" as const,
+                  path: "connectors/zapier",
+                  text: "Instant triggers & message actions",
+                },
+                {
+                  name: "n8n",
+                  brand: "n8n" as const,
+                  path: "connectors/n8n",
+                  text: "Community node: Trigger + CRM node",
+                },
+                {
+                  name: "Make.com",
+                  brand: "make" as const,
+                  path: "connectors/make",
+                  text: "Custom app: Watch events & search leads",
+                },
               ].map((c) => (
                 <div
                   key={c.name}
@@ -1026,24 +1206,60 @@ export default function IntegrationsPage() {
                     padding: "12px",
                   }}
                 >
-                  <strong style={{ fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <strong
+                    style={{
+                      fontSize: "13px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
                     <BrandIcon name={c.brand} size={16} />
                     {c.name}
                   </strong>
-                  <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>{c.text}</div>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "#64748b",
+                      marginTop: "4px",
+                    }}
+                  >
+                    {c.text}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "24px",
+            }}
+          >
             {/* API Keys */}
             <div className="boosend-int-card" style={{ padding: "20px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a", margin: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: "15px",
+                    fontWeight: 700,
+                    color: "#0f172a",
+                    margin: 0,
+                  }}
+                >
                   API Keys
                 </h3>
-                <span style={{ fontSize: "11px", color: "#94a3b8" }}>Header: X-API-Key</span>
+                <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                  Header: X-API-Key
+                </span>
               </div>
 
               {keys.length ? (
@@ -1092,22 +1308,49 @@ export default function IntegrationsPage() {
               )}
 
               {owner && (
-                <form className="form-grid" style={{ marginTop: "16px" }} onSubmit={createKey}>
+                <form
+                  className="form-grid"
+                  style={{ marginTop: "16px" }}
+                  onSubmit={createKey}
+                >
                   <label>
                     Key name
-                    <input name="name" maxLength={80} placeholder="e.g. My Automation Script" required />
+                    <input
+                      name="name"
+                      maxLength={80}
+                      placeholder="e.g. My Automation Script"
+                      required
+                    />
                   </label>
                   <div style={{ display: "flex", gap: "16px" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        fontSize: "13px",
+                      }}
+                    >
                       <input type="checkbox" name="read" defaultChecked />
                       Read
                     </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        fontSize: "13px",
+                      }}
+                    >
                       <input type="checkbox" name="write" />
                       Write
                     </label>
                   </div>
-                  <button className="button primary small" style={{ marginTop: "8px" }} disabled={feedback.busy}>
+                  <button
+                    className="button primary small"
+                    style={{ marginTop: "8px" }}
+                    disabled={feedback.busy}
+                  >
                     <KeyRound size={14} />
                     Create Key
                   </button>
@@ -1117,18 +1360,45 @@ export default function IntegrationsPage() {
 
             {/* Outbound Webhooks */}
             <div className="boosend-int-card" style={{ padding: "20px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a", margin: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: "15px",
+                    fontWeight: 700,
+                    color: "#0f172a",
+                    margin: 0,
+                  }}
+                >
                   Outbound Webhooks
                 </h3>
-                <span style={{ fontSize: "11px", color: "#94a3b8" }}>REST Hooks</span>
+                <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                  REST Hooks
+                </span>
               </div>
-              <p style={{ fontSize: "12px", color: "#64748b", margin: "6px 0 14px" }}>
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "#64748b",
+                  margin: "6px 0 14px",
+                }}
+              >
                 Sign events with HMAC-SHA256 signature header for verification.
               </p>
 
               {subscriptions.length ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
                   {subscriptions.map((sub) => (
                     <div
                       key={sub.id}
@@ -1140,7 +1410,12 @@ export default function IntegrationsPage() {
                         fontSize: "12px",
                       }}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
                         <strong className="mono">{sub.url}</strong>
                         <button
                           type="button"
@@ -1151,7 +1426,13 @@ export default function IntegrationsPage() {
                           Remove
                         </button>
                       </div>
-                      <div style={{ display: "flex", gap: "4px", marginTop: "6px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "4px",
+                          marginTop: "6px",
+                        }}
+                      >
                         {sub.events.map((e) => (
                           <Pill key={e}>{e}</Pill>
                         ))}
@@ -1165,24 +1446,54 @@ export default function IntegrationsPage() {
 
               {newSecret && (
                 <div style={{ marginTop: "12px" }}>
-                  <CopyField label="Signing secret (shown once)" value={newSecret} />
+                  <CopyField
+                    label="Signing secret (shown once)"
+                    value={newSecret}
+                  />
                 </div>
               )}
 
-              <form className="form-grid" style={{ marginTop: "16px" }} onSubmit={createSubscription}>
+              <form
+                className="form-grid"
+                style={{ marginTop: "16px" }}
+                onSubmit={createSubscription}
+              >
                 <label>
                   Endpoint URL
-                  <input name="url" type="url" placeholder="https://api.yourdomain.com/webhook" required />
+                  <input
+                    name="url"
+                    type="url"
+                    placeholder="https://api.yourdomain.com/webhook"
+                    required
+                  />
                 </label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", fontSize: "12px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "8px",
+                    fontSize: "12px",
+                  }}
+                >
                   {WEBHOOK_EVENTS.map((name) => (
-                    <label key={name} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <label
+                      key={name}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
                       <input type="checkbox" name={name} />
                       {name}
                     </label>
                   ))}
                 </div>
-                <button className="button primary small" style={{ marginTop: "8px" }} disabled={feedback.busy}>
+                <button
+                  className="button primary small"
+                  style={{ marginTop: "8px" }}
+                  disabled={feedback.busy}
+                >
                   <Webhook size={14} />
                   Subscribe Endpoint
                 </button>
@@ -1194,8 +1505,14 @@ export default function IntegrationsPage() {
 
       {/* Screenshot 7 Explainer Canvas Modal */}
       {explainingApp && (
-        <div className="boosend-modal-overlay" onClick={() => setExplainingApp(null)}>
-          <div className="boosend-modal-window" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="boosend-modal-overlay"
+          onClick={() => setExplainingApp(null)}
+        >
+          <div
+            className="boosend-modal-window"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="boosend-modal-header">
               <div className="boosend-modal-appinfo">
                 <div
@@ -1209,9 +1526,12 @@ export default function IntegrationsPage() {
                 >
                   {explainingApp.logo}
                 </div>
-                <strong style={{ fontSize: "16px", color: "#0f172a" }}>{explainingApp.name}</strong>
+                <strong style={{ fontSize: "16px", color: "#0f172a" }}>
+                  {explainingApp.name}
+                </strong>
                 <span className="boosend-step-pill">
-                  {explainingApp.explainer?.stepType || "Automation builder step"}
+                  {explainingApp.explainer?.stepType ||
+                    "Automation builder step"}
                 </span>
               </div>
               <button
@@ -1232,7 +1552,13 @@ export default function IntegrationsPage() {
               {/* Two-Frame Interactive Animated Storyboard (Builder Step ➔ Live Execution) */}
               <IntegrationAnimatedExplainer app={explainingApp} />
 
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginTop: "20px",
+                }}
+              >
                 <button
                   type="button"
                   className="boosend-btn-create"
@@ -1245,7 +1571,6 @@ export default function IntegrationsPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

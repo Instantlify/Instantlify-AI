@@ -29,6 +29,24 @@ from .models import IntegrationConfig
 LOCAL_CODE = "local-test-code"
 
 PROVIDERS = {
+    "google_sheets": {
+        "authorize": "https://accounts.google.com/o/oauth2/v2/auth",
+        "client": ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"),
+        "params": {
+            "scope": "https://www.googleapis.com/auth/spreadsheets",
+            "access_type": "offline",
+            "prompt": "consent",
+        },
+    },
+    "gmail": {
+        "authorize": "https://accounts.google.com/o/oauth2/v2/auth",
+        "client": ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"),
+        "params": {
+            "scope": "openid email https://www.googleapis.com/auth/gmail.send",
+            "access_type": "offline",
+            "prompt": "consent",
+        },
+    },
     "google_calendar": {
         "authorize": "https://accounts.google.com/o/oauth2/v2/auth",
         "client": ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"),
@@ -69,7 +87,7 @@ def exchange(provider, code):
     if not code or len(code) > 2000:
         raise ProviderError("missing_code")
     client_id, client_secret = client_for(provider)
-    if provider == "google_calendar":
+    if provider in {"google_calendar", "google_sheets", "gmail"}:
         body = request(
             "POST",
             "https://oauth2.googleapis.com/token",
@@ -89,6 +107,15 @@ def exchange(provider, code):
         }
         if body.get("refresh_token"):
             credentials["refresh_token"] = body["refresh_token"]
+        if provider == "gmail":
+            profile = request(
+                "GET",
+                "https://openidconnect.googleapis.com/v1/userinfo",
+                headers={"Authorization": f"Bearer {body['access_token']}"},
+            )
+            if not profile.get("email") or profile.get("email_verified") is not True:
+                raise ProviderError("gmail_sender_unverified")
+            return credentials, {"sender_email": str(profile["email"])}
         return credentials, {}
     body = request(
         "POST",
@@ -124,7 +151,7 @@ def revoke(config):
     if not token or config.is_test:
         return
     try:
-        if config.provider == "google_calendar":
+        if config.provider in {"google_calendar", "google_sheets", "gmail"}:
             request("POST", "https://oauth2.googleapis.com/revoke", params={"token": token})
         elif config.provider == "slack":
             request(
@@ -149,6 +176,32 @@ class IntegrationOAuthStartView(APIView):
             return Response(
                 {"detail": "The provider app credentials are not configured."}, status=503
             )
+        options = request.data.get("options", {})
+        allowed = {
+            "google_calendar": {"calendar_id"},
+            "google_sheets": {"spreadsheet_id", "range"},
+            "gmail": {"sender_email"},
+            "slack": {"channel_id"},
+        }[provider]
+        if not isinstance(options, dict) or any(
+            key not in allowed or not isinstance(value, str) or len(value) > 500
+            for key, value in options.items()
+        ):
+            return Response({"detail": "Invalid integration destination options."}, status=400)
+        if (
+            provider == "google_sheets"
+            and options
+            and not options.get("spreadsheet_id", "").strip()
+        ):
+            return Response({"detail": "Enter the spreadsheet ID before connecting."}, status=400)
+        if options:
+            config, _ = IntegrationConfig.objects.for_workspace(workspace_id).get_or_create(
+                workspace=member.workspace,
+                provider=provider,
+                defaults={"enabled": False, "status": "oauth_pending"},
+            )
+            config.options = {**config.options, **options}
+            config.save(update_fields=["options"])
         state = secrets.token_urlsafe(32)
         OAuthState.objects.for_workspace(member.workspace).create(
             workspace=member.workspace,
@@ -229,7 +282,7 @@ class IntegrationOAuthCallbackView(APIView):
                     config = IntegrationConfig(workspace=member.workspace, provider=provider)
                 previous = json.loads(config.credentials or "{}")
                 # Google only returns a refresh token on first consent; keep the one we hold.
-                if provider == "google_calendar" and not is_test:
+                if provider in {"google_calendar", "google_sheets", "gmail"} and not is_test:
                     credentials.setdefault("refresh_token", previous.get("refresh_token", ""))
                 config.credentials = json.dumps(credentials)
                 config.options = {**config.options, **options}

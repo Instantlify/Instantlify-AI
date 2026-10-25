@@ -14,3 +14,8 @@ CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 CHANNEL_ADAPTER_MODE = "fake"
 CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+
+# Compose supplies deployment env vars to the test container. Tests opt into mocked
+# Stripe credentials explicitly; never inherit a real key for metrics or audit jobs.
+STRIPE_SECRET_KEY = ""
+STRIPE_WEBHOOK_SECRET = ""

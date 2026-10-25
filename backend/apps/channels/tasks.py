@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from redis import Redis
+from rest_framework.exceptions import ValidationError
 
 from apps.platform_ops.security import blocked, pause_guard
 from apps.tenants.dispatch import enqueue_once
@@ -71,6 +72,7 @@ def dispatch_channel_jobs():
 @shared_task(ignore_result=True)
 @pause_guard("messaging")
 def process_webhook(workspace_id, event_id):
+    from apps.billing.gating import PlanLimitExceeded
     from apps.crm.services import receive
 
     with transaction.atomic():
@@ -85,6 +87,13 @@ def process_webhook(workspace_id, event_id):
         try:
             with transaction.atomic():
                 receive(event, json.loads(event.payload))
+        except PlanLimitExceeded:
+            # Keep the inbound event durable while the workspace is at its cap.
+            # Plan limits are not poison events and must not consume retry attempts.
+            event.error_code = "plan_contact_limit"
+            event.available_at = timezone.now() + timedelta(minutes=5)
+            event.save(update_fields=["error_code", "available_at"])
+            return
         except Exception as exc:
             # A poison event must not be retried every second forever or block others.
             event.attempts += 1
@@ -155,14 +164,22 @@ def send_delivery(workspace_id, delivery_id):
             # Policy is re-evaluated at send time: a delayed or rate-limited message must
             # not outlive the opt-in, window or private-reply allowance it was queued under.
             conversation = message.conversation
+            from apps.automations.tracking import clicked
+
             private = bool(payload.get("private_reply"))
             if conversation.identity.lead.opted_out:
                 reason = "opted_out"
+            elif payload.get("unless_clicked") and clicked(workspace_id, payload["unless_clicked"]):
+                reason = "link_already_clicked"
             elif private and private_reply_sent(
                 workspace_id, connection, item.recipient_id, exclude=item.pk, in_flight=True
             ):
                 reason = "private_reply_limit"
-            elif not private and window_closed(connection, conversation):
+            elif (
+                not private
+                and payload.get("kind") != "public_comment"
+                and window_closed(connection, conversation)
+            ):
                 reason = "messaging_window_closed"
             else:
                 reason = ""
@@ -189,7 +206,23 @@ def send_delivery(workspace_id, delivery_id):
     try:
         adapter = adapter_for(connection)
         payload = json.loads(item.payload)
-        if payload.get("kind") == "voice":
+        if payload.get("kind") == "public_comment":
+            message_id = adapter.reply_comment(
+                comment_id=item.recipient_id,
+                text=payload["text"],
+                idempotency_key=item.idempotency_key,
+            )
+        elif payload.get("kind") == "media":
+            from .media import validate_media
+
+            validate_media(payload.get("media_url"), payload.get("media_type"))
+            message_id = adapter.send_media(
+                recipient_id=item.recipient_id,
+                media_url=payload["media_url"],
+                media_type=payload["media_type"],
+                idempotency_key=item.idempotency_key,
+            )
+        elif payload.get("kind") == "voice":
             message_id = adapter.send_voice_note(
                 recipient_id=item.recipient_id,
                 media_url=payload["media_url"],
@@ -206,6 +239,8 @@ def send_delivery(workspace_id, delivery_id):
                     buttons=payload.get("buttons"),
                     private_reply=payload.get("private_reply", False),
                 )
+            elif not connection.is_test and connection.provider in {"telegram", "whatsapp"}:
+                kwargs["buttons"] = payload.get("buttons")
             message_id = adapter.send_message(**kwargs)
         if not message_id:
             raise AmbiguousDelivery()
@@ -218,7 +253,7 @@ def send_delivery(workspace_id, delivery_id):
     except AmbiguousDelivery:
         item.status = "unknown"
         item.error_code = "delivery_unknown"
-    except (ProviderError, IntegrationUnavailable) as exc:
+    except (ProviderError, IntegrationUnavailable, ValidationError) as exc:
         item.status = "failed"
         item.error_code = getattr(exc, "code", "integration_disabled")
     else:

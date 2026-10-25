@@ -312,6 +312,25 @@ def test_segmentation_ignores_unexpected_output_and_opted_out_leads(channel, con
         provider_for.assert_not_called()
 
 
+def test_segmentation_uses_workspace_criteria_and_can_be_disabled(channel, config, workspace):
+    config.segmentation_prompt = "Hot means the customer has a purchase order."
+    config.save()
+    inbound(channel, "I have a purchase order")
+    lead = make_due(workspace)
+    with classifier("hot") as provider:
+        segment_lead(str(workspace.pk), str(lead.pk))
+    assert (
+        config.segmentation_prompt in provider.return_value.complete.call_args.args[0][0]["content"]
+    )
+    config.segmentation_enabled = False
+    config.save()
+    inbound(channel, "Please classify again")
+    make_due(workspace)
+    with classifier("hot") as provider:
+        segment_lead(str(workspace.pk), str(lead.pk))
+    provider.assert_not_called()
+
+
 def test_reconciliation_queues_agent_runs_for_ai_conversations(channel, config, workspace):
     from apps.agents.models import AgentRun
     from apps.crm.tasks import reconcile_agent_runs

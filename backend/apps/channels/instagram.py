@@ -8,6 +8,35 @@ from .transport import ProviderError, request
 
 
 class LiveInstagramAdapter(InstagramAdapter):
+    def following_status(self, sender_id):
+        body = request(
+            "GET",
+            f"https://graph.instagram.com/{settings.META_API_VERSION}/{sender_id}",
+            headers=self.headers(),
+            params={"fields": "is_user_follow_business"},
+        )
+        value = body.get("is_user_follow_business")
+        if not isinstance(value, bool):
+            raise ProviderError("follow_status_unavailable")
+        return value
+
+    def send_media(self, *, recipient_id, media_url, media_type, idempotency_key):
+        body = request(
+            "POST",
+            self.url("messages"),
+            side_effect=True,
+            headers=self.headers(),
+            json={
+                "recipient": {"id": recipient_id},
+                "message": {"attachment": {"type": media_type, "payload": {"url": media_url}}},
+            },
+        )
+        if not body.get("message_id"):
+            from .transport import AmbiguousDelivery
+
+            raise AmbiguousDelivery()
+        return str(body["message_id"])
+
     def __init__(self, connection):
         self.connection = connection
 
@@ -77,6 +106,63 @@ class LiveInstagramAdapter(InstagramAdapter):
             headers=self.headers(),
             json={"hide": True},
         )
+
+    def recent_posts(self):
+        body = request(
+            "GET",
+            self.url("media"),
+            headers=self.headers(),
+            params={"fields": "id,caption,permalink", "limit": 50},
+        )
+        return [
+            {
+                "id": str(p["id"]),
+                "label": str(p.get("caption") or p["id"])[:200],
+                "permalink": str(p.get("permalink") or ""),
+            }
+            for p in body.get("data", [])
+        ]
+
+    def owns_post(self, post_id):
+        body = request(
+            "GET",
+            f"https://graph.instagram.com/{settings.META_API_VERSION}/{post_id}",
+            headers=self.headers(),
+            params={"fields": "owner"},
+        )
+        return str((body.get("owner") or {}).get("id", "")) == self.connection.external_account_id
+
+    def next_post(self, since):
+        from .commenting import first_post_after
+
+        return first_post_after(
+            lambda after: request(
+                "GET",
+                self.url("media"),
+                headers=self.headers(),
+                params={
+                    "fields": "id,timestamp",
+                    "limit": 50,
+                    **({"after": after} if after else {}),
+                },
+            ),
+            since,
+            "timestamp",
+        )
+
+    def reply_comment(self, *, comment_id, text, idempotency_key):
+        body = request(
+            "POST",
+            f"https://graph.instagram.com/{settings.META_API_VERSION}/{comment_id}/replies",
+            side_effect=True,
+            headers=self.headers(),
+            data={"message": text},
+        )
+        if not body.get("id"):
+            from .transport import AmbiguousDelivery
+
+            raise AmbiguousDelivery()
+        return str(body["id"])
 
     def delete_comment(self, comment_id):
         request(

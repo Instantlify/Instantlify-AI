@@ -61,6 +61,26 @@ export type Connection = {
 export type Status = { checks: Record<string, boolean>; pending_jobs: number };
 export type Page<T> = { results: T[]; count: number; next: string | null };
 
+/** Follow page numbers on a known endpoint without trusting a returned remote URL. */
+export async function apiPages<T>(
+  path: string,
+  signal?: AbortSignal,
+): Promise<T[]> {
+  const records: T[] = [];
+  let page = 1;
+  while (true) {
+    const result = await api<Page<T>>(
+      `${path}${path.includes("?") ? "&" : "?"}page=${page}`,
+      "GET",
+      undefined,
+      signal,
+    );
+    records.push(...result.results);
+    if (!result.next) return records;
+    page += 1;
+  }
+}
+
 export type Lead = {
   id: string;
   name: string;
@@ -111,6 +131,7 @@ export type Conversation = {
 };
 export type MessageSender = "customer" | "ai" | "human" | "automation" | "api";
 export type Message = {
+  media_url?: string;
   id: string;
   direction: "inbound" | "outbound";
   text: string;
@@ -144,6 +165,24 @@ export type Note = {
 };
 
 export type NodeKind =
+  | "avatar_video"
+  | "ai_call"
+  | "generate_voice"
+  | "follow_gate"
+  | "send_reminder"
+  | "ai_generate"
+  | "ai_extract"
+  | "ai_condition"
+  | "send_media"
+  | "integration_action"
+  | "start_agent"
+  | "set_field"
+  | "set_stage"
+  | "randomizer"
+  | "capture_email"
+  | "add_tag"
+  | "assign_member"
+  | "transfer"
   | "send_message"
   | "send_buttons"
   | "delay"
@@ -151,14 +190,54 @@ export type NodeKind =
   | "branch"
   | "wait"
   | "end";
-export type FlowButton = { type: "web_url"; url: string; title: string };
+export type FlowButton = {
+  type: "web_url" | "postback";
+  title: string;
+  url?: string;
+  payload?: string;
+};
 export type FlowNodeData = {
   kind: NodeKind;
+  prompt?: string;
+  fields?: string[];
+  ai_provider?: string;
+  ai_model?: string;
+  track_clicks?: boolean;
+  source_node?: string;
+  button_title?: string;
+  media_url?: string;
+  media_type?: "image" | "video" | "audio";
   text?: string;
   buttons?: FlowButton[];
   seconds?: number;
   variable?: string;
   equals?: string;
+  expected_reply?: string;
+  retry_text?: string;
+  tag?: string;
+  user_id?: number;
+  automation_id?: string;
+  field?: string;
+  value?: string;
+  stage?: string;
+  percentage?: number;
+  integration_id?: string;
+  operation?: "sync_lead" | "notify" | "send_email" | "webhook";
+  wait_for_completion?: boolean;
+  request_body?: string;
+  response_map?: string | Record<string, string>;
+  subject?: string;
+  to?: string;
+  phone_variable?: string;
+  consent_reply?: string;
+  agent_id?: string;
+  timezone?: string;
+  weekdays?: number[];
+  call_start?: string;
+  call_end?: string;
+  avatar_id?: string;
+  voice_id?: string;
+  aspect_ratio?: string;
 };
 export type FlowTrigger = {
   kind: string;
@@ -167,6 +246,12 @@ export type FlowTrigger = {
   channel?: string;
 };
 export type FlowGraph = {
+  connection_id?: string;
+  comment_post_ids?: string[];
+  comment_replies?: string[];
+  comment_post_mode?: "all" | "specific" | "next";
+  comment_since?: string;
+  resolved_next_post_id?: string;
   start: string;
   triggers: FlowTrigger[];
   nodes: {
@@ -202,6 +287,11 @@ export type AutomationRun = {
   steps: number;
   node_id: string;
   error_code: string;
+  automation_name?: string;
+  revision?: number;
+  created_at?: string;
+  finished_at?: string | null;
+  trace?: { node_id: string; steps: number; status: string; at: string }[];
 };
 
 export type AgentConfig = {
@@ -366,6 +456,9 @@ export type DeepLink = {
   code: string;
   clicks: number;
   active: boolean;
+  campaign?: string;
+  source?: string;
+  medium?: string;
   created_at: string;
 };
 export type ShieldRule = {

@@ -1,5 +1,7 @@
 import re
+import uuid
 from datetime import timedelta
+from urllib.parse import urlsplit
 
 from django.db import transaction
 from django.db.models import Q
@@ -10,7 +12,33 @@ from apps.tenants.services import audit
 
 from .models import Automation, ConversationState, Edge, Node, Trigger
 
-KINDS = {"send_message", "send_buttons", "delay", "condition", "branch", "wait", "end"}
+KINDS = {
+    "avatar_video",
+    "ai_call",
+    "generate_voice",
+    "follow_gate",
+    "send_reminder",
+    "ai_generate",
+    "ai_extract",
+    "ai_condition",
+    "send_media",
+    "send_message",
+    "send_buttons",
+    "delay",
+    "condition",
+    "branch",
+    "wait",
+    "end",
+    "capture_email",
+    "add_tag",
+    "assign_member",
+    "transfer",
+    "set_field",
+    "set_stage",
+    "randomizer",
+    "integration_action",
+    "start_agent",
+}
 
 
 def validate_graph(graph):
@@ -31,36 +59,76 @@ def validate_graph(graph):
         raise ValidationError("Select a valid start node.")
     for node in nodes.values():
         data = node.get("data", {})
+        if not isinstance(data, dict):
+            raise ValidationError("Node settings must be an object.")
         kind = data.get("kind")
-        if kind not in KINDS:
+        if not isinstance(kind, str) or kind not in KINDS:
             raise ValidationError("Unsupported node type.")
-        if kind.startswith("send") and not 1 <= len(data.get("text", "")) <= 2000:
+        if kind in {"send_message", "send_buttons", "send_reminder"} and (
+            not isinstance(data.get("text"), str) or not 1 <= len(data["text"]) <= 2000
+        ):
             raise ValidationError("Message nodes require 1–2000 characters.")
         if kind == "send_buttons":
             buttons = data.get("buttons", [])
-            if not 1 <= len(buttons) <= 3:
+            if not isinstance(buttons, list) or not 1 <= len(buttons) <= 3:
                 raise ValidationError("Use 1–3 buttons.")
             for button in buttons:
                 if (
+                    not isinstance(button, dict)
+                    or not isinstance(button.get("title"), str)
+                    or not 1 <= len(button["title"]) <= 20
+                ):
+                    raise ValidationError("Buttons need a title up to 20 characters.")
+                if button.get("type") == "postback":
+                    if (
+                        not isinstance(button.get("payload"), str)
+                        or not 1 <= len(button["payload"].encode()) <= 64
+                    ):
+                        raise ValidationError(
+                            "Reply buttons need a response payload up to 64 bytes."
+                        )
+                elif (
                     button.get("type") != "web_url"
-                    or not str(button.get("url", "")).startswith("https://")
-                    or not 1 <= len(button.get("title", "")) <= 20
+                    or not isinstance(button.get("url"), str)
+                    or not button["url"].startswith("https://")
                 ):
                     raise ValidationError(
                         "Buttons require an HTTPS URL and a title up to 20 characters."
                     )
+                if button.get("type") == "web_url":
+                    try:
+                        url = urlsplit(button["url"])
+                        valid = (
+                            bool(url.hostname)
+                            and not url.username
+                            and not url.password
+                            and len(button["url"]) <= 2000
+                        )
+                    except ValueError:
+                        valid = False
+                    if not valid:
+                        raise ValidationError(
+                            "Use a complete HTTPS resource URL without credentials."
+                        )
+        from .guided import validate_action
+
+        validate_action(data)
         if kind == "delay" and not 1 <= int(data.get("seconds", 0)) <= 86400:
             raise ValidationError("Delays must be 1–86400 seconds.")
     for edge in graph["edges"]:
-        if edge.get("source") not in nodes or edge.get("target") not in nodes:
+        if (
+            not isinstance(edge, dict)
+            or edge.get("source") not in nodes
+            or edge.get("target") not in nodes
+        ):
             raise ValidationError("Every edge must connect existing nodes.")
     for node_id, node in nodes.items():
         outgoing = [e for e in graph["edges"] if e["source"] == node_id]
         kind = node["data"]["kind"]
-        if kind in {"condition", "branch"}:
+        if kind in {"condition", "branch", "randomizer", "ai_condition"}:
             if sorted(e.get("sourceHandle", "") for e in outgoing) != ["false", "true"]:
                 raise ValidationError("Conditions need exactly one true and one false edge.")
-        elif len(outgoing) != (0 if kind == "end" else 1):
+        elif len(outgoing) != (0 if kind in {"end", "transfer", "start_agent"} else 1):
             raise ValidationError("Each non-end node needs one outgoing edge.")
     visited = set()
 
@@ -78,7 +146,7 @@ def validate_graph(graph):
     if visited != set(nodes):
         raise ValidationError("Remove unreachable nodes.")
     triggers = graph.get("triggers", [])
-    if not triggers or len(triggers) > 20:
+    if not isinstance(triggers, list) or not triggers or len(triggers) > 20:
         raise ValidationError("Set 1–20 keyword triggers.")
     for trigger in triggers:
         if (
@@ -94,6 +162,32 @@ def validate_graph(graph):
             channel and channel not in TRIGGER_CHANNELS[trigger["kind"]]
         ):
             raise ValidationError("That trigger is not available on the chosen channel.")
+    if any(not trigger.get("channel") or trigger["channel"] == "whatsapp" for trigger in triggers):
+        for node in nodes.values():
+            data = node["data"]
+            if data["kind"] != "send_buttons":
+                continue
+            rendered = data["text"]
+            links = [b for b in data["buttons"] if b["type"] == "web_url"]
+            if links:
+                rendered += "\n\n" + "\n".join(f"{b['title']}: {b['url']}" for b in links)
+            limit = 1024 if any(b["type"] == "postback" for b in data["buttons"]) else 4096
+            if len(rendered) > limit:
+                raise ValidationError(
+                    f"This WhatsApp message must fit {limit} characters including links."
+                )
+    from apps.channels.commenting import validate_comment_settings
+
+    validate_comment_settings(graph)
+    from apps.channels.media import validate_media_channels
+
+    validate_media_channels(graph)
+    from .tracking import validate_tracking
+
+    validate_tracking(graph)
+    from .followers import validate_followers
+
+    validate_followers(graph)
     return graph
 
 
@@ -109,6 +203,14 @@ TRIGGER_CHANNELS = {
 @transaction.atomic
 def publish(automation, graph, actor):
     graph = validate_graph(graph)
+    from .guided import validate_workspace_references
+
+    validate_workspace_references(graph, automation.workspace_id, automation.pk)
+    graph = dict(graph)
+    graph.pop("resolved_next_post_id", None)
+    graph.pop("comment_since", None)
+    if graph.get("comment_post_mode") == "next":
+        graph["comment_since"] = timezone.now().isoformat()
     automation = (
         Automation.objects.for_workspace(automation.workspace_id)
         .select_for_update()
@@ -163,15 +265,22 @@ def keyword_matches(keyword, text):
 def start_flow(conversation, automation, *, message, comment_id=None, experiment=None, variant=""):
     """Run `automation`'s published graph on this conversation from its start node.
     `message` is the inbound message the flow answers (its text seeds `last_text`)."""
+    from .models import AutomationExecution
+
     graph = automation.published
+    AutomationExecution.objects.for_workspace(conversation.workspace_id).filter(
+        conversation=conversation, status__in=["running", "waiting"]
+    ).update(status="superseded", finished_at=timezone.now())
     return ConversationState.objects.for_workspace(conversation.workspace_id).update_or_create(
         conversation=conversation,
         defaults={
             "workspace_id": conversation.workspace_id,
+            "run_token": uuid.uuid4(),
             "automation": automation,
             "graph": graph,
             "node_id": graph["start"],
             "status": "running",
+            "error_code": "",
             "steps": 0,
             "variables": {"last_text": message.text if message else "", "comment_id": comment_id},
             "available_at": timezone.now(),
@@ -192,11 +301,25 @@ def route_message(message, payload):
     )
     if state and state.status == "waiting":
         node = next(n for n in state.graph["nodes"] if n["id"] == state.node_id)
+        data = node["data"]
+        # Guided opt-in and email capture only resume on private replies, never comments.
+        if (data.get("expected_reply") or data["kind"] == "capture_email") and payload.get(
+            "kind", "dm"
+        ) != "dm":
+            return
+        if data.get("expected_reply") and message.text != data["expected_reply"]:
+            return
+        if data["kind"] == "capture_email":
+            from .guided import capture_email
+
+            if not capture_email(state, message, data):
+                return
         state.variables[node["data"].get("variable", "reply")] = message.text
         state.variables["last_text"] = message.text
-        state.node_id = next(
-            e["target"] for e in state.graph["edges"] if e["source"] == state.node_id
-        )
+        if data["kind"] != "follow_gate":
+            state.node_id = next(
+                e["target"] for e in state.graph["edges"] if e["source"] == state.node_id
+            )
         state.status = "running"
         state.available_at = timezone.now()
         state.last_message_id = message.id
@@ -217,11 +340,28 @@ def route_message(message, payload):
         .select_related("automation")
         .order_by("created_at", "id")
     ):
+        bound_connection = trigger.automation.published.get("connection_id")
+        if bound_connection and str(bound_connection) != str(
+            message.conversation.identity.connection_id
+        ):
+            continue
         if trigger.keyword == ANY_KEYWORD or keyword_matches(trigger.keyword, message.text):
             from apps.analytics.services import choose_automation, record
 
             lead_id = message.conversation.identity.lead_id
             automation, experiment, arm = choose_automation(trigger.automation, lead_id)
+            # An experiment arm must obey its own account and post constraints too.
+            if automation.published.get("connection_id") and str(
+                automation.published["connection_id"]
+            ) != str(message.conversation.identity.connection_id):
+                continue
+            from apps.channels.commenting import matches_comment_target
+
+            if not matches_comment_target(automation, message, payload):
+                continue
+            from apps.channels.commenting import queue_public_reply
+
+            queue_public_reply(message, payload, automation)
             start_flow(
                 message.conversation,
                 automation,

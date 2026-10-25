@@ -1,3 +1,4 @@
+import hashlib
 import hmac
 import json
 
@@ -19,14 +20,31 @@ def normalize_meta(payload, provider):
             for event in entry.get("messaging", []):
                 message = event.get("message", {})
                 postback = event.get("postback", {})
-                if message.get("is_echo") or not (message.get("mid") or postback.get("mid")):
+                event_id = message.get("mid") or postback.get("mid")
+                # Some Page postbacks have no mid. Use only provider-supplied stable
+                # facts so webhook retries deduplicate and later button taps do not.
+                if not event_id and postback.get("payload") and event.get("timestamp"):
+                    stable = json.dumps(
+                        {
+                            "sender": event.get("sender"),
+                            "recipient": event.get("recipient"),
+                            "postback": postback,
+                            "timestamp": event["timestamp"],
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    event_id = "postback:" + hashlib.sha256(stable.encode()).hexdigest()
+                if message.get("is_echo") or not event_id:
                     continue
                 yield (
                     account_id,
-                    message.get("mid") or postback["mid"],
+                    event_id,
                     {
                         "sender_id": str(event["sender"]["id"]),
-                        "text": message.get("text", postback.get("payload", "")),
+                        "text": message.get("quick_reply", {}).get("payload")
+                        or postback.get("payload")
+                        or message.get("text", ""),
                         "kind": "story_reply" if message.get("reply_to", {}).get("story") else "dm",
                         "attachments": message.get("attachments", []),
                         "timestamp": event.get("timestamp"),
@@ -35,6 +53,8 @@ def normalize_meta(payload, provider):
         for change in entry.get("changes", []):
             value = change.get("value", {})
             if provider == "instagram" and change.get("field") in {"comments", "live_comments"}:
+                if str(value.get("from", {}).get("id", "")) in {"", account_id}:
+                    continue
                 yield (
                     account_id,
                     "comment:" + str(value["id"]),
@@ -46,6 +66,11 @@ def normalize_meta(payload, provider):
                         "text": value.get("text", ""),
                         "kind": "live_comment" if change["field"] == "live_comments" else "comment",
                         "comment_id": str(value["id"]),
+                        **(
+                            {"post_id": str(value["media"]["id"])}
+                            if isinstance(value.get("media"), dict) and value["media"].get("id")
+                            else {}
+                        ),
                         "attachments": [],
                     },
                 )
@@ -66,6 +91,7 @@ def normalize_meta(payload, provider):
                         "text": value.get("message", ""),
                         "kind": "comment",
                         "comment_id": str(value["comment_id"]),
+                        **({"post_id": str(value["post_id"])} if value.get("post_id") else {}),
                         "attachments": [],
                     },
                 )
@@ -86,7 +112,9 @@ def normalize_meta(payload, provider):
                             "sender_name": names.get(str(message["from"]), ""),
                             "sender_handle": "+"
                             + "".join(ch for ch in str(message["from"]) if ch.isdigit()),
-                            "text": message.get("text", {}).get("body", ""),
+                            "text": message.get("interactive", {}).get("button_reply", {}).get("id")
+                            or message.get("button", {}).get("payload")
+                            or message.get("text", {}).get("body", ""),
                             "kind": "dm",
                             "attachments": [{"type": "audio", "media_id": message["audio"]["id"]}]
                             if "audio" in message
@@ -313,6 +341,11 @@ def snapchat_webhook(request):
                 Lead.objects.for_workspace(workspace).filter(email=email).first() if email else None
             )
             if not lead:
+                from apps.billing.gating import check_within_limit
+                from apps.tenants.models import Workspace
+
+                Workspace.objects.select_for_update().get(pk=workspace.pk)
+                check_within_limit(workspace.pk, "max_contacts")
                 lead = Lead.objects.for_workspace(workspace).create(
                     workspace=workspace,
                     name=name,

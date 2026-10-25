@@ -22,7 +22,7 @@ class User(AbstractUser):
 
 
 # App Store apps a workspace can pin; the client catalog uses the same IDs.
-PINNABLE_APPS = ("bio", "calendar", "shield", "deeplinks", "webchat")
+PINNABLE_APPS = ("bio", "calendar", "shield", "deeplinks", "webchat", "forms", "creator-kit")
 
 
 def default_pinned_apps():

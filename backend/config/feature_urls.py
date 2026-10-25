@@ -1,6 +1,7 @@
 from django.urls import path
 
 from apps.agents.preview import AgentPreviewView
+from apps.agents.sources import ImportKnowledgeView
 from apps.agents.views import (
     AgentAuditView,
     AgentModelsView,
@@ -10,6 +11,8 @@ from apps.agents.views import (
 )
 from apps.agents.voice import voice_asset
 from apps.analytics.views import ExperimentDetail, ExperimentList, FunnelView
+from apps.automations.preview import PreviewView
+from apps.automations.tracking import WorkflowLinkRedirect
 from apps.automations.views import (
     AutomationDetail,
     AutomationList,
@@ -34,9 +37,25 @@ from apps.billing.views import (
     SendPaymentLinkView,
     stripe_webhook,
 )
-from apps.channels.api import ConnectView, DeliveryList, DisconnectView, SimulateView
+from apps.channels.api import (
+    AccountPostsView,
+    ConnectView,
+    DeliveryList,
+    DisconnectView,
+    SimulateView,
+)
 from apps.content.views import BioView, PostDetail, PostList, PublicBioView
+from apps.crm.campaigns import (
+    CampaignAudienceView,
+    CampaignDetail,
+    CampaignList,
+    CampaignRecipientsView,
+    CancelCampaignView,
+    LaunchCampaignView,
+)
+from apps.crm.form_imports import ImportFormContactsView
 from apps.crm.oauth import IntegrationOAuthCallbackView, IntegrationOAuthStartView
+from apps.crm.segments import SegmentDetail, SegmentList
 from apps.crm.views import (
     ConversationDetail,
     ConversationEventsView,
@@ -88,10 +107,13 @@ from apps.tenants.branding import (
 )
 from apps.tenants.data_views import DataOperationsView, DownloadExportView
 from apps.tenants.tls import CheckDomainTLSView
+from apps.tools.creator import CreatorView, PublicCreatorView
+from apps.tools.forms import FormDetail, FormList, PublicFormView, SubmissionList
 from apps.tools.views import (
     DeepLinkDetail,
     DeepLinkList,
     DeepLinkRedirect,
+    LinkStatsView,
     PublicWebChatView,
     ShieldEventList,
     ShieldRuleDetail,
@@ -107,6 +129,7 @@ urlpatterns = [
     path(P + "automations/", AutomationList.as_view()),
     path(P + "automations/import/", ImportView.as_view()),
     path(P + "automations/generate/", GenerateView.as_view()),
+    path(P + "automations/preview/", PreviewView.as_view()),
     path(P + "automations/stats/", StatsView.as_view()),
     path(P + "automations/<uuid:pk>/", AutomationDetail.as_view()),
     path(P + "automations/<uuid:pk>/publish/", PublishView.as_view()),
@@ -123,6 +146,12 @@ urlpatterns = [
     path(P + "leads/", LeadList.as_view()),
     path(P + "leads/bulk/", LeadBulkView.as_view()),
     path(P + "leads/broadcast/", LeadBroadcastView.as_view()),
+    path(P + "campaigns/", CampaignList.as_view()),
+    path(P + "campaigns/audience/", CampaignAudienceView.as_view()),
+    path(P + "campaigns/<uuid:pk>/", CampaignDetail.as_view()),
+    path(P + "campaigns/<uuid:pk>/launch/", LaunchCampaignView.as_view()),
+    path(P + "campaigns/<uuid:pk>/cancel/", CancelCampaignView.as_view()),
+    path(P + "campaigns/<uuid:pk>/recipients/", CampaignRecipientsView.as_view()),
     path(P + "leads/<uuid:pk>/", LeadDetail.as_view()),
     path(P + "leads/<uuid:pk>/merge/", MergeLeadView.as_view()),
     path(P + "leads/<uuid:pk>/refresh/", RefreshLeadView.as_view()),
@@ -135,6 +164,10 @@ urlpatterns = [
     path(P + "agent/models/", AgentModelsView.as_view()),
     path(P + "agent-audit/", AgentAuditView.as_view()),
     path(P + "documents/", DocumentList.as_view()),
+    path(P + "segments/", SegmentList.as_view()),
+    path(P + "segments/<uuid:pk>/", SegmentDetail.as_view()),
+    path(P + "integrations/<uuid:pk>/knowledge/", ImportKnowledgeView.as_view()),
+    path(P + "integrations/<uuid:pk>/contacts/", ImportFormContactsView.as_view()),
     path(P + "documents/<uuid:pk>/", DocumentDetail.as_view()),
     path(P + "billing/", BillingView.as_view()),
     path(P + "billing/jobs/<uuid:job_id>/", BillingJobView.as_view()),
@@ -143,6 +176,7 @@ urlpatterns = [
     path(P + "offers/<uuid:pk>/", OfferDetail.as_view()),
     path(P + "payments/", PaymentList.as_view()),
     path(P + "channels/connect/", ConnectView.as_view()),
+    path(P + "connections/<uuid:pk>/posts/", AccountPostsView.as_view()),
     path(P + "channels/<uuid:pk>/simulate/", SimulateView.as_view()),
     path(P + "channels/<uuid:pk>/disconnect/", DisconnectView.as_view()),
     path(P + "deliveries/", DeliveryList.as_view()),
@@ -154,6 +188,11 @@ urlpatterns = [
     path(P + "bio/", BioView.as_view()),
     path(P + "deeplinks/", DeepLinkList.as_view()),
     path(P + "deeplinks/<uuid:pk>/", DeepLinkDetail.as_view()),
+    path(P + "deeplinks/<uuid:pk>/stats/", LinkStatsView.as_view()),
+    path(P + "forms/", FormList.as_view()),
+    path(P + "forms/<uuid:pk>/", FormDetail.as_view()),
+    path(P + "forms/<uuid:pk>/submissions/", SubmissionList.as_view()),
+    path(P + "creator-kit/", CreatorView.as_view()),
     path(P + "shield/rules/", ShieldRuleList.as_view()),
     path(P + "shield/rules/<uuid:pk>/", ShieldRuleDetail.as_view()),
     path(P + "shield/events/", ShieldEventList.as_view()),
@@ -177,8 +216,11 @@ urlpatterns = [
     path("api/public/templates/", PublicTemplateList.as_view()),
     path("api/public/templates/<slug:slug>/", PublicTemplateDetail.as_view()),
     path("api/public/bio/<slug:slug>/", PublicBioView.as_view()),
+    path("api/public/forms/<slug:slug>/", PublicFormView.as_view()),
+    path("api/public/creator/<slug:slug>/", PublicCreatorView.as_view()),
     path("api/public/webchat/<uuid:workspace_id>/", PublicWebChatView.as_view()),
     path("go/<slug:code>/", DeepLinkRedirect.as_view()),
+    path("r/<str:code>/", WorkflowLinkRedirect.as_view()),
     path("api/public/branding/", PublicBrandingView.as_view()),
     path("api/public/plans/", PublicPlansView.as_view()),
     # On-demand TLS validation queried by edge proxy (Caddy / reverse proxy).

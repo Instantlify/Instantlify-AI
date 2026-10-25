@@ -33,14 +33,30 @@ def parse_template(document):
             raise ValidationError("Template is not valid JSON.") from None
     if not isinstance(document, dict) or document.get("format") != FORMAT:
         raise ValidationError("This file is not a Nemio automation template.")
-    if int(document.get("version", 0)) > VERSION:
+    version = document.get("version")
+    if isinstance(version, bool) or not isinstance(version, int) or version < 1:
+        raise ValidationError("Template version must be a positive integer.")
+    if version > VERSION:
         raise ValidationError("This template needs a newer version of Nemio.")
     if len(json.dumps(document)) > MAX_BYTES:
         raise ValidationError("Template is too large.")
     name = str(document.get("name", "Imported automation")).strip()[:100] or "Imported automation"
     graph = validate_graph(document.get("graph"))
     # Only the graph's own keys are imported; anything else in the file is ignored.
-    return name, {key: graph[key] for key in ["start", "nodes", "edges", "triggers"]}
+    return name, {
+        key: graph[key]
+        for key in [
+            "start",
+            "nodes",
+            "edges",
+            "triggers",
+            "connection_id",
+            "comment_post_ids",
+            "comment_replies",
+            "comment_post_mode",
+        ]
+        if key in graph
+    }
 
 
 def import_automation(workspace, document, actor, *, installed_from=None, name=None):

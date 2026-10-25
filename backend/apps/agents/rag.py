@@ -51,7 +51,8 @@ def ingest(document, config):
             pk=document.pk
         ).update(status="ready", embedding_model=config.embedding_model)
         record, created = UsageRecord.objects.for_workspace(document.workspace_id).get_or_create(
-            key=f"document:{document.id}",
+            key=f"document:{document.id}"
+            + (f":revision:{document.source_revision}" if document.source_revision else ""),
             defaults={
                 "workspace_id": document.workspace_id,
                 "provider": config.provider,

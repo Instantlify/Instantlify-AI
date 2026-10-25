@@ -68,7 +68,7 @@ export default function AppStorePage() {
       name: "Forms",
       description:
         "Build embedded forms, share them anywhere, and collect responses into your CRM.",
-      section: "bio",
+      section: "forms",
       icon: <FileText size={18} color="#ffffff" />,
       banner: (
         <div
@@ -99,7 +99,9 @@ export default function AppStorePage() {
                 <Star key={i} size={14} fill="#eab308" color="#eab308" />
               ))}
             </div>
-            <div style={{ fontSize: "11px", fontWeight: 700, color: "#0f172a" }}>
+            <div
+              style={{ fontSize: "11px", fontWeight: 700, color: "#0f172a" }}
+            >
               Customer Intake Form
             </div>
             <div
@@ -166,7 +168,9 @@ export default function AppStorePage() {
             >
               N
             </div>
-            <div style={{ fontSize: "10px", fontWeight: 700, color: "#0f172a" }}>
+            <div
+              style={{ fontSize: "10px", fontWeight: 700, color: "#0f172a" }}
+            >
               @{workspace.name.toLowerCase().replace(/[^a-z0-9]+/g, "_")}
             </div>
             <div
@@ -232,7 +236,13 @@ export default function AppStorePage() {
                 }}
               >
                 {day}
-                <div style={{ fontSize: "11px", fontWeight: 700, marginTop: "2px" }}>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    marginTop: "2px",
+                  }}
+                >
                   {14 + idx}
                 </div>
               </div>
@@ -244,8 +254,7 @@ export default function AppStorePage() {
     {
       id: "shield",
       name: "Hate Detection",
-      description:
-        "Delete negative comments and keep your reputation clean.",
+      description: "Delete negative comments and keep your reputation clean.",
       section: "shield",
       icon: <ShieldAlert size={18} color="#ffffff" />,
       banner: (
@@ -313,7 +322,7 @@ export default function AppStorePage() {
       name: "Creator Kit",
       description:
         "Promote yourself as a content creator by showcasing your stats",
-      status: "coming_soon",
+      section: "creator-kit",
       icon: <TrendingUp size={18} color="#ffffff" />,
       banner: (
         <div
@@ -339,18 +348,26 @@ export default function AppStorePage() {
             }}
           >
             <div>
-              <div style={{ fontSize: "9px", color: "#64748b", fontWeight: 600 }}>
+              <div
+                style={{ fontSize: "9px", color: "#64748b", fontWeight: 600 }}
+              >
                 Reach
               </div>
-              <div style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>
+              <div
+                style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a" }}
+              >
                 71.4K
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "9px", color: "#64748b", fontWeight: 600 }}>
+              <div
+                style={{ fontSize: "9px", color: "#64748b", fontWeight: 600 }}
+              >
                 Engagement
               </div>
-              <div style={{ fontSize: "14px", fontWeight: 800, color: "#10b981" }}>
+              <div
+                style={{ fontSize: "14px", fontWeight: 800, color: "#10b981" }}
+              >
                 10.4%
               </div>
             </div>
@@ -361,8 +378,7 @@ export default function AppStorePage() {
     {
       id: "deeplinks",
       name: "Tracking Links",
-      description:
-        "Create tracking links to see where your leads come from",
+      description: "Create tracking links to see where your leads come from",
       section: "deeplinks",
       icon: <MousePointerClick size={18} color="#ffffff" />,
       banner: (
@@ -439,7 +455,7 @@ export default function AppStorePage() {
       id: "smart-links",
       name: "Deep Link",
       description:
-        "Generate links that bypass in-app browsers to maximize your leads.",
+        "Track destination clicks and campaign attribution with shareable links.",
       section: "deeplinks",
       icon: <Smartphone size={18} color="#ffffff" />,
       banner: (
@@ -482,10 +498,14 @@ export default function AppStorePage() {
               ▶
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "#0f172a" }}>
+              <div
+                style={{ fontSize: "11px", fontWeight: 700, color: "#0f172a" }}
+              >
                 youtube.com/...
               </div>
-              <div style={{ fontSize: "9px", color: "#10b981", fontWeight: 600 }}>
+              <div
+                style={{ fontSize: "9px", color: "#10b981", fontWeight: 600 }}
+              >
                 ✓ Native App Bypass
               </div>
             </div>
@@ -540,10 +560,14 @@ export default function AppStorePage() {
               <MessageCircle size={16} />
             </div>
             <div>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "#0f172a" }}>
+              <div
+                style={{ fontSize: "11px", fontWeight: 700, color: "#0f172a" }}
+              >
                 Live Support
               </div>
-              <div style={{ fontSize: "9px", color: "#10b981", fontWeight: 600 }}>
+              <div
+                style={{ fontSize: "9px", color: "#10b981", fontWeight: 600 }}
+              >
                 ● Active Now
               </div>
             </div>
@@ -557,11 +581,20 @@ export default function AppStorePage() {
     <div className="boosend-appstore-page">
       {/* Header */}
       <div style={{ marginBottom: "24px" }}>
-        <h1 style={{ fontSize: "26px", fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: "-0.5px" }}>
+        <h1
+          style={{
+            fontSize: "26px",
+            fontWeight: 700,
+            color: "#0f172a",
+            margin: 0,
+            letterSpacing: "-0.5px",
+          }}
+        >
           App Store
         </h1>
         <p style={{ fontSize: "14px", color: "#64748b", marginTop: "4px" }}>
-          Tools that sit next to your conversations. Add them to your sidebar menu.
+          Tools that sit next to your conversations. Add them to your sidebar
+          menu.
         </p>
       </div>
 
@@ -571,9 +604,12 @@ export default function AppStorePage() {
       {/* 3-Column Visual Grid matching Screenshot 11 */}
       <div className="boosend-appstore-grid">
         {STORE_APPS.map((app) => {
-          const isPinned = pinned.includes(app.id);
+          const pinId = app.id === "smart-links" ? "deeplinks" : app.id;
+          const isPinned = pinned.includes(pinId);
           const isComingSoon = app.status === "coming_soon";
-          const openUrl = app.section ? `/w/${workspace.id}/${app.section}` : null;
+          const openUrl = app.section
+            ? `/w/${workspace.id}/${app.section}`
+            : null;
 
           return (
             <div key={app.id} className="boosend-appstore-card">
@@ -598,11 +634,17 @@ export default function AppStorePage() {
                   ) : (
                     <>
                       {openUrl ? (
-                        <Link href={openUrl} className="boosend-appstore-btn-open">
+                        <Link
+                          href={openUrl}
+                          className="boosend-appstore-btn-open"
+                        >
                           <ArrowUpRight size={14} /> Open
                         </Link>
                       ) : (
-                        <button type="button" className="boosend-appstore-btn-open">
+                        <button
+                          type="button"
+                          className="boosend-appstore-btn-open"
+                        >
                           <ArrowUpRight size={14} /> Open
                         </button>
                       )}
@@ -611,7 +653,7 @@ export default function AppStorePage() {
                         type="button"
                         className="boosend-appstore-btn-pin"
                         disabled={feedback.busy}
-                        onClick={() => togglePin(app.id, app.name)}
+                        onClick={() => togglePin(pinId, app.name)}
                       >
                         {isPinned ? (
                           <>

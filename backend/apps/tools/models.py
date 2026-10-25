@@ -1,5 +1,6 @@
 from django.db import models
 
+from apps.tenants.crypto import EncryptedTextField
 from apps.tenants.models import TenantModel
 
 
@@ -13,10 +14,71 @@ class DeepLink(TenantModel):
     code = models.SlugField(max_length=40, unique=True)
     clicks = models.PositiveIntegerField(default=0)
     active = models.BooleanField(default=True)
+    campaign = models.CharField(max_length=100, blank=True)
+    source = models.CharField(max_length=100, blank=True)
+    medium = models.CharField(max_length=100, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at", "-id"]
+
+
+class LinkClickDay(TenantModel):
+    link = models.ForeignKey(DeepLink, on_delete=models.CASCADE)
+    day = models.DateField()
+    clicks = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["link", "day"], name="one_link_click_day")]
+
+
+class LeadForm(TenantModel):
+    title = models.CharField(max_length=120)
+    slug = models.SlugField(max_length=80, unique=True)
+    description = models.CharField(max_length=1000, blank=True)
+    fields = models.JSONField(default=list)
+    consent_text = models.CharField(
+        max_length=500, default="I agree to be contacted about my enquiry."
+    )
+    success_text = models.CharField(
+        max_length=500, default="Thank you. Your response has been received."
+    )
+    published = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+
+class FormSubmission(TenantModel):
+    form = models.ForeignKey(LeadForm, on_delete=models.CASCADE)
+    lead = models.ForeignKey("crm.Lead", null=True, on_delete=models.SET_NULL)
+    link = models.ForeignKey(DeepLink, null=True, on_delete=models.SET_NULL)
+    request_id = models.UUIDField()
+    answers = EncryptedTextField()
+    consent_text = models.CharField(max_length=500)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["form", "request_id"], name="unique_form_submission")
+        ]
+        ordering = ["-created_at", "-id"]
+
+
+class CreatorKit(TenantModel):
+    slug = models.SlugField(max_length=80, unique=True)
+    name = models.CharField(max_length=120)
+    headline = models.CharField(max_length=200, blank=True)
+    bio = models.CharField(max_length=2000, blank=True)
+    contact_email = models.EmailField(blank=True)
+    links = models.JSONField(default=list)
+    statistics = models.JSONField(default=list)
+    services = models.JSONField(default=list)
+    published = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["workspace"], name="one_creator_kit")]
 
 
 class ShieldRule(TenantModel):

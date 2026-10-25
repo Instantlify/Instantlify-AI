@@ -31,6 +31,12 @@ class Credentials:
 
 
 class ChannelAdapter(ABC):
+    def following_status(self, sender_id):
+        raise IntegrationUnavailable("This channel cannot verify followers")
+
+    def send_media(self, *, recipient_id, media_url, media_type, idempotency_key):
+        raise IntegrationUnavailable("This channel cannot send media")
+
     @abstractmethod
     def send_message(self, *, recipient_id: str, text: str, idempotency_key: str) -> str: ...
 
@@ -56,6 +62,18 @@ class ChannelAdapter(ABC):
 
     def hide_comment(self, comment_id: str) -> None:
         raise IntegrationUnavailable("This channel cannot hide comments")
+
+    def recent_posts(self) -> list[dict]:
+        raise IntegrationUnavailable("This channel cannot list posts")
+
+    def owns_post(self, post_id: str) -> bool:
+        raise IntegrationUnavailable("This channel cannot verify posts")
+
+    def next_post(self, since) -> str | None:
+        raise IntegrationUnavailable("This channel cannot find the next published post")
+
+    def reply_comment(self, *, comment_id: str, text: str, idempotency_key: str) -> str:
+        raise IntegrationUnavailable("This channel cannot reply to comments")
 
     def delete_comment(self, comment_id: str) -> None:
         raise IntegrationUnavailable("This channel cannot delete comments")
@@ -97,6 +115,14 @@ class InstagramAdapter(ChannelAdapter):
 
 
 class FakeChannelAdapter(InstagramAdapter):
+    def following_status(self, sender_id):
+        return True  # Explicit test connections simulate a successful follow.
+
+    def send_media(self, *, recipient_id, media_url, media_type, idempotency_key):
+        return self.send_message(
+            recipient_id=recipient_id, text=media_url, idempotency_key=idempotency_key
+        )
+
     """In-memory test double; explicitly selected, never a live fallback."""
 
     def __init__(self):
@@ -123,6 +149,22 @@ class FakeChannelAdapter(InstagramAdapter):
 
     def hide_comment(self, comment_id):
         self.moderated.append(("hide", comment_id))
+
+    def recent_posts(self):
+        return [
+            {"id": f"test-post-{i}", "label": f"Test post {i}", "permalink": ""} for i in (1, 2)
+        ]
+
+    def owns_post(self, post_id):
+        return post_id in {p["id"] for p in self.recent_posts()}
+
+    def next_post(self, since):
+        return None
+
+    def reply_comment(self, *, comment_id, text, idempotency_key):
+        return self.send_message(
+            recipient_id=comment_id, text=text, idempotency_key=idempotency_key
+        )
 
     def delete_comment(self, comment_id):
         self.moderated.append(("delete", comment_id))

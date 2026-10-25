@@ -337,6 +337,17 @@ def test_embeddings_are_debited_and_platform_key_is_used(workspace, config, sett
     record = UsageRecord.objects.for_workspace(workspace).get(key=f"document:{document.id}")
     assert (record.cost, record.billing_mode) == (Decimal("0.05"), "platform_credits")
     assert credits.balance_for(workspace.pk).balance_cents == Decimal("95")
+    document.source = "We now open at ten."
+    document.source_revision = 1
+    document.save()
+    with patch("apps.agents.rag.embedder_for", return_value=provider):
+        ingest(document, config)
+    assert (
+        UsageRecord.objects.for_workspace(workspace)
+        .filter(key=f"document:{document.id}:revision:1")
+        .exists()
+    )
+    assert credits.balance_for(workspace.pk).balance_cents == Decimal("90")
 
 
 # --- transcription

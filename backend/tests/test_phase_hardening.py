@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient
 
 from apps.billing import tasks as billing_tasks
@@ -86,9 +87,12 @@ def test_one_private_reply_per_comment(channel):
     conversation = message.conversation
     with patch("apps.crm.services.notify"):
         first = queue_reply(conversation, "psst", "p1", private_reply_id="c1")
+        with pytest.raises(ValidationError):
+            queue_reply(conversation, "too early", "early", private_reply_id="c1")
+        inbound(channel, kind="dm")
         second = queue_reply(conversation, "more", "p2", private_reply_id="c1")
     assert first.recipient_id == "c1"
-    # The allowance is spent, so the flow continues in the DM thread.
+    # After a private response, the spent allowance continues in the DM thread.
     assert second.recipient_id == conversation.identity.external_id
     assert dispatch(first).status == "sent"
     # A sibling that bypassed queue_reply is stopped at send time.
@@ -112,8 +116,6 @@ def test_one_private_reply_per_comment(channel):
     conversation.last_inbound_at = timezone.now() - timedelta(hours=25)
     conversation.save()
     with patch("apps.crm.services.notify"):
-        from rest_framework.exceptions import ValidationError
-
         with pytest.raises(ValidationError):
             queue_reply(conversation, "late", "p4", private_reply_id="c1")
 

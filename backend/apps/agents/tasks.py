@@ -133,6 +133,12 @@ def ingest_document(workspace_id, document_id):
             document.error_code = "agent_not_configured"
             document.save()
             return
+        from apps.billing.gating import guard
+
+        if not guard(workspace_id, "ai_agent_enabled"):
+            document.status, document.error_code = "failed", "plan_limit"
+            document.save()
+            return
         document.status = "processing"
         document.save()
     try:

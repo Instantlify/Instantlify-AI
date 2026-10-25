@@ -2,7 +2,7 @@ import json
 import re
 import secrets
 from datetime import timedelta
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from django.db import IntegrityError, transaction
 from django.db.models import F
@@ -21,7 +21,7 @@ from apps.tenants.models import Workspace
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
 
-from .models import DeepLink, ShieldEvent, ShieldRule, WebChatSettings
+from .models import DeepLink, LinkClickDay, ShieldEvent, ShieldRule, WebChatSettings
 
 PLATFORMS = {"instagram", "whatsapp", "youtube", "telegram", "custom"}
 ACTIONS = {"hide", "delete", "flag"}
@@ -35,7 +35,19 @@ HOSTNAME = re.compile(r"^[a-z0-9.-]{1,253}$")
 class DeepLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeepLink
-        fields = ["id", "title", "platform", "target", "code", "clicks", "active", "created_at"]
+        fields = [
+            "id",
+            "title",
+            "platform",
+            "target",
+            "code",
+            "clicks",
+            "active",
+            "created_at",
+            "campaign",
+            "source",
+            "medium",
+        ]
         read_only_fields = ["id", "clicks", "created_at"]
 
     def validate_platform(self, value):
@@ -103,8 +115,58 @@ class DeepLinkRedirect(APIView):
 
     def get(self, request, code):
         link = get_object_or_404(DeepLink.all_objects, code=code.lower(), active=True)
-        DeepLink.all_objects.filter(pk=link.pk).update(clicks=F("clicks") + 1)
-        return HttpResponseRedirect(link.target)
+        if request.method != "HEAD":
+            with transaction.atomic():
+                DeepLink.all_objects.filter(pk=link.pk).update(clicks=F("clicks") + 1)
+                day, _ = LinkClickDay.objects.for_workspace(link.workspace_id).get_or_create(
+                    workspace_id=link.workspace_id, link=link, day=timezone.localdate()
+                )
+                LinkClickDay.objects.for_workspace(link.workspace_id).filter(pk=day.pk).update(
+                    clicks=F("clicks") + 1
+                )
+        target = urlsplit(link.target)
+        tags = {
+            key: value
+            for key, value in {
+                "utm_campaign": link.campaign,
+                "utm_source": link.source,
+                "utm_medium": link.medium,
+            }.items()
+            if value
+        }
+        query = [
+            (key, value)
+            for key, value in parse_qsl(target.query, keep_blank_values=True)
+            if key not in tags
+        ]
+        response = HttpResponseRedirect(
+            urlunsplit(target._replace(query=urlencode([*query, *tags.items()])))
+        )
+        response["Cache-Control"] = "no-store"
+        response["Referrer-Policy"] = "no-referrer"
+        return response
+
+
+class LinkStatsView(APIView):
+    def get(self, request, workspace_id, pk):
+        from .models import FormSubmission
+
+        workspace_membership(request, workspace_id)
+        item = get_object_or_404(DeepLink.objects.for_workspace(workspace_id), pk=pk)
+        return Response(
+            {
+                "clicks": item.clicks,
+                "form_submissions": FormSubmission.objects.for_workspace(workspace_id)
+                .filter(link=item)
+                .count(),
+                "daily": list(
+                    LinkClickDay.objects.for_workspace(workspace_id)
+                    .filter(link=item)
+                    .order_by("-day")
+                    .values("day", "clicks")[:90]
+                ),
+            }
+        )
 
 
 # Comment shield

@@ -510,6 +510,15 @@ class FakeLLMProvider:
                 '{"sentiment":"neutral","urgency":"normal","intent":"question"}', [], 5, 5
             )
         first = messages[0] if messages and isinstance(messages[0], dict) else {}
+        instruction = str(first.get("content", ""))
+        if instruction.startswith("CUSTOM_CONTACT_SEGMENTS:"):
+            return Completion("[]", [], 5, 5)
+        # Explicit test workspaces return unknown facts and a fixed false decision.
+        if instruction.startswith("Extract only these fields as a JSON object: "):
+            fields, _ = json.JSONDecoder().raw_decode(instruction.split(": ", 1)[1])
+            return Completion(json.dumps(dict.fromkeys(fields)), [], 5, 5)
+        if instruction.startswith("Evaluate the user condition. Return only"):
+            return Completion('{"result":false}', [], 5, 5)
         if str(first.get("content", "")).startswith("You are the Nemio flow designer"):
             return Completion(FAKE_FLOW, [], 40, 120)
         return Completion(

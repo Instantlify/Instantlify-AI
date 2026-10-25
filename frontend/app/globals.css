@@ -1187,6 +1187,9 @@ td {
   border-radius: 12px;
   padding: 34px;
   position: relative;
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .modal h2 {
   font-size: 22px;

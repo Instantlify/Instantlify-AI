@@ -1231,7 +1231,21 @@ function MessageBubble({ message }: { message: Message }) {
           </span>
         )}
         <span className="bubble-text">
-          {message.text || (message.kind === "voice" ? "🎤 Voice note" : "…")}
+          {message.kind === "public_reply" && (
+            <small className="bubble-badge">Public comment reply</small>
+          )}
+          {message.media_url ? (
+            <a href={message.media_url} target="_blank" rel="noreferrer">
+              Open{" "}
+              {message.kind === "image"
+                ? "photo"
+                : message.kind === "video"
+                  ? "video"
+                  : "audio"}
+            </a>
+          ) : (
+            message.text || (message.kind === "voice" ? "Voice note" : "…")
+          )}
         </span>
       </div>
       <time className="boosend-msg-time">

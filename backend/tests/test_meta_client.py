@@ -370,6 +370,11 @@ def test_messages_report_their_sender_and_threads_their_events(client, user, wor
     run_flows(workspace)
     conversation = Conversation.objects.for_workspace(workspace).get()
     prefix = f"/api/workspaces/{workspace.pk}/conversations/{conversation.pk}"
+    blocked = client.post(
+        f"{prefix}/messages/", {"text": "Too early"}, format="json", HTTP_IDEMPOTENCY_KEY="early"
+    )
+    assert blocked.status_code == 400
+    inbound(channel, "Yes, please", kind="dm")
     sent = client.post(
         f"{prefix}/messages/", {"text": "Human here"}, format="json", HTTP_IDEMPOTENCY_KEY="k1"
     )
@@ -378,6 +383,7 @@ def test_messages_report_their_sender_and_threads_their_events(client, user, wor
     assert [(row["sender"], row["author_name"]) for row in rows] == [
         ("customer", ""),
         ("automation", ""),
+        ("customer", ""),
         ("human", user.email),
     ]
     events = client.get(f"{prefix}/events/").json()

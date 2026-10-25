@@ -9,6 +9,291 @@
   font-size: 14px;
   overflow: clip;
 }
+
+/* The homepage gives a short overview; the complete tour lives at /features. */
+.nm-home {
+  background: #fff;
+  font-family: var(--font-body), sans-serif;
+}
+.nm-home h1,
+.nm-home h2,
+.nm-home h3 {
+  font-family: var(--font-display), sans-serif;
+}
+.nm-home .nm-announcement {
+  display: none;
+}
+.nm-home .nm-nav {
+  max-width: 1280px;
+  background: #fffffff2;
+  padding: 20px 5%;
+}
+.nm-home .nm-hero {
+  max-width: 1280px;
+  padding: 70px 5% 64px;
+  gap: 64px;
+}
+.nm-home .nm-hero h1 {
+  font-size: clamp(42px, 4.8vw, 67px);
+  font-weight: 600;
+  letter-spacing: -3.6px;
+  line-height: 1.1;
+}
+.nm-home .nm-hero h1 em {
+  font-family: inherit;
+  font-style: normal;
+  font-weight: 600;
+  color: #66734d;
+}
+.nm-home .nm-hero-copy > p {
+  font-size: 16px;
+  line-height: 1.7;
+  max-width: 410px;
+}
+.nm-home .nm-hero-foot,
+.nm-home .nm-orbit,
+.nm-home .nm-float {
+  display: none;
+}
+.nm-home .nm-hero-scene {
+  transform: none;
+  background: #eff1e9;
+  background-image: none;
+  padding: 24px;
+  border-radius: 28px;
+}
+.nm-home .nm-hero-scene .nm-demo {
+  transform: none;
+  border-radius: 18px;
+  box-shadow: 0 16px 40px #2933210d;
+}
+.nm-home .nm-scene-caption {
+  font-size: 9px;
+  letter-spacing: 1.4px;
+}
+.nm-preview-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  padding-top: 18px;
+}
+.nm-preview-tabs button {
+  border: 1px solid #d9dfcf;
+  background: transparent;
+  border-radius: 30px;
+  padding: 8px 11px;
+  font-size: 10px;
+  color: #4b5542;
+  cursor: pointer;
+}
+.nm-preview-tabs button[aria-pressed="true"] {
+  background: #52634d;
+  color: #fff;
+  border-color: #52634d;
+}
+.nm-home .nm-channels {
+  max-width: 1152px;
+  padding: 26px 0;
+  margin: 0 auto;
+  border-top: 1px solid #e5e8df;
+  border-bottom: 1px solid #e5e8df;
+}
+.nm-home .nm-section {
+  max-width: 1280px;
+  padding: 64px 5%;
+}
+.nm-home .nm-section-head h2 {
+  font-size: clamp(30px, 3vw, 42px);
+  letter-spacing: -1.8px;
+  line-height: 1.15;
+}
+.nm-home-benefits .nm-section-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  margin-bottom: 28px;
+}
+.nm-home-benefits .nm-section-head .nm-eyebrow {
+  grid-column: 1 / -1;
+}
+.nm-home-benefit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.nm-home-benefit-grid article {
+  padding: 28px;
+  border: 1px solid #e5e8df;
+  border-radius: 20px;
+  background: #fafbf7;
+}
+.nm-home-benefit-icon {
+  display: flex;
+  margin-bottom: 30px;
+  color: #52634d;
+}
+.nm-home-benefit-grid h3 {
+  font-size: 19px;
+  letter-spacing: -0.6px;
+  margin-bottom: 12px;
+}
+.nm-home-benefit-grid p {
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+.nm-home-benefit-grid a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.nm-home .nm-home-integrations {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  padding-top: 24px;
+}
+.nm-home-integrations h2 {
+  font-size: 34px;
+  letter-spacing: -1.4px;
+  margin: 12px 0;
+}
+.nm-home-integrations p {
+  max-width: 320px;
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+.nm-home .nm-home-logos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.nm-home-logos a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 8px;
+  border: 1px solid #e5e8df;
+  border-radius: 16px;
+  font-size: 11px;
+}
+.nm-home-logos a:hover {
+  background: #f4f6ee;
+}
+.nm-home .nm-pricing {
+  background: #f5f6f0;
+  max-width: none;
+}
+.nm-home .nm-pricing > * {
+  max-width: 1152px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.nm-home .nm-faq {
+  gap: 60px;
+}
+.nm-home .nm-closing {
+  padding: 44px 5%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 1152px;
+  margin: 0 auto 48px;
+  border-radius: 24px;
+  background: #e9eddf;
+}
+.nm-home .nm-closing .nm-eyebrow,
+.nm-home .nm-closing > p,
+.nm-home .nm-closing-star {
+  display: none;
+}
+.nm-home .nm-closing h2 {
+  font-size: 34px;
+  letter-spacing: -1.5px;
+  margin: 0;
+}
+.nm-home .nm-footer {
+  padding-top: 30px;
+  padding-bottom: 24px;
+}
+@media (max-width: 900px) {
+  .nm-home .nm-hero {
+    gap: 28px;
+    padding-top: 40px;
+  }
+  .nm-home .nm-hero h1 {
+    font-size: 44px;
+    letter-spacing: -2px;
+  }
+  .nm-home .nm-channels {
+    margin-inline: 5%;
+  }
+  .nm-home-benefit-grid article {
+    padding: 20px;
+  }
+  .nm-home .nm-home-integrations {
+    gap: 28px;
+  }
+}
+@media (max-width: 680px) {
+  .nm-home .nm-hero {
+    grid-template-columns: 1fr;
+    padding: 38px 6% 32px;
+  }
+  .nm-home .nm-hero h1 {
+    font-size: 43px;
+    letter-spacing: -2.2px;
+    margin-top: 18px;
+  }
+  .nm-home .nm-hero-copy > p {
+    font-size: 15px;
+  }
+  .nm-home .nm-hero-scene {
+    padding: 16px;
+    border-radius: 22px;
+  }
+  .nm-home .nm-section {
+    padding: 42px 6%;
+  }
+  .nm-home-benefits .nm-section-head {
+    display: block;
+  }
+  .nm-home-benefits .nm-section-head .nm-text-link {
+    margin-top: 16px;
+  }
+  .nm-home-benefit-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .nm-home-benefit-grid article {
+    padding: 22px;
+  }
+  .nm-home-benefit-icon {
+    margin-bottom: 16px;
+  }
+  .nm-home-benefit-grid p {
+    margin-bottom: 16px;
+  }
+  .nm-home .nm-home-integrations {
+    grid-template-columns: 1fr;
+  }
+  .nm-home .nm-closing {
+    margin: 0 6% 32px;
+    padding: 28px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .nm-home .nm-closing h2 {
+    font-size: 29px;
+  }
+}
 .nm-landing p {
   color: var(--nm-muted);
 }

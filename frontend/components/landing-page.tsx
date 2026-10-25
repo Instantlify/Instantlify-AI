@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -25,6 +25,8 @@ import {
   Headphones,
   Globe,
   CheckCircle2,
+  Pause,
+  Play,
 } from "lucide-react";
 import { BrandIcon, type BrandName } from "@/lib/brand-icons";
 import { Brand } from "@/components/shell";
@@ -223,8 +225,8 @@ function Demo({
         <div>
           <strong>Jordan Davis</strong>
           <small>
-            <BrandIcon name={item.brand} size={12} /> {item.channel} ·
-            Example lead
+            <BrandIcon name={item.brand} size={12} /> {item.channel} · Example
+            lead
           </small>
         </div>
         <span className="nm-status">
@@ -233,12 +235,18 @@ function Demo({
       </div>
       <div className="nm-chat" aria-live="polite">
         <div className="nm-time">ILLUSTRATIVE DEMO · NO MESSAGES ARE SENT</div>
-        <div className="nm-bubble incoming">{item.incoming}</div>
+        <div className="nm-bubble incoming" key={`${scenario}-incoming`}>
+          {item.incoming}
+        </div>
         <div className="nm-agent">
           <Sparkles size={12} /> Nemio assistant
         </div>
-        <div className="nm-bubble outgoing">{item.reply}</div>
-        {step >= 1 && <div className="nm-bubble incoming">{item.answer}</div>}
+        <div className="nm-bubble outgoing" key={`${scenario}-outgoing`}>
+          {item.reply}
+        </div>
+        {step >= 1 && (
+          <div className="nm-bubble incoming nm-new-reply">{item.answer}</div>
+        )}
         {step >= 2 && (
           <div className="nm-result">
             <CheckCircle2 size={19} />
@@ -261,20 +269,171 @@ function Demo({
   );
 }
 
-export function LandingPage({ helpLinks }: { helpLinks: ReactNode }) {
+function BenefitVisual({ kind }: { kind: string }) {
+  return (
+    <div className={`nm-benefit-visual nm-visual-${kind}`} aria-hidden="true">
+      {kind === "flow-builder" ? (
+        <>
+          <div className="nm-mini-node">
+            <BrandIcon name="instagram" size={17} />
+            <span>
+              Someone comments <b>GUIDE</b>
+            </span>
+            <span className="nm-mini-pulse" />
+          </div>
+          <div className="nm-mini-wire">
+            <span />
+          </div>
+          <div className="nm-mini-node olive">
+            <Zap size={17} />
+            <span>Send a personal reply</span>
+            <Check size={14} />
+          </div>
+          <div className="nm-mini-wire">
+            <span />
+          </div>
+          <div className="nm-mini-tag">
+            <CheckCircle2 size={12} /> A conversation begins
+          </div>
+        </>
+      ) : kind === "ai-agents" ? (
+        <>
+          <div className="nm-mini-sources">
+            <span>
+              <Globe size={13} /> Your website
+            </span>
+            <span>
+              <LayoutTemplate size={13} /> Your knowledge
+            </span>
+          </div>
+          <div className="nm-mini-assistant">
+            <span className="nm-mini-ai">
+              <Sparkles size={20} />
+            </span>
+            <div>
+              <b>Sounds like you.</b>
+              <small>Knows your business.</small>
+            </div>
+            <div className="nm-mini-wave">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <i key={n} />
+              ))}
+            </div>
+          </div>
+          <div className="nm-mini-answer">
+            <span />
+            <span />
+            <span />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="nm-mini-inbox-title">
+            <span className="nm-mini-pulse" /> One inbox. Every conversation.
+          </div>
+          {(
+            [
+              ["instagram", "New enquiry", "Assigned to your team"],
+              ["whatsapp", "Workshop details", "AI assistant replied"],
+              ["messenger", "A useful next step", "Ready for a follow-up"],
+            ] as [BrandName, string, string][]
+          ).map(([brand, title, detail]) => (
+            <div className="nm-mini-thread" key={brand}>
+              <BrandIcon name={brand} size={18} />
+              <div>
+                <b>{title}</b>
+                <small>{detail}</small>
+              </div>
+              <Check size={12} />
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+export function LandingPage({
+  helpLinks,
+  detailed = false,
+}: {
+  helpLinks: ReactNode;
+  detailed?: boolean;
+}) {
   const [mobile, setMobile] = useState(false);
   const [scenario, setScenario] = useState(0);
   const [step, setStep] = useState(0);
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [audience, setAudience] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const [playing, setPlaying] = useState(true);
+  const [motionAllowed, setMotionAllowed] = useState(false);
+  const [pageVisible, setPageVisible] = useState(true);
+
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setMotionAllowed(!preference.matches);
+    const updateVisibility = () => setPageVisible(!document.hidden);
+    updatePreference();
+    updateVisibility();
+    preference.addEventListener("change", updatePreference);
+    document.addEventListener("visibilitychange", updateVisibility);
+    const root = rootRef.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("nm-in-view");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12 },
+    );
+    root
+      ?.querySelectorAll(
+        ".nm-section-head, .nm-home-benefit-grid article, .nm-home-integrations > div, .nm-pricing .plan-card, .nm-faq details, .nm-closing",
+      )
+      .forEach((element) => {
+        element.classList.add("nm-reveal");
+        observer.observe(element);
+      });
+    return () => {
+      observer.disconnect();
+      preference.removeEventListener("change", updatePreference);
+      document.removeEventListener("visibilitychange", updateVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (detailed || !playing || !motionAllowed || !pageVisible) return;
+    const timer = window.setTimeout(
+      () => {
+        if (step < 2) setStep(step + 1);
+        else {
+          setStep(0);
+          setScenario((current) => (current + 1) % scenarios.length);
+        }
+      },
+      step === 2 ? 6000 : 3600,
+    );
+    return () => window.clearTimeout(timer);
+  }, [detailed, playing, motionAllowed, pageVisible, scenario, step]);
   const filtered = integrations.filter(
     ([name, group]) =>
       (category === "All" || group === category) &&
       name.toLowerCase().includes(search.toLowerCase()),
   );
   return (
-    <div className="nm-landing">
+    <div
+      ref={rootRef}
+      data-motion={
+        playing && motionAllowed && pageVisible ? "running" : "paused"
+      }
+      className={`nm-landing ${detailed ? "nm-product-tour" : "nm-home"}`}
+    >
       <TrackVisit page="/" />
       <a className="skip-link" href="#main">
         Skip to content
@@ -393,7 +552,7 @@ export function LandingPage({ helpLinks }: { helpLinks: ReactNode }) {
                 <div key={title}>
                   <strong>{title}</strong>
                   {links.map(([label, id, description]) => (
-                    <a href={`#${id}`} key={label}>
+                    <a href={`/features#${id}`} key={label}>
                       <span>
                         {label}
                         <small>{description}</small>
@@ -441,13 +600,22 @@ export function LandingPage({ helpLinks }: { helpLinks: ReactNode }) {
             <h1>
               Turn enquiries into
               <br />
-              <em>your next customer.</em>
+              <em>
+                your next customer.
+                {!detailed && (
+                  <svg
+                    className="nm-hero-underline"
+                    viewBox="0 0 470 20"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 15Q180 -4 467 9" />
+                  </svg>
+                )}
+              </em>
             </h1>
             <p>
-              Turn comments, story replies and messages into sales
-              conversations. Build visual automations, qualify leads with AI,
-              send voice replies, book appointments and share payment links—all
-              from one workspace.
+              Reply faster. Capture the right leads. Keep every conversation
+              moving—with automations, AI and your team in one place.
             </p>
             <div className="nm-hero-actions">
               <Link className="nm-button" href="/auth?mode=signup">
@@ -469,15 +637,93 @@ export function LandingPage({ helpLinks }: { helpLinks: ReactNode }) {
               FOR CREATORS, SERVICE BUSINESSES & AGENCIES
             </div>
           </div>
-          <div className="nm-hero-scene">
+          <div
+            ref={sceneRef}
+            className="nm-hero-scene"
+            id={detailed ? undefined : "interactive-demo"}
+            onPointerMove={(event) => {
+              if (!motionAllowed || !playing || event.pointerType !== "mouse")
+                return;
+              const bounds = event.currentTarget.getBoundingClientRect();
+              sceneRef.current?.style.setProperty(
+                "--nm-tilt-x",
+                `${((event.clientY - bounds.top) / bounds.height - 0.5) * -4}deg`,
+              );
+              sceneRef.current?.style.setProperty(
+                "--nm-tilt-y",
+                `${((event.clientX - bounds.left) / bounds.width - 0.5) * 5}deg`,
+              );
+            }}
+            onPointerLeave={() => {
+              sceneRef.current?.style.setProperty("--nm-tilt-x", "0deg");
+              sceneRef.current?.style.setProperty("--nm-tilt-y", "0deg");
+            }}
+          >
+            {!detailed && (
+              <div className="nm-scene-decor" aria-hidden="true">
+                <span className="nm-scene-ring" />
+                <span className="nm-orbit-brand instagram">
+                  <BrandIcon name="instagram" size={24} />
+                </span>
+                <span className="nm-orbit-brand whatsapp">
+                  <BrandIcon name="whatsapp" size={24} />
+                </span>
+                <span className="nm-scene-spark">
+                  <Sparkles size={23} />
+                </span>
+              </div>
+            )}
             <span className="nm-scene-caption">
               A FIRST HELLO, MEET A CLEAR NEXT STEP.
             </span>
             <Demo
               scenario={scenario}
               step={step}
-              onStep={() => setStep((step + 1) % 3)}
+              onStep={() => {
+                setPlaying(false);
+                setStep((step + 1) % 3);
+              }}
             />
+            {!detailed && (
+              <div
+                className="nm-preview-tabs"
+                role="group"
+                aria-label="Conversation examples"
+              >
+                {scenarios.map((item, index) => (
+                  <button
+                    key={item.name}
+                    aria-pressed={scenario === index}
+                    onClick={() => {
+                      setPlaying(false);
+                      setScenario(index);
+                      setStep(0);
+                    }}
+                  >
+                    {item.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            {!detailed && (
+              <button
+                className="nm-motion-control"
+                disabled={!motionAllowed}
+                onClick={() => setPlaying((current) => !current)}
+                aria-label={playing ? "Pause animations" : "Play animations"}
+              >
+                {playing && motionAllowed ? (
+                  <Pause size={11} />
+                ) : (
+                  <Play size={11} />
+                )}
+                {!motionAllowed
+                  ? "Reduced motion"
+                  : playing
+                    ? "Pause motion"
+                    : "Play motion"}
+              </button>
+            )}
             <div className="nm-float">
               <span>
                 <Zap size={19} />
@@ -512,523 +758,621 @@ export function LandingPage({ helpLinks }: { helpLinks: ReactNode }) {
             <BrandIcon name="telegram" size={21} /> Telegram
           </div>
         </section>
-        <section className="nm-section" id="interactive-demo">
-          <div className="nm-section-head">
-            <span className="nm-eyebrow">
-              01 / A CONVERSATION THAT GOES SOMEWHERE
-            </span>
-            <h2>
-              From a small interaction.
-              <br />
-              To a real opportunity.
-            </h2>
-            <p>
-              Explore how a workflow responds, gathers context and gives your
-              customer a next step. Click through an example.
-            </p>
-          </div>
-          <div className="nm-demo-layout">
-            <div>
-              <div
-                className="nm-scenario-list"
-                role="group"
-                aria-label="Conversation scenarios"
-              >
-                {scenarios.map((item, index) => (
-                  <button
-                    key={item.name}
-                    aria-pressed={scenario === index}
-                    className={scenario === index ? "active" : ""}
-                    onClick={() => {
-                      setScenario(index);
-                      setStep(0);
-                    }}
-                  >
-                    <span className="nm-number">0{index + 1}</span>
-                    <span>
-                      <strong>{item.name}</strong>
-                      <small>{item.trigger}</small>
-                    </span>
-                    <ArrowUpRight size={19} />
-                  </button>
-                ))}
-              </div>
-              <div className="nm-demo-note">
-                <ShieldCheck size={18} />
+        {detailed ? (
+          <>
+            <section className="nm-section" id="interactive-demo">
+              <div className="nm-section-head">
+                <span className="nm-eyebrow">
+                  01 / A CONVERSATION THAT GOES SOMEWHERE
+                </span>
+                <h2>
+                  From a small interaction.
+                  <br />
+                  To a real opportunity.
+                </h2>
                 <p>
-                  Try the idea here. Configure the real workflow inside your
-                  workspace before turning on replies.
+                  Explore how a workflow responds, gathers context and gives
+                  your customer a next step. Click through an example.
                 </p>
               </div>
-            </div>
-            <Demo
-              scenario={scenario}
-              step={step}
-              onStep={() => setStep((step + 1) % 3)}
-            />
-          </div>
-        </section>
-        <section className="nm-platform" id="features">
-          <div className="nm-section-head">
-            <span className="nm-eyebrow">
-              02 / CONNECT THE WHOLE CUSTOMER JOURNEY
-            </span>
-            <h2>
-              A lot happens after “hello.”
-              <br />
-              Keep it all in the loop.
-            </h2>
-            <p>
-              Your assistant starts the conversation. Your workspace keeps the
-              context. Your team decides what happens next.
-            </p>
-          </div>
-          <div className="nm-feature-grid">
-            {capabilities.map(({ icon: Icon, title, detail, tags }, index) => (
-              <article key={title}>
-                <div className="nm-feature-top">
-                  <Icon size={24} />
-                  <span>0{index + 1}</span>
+              <div className="nm-demo-layout">
+                <div>
+                  <div
+                    className="nm-scenario-list"
+                    role="group"
+                    aria-label="Conversation scenarios"
+                  >
+                    {scenarios.map((item, index) => (
+                      <button
+                        key={item.name}
+                        aria-pressed={scenario === index}
+                        className={scenario === index ? "active" : ""}
+                        onClick={() => {
+                          setScenario(index);
+                          setStep(0);
+                        }}
+                      >
+                        <span className="nm-number">0{index + 1}</span>
+                        <span>
+                          <strong>{item.name}</strong>
+                          <small>{item.trigger}</small>
+                        </span>
+                        <ArrowUpRight size={19} />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="nm-demo-note">
+                    <ShieldCheck size={18} />
+                    <p>
+                      Try the idea here. Configure the real workflow inside your
+                      workspace before turning on replies.
+                    </p>
+                  </div>
                 </div>
-                <h3>{title}</h3>
-                <p>{detail}</p>
-                <small>{tags}</small>
-              </article>
-            ))}
-          </div>
-          <div className="nm-flow">
-            <div>
-              <MessageCircle />
-              <span>
-                Listen<small>Comment, story or message</small>
-              </span>
-            </div>
-            <ArrowRight />
-            <div>
-              <Sparkles />
-              <span>
-                Understand<small>Intent, context and knowledge</small>
-              </span>
-            </div>
-            <ArrowRight />
-            <div>
-              <GitBranch />
-              <span>
-                Take action<small>Reply, tag, book or hand off</small>
-              </span>
-            </div>
-            <ArrowRight />
-            <div>
-              <BarChart3 />
-              <span>
-                Learn<small>Review your funnel</small>
-              </span>
-            </div>
-          </div>
-        </section>
-        <ProductDepth />
-        <section className="nm-section" id="solutions">
-          <div className="nm-section-head">
-            <span className="nm-eyebrow">03 / BUILT AROUND YOUR WORK</span>
-            <h2>
-              Different businesses.
-              <br />
-              The same need to connect.
-            </h2>
-          </div>
-          <div
-            className="nm-audience-tabs"
-            role="group"
-            aria-label="Business type"
-          >
-            {["Creators", "Service businesses", "Agencies"].map(
-              (item, index) => (
-                <button
-                  key={item}
-                  aria-pressed={audience === index}
-                  className={audience === index ? "active" : ""}
-                  onClick={() => setAudience(index)}
-                >
-                  {item}
-                </button>
-              ),
-            )}
-          </div>
-          <div className="nm-solution-panel">
-            <div>
-              <span className="nm-eyebrow">YOUR WORKFLOW, YOUR WAY</span>
-              <h3>
-                {
-                  [
-                    "Give your audience somewhere to go.",
-                    "Spend more time with your customers.",
-                    "A workspace for every client relationship.",
-                  ][audience]
-                }
-              </h3>
-              <p>
-                {
-                  [
-                    "Turn engagement on your content into thoughtful conversations. Deliver a resource, learn what someone needs and guide them toward your offer.",
-                    "Answer common service questions, gather the details that matter and help customers arrange a consultation. Keep complex requests with your team.",
-                    "Create separate client workspaces, reuse automation templates and give the right people access. Add your branding and keep each client’s context together.",
-                  ][audience]
-                }
-              </p>
-              <Link className="nm-text-link" href="/auth?mode=signup">
-                Build your first workflow <ArrowRight size={16} />
-              </Link>
-            </div>
-            <div className="nm-workflow-card">
-              <span className="nm-mini-title">EXAMPLE WORKFLOW</span>
-              {[
-                ...[
-                  [
-                    "Comment on a post",
-                    "Deliver your resource",
-                    "Tag interests in the CRM",
-                    "Share the next offer",
-                  ],
-                  [
-                    "Receive a service enquiry",
-                    "Answer from your FAQs",
-                    "Check calendar availability",
-                    "Confirm with your customer",
-                  ],
-                  [
-                    "Create a client workspace",
-                    "Apply your branding",
-                    "Invite the right teammates",
-                    "Review the client’s funnel",
-                  ],
-                ][audience],
-              ].map((item, index) => (
-                <div key={item}>
-                  <span>{index === 3 ? <Check size={15} /> : index + 1}</span>
-                  {item}
-                  {index < 3 && <i />}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        <section className="nm-integrations nm-section" id="integrations">
-          <div className="nm-section-head">
-            <span className="nm-eyebrow">
-              04 / YOUR TOOLS, WORKING TOGETHER
-            </span>
-            <h2>
-              Keep your favourites.
-              <br />
-              Connect the dots.
-            </h2>
-            <p>
-              Connect the services your business runs on. Native providers and
-              API connectors are labelled so you can see how each fits.
-            </p>
-          </div>
-          <div className="nm-integration-controls">
-            <div
-              className="nm-filter"
-              role="group"
-              aria-label="Integration category"
-            >
-              {[
-                "All",
-                "Channels",
-                "Scheduling",
-                "CRM",
-                "Team & AI",
-                "Payments",
-                "Automation",
-              ].map((item) => (
-                <button
-                  key={item}
-                  aria-pressed={category === item}
-                  className={category === item ? "active" : ""}
-                  onClick={() => setCategory(item)}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-            <label className="nm-search">
-              <Search size={17} />
-              <input
-                type="search"
-                aria-label="Search integrations"
-                placeholder="Find your tool…"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-          </div>
-          <div className="nm-integration-grid" aria-live="polite">
-            {filtered.map(([name, group, monogram, type]) => (
-              <article key={name}>
-                <span
-                  className={`nm-app-icon tone-${group.split(" ")[0].toLowerCase()}${LOGOS[name] ? " has-logo" : ""}`}
-                >
-                  {LOGOS[name] ? (
-                    <BrandIcon name={LOGOS[name]} size={18} />
-                  ) : (
-                    monogram
-                  )}
+                <Demo
+                  scenario={scenario}
+                  step={step}
+                  onStep={() => setStep((step + 1) % 3)}
+                />
+              </div>
+            </section>
+            <section className="nm-platform" id="features">
+              <div className="nm-section-head">
+                <span className="nm-eyebrow">
+                  02 / CONNECT THE WHOLE CUSTOMER JOURNEY
                 </span>
+                <h2>
+                  A lot happens after “hello.”
+                  <br />
+                  Keep it all in the loop.
+                </h2>
+                <p>
+                  Your assistant starts the conversation. Your workspace keeps
+                  the context. Your team decides what happens next.
+                </p>
+              </div>
+              <div className="nm-feature-grid">
+                {capabilities.map(
+                  ({ icon: Icon, title, detail, tags }, index) => (
+                    <article key={title}>
+                      <div className="nm-feature-top">
+                        <Icon size={24} />
+                        <span>0{index + 1}</span>
+                      </div>
+                      <h3>{title}</h3>
+                      <p>{detail}</p>
+                      <small>{tags}</small>
+                    </article>
+                  ),
+                )}
+              </div>
+              <div className="nm-flow">
                 <div>
-                  <h3>{name}</h3>
-                  <small>{type}</small>
-                </div>
-                <ArrowUpRight size={15} />
-              </article>
-            ))}
-            {filtered.length === 0 && (
-              <p className="nm-empty">
-                No matching integrations. Try another search or category.
-              </p>
-            )}
-          </div>
-          <p className="nm-subnote">
-            Live connections require provider accounts and configuration. Plan
-            limits and provider fees may apply.
-          </p>
-        </section>
-        <section className="nm-toolkit nm-section" id="toolkit">
-          <div className="nm-section-head">
-            <span className="nm-eyebrow">
-              05 / MORE OF YOUR DAY, IN ONE PLACE
-            </span>
-            <h2>
-              The little tools.
-              <br />
-              That make a big difference.
-            </h2>
-            <p>
-              Give your conversations the support they need, without losing
-              sight of what is available today.
-            </p>
-          </div>
-          <div className="nm-tool-grid">
-            {[
-              {
-                icon: Link2,
-                title: "Link-in-bio pages",
-                copy: "Publish a page for your offers and track clicks back to your audience.",
-                status: "Available",
-                link: true,
-              },
-              {
-                icon: CalendarCheck,
-                title: "Content calendar",
-                copy: "Plan and schedule supported channel content alongside your sales work.",
-                status: "Available",
-                link: true,
-              },
-              {
-                icon: LayoutTemplate,
-                title: "Automation templates",
-                copy: "Start with a ready-made workflow and adapt it to your business.",
-                status: "Available",
-                link: true,
-              },
-              {
-                icon: CreditCard,
-                title: "Offers & payment links",
-                copy: "Manage offers and connect Stripe to help customers complete a purchase.",
-                status: "Available",
-                link: true,
-              },
-              {
-                icon: Globe,
-                title: "Public API & webhooks",
-                copy: "Connect custom workflows and send events to external tools.",
-                status: "Available",
-                link: true,
-              },
-              {
-                icon: Users,
-                title: "Client workspaces",
-                copy: "Separate client data, control team roles and configure branding.",
-                status: "Available",
-                link: true,
-              },
-              {
-                icon: ShieldCheck,
-                title: "Comment moderation",
-                copy: "Automatic abuse filtering and deletion are not yet available in Nemio.",
-                status: "Planned",
-                link: false,
-              },
-              {
-                icon: ArrowUpRight,
-                title: "Deep links",
-                copy: "Opening destinations outside in-app browsers is a future addition.",
-                status: "Planned",
-                link: false,
-              },
-              {
-                icon: BarChart3,
-                title: "Creator media kits",
-                copy: "A public media kit with synced audience statistics is a future addition.",
-                status: "Planned",
-                link: false,
-              },
-              {
-                icon: LayoutTemplate,
-                title: "Standalone form builder",
-                copy: "A dedicated embeddable lead-form builder is not yet available.",
-                status: "Planned",
-                link: false,
-              },
-              {
-                icon: Headphones,
-                title: "Website chat widget",
-                copy: "An embeddable support widget needs its own channel implementation.",
-                status: "Planned",
-                link: false,
-              },
-              {
-                icon: Mic,
-                title: "AI video messages",
-                copy: "Generated video DMs are not currently supported by the agent.",
-                status: "Planned",
-                link: false,
-              },
-            ].map(({ icon: Icon, title, copy, status, link }) => (
-              <article key={title}>
-                <div>
-                  <Icon size={23} />
-                  <span className={link ? "nm-available" : "nm-planned"}>
-                    {status}
+                  <MessageCircle />
+                  <span>
+                    Listen<small>Comment, story or message</small>
                   </span>
                 </div>
-                <h3>{title}</h3>
-                <p>{copy}</p>
-                {link && (
-                  <Link
-                    href="/auth?mode=signup"
-                    aria-label={`Explore ${title}`}
-                  >
-                    Explore in your workspace <ArrowRight size={14} />
-                  </Link>
+                <ArrowRight />
+                <div>
+                  <Sparkles />
+                  <span>
+                    Understand<small>Intent, context and knowledge</small>
+                  </span>
+                </div>
+                <ArrowRight />
+                <div>
+                  <GitBranch />
+                  <span>
+                    Take action<small>Reply, tag, book or hand off</small>
+                  </span>
+                </div>
+                <ArrowRight />
+                <div>
+                  <BarChart3 />
+                  <span>
+                    Learn<small>Review your funnel</small>
+                  </span>
+                </div>
+              </div>
+            </section>
+            <ProductDepth />
+            <section className="nm-section" id="solutions">
+              <div className="nm-section-head">
+                <span className="nm-eyebrow">03 / BUILT AROUND YOUR WORK</span>
+                <h2>
+                  Different businesses.
+                  <br />
+                  The same need to connect.
+                </h2>
+              </div>
+              <div
+                className="nm-audience-tabs"
+                role="group"
+                aria-label="Business type"
+              >
+                {["Creators", "Service businesses", "Agencies"].map(
+                  (item, index) => (
+                    <button
+                      key={item}
+                      aria-pressed={audience === index}
+                      className={audience === index ? "active" : ""}
+                      onClick={() => setAudience(index)}
+                    >
+                      {item}
+                    </button>
+                  ),
                 )}
-              </article>
-            ))}
-          </div>
-        </section>
-        <section className="nm-section nm-compare" id="compare">
-          <div className="nm-section-head">
-            <span className="nm-eyebrow">
-              06 / CHOOSE YOUR LEVEL OF CONTROL
-            </span>
-            <h2>
-              Start with a flow.
-              <br />
-              Add intelligence when you need it.
-            </h2>
-            <p>
-              Two ways to handle the conversation. One workspace for your team.
-            </p>
-          </div>
-          <div className="nm-table-scroll">
-            <table>
-              <caption>
-                Compare visual workflows and AI-assisted conversations in Nemio
-              </caption>
-              <thead>
-                <tr>
-                  <th>What you need</th>
-                  <th>Visual workflows</th>
-                  <th>AI assistant</th>
-                </tr>
-              </thead>
-              <tbody>
+              </div>
+              <div className="nm-solution-panel">
+                <div>
+                  <span className="nm-eyebrow">YOUR WORKFLOW, YOUR WAY</span>
+                  <h3>
+                    {
+                      [
+                        "Give your audience somewhere to go.",
+                        "Spend more time with your customers.",
+                        "A workspace for every client relationship.",
+                      ][audience]
+                    }
+                  </h3>
+                  <p>
+                    {
+                      [
+                        "Turn engagement on your content into thoughtful conversations. Deliver a resource, learn what someone needs and guide them toward your offer.",
+                        "Answer common service questions, gather the details that matter and help customers arrange a consultation. Keep complex requests with your team.",
+                        "Create separate client workspaces, reuse automation templates and give the right people access. Add your branding and keep each client’s context together.",
+                      ][audience]
+                    }
+                  </p>
+                  <Link className="nm-text-link" href="/auth?mode=signup">
+                    Build your first workflow <ArrowRight size={16} />
+                  </Link>
+                </div>
+                <div className="nm-workflow-card">
+                  <span className="nm-mini-title">EXAMPLE WORKFLOW</span>
+                  {[
+                    ...[
+                      [
+                        "Comment on a post",
+                        "Deliver your resource",
+                        "Tag interests in the CRM",
+                        "Share the next offer",
+                      ],
+                      [
+                        "Receive a service enquiry",
+                        "Answer from your FAQs",
+                        "Check calendar availability",
+                        "Confirm with your customer",
+                      ],
+                      [
+                        "Create a client workspace",
+                        "Apply your branding",
+                        "Invite the right teammates",
+                        "Review the client’s funnel",
+                      ],
+                    ][audience],
+                  ].map((item, index) => (
+                    <div key={item}>
+                      <span>
+                        {index === 3 ? <Check size={15} /> : index + 1}
+                      </span>
+                      {item}
+                      {index < 3 && <i />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+            <section className="nm-integrations nm-section" id="integrations">
+              <div className="nm-section-head">
+                <span className="nm-eyebrow">
+                  04 / YOUR TOOLS, WORKING TOGETHER
+                </span>
+                <h2>
+                  Keep your favourites.
+                  <br />
+                  Connect the dots.
+                </h2>
+                <p>
+                  Connect the services your business runs on. Native providers
+                  and API connectors are labelled so you can see how each fits.
+                </p>
+              </div>
+              <div className="nm-integration-controls">
+                <div
+                  className="nm-filter"
+                  role="group"
+                  aria-label="Integration category"
+                >
+                  {[
+                    "All",
+                    "Channels",
+                    "Scheduling",
+                    "CRM",
+                    "Team & AI",
+                    "Payments",
+                    "Automation",
+                  ].map((item) => (
+                    <button
+                      key={item}
+                      aria-pressed={category === item}
+                      className={category === item ? "active" : ""}
+                      onClick={() => setCategory(item)}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+                <label className="nm-search">
+                  <Search size={17} />
+                  <input
+                    type="search"
+                    aria-label="Search integrations"
+                    placeholder="Find your tool…"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                  />
+                </label>
+              </div>
+              <div className="nm-integration-grid" aria-live="polite">
+                {filtered.map(([name, group, monogram, type]) => (
+                  <article key={name}>
+                    <span
+                      className={`nm-app-icon tone-${group.split(" ")[0].toLowerCase()}${LOGOS[name] ? " has-logo" : ""}`}
+                    >
+                      {LOGOS[name] ? (
+                        <BrandIcon name={LOGOS[name]} size={18} />
+                      ) : (
+                        monogram
+                      )}
+                    </span>
+                    <div>
+                      <h3>{name}</h3>
+                      <small>{type}</small>
+                    </div>
+                    <ArrowUpRight size={15} />
+                  </article>
+                ))}
+                {filtered.length === 0 && (
+                  <p className="nm-empty">
+                    No matching integrations. Try another search or category.
+                  </p>
+                )}
+              </div>
+              <p className="nm-subnote">
+                Live connections require provider accounts and configuration.
+                Plan limits and provider fees may apply.
+              </p>
+            </section>
+            <section className="nm-toolkit nm-section" id="toolkit">
+              <div className="nm-section-head">
+                <span className="nm-eyebrow">
+                  05 / MORE OF YOUR DAY, IN ONE PLACE
+                </span>
+                <h2>
+                  The little tools.
+                  <br />
+                  That make a big difference.
+                </h2>
+                <p>
+                  Give your conversations the support they need, without losing
+                  sight of what is available today.
+                </p>
+              </div>
+              <div className="nm-tool-grid">
+                {[
+                  {
+                    icon: Link2,
+                    title: "Link-in-bio pages",
+                    copy: "Publish a page for your offers and track clicks back to your audience.",
+                    status: "Available",
+                    link: true,
+                  },
+                  {
+                    icon: CalendarCheck,
+                    title: "Content calendar",
+                    copy: "Plan and schedule supported channel content alongside your sales work.",
+                    status: "Available",
+                    link: true,
+                  },
+                  {
+                    icon: LayoutTemplate,
+                    title: "Automation templates",
+                    copy: "Start with a ready-made workflow and adapt it to your business.",
+                    status: "Available",
+                    link: true,
+                  },
+                  {
+                    icon: CreditCard,
+                    title: "Offers & payment links",
+                    copy: "Manage offers and connect Stripe to help customers complete a purchase.",
+                    status: "Available",
+                    link: true,
+                  },
+                  {
+                    icon: Globe,
+                    title: "Public API & webhooks",
+                    copy: "Connect custom workflows and send events to external tools.",
+                    status: "Available",
+                    link: true,
+                  },
+                  {
+                    icon: Users,
+                    title: "Client workspaces",
+                    copy: "Separate client data, control team roles and configure branding.",
+                    status: "Available",
+                    link: true,
+                  },
+                  {
+                    icon: ShieldCheck,
+                    title: "Comment moderation",
+                    copy: "Automatic abuse filtering and deletion are not yet available in Nemio.",
+                    status: "Planned",
+                    link: false,
+                  },
+                  {
+                    icon: ArrowUpRight,
+                    title: "Deep links",
+                    copy: "Opening destinations outside in-app browsers is a future addition.",
+                    status: "Planned",
+                    link: false,
+                  },
+                  {
+                    icon: BarChart3,
+                    title: "Creator media kits",
+                    copy: "A public media kit with synced audience statistics is a future addition.",
+                    status: "Planned",
+                    link: false,
+                  },
+                  {
+                    icon: LayoutTemplate,
+                    title: "Standalone form builder",
+                    copy: "A dedicated embeddable lead-form builder is not yet available.",
+                    status: "Planned",
+                    link: false,
+                  },
+                  {
+                    icon: Headphones,
+                    title: "Website chat widget",
+                    copy: "An embeddable support widget needs its own channel implementation.",
+                    status: "Planned",
+                    link: false,
+                  },
+                  {
+                    icon: Mic,
+                    title: "AI video messages",
+                    copy: "Generated video DMs are not currently supported by the agent.",
+                    status: "Planned",
+                    link: false,
+                  },
+                ].map(({ icon: Icon, title, copy, status, link }) => (
+                  <article key={title}>
+                    <div>
+                      <Icon size={23} />
+                      <span className={link ? "nm-available" : "nm-planned"}>
+                        {status}
+                      </span>
+                    </div>
+                    <h3>{title}</h3>
+                    <p>{copy}</p>
+                    {link && (
+                      <Link
+                        href="/auth?mode=signup"
+                        aria-label={`Explore ${title}`}
+                      >
+                        Explore in your workspace <ArrowRight size={14} />
+                      </Link>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </section>
+            <section className="nm-section nm-compare" id="compare">
+              <div className="nm-section-head">
+                <span className="nm-eyebrow">
+                  06 / CHOOSE YOUR LEVEL OF CONTROL
+                </span>
+                <h2>
+                  Start with a flow.
+                  <br />
+                  Add intelligence when you need it.
+                </h2>
+                <p>
+                  Two ways to handle the conversation. One workspace for your
+                  team.
+                </p>
+              </div>
+              <div className="nm-table-scroll">
+                <table>
+                  <caption>
+                    Compare visual workflows and AI-assisted conversations in
+                    Nemio
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th>What you need</th>
+                      <th>Visual workflows</th>
+                      <th>AI assistant</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      [
+                        "Predictable replies",
+                        "Messages and buttons you write",
+                        "Answers from your business knowledge",
+                      ],
+                      [
+                        "Starting the conversation",
+                        "Configured keyword and event triggers",
+                        "Enabled conversations and incoming messages",
+                      ],
+                      [
+                        "Choosing the next step",
+                        "Conditions and branches",
+                        "Context and configured sales tools",
+                      ],
+                      [
+                        "Customer context",
+                        "Contact fields, tags and stages",
+                        "Knowledge retrieval and CRM context",
+                      ],
+                      [
+                        "Booking and payments",
+                        "Use configured links in replies",
+                        "Calendar checks and configured payment tools",
+                      ],
+                      [
+                        "Human oversight",
+                        "Review flows and execution logs",
+                        "Handoffs, audit logs and team control",
+                      ],
+                      [
+                        "How to begin",
+                        "Choose a template and publish",
+                        "Add FAQs, configure tools and test",
+                      ],
+                    ].map(([label, flow, ai]) => (
+                      <tr key={label}>
+                        <th scope="row">{label}</th>
+                        <td>{flow}</td>
+                        <td>{ai}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            <section className="nm-start nm-section" id="how-it-works">
+              <div className="nm-section-head">
+                <span className="nm-eyebrow">
+                  07 / LESS SETUP. MORE MOMENTUM.
+                </span>
+                <h2>Your first workflow starts here.</h2>
+              </div>
+              <div className="nm-steps">
                 {[
                   [
-                    "Predictable replies",
-                    "Messages and buttons you write",
-                    "Answers from your business knowledge",
+                    "01",
+                    "Make a little space",
+                    "Create your workspace and choose one enquiry you want to handle better.",
                   ],
                   [
-                    "Starting the conversation",
-                    "Configured keyword and event triggers",
-                    "Enabled conversations and incoming messages",
+                    "02",
+                    "Give it your knowledge",
+                    "Add your FAQs or choose a template. Try a local test conversation before connecting live accounts.",
                   ],
                   [
-                    "Choosing the next step",
-                    "Conditions and branches",
-                    "Context and configured sales tools",
+                    "03",
+                    "Let the conversation flow",
+                    "Configure your providers, review the workflow and enable it. Keep your team ready for a handoff.",
                   ],
-                  [
-                    "Customer context",
-                    "Contact fields, tags and stages",
-                    "Knowledge retrieval and CRM context",
-                  ],
-                  [
-                    "Booking and payments",
-                    "Use configured links in replies",
-                    "Calendar checks and configured payment tools",
-                  ],
-                  [
-                    "Human oversight",
-                    "Review flows and execution logs",
-                    "Handoffs, audit logs and team control",
-                  ],
-                  [
-                    "How to begin",
-                    "Choose a template and publish",
-                    "Add FAQs, configure tools and test",
-                  ],
-                ].map(([label, flow, ai]) => (
-                  <tr key={label}>
-                    <th scope="row">{label}</th>
-                    <td>{flow}</td>
-                    <td>{ai}</td>
-                  </tr>
+                ].map(([number, title, copy]) => (
+                  <article key={number}>
+                    <span>{number}</span>
+                    <h3>{title}</h3>
+                    <p>{copy}</p>
+                  </article>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-        <section className="nm-start nm-section" id="how-it-works">
-          <div className="nm-section-head">
-            <span className="nm-eyebrow">07 / LESS SETUP. MORE MOMENTUM.</span>
-            <h2>Your first workflow starts here.</h2>
-          </div>
-          <div className="nm-steps">
-            {[
-              [
-                "01",
-                "Make a little space",
-                "Create your workspace and choose one enquiry you want to handle better.",
-              ],
-              [
-                "02",
-                "Give it your knowledge",
-                "Add your FAQs or choose a template. Try a local test conversation before connecting live accounts.",
-              ],
-              [
-                "03",
-                "Let the conversation flow",
-                "Configure your providers, review the workflow and enable it. Keep your team ready for a handoff.",
-              ],
-            ].map(([number, title, copy]) => (
-              <article key={number}>
-                <span>{number}</span>
-                <h3>{title}</h3>
-                <p>{copy}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+              </div>
+            </section>
+          </>
+        ) : (
+          <>
+            <section className="nm-section nm-home-benefits" id="solutions">
+              <div className="nm-section-head">
+                <span className="nm-eyebrow">
+                  LESS BUSYWORK. MORE BUSINESS.
+                </span>
+                <h2>
+                  A better next step.
+                  <br />
+                  For every conversation.
+                </h2>
+                <Link className="nm-text-link" href="/features">
+                  Explore the product <ArrowUpRight size={16} />
+                </Link>
+              </div>
+              <div className="nm-home-benefit-grid">
+                {[
+                  {
+                    icon: Zap,
+                    title: "Turn attention into action.",
+                    copy: "Send the right reply when someone comments, shares a story reply or starts a conversation.",
+                    href: "flow-builder",
+                    label: "Automate your replies",
+                  },
+                  {
+                    icon: Sparkles,
+                    title: "Give every lead a little help.",
+                    copy: "Let an AI assistant answer questions and qualify interest using your business knowledge.",
+                    href: "ai-agents",
+                    label: "Meet your AI assistant",
+                  },
+                  {
+                    icon: Users,
+                    title: "Keep your team in the loop.",
+                    copy: "Bring messages, contact details and handoffs together in one shared workspace.",
+                    href: "inbox-crm",
+                    label: "See the shared inbox",
+                  },
+                ].map(({ icon: Icon, title, copy, href, label }) => (
+                  <article key={title}>
+                    <BenefitVisual kind={href} />
+                    <span className="nm-home-benefit-icon">
+                      <Icon size={24} strokeWidth={1.5} />
+                    </span>
+                    <h3>{title}</h3>
+                    <p>{copy}</p>
+                    <Link href={`/features#${href}`}>
+                      {label}
+                      <ArrowUpRight size={15} />
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            </section>
+            <section
+              className="nm-section nm-home-integrations"
+              id="integrations"
+            >
+              <div>
+                <span className="nm-eyebrow">BETTER TOGETHER</span>
+                <h2>Your tools. Connected.</h2>
+                <p>
+                  Bring your calendar, CRM and payment tools into the
+                  conversation.
+                </p>
+                <Link className="nm-text-link" href="/features#integrations">
+                  Explore integrations <ArrowRight size={16} />
+                </Link>
+              </div>
+              <div className="nm-integration-grid nm-home-logos">
+                {(
+                  [
+                    ["slack", "Slack"],
+                    ["stripe", "Stripe"],
+                    ["zapier", "Zapier"],
+                    ["googlecalendar", "Google Calendar"],
+                    ["openai", "OpenAI"],
+                    ["notion", "Notion"],
+                  ] as [BrandName, string][]
+                ).map(([name, label]) => (
+                  <Link href="/features#integrations" key={name}>
+                    <BrandIcon name={name} size={30} />
+                    <span>{label}</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
         <section className="nm-section nm-pricing" id="pricing">
           <div className="nm-section-head">
-            <span className="nm-eyebrow">08 / FIND YOUR FIT</span>
+            <span className="nm-eyebrow">FIND YOUR FIT</span>
             <h2>Room for your next chapter.</h2>
-            <p>
-              Current plans, straight from Nemio. Compare the included features
-              and usage limits, then choose how you want to grow.
-            </p>
+            <p>Start with what you need. Grow from there.</p>
           </div>
           <PublicPricing />
           <Link className="nm-text-link" href="/pricing">
@@ -1092,10 +1436,10 @@ export function LandingPage({ helpLinks }: { helpLinks: ReactNode }) {
         </div>
         <nav aria-label="Footer product navigation">
           <strong>Explore</strong>
-          <a href="#features">Platform</a>
+          <Link href="/features">Platform</Link>
           <a href="#integrations">Integrations</a>
           <Link href="/pricing">Pricing</Link>
-          <a href="#toolkit">Growth toolkit</a>
+          <Link href="/features#toolkit">Growth toolkit</Link>
         </nav>
         <nav aria-label="Footer resources">
           <strong>Resources</strong>

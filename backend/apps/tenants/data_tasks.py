@@ -39,12 +39,20 @@ def export_tables():
     Adding a model that stores tenant data means adding it here (see the export test)."""
     from apps.agents.models import AgentConfig, KnowledgeDocument, ToolCall, UsageRecord
     from apps.analytics.models import Experiment, FunnelEvent
-    from apps.automations.models import Automation
+    from apps.automations.models import (
+        Automation,
+        AutomationExecution,
+        WorkflowActionJob,
+        WorkflowLink,
+    )
     from apps.billing.models import AICreditBalance, AICreditTransaction, Offer, Payment
     from apps.channels.models import ChannelConnection
     from apps.content.models import BioPage, ScheduledPost
     from apps.crm.models import (
+        Campaign,
+        CampaignRecipient,
         ChannelIdentity,
+        ContactSegment,
         Conversation,
         IntegrationConfig,
         IntegrationJob,
@@ -54,14 +62,69 @@ def export_tables():
     )
     from apps.marketplace.models import Template, TemplateInstall, TemplatePurchase
     from apps.public_api.models import APIKey, MCPClient, WebhookSubscription
-    from apps.tools.models import DeepLink, ShieldEvent, ShieldRule, WebChatSettings
+    from apps.tools.models import (
+        CreatorKit,
+        DeepLink,
+        FormSubmission,
+        LeadForm,
+        LinkClickDay,
+        ShieldEvent,
+        ShieldRule,
+        WebChatSettings,
+    )
 
     from .models import AuditEvent, Membership, WorkspaceBranding
 
     return {
         "deeplinks": (
             DeepLink,
-            ["id", "title", "platform", "target", "code", "clicks", "active", "created_at"],
+            [
+                "id",
+                "title",
+                "platform",
+                "target",
+                "code",
+                "clicks",
+                "active",
+                "created_at",
+                "campaign",
+                "source",
+                "medium",
+            ],
+        ),
+        "link_click_days": (LinkClickDay, ["id", "link_id", "day", "clicks"]),
+        "forms": (
+            LeadForm,
+            [
+                "id",
+                "title",
+                "slug",
+                "description",
+                "fields",
+                "consent_text",
+                "success_text",
+                "published",
+                "created_at",
+            ],
+        ),
+        "form_submissions": (
+            FormSubmission,
+            ["id", "form_id", "lead_id", "link_id", "answers", "consent_text", "created_at"],
+        ),
+        "creator_kit": (
+            CreatorKit,
+            [
+                "id",
+                "slug",
+                "name",
+                "headline",
+                "bio",
+                "contact_email",
+                "links",
+                "statistics",
+                "services",
+                "published",
+            ],
         ),
         "shield_rules": (ShieldRule, ["id", "name", "keywords", "action", "enabled", "created_at"]),
         "shield_events": (
@@ -101,6 +164,40 @@ def export_tables():
             Conversation,
             ["id", "identity_id", "assigned_to_id", "status", "ai_enabled", "created_at"],
         ),
+        "campaigns": (
+            Campaign,
+            [
+                "id",
+                "name",
+                "connection_id",
+                "text",
+                "buttons",
+                "media_url",
+                "media_type",
+                "tag",
+                "audience",
+                "status",
+                "scheduled_at",
+                "launched_at",
+                "finished_at",
+                "expected_count",
+                "created_at",
+            ],
+        ),
+        "campaign_recipients": (
+            CampaignRecipient,
+            [
+                "id",
+                "campaign_id",
+                "conversation_id",
+                "lead_id",
+                "text_delivery_id",
+                "media_delivery_id",
+                "status",
+                "error_code",
+                "created_at",
+            ],
+        ),
         "messages": (
             Message,
             ["id", "conversation_id", "direction", "text", "kind", "created_at"],
@@ -109,6 +206,39 @@ def export_tables():
         "automations": (
             Automation,
             ["id", "name", "draft", "published", "revision", "enabled"],
+        ),
+        "automation_executions": (
+            AutomationExecution,
+            [
+                "id",
+                "conversation_id",
+                "automation_id",
+                "automation_name",
+                "revision",
+                "status",
+                "steps",
+                "node_id",
+                "error_code",
+                "trace",
+                "created_at",
+                "finished_at",
+            ],
+        ),
+        "workflow_actions": (
+            WorkflowActionJob,
+            ["id", "state_id", "kind", "status", "error_code", "created_at"],
+        ),
+        "workflow_links": (
+            WorkflowLink,
+            [
+                "id",
+                "conversation_id",
+                "source_node",
+                "target",
+                "automation_id",
+                "clicked_at",
+                "created_at",
+            ],
         ),
         "experiments": (
             Experiment,
@@ -127,6 +257,7 @@ def export_tables():
                 "created_at",
             ],
         ),
+        "contact_segments": (ContactSegment, ["id", "name", "prompt", "enabled", "updated_at"]),
         "agent": (
             AgentConfig,
             [
@@ -137,10 +268,12 @@ def export_tables():
                 "allowed_tools",
                 "enabled",
                 "qualifying_fields",
+                "segmentation_enabled",
+                "segmentation_prompt",
                 "handoff_keywords",
             ],
         ),
-        "knowledge": (KnowledgeDocument, ["id", "title", "source", "file_type"]),
+        "knowledge": (KnowledgeDocument, ["id", "title", "source", "file_type", "source_revision"]),
         "tool_calls": (ToolCall, ["id", "run_id", "name", "status", "created_at"]),
         "usage": (
             UsageRecord,
@@ -322,11 +455,13 @@ def retention_policy():
     """Payload stores scrubbed after RETENTION_DAYS. Rows stay as dedupe/audit tombstones;
     only the customer-bearing field is blanked. Pending work is never scrubbed."""
     from apps.agents.models import AgentRun, ToolCall
+    from apps.automations.models import WorkflowActionJob
     from apps.billing.models import BillingEvent, Payment
     from apps.channels.models import Delivery, WebhookEvent
     from apps.crm.models import IntegrationJob, InternalNote, Message
     from apps.marketplace.models import TemplatePurchase
     from apps.public_api.models import OutboundWebhook
+    from apps.tools.models import FormSubmission
 
     open_work = ["pending", "sending", "executing", "processing"]
     return [
@@ -337,6 +472,12 @@ def retention_policy():
         (Message, {"text": "", "attachments": "[]"}, []),
         (InternalNote, {"text": ""}, []),
         (IntegrationJob, {"payload": "{}", "result": "{}"}, open_work),
+        (
+            WorkflowActionJob,
+            {"payload": "{}", "result": "{}"},
+            [*open_work, "rendering", "polling"],
+        ),
+        (FormSubmission, {"answers": "{}"}, []),
         (OutboundWebhook, {"payload": "{}"}, open_work),
         (BillingEvent, {"payload": "{}"}, open_work),
         # Checkout links expire long before retention; drop them rather than keep dead URLs.

@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import {
   api,
-  idempotencyKey,
   message,
   type Connection,
   type Integration,
@@ -36,6 +35,8 @@ import {
 import { BrandIcon, isBrand } from "@/lib/brand-icons";
 import { CHANNELS, ChannelIcon, channelLabel } from "@/lib/channels";
 import { useWorkspace } from "@/lib/workspace";
+import { CampaignsDialog } from "@/components/campaigns-dialog";
+import { SegmentationDialog } from "@/components/segmentation-dialog";
 import { ContactAvatar } from "@/components/contact-avatar";
 import { ContactPanel, STAGES, relativeTime } from "@/components/contact-panel";
 import {
@@ -92,6 +93,7 @@ export default function CrmPage() {
   const [showBulkMenu, setShowBulkMenu] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [campaignModal, setCampaignModal] = useState(false);
+  const [segmentationModal, setSegmentationModal] = useState(false);
   const [addContactModal, setAddContactModal] = useState(false);
   const [openId, setOpenId] = useState<string | null>(linkedContact);
   const [tagInput, setTagInput] = useState("");
@@ -268,26 +270,6 @@ export default function CrmPage() {
       setAddContactModal(false);
       setOpenId(created.id);
     }
-  };
-
-  const handleBroadcast = async (text: string) => {
-    const ids = picked.size ? Array.from(picked) : leads.map((lead) => lead.id);
-    await feedback.run(async () => {
-      const result = await api<{ queued: number; skipped: number }>(
-        `${prefix}/leads/broadcast/`,
-        "POST",
-        { ids, text },
-        undefined,
-        { "Idempotency-Key": idempotencyKey() },
-      );
-      setCampaignModal(false);
-      feedback.setNotice(
-        `Queued for ${result.queued} contact${result.queued === 1 ? "" : "s"}` +
-          (result.skipped
-            ? `; ${result.skipped} skipped (outside the 24-hour window or opted out).`
-            : "."),
-      );
-    });
   };
 
   const exportCsv = () => {
@@ -485,10 +467,17 @@ export default function CrmPage() {
 
           {manager && (
             <button
+              className="boosend-crm-filter-btn"
+              onClick={() => setSegmentationModal(true)}
+            >
+              AI segmentation
+            </button>
+          )}
+          {manager && (
+            <button
               type="button"
               className="boosend-crm-campaign-btn"
               onClick={() => setCampaignModal(true)}
-              disabled={!leads.length}
             >
               <Rocket size={14} />
               Campaign
@@ -908,46 +897,18 @@ export default function CrmPage() {
       )}
 
       {campaignModal && (
-        <Modal title="Launch Campaign" onClose={() => setCampaignModal(false)}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const text = String(
-                new FormData(e.currentTarget).get("message") || "",
-              ).trim();
-              if (text) handleBroadcast(text);
-            }}
-          >
-            <p className="modal-copy">
-              Send one message to <strong>{picked.size || leads.length}</strong>{" "}
-              {picked.size ? "selected" : "loaded"} contacts. Meta only delivers
-              free-form messages inside the 24-hour service window, so people
-              who wrote earlier are skipped.
-            </p>
-            <label>
-              Message
-              <textarea
-                name="message"
-                rows={4}
-                required
-                maxLength={2000}
-                placeholder="Hi! Thanks for reaching out…"
-              />
-            </label>
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="button secondary small"
-                onClick={() => setCampaignModal(false)}
-              >
-                Cancel
-              </button>
-              <button className="boosend-btn-create" disabled={feedback.busy}>
-                <Rocket size={13} /> Send Campaign
-              </button>
-            </div>
-          </form>
-        </Modal>
+        <CampaignsDialog
+          prefix={prefix}
+          connections={connections || []}
+          selectedLeadIds={Array.from(picked)}
+          onClose={() => setCampaignModal(false)}
+        />
+      )}
+      {segmentationModal && (
+        <SegmentationDialog
+          prefix={prefix}
+          onClose={() => setSegmentationModal(false)}
+        />
       )}
 
       {addContactModal && (

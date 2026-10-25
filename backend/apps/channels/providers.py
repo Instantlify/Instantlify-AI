@@ -7,6 +7,9 @@ from .transport import AmbiguousDelivery, ProviderError, request
 
 
 class WhatsAppAdapter(InstagramAdapter):
+    def send_media(self, *, recipient_id, media_url, media_type, idempotency_key):
+        return self._send(recipient_id, {"type": media_type, media_type: {"link": media_url}})
+
     def __init__(self, connection):
         self.connection = connection
 
@@ -23,7 +26,36 @@ class WhatsAppAdapter(InstagramAdapter):
         except (KeyError, IndexError):
             raise AmbiguousDelivery() from None
 
-    def send_message(self, *, recipient_id, text, idempotency_key):
+    def send_message(self, *, recipient_id, text, idempotency_key, buttons=None):
+        replies = [button for button in (buttons or []) if button["type"] == "postback"]
+        links = [button for button in (buttons or []) if button["type"] == "web_url"]
+        if links:
+            text += "\n\n" + "\n".join(f"{b['title']}: {b['url']}" for b in links)
+        if replies:
+            if len(text) > 1024:
+                raise ProviderError("interactive_message_too_long")
+            return self._send(
+                recipient_id,
+                {
+                    "type": "interactive",
+                    "interactive": {
+                        "type": "button",
+                        "body": {"text": text},
+                        "action": {
+                            "buttons": [
+                                {
+                                    "type": "reply",
+                                    "reply": {"id": b["payload"], "title": b["title"]},
+                                }
+                                for b in replies
+                            ]
+                        },
+                    },
+                },
+            )
+        # Resource URLs remain usable on WhatsApp without requiring an approved template.
+        if len(text) > 4096:
+            raise ProviderError("message_too_long")
         return self._send(recipient_id, {"type": "text", "text": {"body": text}})
 
     def send_voice_note(self, *, recipient_id, media_url, idempotency_key):
@@ -31,6 +63,17 @@ class WhatsAppAdapter(InstagramAdapter):
 
 
 class MessengerAdapter(InstagramAdapter):
+    def send_media(self, *, recipient_id, media_url, media_type, idempotency_key):
+        return self._send(
+            recipient_id,
+            {
+                "attachment": {
+                    "type": media_type,
+                    "payload": {"url": media_url, "is_reusable": False},
+                }
+            },
+        )
+
     """Facebook Page messaging: same Send API shape as Instagram, Page-scoped IDs."""
 
     def __init__(self, connection):
@@ -72,6 +115,61 @@ class MessengerAdapter(InstagramAdapter):
             {"attachment": {"type": "audio", "payload": {"url": media_url, "is_reusable": False}}},
         )
 
+    def recent_posts(self):
+        body = request(
+            "GET",
+            f"https://graph.facebook.com/{settings.META_API_VERSION}/{self.connection.external_account_id}/posts",
+            headers={"Authorization": f"Bearer {self.connection.access_token}"},
+            params={"fields": "id,message,permalink_url", "limit": 50},
+        )
+        return [
+            {
+                "id": str(p["id"]),
+                "label": str(p.get("message") or p["id"])[:200],
+                "permalink": str(p.get("permalink_url") or ""),
+            }
+            for p in body.get("data", [])
+        ]
+
+    def owns_post(self, post_id):
+        body = request(
+            "GET",
+            f"https://graph.facebook.com/{settings.META_API_VERSION}/{post_id}",
+            headers={"Authorization": f"Bearer {self.connection.access_token}"},
+            params={"fields": "from"},
+        )
+        return str((body.get("from") or {}).get("id", "")) == self.connection.external_account_id
+
+    def next_post(self, since):
+        from .commenting import first_post_after
+
+        return first_post_after(
+            lambda after: request(
+                "GET",
+                f"https://graph.facebook.com/{settings.META_API_VERSION}/{self.connection.external_account_id}/posts",
+                headers={"Authorization": f"Bearer {self.connection.access_token}"},
+                params={
+                    "fields": "id,created_time",
+                    "limit": 50,
+                    **({"after": after} if after else {}),
+                },
+            ),
+            since,
+            "created_time",
+        )
+
+    def reply_comment(self, *, comment_id, text, idempotency_key):
+        body = request(
+            "POST",
+            f"https://graph.facebook.com/{settings.META_API_VERSION}/{comment_id}/comments",
+            side_effect=True,
+            headers={"Authorization": f"Bearer {self.connection.access_token}"},
+            data={"message": text},
+        )
+        if not body.get("id"):
+            raise AmbiguousDelivery()
+        return str(body["id"])
+
     def fetch_profile(self, sender_id):
         body = request(
             "GET",
@@ -103,6 +201,17 @@ class MessengerAdapter(InstagramAdapter):
 
 
 class TelegramAdapter(InstagramAdapter):
+    def send_media(self, *, recipient_id, media_url, media_type, idempotency_key):
+        method, field = {
+            "image": ("sendPhoto", "photo"),
+            "video": ("sendVideo", "video"),
+            "audio": ("sendAudio", "audio"),
+        }[media_type]
+        body = self.call(method, {"chat_id": recipient_id, field: media_url})
+        if not body.get("message_id"):
+            raise AmbiguousDelivery()
+        return str(body["message_id"])
+
     def __init__(self, connection):
         self.connection = connection
 
@@ -117,8 +226,25 @@ class TelegramAdapter(InstagramAdapter):
             raise ProviderError("telegram_rejected")
         return body["result"]
 
-    def send_message(self, *, recipient_id, text, idempotency_key):
-        return str(self.call("sendMessage", {"chat_id": recipient_id, "text": text})["message_id"])
+    def send_message(self, *, recipient_id, text, idempotency_key, buttons=None):
+        body = {"chat_id": recipient_id, "text": text}
+        if buttons:
+            body["reply_markup"] = {
+                "inline_keyboard": [
+                    [
+                        {
+                            "text": button["title"],
+                            ("url" if button["type"] == "web_url" else "callback_data"): button.get(
+                                "url"
+                            )
+                            if button["type"] == "web_url"
+                            else button["payload"],
+                        }
+                    ]
+                    for button in buttons
+                ]
+            }
+        return str(self.call("sendMessage", body)["message_id"])
 
     def send_voice_note(self, *, recipient_id, media_url, idempotency_key):
         return str(

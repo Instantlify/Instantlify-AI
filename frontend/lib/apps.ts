@@ -1,5 +1,7 @@
 import {
   CalendarDays,
+  FileText,
+  TrendingUp,
   Link2,
   MessageSquareText,
   ShieldBan,
@@ -21,6 +23,24 @@ export type AppEntry = {
 };
 
 export const APPS: AppEntry[] = [
+  {
+    id: "forms",
+    label: "Forms",
+    icon: FileText,
+    description: "Publish and embed lead forms with consent and CRM capture.",
+    highlights: ["Custom questions", "Response exports"],
+    section: "forms",
+    agents: false,
+  },
+  {
+    id: "creator-kit",
+    label: "Creator kit",
+    icon: TrendingUp,
+    description: "A public media kit for your work, audience and offers.",
+    highlights: ["Shareable page", "Collaboration contact"],
+    section: "creator-kit",
+    agents: false,
+  },
   {
     id: "bio",
     label: "Link in bio",
@@ -56,8 +76,8 @@ export const APPS: AppEntry[] = [
     label: "Smart deep links",
     icon: Smartphone,
     description:
-      "Links that open the native Instagram or WhatsApp app instead of an in-app browser.",
-    highlights: ["Native app hand-off", "Per-link click counts"],
+      "Share trackable links to Instagram, WhatsApp and your other destinations.",
+    highlights: ["HTTPS destinations", "Per-link click counts"],
     section: "deeplinks",
     agents: true,
   },

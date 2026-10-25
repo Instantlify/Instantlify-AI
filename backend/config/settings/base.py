@@ -335,6 +335,7 @@ CELERY_BEAT_SCHEDULE.update(
     {
         "agent-dispatch": {"task": "apps.agents.tasks.dispatch_agents", "schedule": 2.0},
         "integration-dispatch": {"task": "apps.crm.tasks.dispatch_integrations", "schedule": 5.0},
+        "campaign-dispatch": {"task": "apps.crm.tasks.dispatch_campaigns", "schedule": 5.0},
         "integration-refresh": {"task": "apps.crm.tasks.refresh_integrations", "schedule": 300.0},
         "billing-dispatch": {"task": "apps.billing.tasks.dispatch_billing", "schedule": 5.0},
         "data-operations": {

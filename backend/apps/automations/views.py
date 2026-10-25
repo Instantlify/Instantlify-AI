@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
 
-from .models import Automation, ConversationState
+from .models import Automation, AutomationExecution
 from .services import in_experiment, publish, transfer
 
 
@@ -238,9 +238,16 @@ class ImportView(APIView):
 class RunsView(APIView):
     def get(self, request, workspace_id):
         workspace_membership(request, workspace_id, ["owner", "admin"])
+        filters = {}
+        if request.query_params.get("automation"):
+            try:
+                filters["automation_id"] = uuid.UUID(request.query_params["automation"])
+            except ValueError:
+                raise serializers.ValidationError("Invalid automation ID.") from None
         return Response(
             list(
-                ConversationState.objects.for_workspace(workspace_id)
+                AutomationExecution.objects.for_workspace(workspace_id)
+                .filter(**filters)
                 .order_by("-created_at")
                 .values(
                     "id",
@@ -250,6 +257,11 @@ class RunsView(APIView):
                     "steps",
                     "node_id",
                     "error_code",
+                    "automation_name",
+                    "revision",
+                    "trace",
+                    "created_at",
+                    "finished_at",
                 )[:100]
             )
         )

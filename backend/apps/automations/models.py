@@ -1,5 +1,8 @@
+import uuid
+
 from django.db import models
 
+from apps.tenants.crypto import EncryptedTextField
 from apps.tenants.models import TenantModel
 
 
@@ -47,6 +50,7 @@ class Edge(TenantModel):
 
 
 class ConversationState(TenantModel):
+    run_token = models.UUIDField(default=uuid.uuid4)
     conversation = models.OneToOneField("crm.Conversation", on_delete=models.CASCADE)
     automation = models.ForeignKey(Automation, on_delete=models.CASCADE)
     graph = models.JSONField(default=dict)
@@ -60,6 +64,70 @@ class ConversationState(TenantModel):
     error_code = models.CharField(max_length=50, blank=True)
     experiment_id = models.UUIDField(null=True)
     variant = models.CharField(max_length=10, blank=True)
+
+    def save(self, *args, **kwargs):
+        from django.db import transaction
+
+        from .history import record_state
+
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            record_state(self)
+
+
+class AutomationExecution(TenantModel):
+    """A run survives the mutable conversation cursor and automation transfers."""
+
+    conversation = models.ForeignKey("crm.Conversation", on_delete=models.CASCADE)
+    automation_id = models.UUIDField()
+    automation_name = models.CharField(max_length=100)
+    revision = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=20)
+    steps = models.PositiveIntegerField(default=0)
+    node_id = models.CharField(max_length=80)
+    error_code = models.CharField(max_length=60, blank=True)
+    trace = models.JSONField(default=list)
+    finished_at = models.DateTimeField(null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+
+class WorkflowLink(TenantModel):
+    state = models.ForeignKey(ConversationState, null=True, on_delete=models.SET_NULL)
+    conversation = models.ForeignKey("crm.Conversation", on_delete=models.CASCADE)
+    run_token = models.UUIDField()
+    source_node = models.CharField(max_length=80)
+    key = models.CharField(max_length=255)
+    code = models.CharField(max_length=48, unique=True)
+    target = EncryptedTextField()
+    automation_id = models.UUIDField(null=True)
+    experiment_id = models.UUIDField(null=True)
+    variant = models.CharField(max_length=10, blank=True)
+    clicked_at = models.DateTimeField(null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["workspace", "key"], name="unique_workflow_link")
+        ]
+        indexes = [models.Index(fields=["workspace", "run_token", "source_node"])]
+
+
+class WorkflowActionJob(TenantModel):
+    state = models.ForeignKey(ConversationState, on_delete=models.CASCADE)
+    kind = models.CharField(max_length=30)
+    key = models.CharField(max_length=255)
+    payload = EncryptedTextField(default="{}")
+    result = EncryptedTextField(default="{}")
+    status = models.CharField(max_length=20, default="pending")
+    available_at = models.DateTimeField()
+    error_code = models.CharField(max_length=60, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["workspace", "key"], name="unique_workflow_action_job")
+        ]
 
 
 class AutomationTransferLog(models.Model):

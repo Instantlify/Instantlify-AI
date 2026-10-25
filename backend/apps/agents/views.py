@@ -20,6 +20,7 @@ class AgentSerializer(serializers.ModelSerializer):
     has_key = serializers.SerializerMethodField()
     embedding_api_key = serializers.CharField(write_only=True, required=False, allow_blank=True)
     has_embedding_key = serializers.SerializerMethodField()
+    segmentation_prompt = serializers.CharField(max_length=6000, required=False, allow_blank=True)
 
     def get_has_key(self, obj):
         return bool(obj.api_key)
@@ -94,6 +95,8 @@ class AgentSerializer(serializers.ModelSerializer):
             "input_cost_per_million",
             "output_cost_per_million",
             "qualifying_fields",
+            "segmentation_enabled",
+            "segmentation_prompt",
             "triage_enabled",
             "handoff_keywords",
             "max_tool_rounds",
@@ -156,6 +159,7 @@ class DocumentList(generics.ListAPIView):
 
     def post(self, request, workspace_id):
         member = workspace_membership(request, workspace_id, ["owner", "admin"])
+        check_feature(workspace_id, "ai_agent_enabled")
         uploaded = request.FILES.get("file")
         title = str(request.data.get("title", "Knowledge document"))[:200]
         kind = "text"

@@ -142,7 +142,8 @@ def test_parent_cannot_move_without_its_children(workspace, other):
     Node.objects.for_workspace(workspace).create(
         workspace=workspace, automation=automation, node_id="n", kind="end", config={}
     )
-    with pytest.raises(IntegrityError, match="left in another workspace"), transaction.atomic():
+    # Deferred child and parent guards can fire in either order; both reject the move.
+    with pytest.raises(IntegrityError, match="cross_tenant_fk_violation"), transaction.atomic():
         Automation.all_objects.filter(pk=automation.pk).update(workspace=other)
         check_now()
 

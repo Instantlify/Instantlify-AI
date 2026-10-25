@@ -185,9 +185,26 @@ SENDER_PREFIXES = {
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    media_url = serializers.SerializerMethodField()
     delivery_status = serializers.CharField(source="delivery.status", default=None, read_only=True)
     sender = serializers.SerializerMethodField()
     author_name = serializers.SerializerMethodField()
+
+    def get_media_url(self, obj):
+        if (
+            obj.direction != "outbound"
+            or obj.kind not in {"image", "video", "audio"}
+            or not obj.delivery
+        ):
+            return ""
+        from apps.channels.media import validate_media
+
+        try:
+            payload = json.loads(obj.delivery.payload)
+            validate_media(payload.get("media_url"), obj.kind)
+            return payload["media_url"]
+        except (ValueError, TypeError, serializers.ValidationError):
+            return ""
 
     def get_sender(self, obj):
         if obj.direction == "inbound":
@@ -212,6 +229,7 @@ class MessageSerializer(serializers.ModelSerializer):
             "delivery_status",
             "sender",
             "author_name",
+            "media_url",
         ]
 
 
@@ -450,10 +468,16 @@ class LeadList(generics.ListCreateAPIView):
             return LeadSerializer
         return LeadRowSerializer
 
+    @transaction.atomic
     def perform_create(self, serializer):
         # A contact added by hand: no channel identity or conversation until the
         # person actually messages one of the workspace's channels.
         member = workspace_membership(self.request, self.kwargs["workspace_id"])
+        from apps.billing.gating import check_within_limit
+        from apps.tenants.models import Workspace
+
+        Workspace.objects.select_for_update().get(pk=member.workspace_id)
+        check_within_limit(member.workspace_id, "max_contacts")
         serializer.save(workspace=member.workspace)
 
     def create(self, request, *args, **kwargs):
@@ -682,11 +706,19 @@ class IntegrationSerializer(serializers.ModelSerializer):
     configured = serializers.SerializerMethodField()
 
     def get_configured(self, obj):
-        return bool(json.loads(obj.credentials))
+        return bool(json.loads(obj.credentials)) or obj.is_test
 
     def validate_provider(self, value):
         if value not in {
             "google_calendar",
+            "google_sheets",
+            "gmail",
+            "outlook",
+            "mailerlite",
+            "klaviyo",
+            "shopify",
+            "systeme_io",
+            "jotform",
             "calcom",
             "airtable",
             "notion",
@@ -694,7 +726,16 @@ class IntegrationSerializer(serializers.ModelSerializer):
             "attio",
             "slack",
             "elevenlabs",
+            "inworld",
+            "minimax",
+            "vapi",
+            "retell",
+            "heygen",
             "stripe",
+            "n8n",
+            "make",
+            "discord",
+            "webhook",
         }:
             raise serializers.ValidationError("Unsupported provider.")
         return value
@@ -702,7 +743,41 @@ class IntegrationSerializer(serializers.ModelSerializer):
     def validate_credentials(self, value):
         if not isinstance(value, dict) or len(json.dumps(value)) > 10000:
             raise serializers.ValidationError("Credentials must be a small JSON object.")
+        if "authorization" in value and (
+            not isinstance(value["authorization"], str)
+            or "\r" in value["authorization"]
+            or "\n" in value["authorization"]
+        ):
+            raise serializers.ValidationError("Authorization must be a single header value.")
+        if "webhook_url" in value and value["webhook_url"]:
+            from apps.channels.transport import ProviderError
+            from apps.public_api.outbound import endpoint_parts
+
+            try:
+                endpoint_parts(value["webhook_url"])
+            except ProviderError:
+                raise serializers.ValidationError(
+                    "Use a complete HTTPS webhook URL without credentials or fragments."
+                ) from None
         return json.dumps(value)
+
+    def validate_options(self, value):
+        if not isinstance(value, dict) or len(json.dumps(value)) > 10000:
+            raise serializers.ValidationError("Options must be a small JSON object.")
+        if set(value) & {
+            "api_key",
+            "access_token",
+            "refresh_token",
+            "client_secret",
+            "bot_token",
+            "secret_key",
+            "webhook_url",
+            "authorization",
+            "webhook_secret",
+            "password",
+        }:
+            raise serializers.ValidationError("Store secrets in credentials, not public options.")
+        return value
 
     class Meta:
         model = IntegrationConfig
@@ -747,11 +822,25 @@ class IntegrationList(generics.ListCreateAPIView):
             .filter(provider=data["provider"])
             .first()
         )
+        if existing and "credentials" in defaults:
+            defaults["credentials"] = json.dumps(
+                {**json.loads(existing.credentials), **json.loads(defaults["credentials"])}
+            )
+        if existing and "options" in defaults:
+            defaults["options"] = {**existing.options, **defaults["options"]}
         if not existing and "credentials" not in defaults and not data.get("is_test"):
             raise serializers.ValidationError("Enter the provider credentials.")
         if "credentials" in defaults or data.get("is_test"):
             # Fresh credentials clear a reconnect flag; saving options alone does not.
             defaults["status"] = "active"
+        if data["provider"] in {"n8n", "make", "discord", "webhook"} and not data.get(
+            "is_test", existing.is_test if existing else False
+        ):
+            configured = json.loads(
+                defaults.get("credentials", existing.credentials if existing else "{}")
+            )
+            if not configured.get("webhook_url"):
+                raise serializers.ValidationError("Enter the webhook URL.")
         item, _ = IntegrationConfig.objects.for_workspace(member.workspace_id).update_or_create(
             workspace=member.workspace,
             provider=data["provider"],
@@ -787,7 +876,16 @@ class SyncLeadView(APIView):
         integration = get_object_or_404(
             IntegrationConfig.objects.for_workspace(workspace_id), provider=provider, enabled=True
         )
-        if provider not in {"airtable", "notion", "gohighlevel", "attio"}:
+        if provider not in {
+            "airtable",
+            "notion",
+            "gohighlevel",
+            "attio",
+            "google_sheets",
+            "mailerlite",
+            "klaviyo",
+            "systeme_io",
+        }:
             raise serializers.ValidationError("Choose a CRM integration.")
         job = IntegrationJob.objects.for_workspace(workspace_id).create(
             workspace_id=workspace_id,

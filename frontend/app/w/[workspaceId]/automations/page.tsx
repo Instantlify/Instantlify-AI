@@ -83,6 +83,7 @@ export default function AutomationsPage() {
   const [builderMode, setBuilderMode] = useState<"simple" | null>(null);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const createMenuRef = useRef<HTMLDivElement>(null);
+  const importFile = useRef<HTMLInputElement>(null);
   const feedback = useFeedback();
 
   useEffect(() => {
@@ -199,6 +200,34 @@ export default function AutomationsPage() {
     <div className="automations-page-container">
       {/* Page Header with List vs Templates Toggle */}
       <div className="automations-header-row">
+        <input
+          ref={importFile}
+          hidden
+          type="file"
+          accept=".json,application/json"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (!file) return;
+            void feedback.run(async () => {
+              if (file.size > 200000)
+                throw new Error("Template files must be under 200 KB.");
+              const created = await api<Automation>(
+                `${prefix}/automations/import/`,
+                "POST",
+                { template: await file.text() },
+              );
+              router.push(`/w/${workspace.id}/automations/${created.id}`);
+            });
+          }}
+        />
+        <button
+          className="button secondary small"
+          disabled={feedback.busy}
+          onClick={() => importFile.current?.click()}
+        >
+          Import JSON template
+        </button>
         <div>
           <h1 className="page-heading-title">
             {tab === "list" ? "Automations" : "Templates"}

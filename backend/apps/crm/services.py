@@ -40,6 +40,9 @@ def receive(event, payload):
         .first()
     )
     if not identity:
+        from apps.tenants.models import Workspace
+
+        Workspace.objects.select_for_update().get(pk=event.workspace_id)
         # Serialize first-contact creation on the connection, avoiding orphan leads.
         type(event.connection).objects.for_workspace(event.workspace_id).select_for_update().get(
             pk=event.connection_id
@@ -50,6 +53,9 @@ def receive(event, payload):
             .first()
         )
         if not identity:
+            from apps.billing.gating import check_within_limit
+
+            check_within_limit(event.workspace_id, "max_contacts")
             lead = Lead.objects.for_workspace(event.workspace_id).create(
                 workspace_id=event.workspace_id,
                 name=(payload.get("sender_name") or payload["sender_id"])[:150],
@@ -193,18 +199,34 @@ def handle_inbound(msg, lead, payload):
 
 def window_closed(connection, conversation):
     """True when the provider's customer-service window no longer permits a free-form DM."""
-    return connection.provider in WINDOWED_PROVIDERS and (
+    closed = connection.provider in WINDOWED_PROVIDERS and (
         not conversation.last_inbound_at
         or conversation.last_inbound_at < timezone.now() - timedelta(hours=24)
     )
+    if closed or connection.provider not in {"instagram", "messenger"}:
+        return closed
+    inbound = Message.objects.for_workspace(conversation.workspace_id).filter(
+        conversation=conversation, direction="inbound"
+    )
+    # Public comments do not open the ordinary Meta DM window. Older imported
+    # threads without message history retain their recorded window timestamp.
+    if (
+        inbound.exclude(kind__in=["comment", "live_comment"])
+        .filter(created_at__gte=timezone.now() - timedelta(hours=24))
+        .exists()
+    ):
+        return False
+    return inbound.exists()
 
 
 def private_reply_sent(workspace_id, connection, comment_id, *, exclude=None, in_flight=False):
     """A private reply already exists for this comment. Failed attempts never reached
     the provider, so they do not consume the allowance. With `in_flight`, only attempts
     handed to the provider count, which is what matters at send time."""
-    sent = Delivery.objects.for_workspace(workspace_id).filter(
-        connection=connection, recipient_id=comment_id
+    sent = (
+        Delivery.objects.for_workspace(workspace_id)
+        .filter(connection=connection, recipient_id=comment_id)
+        .exclude(message__kind="public_reply")
     )
     sent = (
         sent.filter(status__in=["sending", "sent", "unknown"])
@@ -226,7 +248,9 @@ def queue_reply(
     buttons=None,
     private_reply_id=None,
     media_url=None,
+    media_type="voice",
     automation_id=None,
+    unless_clicked=None,
 ):
     from apps.platform_ops.security import assert_enabled
 
@@ -267,8 +291,20 @@ def queue_reply(
     }
     if automation_id:
         payload["automation_id"] = str(automation_id)
+    if unless_clicked:
+        payload["unless_clicked"] = unless_clicked
     if media_url:
-        payload.update(kind="voice", media_url=media_url)
+        if media_type != "voice":
+            from apps.channels.media import MEDIA_CHANNELS, validate_media
+
+            validate_media(media_url, media_type)
+            if connection.provider not in MEDIA_CHANNELS or private_reply_id:
+                raise ValidationError("This channel cannot send this media message.")
+        payload.update(
+            kind="voice" if media_type == "voice" else "media",
+            media_url=media_url,
+            media_type=media_type,
+        )
     item = Delivery.objects.for_workspace(conversation.workspace_id).create(
         workspace_id=conversation.workspace_id,
         connection=connection,
@@ -283,7 +319,8 @@ def queue_reply(
         direction="outbound",
         text=text[:2000],
         delivery=item,
-        kind="voice" if media_url else "text",
+        kind=media_type if media_url else "text",
+        attachments=json.dumps([{"type": media_type, "url": media_url}]) if media_url else "[]",
         author=actor,
     )
     conversation.last_outbound_at = when

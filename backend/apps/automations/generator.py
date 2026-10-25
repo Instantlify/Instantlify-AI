@@ -20,20 +20,50 @@ triggers: 1-3 items {"kind", "keyword", "channel"}.
   Instagram only. keyword: one short word the customer types, e.g. "SEND".
 nodes: {"id": short slug, "data": {...}} where data.kind is one of
   "send_message" {"text"} - text up to 2000 characters;
+  "follow_gate" {"text", "button_title", "expected_reply"} - Instagram only; prompts for a private response, then verifies the follow with Instagram before continuing;
+  "send_reminder" {"text", "source_node"} - after a delay, follow up only if the earlier source send_buttons message with track_clicks:true has not been clicked;
+  "ai_generate" {"prompt", "variable"} - generates text into a saved variable, does not send it automatically;
+  "ai_extract" {"prompt", "fields": ["field_name"], "variable"} - extracts named scalar fields into flow variables;
+  "ai_condition" {"prompt", "variable"} - evaluates instructions and branches using true/false edges;
+  "send_media" {"media_type": "image"|"video"|"audio", "media_url": "https://..."} - a direct public file URL provided by the user; requires a private reply first for comment triggers;
   "send_buttons" {"text", "buttons": [{"type": "web_url", "url": "https://...",
     "title": up to 20 characters}]} - 1-3 buttons;
   "wait" {"variable"} - pauses until the customer replies, saved as {{variable}};
   "condition" {"variable", "equals"} - case-insensitive equality check;
   "delay" {"seconds"} - 1-86400;
+  "set_field" {"field", "value"} - a contact field name up to 60 characters and value up to 500;
+  "set_stage" {"stage"} - new, qualified, interested, booked, won or lost;
+  "randomizer" {"percentage"} - weighted split, first path 0-100 percent, with true and false edges;
   "end" {} - finishes the flow.
-edges: {"source", "target"}; a condition has exactly two edges with "sourceHandle"
+edges: {"source", "target"}; a condition, ai_condition or randomizer has exactly two edges with "sourceHandle"
   "true" and "false". Every node except end has exactly one outgoing edge, every node
   is reachable from start, and there are no cycles. Use {{name}} placeholders only for
   variables saved by an earlier wait node. When a link is needed but not given, use
   https://example.com and say so in the message text.
 """
 
-NODE_FIELDS = {"kind", "text", "buttons", "seconds", "variable", "equals"}
+NODE_FIELDS = {
+    "button_title",
+    "expected_reply",
+    "track_clicks",
+    "source_node",
+    "prompt",
+    "fields",
+    "ai_provider",
+    "ai_model",
+    "media_type",
+    "media_url",
+    "kind",
+    "text",
+    "buttons",
+    "seconds",
+    "variable",
+    "equals",
+    "field",
+    "value",
+    "stage",
+    "percentage",
+}
 
 
 def _json_object(text):

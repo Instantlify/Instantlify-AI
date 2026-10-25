@@ -28,6 +28,8 @@ class AgentConfig(TenantModel):
     output_cost_per_million = models.DecimalField(max_digits=12, decimal_places=6, default=0)
     # Sales stage machine: fields the agent must collect before it may pitch.
     qualifying_fields = models.JSONField(default=list)
+    segmentation_enabled = models.BooleanField(default=True)
+    segmentation_prompt = models.TextField(blank=True, default="")
     # Triage: deterministic keyword handoff plus LLM sentiment/urgency classification.
     triage_enabled = models.BooleanField(default=True)
     handoff_keywords = models.JSONField(default=list)
@@ -46,6 +48,7 @@ class AgentConfig(TenantModel):
 class KnowledgeDocument(TenantModel):
     title = models.CharField(max_length=200)
     source = EncryptedTextField()
+    source_revision = models.PositiveIntegerField(default=0)
     file_type = models.CharField(max_length=10, default="text")
     status = models.CharField(max_length=20, default="pending")
     error_code = models.CharField(max_length=50, blank=True)

@@ -40,7 +40,12 @@ export default function DeepLinksPage() {
   useEffect(() => {
     const controller = new AbortController();
     queueMicrotask(() =>
-      api<DeepLink[]>(`${prefix}/deeplinks/`, "GET", undefined, controller.signal)
+      api<DeepLink[]>(
+        `${prefix}/deeplinks/`,
+        "GET",
+        undefined,
+        controller.signal,
+      )
         .then(setLinks)
         .catch((err) => {
           if (!controller.signal.aborted) feedback.setError(message(err));
@@ -58,11 +63,22 @@ export default function DeepLinksPage() {
   const [platform, setPlatform] = useState<DeepLink["platform"]>("instagram");
   const [target, setTarget] = useState("");
   const [customCode, setCustomCode] = useState("");
+  const [campaign, setCampaign] = useState("");
+  const [source, setSource] = useState("");
+  const [medium, setMedium] = useState("");
+  const [stats, setStats] = useState<{
+    clicks: number;
+    form_submissions: number;
+    daily: { day: string; clicks: number }[];
+  } | null>(null);
 
   function save(next: DeepLink[]) {
     setLinks(next);
     try {
-      localStorage.setItem(`nemio:deeplinks:${workspace.id}`, JSON.stringify(next));
+      localStorage.setItem(
+        `nemio:deeplinks:${workspace.id}`,
+        JSON.stringify(next),
+      );
     } catch {
       // storage quota or disabled
     }
@@ -70,7 +86,9 @@ export default function DeepLinksPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    const code = (customCode.trim() || title.toLowerCase().replace(/[^a-z0-9]+/g, "-"))
+    const code = (
+      customCode.trim() || title.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+    )
       .replace(/^-+|-+$/g, "")
       .slice(0, 40);
     const done = await feedback.run(async () => {
@@ -79,6 +97,9 @@ export default function DeepLinksPage() {
         platform,
         target: target.trim(),
         code,
+        campaign,
+        source,
+        medium,
       });
       setLinks((list) => [created, ...list]);
       return true;
@@ -88,6 +109,9 @@ export default function DeepLinksPage() {
       setTitle("");
       setTarget("");
       setCustomCode("");
+      setCampaign("");
+      setSource("");
+      setMedium("");
     }
   }
 
@@ -99,15 +123,24 @@ export default function DeepLinksPage() {
 
   async function toggleActive(link: DeepLink) {
     await feedback.run(async () => {
-      const updated = await api<DeepLink>(`${prefix}/deeplinks/${link.id}/`, "PATCH", {
-        active: !link.active,
-      });
-      setLinks((list) => list.map((item) => (item.id === link.id ? updated : item)));
+      const updated = await api<DeepLink>(
+        `${prefix}/deeplinks/${link.id}/`,
+        "PATCH",
+        {
+          active: !link.active,
+        },
+      );
+      setLinks((list) =>
+        list.map((item) => (item.id === link.id ? updated : item)),
+      );
     });
   }
 
   async function remove(link: DeepLink) {
-    if (!window.confirm(`Delete "${link.title}"? Its short link stops working.`)) return;
+    if (
+      !window.confirm(`Delete "${link.title}"? Its short link stops working.`)
+    )
+      return;
     await feedback.run(async () => {
       await api(`${prefix}/deeplinks/${link.id}/`, "DELETE");
       setLinks((list) => list.filter((item) => item.id !== link.id));
@@ -117,11 +150,14 @@ export default function DeepLinksPage() {
   return (
     <>
       <PageHeading
-        eyebrow="Smart Deep Links"
-        title="Bypass In-App Browsers"
-        text="Generate deep links that open natively inside Instagram, WhatsApp, or YouTube instead of getting trapped in slow webview browsers."
+        eyebrow="Apps / Tracking links"
+        title="Know which links bring people in"
+        text="Share short links with campaign tags and daily click counts. App destinations open according to the visitor’s device and browser settings."
         action={
-          <button className="button primary small" onClick={() => setCreating(true)}>
+          <button
+            className="button primary small"
+            onClick={() => setCreating(true)}
+          >
             <Plus size={15} /> Create deep link
           </button>
         }
@@ -132,46 +168,85 @@ export default function DeepLinksPage() {
       <div className="stats-grid" style={{ marginBottom: "20px" }}>
         <article className="stat-card">
           <div className="stat-top">
-            <span className="stat-icon"><Smartphone size={18} /></span>
+            <span className="stat-icon">
+              <Smartphone size={18} />
+            </span>
             <span>Total smart links</span>
           </div>
           <strong>{links.length}</strong>
-          <p>Routing to native mobile apps</p>
+          <p>Active and paused links</p>
         </article>
         <article className="stat-card">
           <div className="stat-top">
-            <span className="stat-icon"><Sparkles size={18} /></span>
-            <span>Total direct hand-offs</span>
+            <span className="stat-icon">
+              <Sparkles size={18} />
+            </span>
+            <span>Total link clicks</span>
           </div>
           <strong>{links.reduce((acc, l) => acc + l.clicks, 0)}</strong>
-          <p>Users diverted from in-app webview</p>
+          <p>Redirects across your shared links</p>
         </article>
       </div>
 
-      <Panel title="Active Smart Links" aside={`${links.length} links configured`}>
+      <Panel
+        title="Active Smart Links"
+        aside={`${links.length} links configured`}
+      >
         {loading ? (
           <p className="loading-text">Loading links…</p>
         ) : links.length > 0 ? (
-          <Table head={["Link Details", "Platform Target", "Clicks", "Status", "Actions"]}>
+          <Table
+            head={[
+              "Link Details",
+              "Platform Target",
+              "Clicks",
+              "Status",
+              "Actions",
+            ]}
+          >
             {links.map((link) => {
               const fullUrl = shortUrl(link);
               return (
                 <tr key={link.id}>
                   <td>
                     <strong>{link.title}</strong>
-                    <div style={{ fontSize: "12px", color: "var(--brand-muted)" }}>
+                    <div
+                      style={{ fontSize: "12px", color: "var(--brand-muted)" }}
+                    >
                       <code>{fullUrl}</code>
                     </div>
                   </td>
                   <td>
                     <Pill tone="neutral">
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                        {isBrand(link.platform) && <BrandIcon name={link.platform} size={13} />}
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        {isBrand(link.platform) && (
+                          <BrandIcon name={link.platform} size={13} />
+                        )}
                         {link.platform.toUpperCase()}
                       </span>
                     </Pill>
                   </td>
-                  <td className="num">{link.clicks}</td>
+                  <td className="num">
+                    <button
+                      className="text-button"
+                      onClick={() =>
+                        void feedback.run(async () =>
+                          setStats(
+                            await api(`${prefix}/deeplinks/${link.id}/stats/`),
+                          ),
+                        )
+                      }
+                    >
+                      {link.clicks} · View activity
+                    </button>
+                    {link.campaign && <small>{link.campaign}</small>}
+                  </td>
                   <td>
                     <button
                       className={`pill ${link.active ? "pill-good" : "pill-warn"}`}
@@ -182,13 +257,23 @@ export default function DeepLinksPage() {
                     </button>
                   </td>
                   <td>
-                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "6px",
+                        alignItems: "center",
+                      }}
+                    >
                       <button
                         className="button secondary small"
                         onClick={() => copyLink(link)}
                         title="Copy Smart Link"
                       >
-                        {copiedId === link.id ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+                        {copiedId === link.id ? (
+                          <Check size={14} color="#10b981" />
+                        ) : (
+                          <Copy size={14} />
+                        )}
                         {copiedId === link.id ? "Copied" : "Copy"}
                       </button>
                       <button
@@ -221,13 +306,21 @@ export default function DeepLinksPage() {
             })}
           </Table>
         ) : (
-          <Empty>No smart links created yet. Click above to generate your first link.</Empty>
+          <Empty>
+            No smart links created yet. Click above to generate your first link.
+          </Empty>
         )}
       </Panel>
 
       {creating && (
-        <Modal title="Create Smart Deep Link" onClose={() => setCreating(false)}>
-          <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        <Modal
+          title="Create Smart Deep Link"
+          onClose={() => setCreating(false)}
+        >
+          <form
+            onSubmit={handleCreate}
+            style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+          >
             <label>
               Link Title
               <input
@@ -241,7 +334,9 @@ export default function DeepLinksPage() {
               App Target
               <select
                 value={platform}
-                onChange={(e) => setPlatform(e.target.value as DeepLink["platform"])}
+                onChange={(e) =>
+                  setPlatform(e.target.value as DeepLink["platform"])
+                }
               >
                 <option value="instagram">Instagram (App Direct)</option>
                 <option value="whatsapp">WhatsApp (Direct Chat)</option>
@@ -251,7 +346,7 @@ export default function DeepLinksPage() {
               </select>
             </label>
             <label>
-              Destination URL or Mobile Deep Link
+              Destination HTTPS URL
               <input
                 required
                 type="url"
@@ -267,6 +362,33 @@ export default function DeepLinksPage() {
               />
             </label>
             <label>
+              Campaign (utm_campaign)
+              <input
+                maxLength={100}
+                value={campaign}
+                onChange={(e) => setCampaign(e.target.value)}
+                placeholder="october-launch"
+              />
+            </label>
+            <label>
+              Source (utm_source)
+              <input
+                maxLength={100}
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                placeholder="instagram"
+              />
+            </label>
+            <label>
+              Medium (utm_medium)
+              <input
+                maxLength={100}
+                value={medium}
+                onChange={(e) => setMedium(e.target.value)}
+                placeholder="dm"
+              />
+            </label>
+            <label>
               Custom Slug (optional)
               <input
                 placeholder="e.g. vip-chat"
@@ -274,8 +396,19 @@ export default function DeepLinksPage() {
                 onChange={(e) => setCustomCode(e.target.value)}
               />
             </label>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" }}>
-              <button type="button" className="button secondary" onClick={() => setCreating(false)}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+                marginTop: "10px",
+              }}
+            >
+              <button
+                type="button"
+                className="button secondary"
+                onClick={() => setCreating(false)}
+              >
                 Cancel
               </button>
               <button type="submit" className="button primary">
@@ -287,17 +420,47 @@ export default function DeepLinksPage() {
       )}
 
       {qrModal && (
-        <Modal title={`QR Code: ${qrModal.title}`} onClose={() => setQrModal(null)}>
+        <Modal
+          title={`QR Code: ${qrModal.title}`}
+          onClose={() => setQrModal(null)}
+        >
           <div style={{ textAlign: "center", padding: "16px 0" }}>
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shortUrl(qrModal))}`}
               alt="Deep Link QR Code"
-              style={{ width: "200px", height: "200px", borderRadius: "12px", border: "1px solid var(--brand-line)" }}
+              style={{
+                width: "200px",
+                height: "200px",
+                borderRadius: "12px",
+                border: "1px solid var(--brand-line)",
+              }}
             />
             <p style={{ marginTop: "12px", fontSize: "13px" }}>
-              Scan this code to launch the native app directly on iOS or Android.
+              Scan this code to open the destination link on your device.
             </p>
           </div>
+        </Modal>
+      )}
+      {stats && (
+        <Modal title="Link activity" onClose={() => setStats(null)}>
+          <p>
+            {stats.clicks} clicks · {stats.form_submissions} attributed form
+            submissions
+          </p>
+          <p className="muted-text">
+            To attribute a form submission, include ?ref=your-link-code in the
+            public form URL. Counts are aggregate; no visitor IP addresses are
+            stored.
+          </p>
+          <Table head={["Day", "Clicks"]}>
+            {stats.daily.map((row) => (
+              <tr key={row.day}>
+                <td>{row.day}</td>
+                <td>{row.clicks}</td>
+              </tr>
+            ))}
+          </Table>
+          {!stats.daily.length && <p>No daily activity yet.</p>}
         </Modal>
       )}
     </>

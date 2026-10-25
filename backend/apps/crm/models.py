@@ -118,3 +118,59 @@ class IntegrationJob(TenantModel):
                 fields=["workspace", "idempotency_key"], name="unique_integration_job"
             )
         ]
+
+
+class Campaign(TenantModel):
+    name = models.CharField(max_length=100, default="New campaign")
+    connection = models.ForeignKey(
+        "channels.ChannelConnection", null=True, blank=True, on_delete=models.SET_NULL
+    )
+    text = EncryptedTextField(blank=True, default="")
+    buttons = models.JSONField(default=list)
+    media_url = models.URLField(max_length=2000, blank=True)
+    media_type = models.CharField(max_length=10, default="image")
+    tag = models.CharField(max_length=40, blank=True)
+    audience = models.JSONField(default=dict)
+    status = models.CharField(max_length=20, default="draft")
+    scheduled_at = models.DateTimeField(null=True, blank=True)
+    launched_at = models.DateTimeField(null=True)
+    finished_at = models.DateTimeField(null=True)
+    expected_count = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+
+class ContactSegment(TenantModel):
+    name = models.CharField(max_length=32)
+    prompt = EncryptedTextField()
+    enabled = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["workspace", "name"], name="unique_contact_segment")
+        ]
+
+
+class CampaignRecipient(TenantModel):
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name="recipients")
+    conversation = models.ForeignKey(Conversation, null=True, on_delete=models.SET_NULL)
+    lead = models.ForeignKey(Lead, null=True, on_delete=models.SET_NULL)
+    text_delivery = models.ForeignKey(
+        "channels.Delivery", null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    media_delivery = models.ForeignKey(
+        "channels.Delivery", null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    status = models.CharField(max_length=20, default="pending")
+    error_code = models.CharField(max_length=60, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["campaign", "conversation"], name="one_campaign_recipient"
+            )
+        ]

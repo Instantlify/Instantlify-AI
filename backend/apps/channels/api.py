@@ -15,8 +15,30 @@ from apps.tenants.models import Workspace
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
 
-from .adapters import PROVIDERS
+from .adapters import PROVIDERS, IntegrationUnavailable, adapter_for
 from .models import ChannelConnection, Delivery, WebhookEvent
+from .transport import ProviderError
+
+
+class AccountPostsView(APIView):
+    def get(self, request, workspace_id, pk):
+        workspace_membership(request, workspace_id, ["owner", "admin"])
+        connection = get_object_or_404(
+            ChannelConnection.objects.for_workspace(workspace_id),
+            pk=pk,
+            provider__in=["instagram", "messenger"],
+            status="active",
+            expires_at__gt=timezone.now(),
+        )
+        from apps.billing.gating import check_connection_unlocked
+
+        check_connection_unlocked(connection)
+        try:
+            return Response({"results": adapter_for(connection).recent_posts()})
+        except (IntegrationUnavailable, ProviderError):
+            raise serializers.ValidationError(
+                "Posts could not be loaded. Check this account's connection and permissions."
+            ) from None
 
 
 class ConnectSerializer(serializers.Serializer):
@@ -91,6 +113,13 @@ class SimulateView(APIView):
         payload = {"text": text, "sender_id": sender, "kind": kind}
         if kind in {"comment", "live_comment"}:
             payload["comment_id"] = "test-comment-" + secrets.token_hex(8)
+            post_id = request.data.get("post_id", "")
+            if post_id:
+                from .commenting import POST_ID
+
+                if not isinstance(post_id, str) or not POST_ID.fullmatch(post_id):
+                    raise serializers.ValidationError("Provide a valid post ID.")
+                payload["post_id"] = post_id
         item = WebhookEvent.objects.for_workspace(workspace_id).create(
             workspace_id=workspace_id,
             connection=connection,

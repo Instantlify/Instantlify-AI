@@ -37,6 +37,10 @@ const CRM_SYNC_TARGETS: Record<string, string> = {
   notion: "Notion",
   gohighlevel: "GoHighLevel",
   attio: "Attio",
+  google_sheets: "Google Sheets",
+  mailerlite: "MailerLite",
+  klaviyo: "Klaviyo",
+  systeme_io: "Systeme.io",
 };
 
 export function relativeTime(iso: string | null | undefined, now = Date.now()) {

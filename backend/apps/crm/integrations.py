@@ -1,6 +1,8 @@
+import base64
 import json
 from abc import ABC, abstractmethod
 from datetime import timedelta
+from email.message import EmailMessage
 from urllib.parse import quote
 
 from django.conf import settings
@@ -29,7 +31,7 @@ def credentials_for(config):
     credentials = json.loads(config.credentials)
     expiry = parse_datetime(credentials.get("expires_at", ""))
     if (
-        config.provider == "google_calendar"
+        config.provider in {"google_calendar", "google_sheets", "gmail"}
         and expiry
         and expiry <= timezone.now() + timedelta(minutes=5)
     ):
@@ -170,6 +172,61 @@ class CRMIntegration(IntegrationAdapter):
         token = credentials.get("api_key") or credentials.get("access_token", "")
         headers = {"Authorization": f"Bearer {token}"}
         provider = self.config.provider
+        if provider == "outlook" and operation == "send_email":
+            from django.core.validators import validate_email
+
+            recipient = str(payload.get("to") or payload.get("email") or "")
+            validate_email(recipient)
+            result = request(
+                "POST",
+                "https://graph.microsoft.com/v1.0/me/sendMail",
+                headers=headers,
+                side_effect=True,
+                empty_success=True,
+                json={
+                    "message": {
+                        "subject": str(payload.get("subject") or "Message from our team")[:200],
+                        "body": {
+                            "contentType": "Text",
+                            "content": str(payload.get("text") or "")[:20000],
+                        },
+                        "toRecipients": [{"emailAddress": {"address": recipient}}],
+                    },
+                    "saveToSentItems": True,
+                },
+            )
+            return {"accepted": bool(result.get("accepted")), "operation": "send_email"}
+        if provider in {"n8n", "make", "discord", "webhook"} and operation == "webhook":
+            from apps.public_api.outbound import post_public_json
+
+            return post_public_json(
+                credentials.get("webhook_url", ""),
+                payload["request"],
+                authorization=credentials.get("authorization", ""),
+                delivery_id=idempotency_key,
+            )
+        if provider == "gmail" and operation == "send_email":
+            from django.core.validators import validate_email
+
+            recipient = str(payload.get("to") or payload.get("email") or "")
+            validate_email(recipient)
+            sender = str(options.get("sender_email") or "")
+            validate_email(sender)
+            message = EmailMessage()
+            message["From"] = sender
+            message["To"] = recipient
+            message["Subject"] = str(payload.get("subject") or "Message from our team")[:200]
+            message.set_content(str(payload.get("text") or "")[:20000])
+            body = request(
+                "POST",
+                "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+                side_effect=True,
+                headers=headers,
+                json={"raw": base64.urlsafe_b64encode(message.as_bytes()).decode()},
+            )
+            if not body.get("id"):
+                raise ProviderError("gmail_delivery_unknown")
+            return {"id": str(body["id"])}
         if provider == "slack" and operation == "notify":
             body = request(
                 "POST",
@@ -187,6 +244,116 @@ class CRMIntegration(IntegrationAdapter):
             return {"id": body["ts"]}
         if operation != "sync_lead":
             raise ProviderError("unsupported_integration_operation")
+        if provider == "systeme_io":
+            from django.core.validators import validate_email
+
+            email = str(payload.get("email") or "")
+            validate_email(email)
+            if not token:
+                raise ProviderError("integration_credentials_missing")
+            systeme_headers = {"X-API-Key": token}
+            existing = request(
+                "GET",
+                "https://api.systeme.io/api/contacts",
+                headers=systeme_headers,
+                params={"email": email, "limit": 10},
+            )
+            for contact in existing.get("items", []):
+                if str(contact.get("email", "")).casefold() == email.casefold() and contact.get(
+                    "id"
+                ):
+                    return {"id": str(contact["id"]), "existing": True}
+            result = request(
+                "POST",
+                "https://api.systeme.io/api/contacts",
+                headers=systeme_headers,
+                side_effect=True,
+                json={"email": email},
+            )
+            if not result.get("id"):
+                raise ProviderError("systeme_result_unknown")
+            return {"id": str(result["id"]), "existing": False}
+        if provider in {"mailerlite", "klaviyo"}:
+            from django.core.validators import validate_email
+
+            email = str(payload.get("email") or "")
+            validate_email(email)
+            if not token:
+                raise ProviderError("integration_credentials_missing")
+            name = str(payload.get("name") or "")[:150]
+            if provider == "mailerlite":
+                group = str(options.get("group_id") or "")
+                if not group.isdigit():
+                    raise ProviderError("mailerlite_group_missing")
+                result = request(
+                    "POST",
+                    "https://connect.mailerlite.com/api/subscribers",
+                    headers=headers,
+                    side_effect=True,
+                    json={
+                        "email": email,
+                        "fields": {"name": name},
+                        "groups": [group],
+                        "resubscribe": False,
+                    },
+                )
+                identifier = result.get("data", {}).get("id")
+                if not identifier:
+                    raise ProviderError("mailerlite_result_unknown")
+                return {"id": str(identifier), "status": result["data"].get("status", "")}
+            klaviyo_headers = {
+                "Authorization": f"Klaviyo-API-Key {token}",
+                "revision": "2026-10-15",
+            }
+            result = request(
+                "POST",
+                "https://a.klaviyo.com/api/profile-import",
+                headers=klaviyo_headers,
+                side_effect=True,
+                json={
+                    "data": {
+                        "type": "profile",
+                        "attributes": {
+                            "email": email,
+                            "first_name": name.split(" ")[0],
+                            "last_name": " ".join(name.split(" ")[1:]),
+                        },
+                    }
+                },
+            )
+            identifier = result.get("data", {}).get("id")
+            if not identifier:
+                raise ProviderError("klaviyo_result_unknown")
+            list_id = str(options.get("list_id") or "")
+            if not list_id:
+                raise ProviderError("klaviyo_list_missing")
+            request(
+                "POST",
+                f"https://a.klaviyo.com/api/lists/{quote(list_id, safe='')}/relationships/profiles",
+                headers=klaviyo_headers,
+                side_effect=True,
+                empty_success=True,
+                json={"data": [{"type": "profile", "id": str(identifier)}]},
+            )
+            # List membership does not grant or override marketing consent.
+            return {"id": str(identifier), "list_id": list_id, "marketing_consent_changed": False}
+        if provider == "google_sheets":
+            return request(
+                "POST",
+                f"https://sheets.googleapis.com/v4/spreadsheets/{quote(options['spreadsheet_id'], safe='')}/values/{quote(options.get('range') or 'Sheet1!A:C', safe='')}:append",
+                side_effect=True,
+                headers=headers,
+                params={"valueInputOption": "RAW", "insertDataOption": "INSERT_ROWS"},
+                json={
+                    "values": [
+                        [
+                            str(payload.get("name") or ""),
+                            str(payload.get("email") or ""),
+                            str(payload.get("stage") or "new"),
+                        ]
+                    ]
+                },
+            )
         if provider == "airtable":
             return request(
                 "POST",

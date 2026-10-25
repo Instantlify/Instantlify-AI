@@ -50,10 +50,17 @@ test("public homepage has metadata, live plan controls and signup navigation", a
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Turn enquiries into",
   );
+  // Keep the overview concise; the full catalogue remains accessible in the tour.
+  await expect(page.locator("main > section")).toHaveCount(7);
+  await expect(page.locator(".nm-demo")).toHaveCount(1);
+  await expect(
+    page.getByRole("link", { name: "Explore the product", exact: true }),
+  ).toHaveAttribute("href", /^\/features\/?$/);
   await expect(page.locator(".plan-price")).toContainText("$49");
   await page.getByRole("button", { name: "Annual", exact: true }).click();
   await expect(page.locator(".plan-price")).toContainText("$490");
   await expect(page.locator(".plan-trial")).toHaveText("10-day free trial");
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await page.screenshot({
     path: "test-results/nemio-home-desktop.png",
     fullPage: true,
@@ -79,6 +86,7 @@ test("mobile homepage fits and links to sign in", async ({ page }) => {
     .getByText("Do I need to know how to code?", { exact: true })
     .click();
   await expect(page.getByText(/No. Build automations visually/)).toBeVisible();
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await page.screenshot({
     path: "test-results/nemio-home-mobile.png",
     fullPage: true,
@@ -90,6 +98,34 @@ test("mobile homepage fits and links to sign in", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();
+});
+
+test("homepage motion can be paused and respects reduced motion", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const root = page.locator(".nm-home");
+  await expect(root).toHaveAttribute("data-motion", "running");
+  await expect(page.locator(".nm-benefit-visual")).toHaveCount(3);
+  await page
+    .getByRole("button", { name: "Pause animations", exact: true })
+    .click();
+  await expect(root).toHaveAttribute("data-motion", "paused");
+  await page
+    .getByRole("button", { name: "Play animations", exact: true })
+    .click();
+  await expect(root).toHaveAttribute("data-motion", "running");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(root).toHaveAttribute("data-motion", "paused");
+  await expect(page.getByText("Reduced motion", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  const animated = await root.evaluate(
+    (element) =>
+      element
+        .getAnimations({ subtree: true })
+        .filter((animation) => animation.playState === "running").length,
+  );
+  expect(animated).toBe(0);
 });
 
 test("pricing outage recovers on retry", async ({ page }) => {
@@ -134,7 +170,7 @@ test("conversation previews advance and switch without sending messages", async 
 test("integration search combines with category and handles empty results", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/features");
   const directory = page.locator("#integrations");
   await directory.getByRole("button", { name: "CRM", exact: true }).click();
   await expect(directory.locator("article")).toHaveCount(4);
@@ -158,7 +194,7 @@ test("mobile menu, audience examples and planned features are clear", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/features");
   await page.getByRole("button", { name: "Open navigation" }).click();
   await expect(
     page
@@ -193,7 +229,7 @@ test("mobile menu, audience examples and planned features are clear", async ({
 test("detailed channel previews, builder and agent controls work", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/features");
   const channels = page.getByRole("group", { name: "Channel details" });
   await channels.getByRole("button", { name: "WhatsApp", exact: true }).click();
   await expect(
@@ -232,7 +268,7 @@ test("detailed channel previews, builder and agent controls work", async ({
 test("feature catalogue filters current and planned capabilities", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/features");
   const catalogue = page.locator("#feature-catalog");
   expect(await catalogue.locator("article").count()).toBeGreaterThan(50);
   await catalogue.getByRole("button", { name: "Roadmap", exact: true }).click();
@@ -257,7 +293,7 @@ test("feature catalogue filters current and planned capabilities", async ({
 test("inbox preview keeps contact details together and voice visual is labelled", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/features");
   const inbox = page.locator("#inbox-crm");
   await inbox.getByRole("button", { name: /Alex Kim/ }).click();
   await expect(inbox.getByRole("heading", { name: "Alex Kim" })).toBeVisible();
@@ -287,7 +323,7 @@ test("rich product menu works on mobile without overflowing", async ({
     .locator(".nd-mega-menu")
     .getByRole("link", { name: /Flow builder/ })
     .click();
-  await expect(page).toHaveURL(/#flow-builder$/);
+  await expect(page).toHaveURL(/features\/#flow-builder$/);
   await expect(
     page.getByRole("button", { name: "Open navigation" }),
   ).toBeVisible();
