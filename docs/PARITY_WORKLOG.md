@@ -35,7 +35,13 @@ Verification at this checkpoint:
 - Campaign browser retry test passed. Landing mobile, pause/reduced-motion and demo controls
   passed on preview. Cold auth/onboarding compilation exceeded the development assertions;
   rerun those against the production build before release.
-- PostgreSQL full regression, final production build and affected plan tests are running.
+- Full PostgreSQL regression: 640 passed. The export registration fix is included.
+- Affected plan/CRM/channel/export checks: 42 passed. Later credit/segment/knowledge/avatar
+  checks: 27 passed; final credit-revision/segment/Snapchat checks: 7 passed.
+- Final production images built successfully, including frontend TypeScript validation.
+- Production browser regression is running; two timing failures during the simultaneous
+  image build need isolated reruns after deployment.
+- GitHub push is blocked by local Git authentication; the user is restoring the local login.
 - No commit or GitHub push has happened yet. Record final results before shipping.
 
 Known scope limits, which must not be represented as completed parity:
