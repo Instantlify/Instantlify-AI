@@ -32,17 +32,20 @@ Verification at this checkpoint:
 - Calls/voice-related inbound set: 23 passed. Knowledge/inbound set: 20 passed.
 - Recent segmentation/import/knowledge/credits focused set: 44 passed.
 - Full SQLite run: 628 passed, 9 skipped, one export registration failure; registration corrected.
-- Campaign browser retry test passed. Landing mobile, pause/reduced-motion and demo controls
-  passed on preview. Cold auth/onboarding compilation exceeded the development assertions;
-  rerun those against the production build before release.
+- Production browser regression: 39 passed initially; two navigation timing failures during
+  the image build and one textarea label selector failure. The three focused reruns passed
+  after deployment and the selector correction (42 scenarios passed across these runs).
 - Full PostgreSQL regression: 640 passed. The export registration fix is included.
 - Affected plan/CRM/channel/export checks: 42 passed. Later credit/segment/knowledge/avatar
   checks: 27 passed; final credit-revision/segment/Snapchat checks: 7 passed.
 - Final production images built successfully, including frontend TypeScript validation.
-- Production browser regression is running; two timing failures during the simultaneous
-  image build need isolated reruns after deployment.
-- GitHub push is blocked by local Git authentication; the user is restoring the local login.
-- No commit or GitHub push has happened yet. Record final results before shipping.
+- Final images deployed locally; migrations through agents 0010 and CRM 0007 applied.
+- Implementation is committed locally in 9cb437b; verification notes in 443e262. The local
+  origin/main reference contains these commits, but terminal fetch still cannot authenticate,
+  so remote publication has not been independently verified from this session.
+- Plan restrictions read the configured catalogue, including billing-period AI message caps,
+  feature flags, account/contact/seat limits and billing status for paid AI execution. The
+  current paid tiers share feature flags and differ in allowances; this is catalogue policy.
 
 Known scope limits, which must not be represented as completed parity:
 

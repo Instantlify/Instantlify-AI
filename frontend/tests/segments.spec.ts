@@ -42,7 +42,7 @@ test("CRM creates, edits and pauses a named AI segment", async ({ page }) => {
     .click();
   await dialog.getByLabel("Segment name", { exact: true }).fill("Enterprise");
   await dialog
-    .getByLabel("Segment prompt", { exact: true })
+    .getByRole("textbox", { name: "Segment prompt", exact: true })
     .fill("Asked for a team demo");
   await dialog
     .getByRole("button", { name: "Create segment", exact: true })
@@ -54,7 +54,7 @@ test("CRM creates, edits and pauses a named AI segment", async ({ page }) => {
     .getByRole("button", { name: "Edit Enterprise", exact: true })
     .click();
   await dialog
-    .getByLabel("Segment prompt", { exact: true })
+    .getByRole("textbox", { name: "Segment prompt", exact: true })
     .fill("Asked for enterprise pricing");
   await dialog
     .getByRole("button", { name: "Save segment", exact: true })
