@@ -146,34 +146,51 @@ class ImportKnowledgeView(APIView):
             raise serializers.ValidationError(
                 "Could not import this source. Check its credentials, permissions, destination and size; existing knowledge was preserved."
             ) from None
-        title = f"Connected source: {config.provider} ({config.pk})"
-        with transaction.atomic():
-            # Serialize refreshes of the same source. Never replace a document while
-            # its embedding worker is processing an older snapshot.
-            IntegrationConfig.objects.for_workspace(workspace_id).select_for_update().get(pk=pk)
-            document = (
-                KnowledgeDocument.objects.for_workspace(workspace_id)
-                .select_for_update()
-                .filter(title=title)
-                .first()
-            )
-            if document and document.status == "processing":
-                raise serializers.ValidationError(
-                    "This source is still indexing. Retry after it finishes."
-                )
-            if document:
-                if document.source != source or document.status == "failed":
-                    KnowledgeChunk.objects.for_workspace(workspace_id).filter(
-                        document=document
-                    ).delete()
-                    document.source, document.status, document.error_code = source, "pending", ""
-                    document.source_revision += 1
-                    document.save()
-            else:
-                document = KnowledgeDocument.objects.for_workspace(workspace_id).create(
-                    workspace_id=workspace_id, title=title, source=source
-                )
-            audit(member.workspace, request.user, "knowledge.source_imported", document.pk)
+        document = store_snapshot(config, source)
+        audit(member.workspace, request.user, "knowledge.source_imported", document.pk)
         return Response(
             {"id": document.pk, "status": document.status, "characters": len(source)}, status=202
         )
+
+
+def store_snapshot(config, source):
+    """One document per source; unchanged text never re-indexes or incurs another charge."""
+    title = f"Connected source: {config.provider} ({config.pk})"
+    with transaction.atomic():
+        current = (
+            IntegrationConfig.objects.for_workspace(config.workspace_id)
+            .select_for_update()
+            .get(pk=config.pk)
+        )
+        if (
+            not current.enabled
+            or current.status != "active"
+            or current.options != config.options
+            or current.is_test != config.is_test
+        ):
+            raise serializers.ValidationError(
+                "The integration changed during refresh. Retry with the current settings."
+            )
+        document = (
+            KnowledgeDocument.objects.for_workspace(config.workspace_id)
+            .select_for_update()
+            .filter(title=title)
+            .first()
+        )
+        if document and document.status == "processing":
+            raise serializers.ValidationError(
+                "This source is still indexing. Retry after it finishes."
+            )
+        if document:
+            if document.source != source or document.status == "failed":
+                KnowledgeChunk.objects.for_workspace(config.workspace_id).filter(
+                    document=document
+                ).delete()
+                document.source, document.status, document.error_code = source, "pending", ""
+                document.source_revision += 1
+                document.save()
+        else:
+            document = KnowledgeDocument.objects.for_workspace(config.workspace_id).create(
+                workspace_id=config.workspace_id, title=title, source=source
+            )
+    return document

@@ -1,5 +1,21 @@
 # Current continuation — 26 October 2026
 
+Automatic knowledge syncing continuation:
+
+- Added opt-in hourly, six-hourly and daily schedules for connected Sheets, Airtable,
+  Notion and Shopify sources. The existing agent dispatcher queues durable, leased refreshes.
+- Refreshes recheck feature entitlements, discard results after disabling or changing source
+  settings, preserve existing documents on failure, and recover interrupted workers.
+  Unchanged content avoids another embedding run; changed revisions use existing metering.
+- Integration cards expose schedule/frequency, pause, last successful source refresh, next
+  refresh and failures. Indexing progress remains in AI knowledge settings.
+- Focused backend regression: 39 passed. PostgreSQL source/sync/tenant isolation: 20 passed.
+  Browser enable/frequency/pause passed; existing integration configuration checks: 2 passed.
+- Migration agents 0011 applied locally; all four service images rebuilt and deployed.
+  The automatic-sync browser check passed again against localhost:3000.
+- This closes the manual-only knowledge-refresh gap in source. It does not complete the
+  remaining call-agent authoring, creator statistics, form-trigger or provider-live checks.
+
 Automation UI regression correction:
 
 - Three-dot controls now open Edit/Duplicate/Delete actions instead of navigating.
@@ -67,7 +83,7 @@ Known scope limits, which must not be represented as completed parity:
 - Live provider credentials/delivery and billing-provider callbacks are not verified by mocks.
 - Notavo, ZorroMail and Poppy have no native adapter and are marked coming soon.
 - Calls use saved provider agents; a transient/custom-agent authoring interface is absent.
-- Knowledge imports are explicit snapshots, not scheduled continuous synchronization.
+- Knowledge sources now support opt-in scheduled refreshes; live provider validation remains.
 - Creator-kit audience numbers are entered by the creator, not automatically verified live stats.
 - Tracking links use HTTPS redirects; automatic escape from every in-app browser is not implemented.
 - Form submissions capture CRM leads; arbitrary automation triggers on submission are not implemented.

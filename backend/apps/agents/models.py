@@ -67,6 +67,19 @@ class KnowledgeChunk(TenantModel):
         ]
 
 
+class KnowledgeSourceSync(TenantModel):
+    integration = models.OneToOneField("crm.IntegrationConfig", on_delete=models.CASCADE)
+    enabled = models.BooleanField(default=False)
+    interval_minutes = models.PositiveIntegerField(default=60)
+    next_run_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    status = models.CharField(max_length=20, default="idle")
+    lease_token = models.UUIDField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    last_checked_at = models.DateTimeField(null=True, blank=True)
+    last_success_at = models.DateTimeField(null=True, blank=True)
+    error_code = models.CharField(max_length=50, blank=True)
+
+
 class AgentSession(TenantModel):
     conversation = models.OneToOneField("crm.Conversation", on_delete=models.CASCADE)
     stage = models.CharField(max_length=30, default="qualify")

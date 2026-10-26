@@ -37,7 +37,13 @@ def process_data_operation(workspace_id, operation_id):
 def export_tables():
     """Every customer-bearing table, with credentials, hashes and provider tokens omitted.
     Adding a model that stores tenant data means adding it here (see the export test)."""
-    from apps.agents.models import AgentConfig, KnowledgeDocument, ToolCall, UsageRecord
+    from apps.agents.models import (
+        AgentConfig,
+        KnowledgeDocument,
+        KnowledgeSourceSync,
+        ToolCall,
+        UsageRecord,
+    )
     from apps.analytics.models import Experiment, FunnelEvent
     from apps.automations.models import (
         Automation,
@@ -274,6 +280,20 @@ def export_tables():
             ],
         ),
         "knowledge": (KnowledgeDocument, ["id", "title", "source", "file_type", "source_revision"]),
+        "knowledge_syncs": (
+            KnowledgeSourceSync,
+            [
+                "id",
+                "integration_id",
+                "enabled",
+                "interval_minutes",
+                "status",
+                "next_run_at",
+                "last_checked_at",
+                "last_success_at",
+                "error_code",
+            ],
+        ),
         "tool_calls": (ToolCall, ["id", "run_id", "name", "status", "created_at"]),
         "usage": (
             UsageRecord,

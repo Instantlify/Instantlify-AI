@@ -14,6 +14,9 @@ from .models import AgentConfig, AgentRun, KnowledgeDocument
 
 @shared_task(ignore_result=True)
 def dispatch_agents():
+    from .sync import dispatch_source_syncs
+
+    dispatch_source_syncs()
     for model, task in [(AgentRun, process_run), (KnowledgeDocument, ingest_document)]:
         for wid, pk in model.all_objects.filter(status="pending").values_list("workspace_id", "pk")[
             :50

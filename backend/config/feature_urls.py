@@ -2,6 +2,7 @@ from django.urls import path
 
 from apps.agents.preview import AgentPreviewView
 from apps.agents.sources import ImportKnowledgeView
+from apps.agents.sync import KnowledgeSyncView
 from apps.agents.views import (
     AgentAuditView,
     AgentModelsView,
@@ -167,6 +168,7 @@ urlpatterns = [
     path(P + "segments/", SegmentList.as_view()),
     path(P + "segments/<uuid:pk>/", SegmentDetail.as_view()),
     path(P + "integrations/<uuid:pk>/knowledge/", ImportKnowledgeView.as_view()),
+    path(P + "integrations/<uuid:pk>/knowledge/schedule/", KnowledgeSyncView.as_view()),
     path(P + "integrations/<uuid:pk>/contacts/", ImportFormContactsView.as_view()),
     path(P + "documents/<uuid:pk>/", DocumentDetail.as_view()),
     path(P + "billing/", BillingView.as_view()),

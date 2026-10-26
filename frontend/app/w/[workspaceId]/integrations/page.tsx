@@ -41,6 +41,7 @@ import {
   type WebhookSubscription,
 } from "@/lib/api";
 import { BrandIcon } from "@/lib/brand-icons";
+import { KnowledgeSyncSettings } from "@/components/knowledge-sync-settings";
 import { useSearchParams } from "next/navigation";
 import { useWorkspace } from "@/lib/workspace";
 import {
@@ -1133,6 +1134,20 @@ export default function IntegrationsPage() {
                         </button>
                       )}
                   </div>
+                  {connected &&
+                    ["google_sheets", "airtable", "notion", "shopify"].includes(
+                      app.providerKey || "",
+                    ) &&
+                    integrations
+                      .filter((item) => item.provider === app.providerKey)
+                      .map((integration) => (
+                        <KnowledgeSyncSettings
+                          key={integration.id}
+                          prefix={prefix}
+                          integrationId={integration.id}
+                          name={app.name}
+                        />
+                      ))}
                 </div>
               );
             })}
