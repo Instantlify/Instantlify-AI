@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('agents', '0009_agentconfig_segmentation_enabled_and_more'),
+        ("agents", "0009_agentconfig_segmentation_enabled_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='knowledgedocument',
-            name='source_revision',
+            model_name="knowledgedocument",
+            name="source_revision",
             field=models.PositiveIntegerField(default=0),
         ),
     ]

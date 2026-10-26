@@ -4,40 +4,39 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tools', '0002_deeplink_campaign_deeplink_medium_deeplink_source_and_more'),
+        ("tools", "0002_deeplink_campaign_deeplink_medium_deeplink_source_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='creatorkit',
-            name='live_connection_ids',
+            model_name="creatorkit",
+            name="live_connection_ids",
             field=models.JSONField(default=list),
         ),
         migrations.AddField(
-            model_name='creatorkit',
-            name='live_stats_checked_at',
+            model_name="creatorkit",
+            name="live_stats_checked_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='creatorkit',
-            name='live_stats_error',
+            model_name="creatorkit",
+            name="live_stats_error",
             field=models.CharField(blank=True, max_length=50),
         ),
         migrations.AddField(
-            model_name='creatorkit',
-            name='live_stats_next_at',
+            model_name="creatorkit",
+            name="live_stats_next_at",
             field=models.DateTimeField(blank=True, db_index=True, null=True),
         ),
         migrations.AddField(
-            model_name='creatorkit',
-            name='live_stats_started_at',
+            model_name="creatorkit",
+            name="live_stats_started_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='creatorkit',
-            name='live_stats_token',
+            model_name="creatorkit",
+            name="live_stats_token",
             field=models.UUIDField(blank=True, null=True),
         ),
     ]

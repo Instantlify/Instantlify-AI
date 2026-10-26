@@ -5,16 +5,20 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('crm', '0007_contactsegment'),
-        ('tools', '0004_formsubmission_action_errors_and_more'),
+        ("crm", "0007_contactsegment"),
+        ("tools", "0004_formsubmission_action_errors_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='integrationjob',
-            name='form_submission',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tools.formsubmission'),
+            model_name="integrationjob",
+            name="form_submission",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="tools.formsubmission",
+            ),
         ),
     ]

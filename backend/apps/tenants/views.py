@@ -138,7 +138,12 @@ class MeView(APIView):
         if email is not None:
             clean_email = str(email).strip().lower()
             if clean_email and clean_email != user.email:
-                if get_user_model().objects.filter(email__iexact=clean_email).exclude(pk=user.pk).exists():
+                if (
+                    get_user_model()
+                    .objects.filter(email__iexact=clean_email)
+                    .exclude(pk=user.pk)
+                    .exists()
+                ):
                     return Response({"detail": "This email address is already in use."}, status=400)
                 user.email = clean_email
                 user.username = clean_email
@@ -161,7 +166,6 @@ class PasswordChangeView(APIView):
         request.user.set_password(str(password))
         request.user.save()
         return Response({"detail": "Password updated successfully."})
-
 
 
 class JWTLoginView(TokenObtainPairView):

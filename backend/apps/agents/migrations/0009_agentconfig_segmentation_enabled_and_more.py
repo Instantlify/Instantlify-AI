@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('agents', '0008_agentconfig_providers'),
+        ("agents", "0008_agentconfig_providers"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='agentconfig',
-            name='segmentation_enabled',
+            model_name="agentconfig",
+            name="segmentation_enabled",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='agentconfig',
-            name='segmentation_prompt',
-            field=models.TextField(blank=True, default=''),
+            model_name="agentconfig",
+            name="segmentation_prompt",
+            field=models.TextField(blank=True, default=""),
         ),
     ]

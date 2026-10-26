@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tools', '0003_creatorkit_live_connection_ids_and_more'),
+        ("tools", "0003_creatorkit_live_connection_ids_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='formsubmission',
-            name='action_errors',
+            model_name="formsubmission",
+            name="action_errors",
             field=models.JSONField(default=list),
         ),
         migrations.AddField(
-            model_name='leadform',
-            name='submission_actions',
+            model_name="leadform",
+            name="submission_actions",
             field=models.JSONField(default=list),
         ),
     ]

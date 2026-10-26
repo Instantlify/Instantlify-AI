@@ -7,33 +7,47 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('agents', '0010_knowledgedocument_source_revision'),
-        ('crm', '0007_contactsegment'),
-        ('tenants', '0008_workspace_pinned_apps'),
+        ("agents", "0010_knowledgedocument_source_revision"),
+        ("crm", "0007_contactsegment"),
+        ("tenants", "0008_workspace_pinned_apps"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='KnowledgeSourceSync',
+            name="KnowledgeSourceSync",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('enabled', models.BooleanField(default=False)),
-                ('interval_minutes', models.PositiveIntegerField(default=60)),
-                ('next_run_at', models.DateTimeField(blank=True, db_index=True, null=True)),
-                ('status', models.CharField(default='idle', max_length=20)),
-                ('lease_token', models.UUIDField(blank=True, null=True)),
-                ('started_at', models.DateTimeField(blank=True, null=True)),
-                ('last_checked_at', models.DateTimeField(blank=True, null=True)),
-                ('last_success_at', models.DateTimeField(blank=True, null=True)),
-                ('error_code', models.CharField(blank=True, max_length=50)),
-                ('integration', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='crm.integrationconfig')),
-                ('workspace', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tenants.workspace')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("enabled", models.BooleanField(default=False)),
+                ("interval_minutes", models.PositiveIntegerField(default=60)),
+                ("next_run_at", models.DateTimeField(blank=True, db_index=True, null=True)),
+                ("status", models.CharField(default="idle", max_length=20)),
+                ("lease_token", models.UUIDField(blank=True, null=True)),
+                ("started_at", models.DateTimeField(blank=True, null=True)),
+                ("last_checked_at", models.DateTimeField(blank=True, null=True)),
+                ("last_success_at", models.DateTimeField(blank=True, null=True)),
+                ("error_code", models.CharField(blank=True, max_length=50)),
+                (
+                    "integration",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE, to="crm.integrationconfig"
+                    ),
+                ),
+                (
+                    "workspace",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="tenants.workspace"
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]
