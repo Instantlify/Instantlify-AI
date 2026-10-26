@@ -8,7 +8,9 @@ media, AI steps, follow checks, tracked reminders, history, forms, creator pages
 named CRM segments and additional provider adapters have since been implemented. Recent additions
 also include reusable call-agent authoring, scheduled knowledge refresh, connected Instagram
 follower statistics, native form-submission integration actions and the form.submitted event.
-Full parity is not claimed: live delivery/callback checks, further creator metrics, arbitrary
+Signed Stripe test callbacks for trial creation, update, plan switching/restoration and
+cancellation now pass through the local forwarder; no deployed backend is required.
+Full parity is not claimed: other live delivery/billing checks, further creator metrics, arbitrary
 conversation-canvas runs for form-only contacts, universal browser escape and the Notavo/Poppy
 adapters remain outstanding. Detailed supported scope is in the current worklog.
 The authorized BooSend account is a reference for read-only inspection. Nemio keeps its own

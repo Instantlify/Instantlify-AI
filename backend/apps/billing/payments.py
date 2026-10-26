@@ -157,6 +157,9 @@ def tenant_stripe_webhook(request, workspace_id):
         )
     except (ValueError, stripe.SignatureVerificationError):
         return HttpResponse(status=400)
+    from .stripe_data import stripe_data
+
+    event = stripe_data(event)
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
         if session.get("payment_status") == "paid":

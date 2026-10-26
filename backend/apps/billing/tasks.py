@@ -15,6 +15,7 @@ from apps.tenants.services import audit
 
 from .models import BillingAccount, BillingEvent, BillingJob, PlanPrice
 from .services import account_for, payments_url, return_url
+from .stripe_data import stripe_data
 
 MAX_REPORT_ATTEMPTS = 10
 # Subscription states in which metered usage is billable. Canceled, unpaid or
@@ -150,8 +151,8 @@ LIVE_STATUSES = {"active", "trialing", "past_due"}
 
 def plan_change_session(workspace_id, account, price, job):
     """A portal session opened on the confirm step for switching to ``price``."""
-    subscription = stripe.Subscription.retrieve(
-        account.subscription_id, api_key=settings.STRIPE_SECRET_KEY
+    subscription = stripe_data(
+        stripe.Subscription.retrieve(account.subscription_id, api_key=settings.STRIPE_SECRET_KEY)
     )
     items = []
     for item in subscription["items"]["data"]:
@@ -209,6 +210,7 @@ def invoice_subscription(invoice):
 def apply_subscription(account, obj):
     """Map a Stripe subscription object onto the account. Returns audit codes for
     anything an operator should look at."""
+    obj = stripe_data(obj)
     notes = []
     account.subscription_id = obj["id"]
     account.status = obj["status"]
@@ -308,6 +310,16 @@ def apply_event(workspace_id, payload, event_id):
             or account.status in CLOSED_STATUSES
         ):
             return "ignored"
+        if (
+            account.status == "trialing"
+            and event_type == "invoice.paid"
+            and obj.get("amount_due") == 0
+            and account.trial_ends_at
+            and account.trial_ends_at > timezone.now()
+        ):
+            # Trial creation and plan switches can produce paid zero-value
+            # invoices. Their delivery order must not end an ongoing trial.
+            return "ignored"
         account.status = "active" if event_type == "invoice.paid" else "past_due"
     account.last_event_created = payload["created"]
     account.save()
@@ -334,6 +346,7 @@ RECONCILED_FIELDS = [
 def reconcile_account(workspace_id, subscription):
     """Correct drift between the webhook-fed account and Stripe's current subscription
     (missed or out-of-order events). Only the tracked subscription is authoritative."""
+    subscription = stripe_data(subscription)
     with transaction.atomic():
         account = BillingAccount.objects.for_workspace(workspace_id).select_for_update().get()
         if account.subscription_id != subscription.get("id"):

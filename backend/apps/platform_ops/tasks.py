@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from apps.agents.models import UsageRecord
 from apps.billing.models import BillingAccount
+from apps.billing.stripe_data import stripe_data
 from apps.billing.tasks import reconcile_account
 
 from .metrics import monthly_amounts
@@ -25,6 +26,7 @@ def sync_subscriptions():
             subscription = stripe.Subscription.retrieve(
                 account.subscription_id, api_key=settings.STRIPE_SECRET_KEY
             )
+            subscription = stripe_data(subscription)
             if reconcile_account(account.workspace_id, subscription):
                 account.refresh_from_db()
             amounts = monthly_amounts(subscription)
@@ -156,6 +158,7 @@ def scan_billing(run_id):
                     api_key=settings.STRIPE_SECRET_KEY,
                     expand=["default_payment_method"],
                 )
+                subscription = stripe_data(subscription)
             except stripe.StripeError as exc:
                 stale.append(
                     {

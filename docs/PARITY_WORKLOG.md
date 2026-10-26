@@ -27,12 +27,22 @@ Remaining-feature implementation continuation (deployed locally):
   Worker reports the creator-statistics and knowledge-sync tasks registered; services healthy.
 - Requested official Notavo/Poppy API documentation and sandbox accounts for live provider
   and billing verification. Neither request is authorization to send real customer messages.
-- Stripe read-only account verification succeeded in test mode. A platform webhook signing
-  secret is configured; no workspace Stripe payment integrations or local BillingEvent records
-  were present. Its enabled Stripe test webhook targets nemio.ai at a path that differs from
-  this build's /webhooks/stripe/ route; a GET probe returned 200, not proof of a signed callback.
-  Requested a choice of temporary local forwarding or the deployed backend before changing
-  callback setup. No payments, endpoint updates or fabricated signed events were initiated.
+- The owner confirmed local-only operation and authorized Stripe test forwarding. Added a
+  secret-scrubbing Stripe CLI helper and opt-in isolated verification command. Genuine signed
+  callbacks now reconcile trial creation, update, Starter → Pro → Starter plan changes and
+  cancellation. Fixtures have no memberships/email recipients and are canceled afterward.
+  Existing workspaces/subscriptions and registered Stripe destinations were not modified.
+- Real callbacks revealed SDK objects no longer providing dict.get; recursively normalize
+  verified events, retrieved subscriptions and invoice previews before domain processing.
+  Protect ongoing trials against paid zero-value creation/plan-change invoices arriving late.
+  Real SDK signature/deduplication/object tests and invoice-order regressions cover the fixes.
+  See LIVE_PROVIDER_VERIFICATION.md for repeatable local setup and remaining sandbox scope.
+- Final billing continuation verification: 682 PostgreSQL tests passed; 122 focused billing,
+  payment, marketplace and operations checks passed before the final trial-order additions,
+  followed by 38 affected checks. Full backend Ruff lint/format and Django system/migration
+  checks pass. Formatted eight generated migrations and one existing view to satisfy the
+  repository-wide CI formatter. Final real Stripe run: eight events acknowledged with HTTP 200;
+  paid zero-value trial invoices ignored, subscription events processed, fixture canceled.
 
 Provider contracts used: [Vapi assistant creation](https://docs.vapi.ai/api-reference/assistants/create),
 [Retell agent creation](https://docs.retellai.com/api-references/create-agent),

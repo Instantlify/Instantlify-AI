@@ -59,6 +59,11 @@ All settings load from process environment. Docker Compose injects the ignored r
 
 Tenant-owned credentials (LLM keys, ElevenLabs, calendar, CRM, Slack and each workspace's Stripe keys for in-chat payments) are entered in the app and stored encrypted; they are never environment variables.
 
+For local Stripe subscription testing, use `tools/stripe_local.py` with the backend virtualenv.
+It reads the test key from the ignored root `.env`, configures the Stripe CLI listener secret
+without displaying it, and forwards to the local backend. Recreate the backend after the
+secret is updated. See [the local verification procedure](LIVE_PROVIDER_VERIFICATION.md#repeat-the-local-stripe-check).
+
 ## Production differences
 
 Production settings force secure cookies, HTTPS redirects, HSTS, `DEBUG=False`, and explicit allowed hosts. Staging keeps secure cookies/HTTPS but uses a shorter HSTS duration. The reverse proxy must be trusted, must overwrite `X-Forwarded-Proto`, and must be the only route to Django. Do not let arbitrary public clients reach a backend that trusts forwarding headers.

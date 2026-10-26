@@ -1,5 +1,11 @@
 # Implementation status
 
+**26 October 2026:** The sections below retain historical phase checkpoints. Current feature
+scope and verification are in [PARITY_WORKLOG.md](PARITY_WORKLOG.md). Local signed Stripe
+test callbacks now cover trial creation, update, plan change/restoration and cancellation;
+other Stripe sandbox scenarios remain separate checks in
+[LIVE_PROVIDER_VERIFICATION.md](LIVE_PROVIDER_VERIFICATION.md).
+
 Legend: ✅ done and covered by automated tests · ❌ remaining. "Done" means the code exists
 and passes the local suites (backend pytest: 386 passed, 9 skipped on 2026-09-18; Playwright: 8 of 8 before the
 gap-closing increment, not re-run since)

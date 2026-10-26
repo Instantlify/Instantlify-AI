@@ -27,6 +27,7 @@ from .models import (
     Plan,
 )
 from .services import account_for
+from .stripe_data import stripe_data
 
 
 @csrf_exempt
@@ -41,6 +42,7 @@ def stripe_webhook(request):
         )
     except (ValueError, stripe.SignatureVerificationError):
         return HttpResponse(status=400)
+    event = stripe_data(event)
     workspace_id = event_workspace(event)
     if workspace_id:
         with transaction.atomic():

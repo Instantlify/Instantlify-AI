@@ -5,12 +5,56 @@ behavior but do not prove a customer's provider permissions, delivery or billing
 The following checks require owner-supplied sandbox accounts and an agreed test recipient.
 No real customer messages or charges have been sent during implementation.
 
-Stripe connection status was checked read-only against Stripe's API: subscription billing
-credentials work in test mode and a signing secret is configured. The enabled registered
-destination is on nemio.ai at a different path from this build's /webhooks/stripe/ route.
-The local database has received zero BillingEvent callbacks. A destination returning HTTP 200
-to GET does not establish signature verification or correct workspace reconciliation. Awaiting
-the user's choice of a local Stripe forwarder or deployed backend for the next test.
+On 26 October 2026, the owner confirmed that everything runs locally and authorized Stripe
+test-mode verification. Stripe CLI now forwards genuine, signed test events to the local
+`/webhooks/stripe/` route; no deployed backend is required. Isolated ownerless workspaces
+received subscription creation, update, plan change, plan restoration and cancellation callbacks.
+The application mapped Starter → Pro → Starter, billing periods and trial/canceled states.
+All fixture subscriptions were canceled; no existing subscription or workspace was modified.
+No cards, real charges or customer email recipients were used.
+
+Actual callbacks exposed a Stripe SDK object/dictionary compatibility error that mocked
+responses had hidden. SDK responses are now converted recursively after signature validation
+and at subscription/preview read boundaries. Zero-value invoices emitted during an ongoing
+trial cannot prematurely activate it, including invoices created by trial plan changes.
+Regression tests exercise the installed SDK's real signature parser, nested objects,
+duplicate-event persistence and invoice ordering. Failed-payment, metered-charge, Connect and
+tenant-checkout acceptance still need separate sandbox exercises; this is not full Stripe
+production acceptance.
+
+Final local evidence: 682 PostgreSQL tests passed; backend lint/format, Django system checks
+and migration drift checks passed. The last real Stripe fixture received eight signed events,
+all acknowledged with HTTP 200. Its paid zero-value trial invoices were ignored and all
+subscription changes processed; the final account status is canceled.
+
+## Repeat the local Stripe check
+
+Install [Stripe CLI](https://docs.stripe.com/stripe-cli), and put the Stripe test secret key
+in the ignored root `.env` as `STRIPE_SECRET_KEY`. Keep `PUBLIC_APP_URL` local. From the
+repository root on Windows:
+
+```powershell
+.\backend\.venv\Scripts\python.exe tools/stripe_local.py
+```
+
+Keep that terminal running. The helper verifies test mode, captures the listener signing
+secret without printing it, updates only `STRIPE_WEBHOOK_SECRET` in `.env`, and forwards to
+`http://127.0.0.1:<NEMIO_BACKEND_PORT>/webhooks/stripe/` (default port 8000; this workstation
+uses 8002). It logs only event IDs/types/statuses under ignored `.cache/stripe-local/`.
+In another terminal, reload the backend environment and exercise isolated trial fixtures:
+
+```powershell
+docker compose up -d --no-deps --force-recreate backend
+docker compose exec -T backend python manage.py verify_stripe_local --apply
+```
+
+The command requires a local app URL, a real test-mode balance response and a published
+recurring test plan price. It switches to another configured test plan and back when one
+exists, with proration disabled inside the trial. Its finalizer verifies ownership metadata
+before canceling only its own subscription. Omitting `--apply` makes no provider calls or
+writes. Canceled fixtures remain as audit records. Stop forwarding with Ctrl+C.
+Local forwarding follows [Stripe's documented listener flow](https://docs.stripe.com/webhooks#local-listener);
+the listener signing secret is distinct from a registered dashboard endpoint's secret.
 
 | Check | Required setup | Evidence of success |
 | --- | --- | --- |

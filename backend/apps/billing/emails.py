@@ -22,6 +22,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
+from .stripe_data import stripe_data
+
 log = logging.getLogger(__name__)
 
 
@@ -75,6 +77,7 @@ def billing_line(account):
         )
     except (stripe.StripeError, AttributeError):
         return "Your new plan is active."
+    preview = stripe_data(preview)
     when = preview.get("next_payment_attempt") or preview.get("period_end")
     amount = _money(preview.get("amount_due"), preview.get("currency", "usd"))
     if when:
