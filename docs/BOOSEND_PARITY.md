@@ -5,8 +5,8 @@ Started 23 October 2026 (Asia/Karachi). This is a behavior checklist, not a clai
 **26 October update:** The latest implementation and outstanding verification are recorded in
 `PARITY_WORKLOG.md`. The historical increment tables below describe the audit at their date;
 media, AI steps, follow checks, tracked reminders, history, forms, creator pages, campaigns,
-named CRM segments and additional provider adapters have since been implemented. Full parity
-now also include reusable call-agent authoring, scheduled knowledge refresh, connected Instagram
+named CRM segments and additional provider adapters have since been implemented. Recent additions
+also include reusable call-agent authoring, scheduled knowledge refresh, connected Instagram
 follower statistics, native form-submission integration actions and the form.submitted event.
 Full parity is not claimed: live delivery/callback checks, further creator metrics, arbitrary
 conversation-canvas runs for form-only contacts, universal browser escape and the Notavo/Poppy
