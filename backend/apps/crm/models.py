@@ -104,6 +104,9 @@ class IntegrationConfig(TenantModel):
 
 
 class IntegrationJob(TenantModel):
+    form_submission = models.ForeignKey(
+        "tools.FormSubmission", null=True, blank=True, on_delete=models.CASCADE
+    )
     integration = models.ForeignKey(IntegrationConfig, on_delete=models.CASCADE)
     operation = models.CharField(max_length=40)
     payload = EncryptedTextField()

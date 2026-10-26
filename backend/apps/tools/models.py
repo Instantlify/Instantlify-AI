@@ -37,6 +37,7 @@ class LeadForm(TenantModel):
     slug = models.SlugField(max_length=80, unique=True)
     description = models.CharField(max_length=1000, blank=True)
     fields = models.JSONField(default=list)
+    submission_actions = models.JSONField(default=list)
     consent_text = models.CharField(
         max_length=500, default="I agree to be contacted about my enquiry."
     )
@@ -51,6 +52,7 @@ class LeadForm(TenantModel):
 
 
 class FormSubmission(TenantModel):
+    action_errors = models.JSONField(default=list)
     form = models.ForeignKey(LeadForm, on_delete=models.CASCADE)
     lead = models.ForeignKey("crm.Lead", null=True, on_delete=models.SET_NULL)
     link = models.ForeignKey(DeepLink, null=True, on_delete=models.SET_NULL)
@@ -73,6 +75,12 @@ class CreatorKit(TenantModel):
     contact_email = models.EmailField(blank=True)
     links = models.JSONField(default=list)
     statistics = models.JSONField(default=list)
+    live_connection_ids = models.JSONField(default=list)
+    live_stats_next_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    live_stats_checked_at = models.DateTimeField(null=True, blank=True)
+    live_stats_started_at = models.DateTimeField(null=True, blank=True)
+    live_stats_token = models.UUIDField(null=True, blank=True)
+    live_stats_error = models.CharField(max_length=50, blank=True)
     services = models.JSONField(default=list)
     published = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)

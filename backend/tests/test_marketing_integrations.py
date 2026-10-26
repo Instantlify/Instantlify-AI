@@ -38,6 +38,61 @@ def test_mailerlite_maps_contact_and_never_resubscribes(workspace):
     }
 
 
+@pytest.mark.parametrize("suppressed", [False, True])
+def test_zorromail_uses_idempotency_verified_sender_and_reports_suppression(workspace, suppressed):
+    config = integration(
+        workspace, "zorromail", sender_email="sender@example.com", sender_name="Our team"
+    )
+    with patch(
+        "apps.crm.integrations.request",
+        return_value={
+            "id": "mail-one",
+            "status": "accepted",
+            "suppressedRecipients": ["a@example.com"] if suppressed else [],
+        },
+    ) as send:
+        result = CRMIntegration(config).execute(
+            "send_email",
+            {"to": "a@example.com", "subject": "Your booking", "text": "Your confirmation"},
+            "durable-send-one",
+        )
+    assert send.call_args.args == ("POST", "https://www.zorromail.app/tx/v1/messages")
+    assert send.call_args.kwargs["side_effect"] is True
+    assert send.call_args.kwargs["headers"]["Idempotency-Key"] == "durable-send-one"
+    assert send.call_args.kwargs["json"] == {
+        "from": "sender@example.com",
+        "fromName": "Our team",
+        "to": ["a@example.com"],
+        "subject": "Your booking",
+        "text": "Your confirmation",
+    }
+    assert result["suppressed"] is suppressed and result["accepted"] is not suppressed
+
+
+def test_zorromail_configuration_is_supported_and_secrets_are_not_returned(client, workspace):
+    response = client.post(
+        f"/api/workspaces/{workspace.pk}/integrations/",
+        {
+            "provider": "zorromail",
+            "credentials": {"api_key": "private-token"},
+            "options": {"sender_email": "sender@example.com"},
+        },
+        format="json",
+    )
+    assert response.status_code == 201, response.content
+    assert "private-token" not in response.content.decode()
+    assert response.json()["options"]["sender_email"] == "sender@example.com"
+
+
+def test_zorromail_omits_optional_empty_sender_name(workspace):
+    config = integration(workspace, "zorromail", sender_email="sender@example.com")
+    with patch("apps.crm.integrations.request", return_value={"id": "mail-one"}) as send:
+        CRMIntegration(config).execute(
+            "send_email", {"to": "a@example.com", "text": "Hello"}, "send-one"
+        )
+    assert "fromName" not in send.call_args.kwargs["json"]
+
+
 def test_klaviyo_adds_existing_profile_to_list_without_changing_consent(workspace):
     config = integration(workspace, "klaviyo", list_id="my/list")
     with patch(
@@ -82,9 +137,18 @@ def test_empty_success_is_explicit_and_does_not_hide_uncertain_sends():
 
 def test_systeme_preserves_existing_unsubscribe_and_only_creates_missing_contacts(workspace):
     config = integration(workspace, "systeme_io")
-    with patch("apps.crm.integrations.request", return_value={"items": [{"id": 42, "email": "A@example.com", "unsubscribed": True}]}) as send:
-        assert CRMIntegration(config).execute("sync_lead", {"email": "a@example.com"}, "key") == {"id": "42", "existing": True}
+    with patch(
+        "apps.crm.integrations.request",
+        return_value={"items": [{"id": 42, "email": "A@example.com", "unsubscribed": True}]},
+    ) as send:
+        assert CRMIntegration(config).execute("sync_lead", {"email": "a@example.com"}, "key") == {
+            "id": "42",
+            "existing": True,
+        }
     send.assert_called_once()
     with patch("apps.crm.integrations.request", side_effect=[{"items": []}, {"id": 43}]) as send:
-        assert CRMIntegration(config).execute("sync_lead", {"email": "b@example.com"}, "key")["id"] == "43"
+        assert (
+            CRMIntegration(config).execute("sync_lead", {"email": "b@example.com"}, "key")["id"]
+            == "43"
+        )
     assert send.call_args.kwargs["json"] == {"email": "b@example.com"}

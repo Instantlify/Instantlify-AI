@@ -7,6 +7,7 @@ from apps.tenants.models import TenantModel
 SCOPES = ["read", "write"]
 
 EVENTS = [
+    "form.submitted",
     "lead.created",
     "lead.updated",
     "lead.hot",

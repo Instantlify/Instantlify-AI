@@ -1759,7 +1759,9 @@ export default function BuilderPage() {
                                   config.provider,
                                 )
                               : selected.data.operation === "send_email"
-                                ? ["gmail", "outlook"].includes(config.provider)
+                                ? ["gmail", "outlook", "zorromail"].includes(
+                                    config.provider,
+                                  )
                                 : selected.data.operation === "notify"
                                   ? config.provider === "slack"
                                   : [

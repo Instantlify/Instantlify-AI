@@ -700,6 +700,7 @@ export type ClientWorkspace = {
 };
 
 export const WEBHOOK_EVENTS = [
+  "form.submitted",
   "lead.created",
   "lead.updated",
   "lead.hot",

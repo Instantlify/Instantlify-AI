@@ -42,6 +42,7 @@ import {
 } from "@/lib/api";
 import { BrandIcon } from "@/lib/brand-icons";
 import { KnowledgeSyncSettings } from "@/components/knowledge-sync-settings";
+import { CallAgentManager } from "@/components/call-agent-manager";
 import { useSearchParams } from "next/navigation";
 import { useWorkspace } from "@/lib/workspace";
 import {
@@ -623,14 +624,14 @@ export default function IntegrationsPage() {
       description:
         "Connect your ZorroMail Transactional Email account to send emails directly from your automations",
       providerKey: "zorromail",
-      status: "coming_soon",
+      status: "available",
       iconBg: "#f8fafc",
       iconColor: "#0f172a",
       logo: <BrandIcon name="zorromail" size={22} />,
       explainer: {
         stepType: "Transactional email step",
         description:
-          "Send instantaneous transactional email confirmations, download links, and alerts via high-deliverability ZorroMail SMTP.",
+          "Send transactional confirmations, download links and alerts through the ZorroMail API using your verified sending domain.",
         trigger: "Lead completes questionnaire",
         action: "Send ZorroMail Transactional Email",
       },
@@ -1146,6 +1147,18 @@ export default function IntegrationsPage() {
                           prefix={prefix}
                           integrationId={integration.id}
                           name={app.name}
+                        />
+                      ))}
+                  {connected &&
+                    ["vapi", "retell"].includes(app.providerKey || "") &&
+                    integrations
+                      .filter((item) => item.provider === app.providerKey)
+                      .map((integration) => (
+                        <CallAgentManager
+                          key={integration.id}
+                          prefix={prefix}
+                          integrationId={integration.id}
+                          provider={integration.provider as "vapi" | "retell"}
                         />
                       ))}
                 </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { ArrowUpRight, Mail } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, when } from "@/lib/api";
 import type { CreatorKit } from "@/lib/portal-tools";
 
 export default function PublicCreatorPage() {
@@ -57,6 +57,25 @@ export default function PublicCreatorPage() {
               </a>
             )}
           </header>
+          {!!kit.live_statistics?.length && (
+            <section
+              style={{ margin: "32px 0" }}
+              aria-label="Connected account statistics"
+            >
+              <h2>Connected account statistics</h2>
+              <div className="stats-grid">
+                {kit.live_statistics.map((row, index) => (
+                  <article className="stat-card" key={index}>
+                    <strong>{row.value}</strong>
+                    <p>
+                      {row.label} · {row.account}
+                    </p>
+                    <small>From Instagram · As of {when(row.as_of)}</small>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
           {!!kit.statistics.length && (
             <section style={{ margin: "32px 0" }}>
               <div className="stats-grid">

@@ -1,7 +1,9 @@
+import uuid
 from urllib.parse import urlsplit
 
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -14,6 +16,33 @@ from .models import CreatorKit
 
 
 class CreatorSerializer(serializers.ModelSerializer):
+    live_statistics = serializers.SerializerMethodField()
+
+    def get_live_statistics(self, obj):
+        from apps.channels.models import ChannelConnection
+
+        rows = []
+        for connection in ChannelConnection.objects.for_workspace(obj.workspace_id).filter(
+            pk__in=obj.live_connection_ids,
+            provider="instagram",
+            status="active",
+            is_test=False,
+            expires_at__gt=timezone.now(),
+        ):
+            profile = connection.profile or {}
+            value = profile.get("followers_count")
+            if type(value) is int and value >= 0:
+                rows.append(
+                    {
+                        "label": "Instagram followers",
+                        "value": str(value),
+                        "account": connection.display_name,
+                        "as_of": profile.get("creator_stats_checked_at")
+                        or connection.created_at.isoformat(),
+                    }
+                )
+        return rows
+
     class Meta:
         model = CreatorKit
         fields = [
@@ -24,11 +53,50 @@ class CreatorSerializer(serializers.ModelSerializer):
             "contact_email",
             "links",
             "statistics",
+            "live_connection_ids",
+            "live_statistics",
+            "live_stats_next_at",
+            "live_stats_checked_at",
+            "live_stats_error",
             "services",
             "published",
             "updated_at",
         ]
-        read_only_fields = ["updated_at"]
+        read_only_fields = [
+            "updated_at",
+            "live_statistics",
+            "live_stats_next_at",
+            "live_stats_checked_at",
+            "live_stats_error",
+        ]
+
+    def validate_live_connection_ids(self, value):
+        from apps.billing.gating import check_connection_unlocked, check_feature
+        from apps.channels.models import ChannelConnection
+
+        if not isinstance(value, list) or len(value) > 10:
+            raise serializers.ValidationError("Choose up to ten Instagram accounts.")
+        try:
+            ids = list(dict.fromkeys(str(uuid.UUID(item)) for item in value))
+        except (ValueError, TypeError, AttributeError):
+            raise serializers.ValidationError("Choose valid connected accounts.") from None
+        workspace_id = self.context["workspace_id"]
+        if ids:
+            check_feature(workspace_id, "integrations_unlocked")
+        connections = list(
+            ChannelConnection.objects.for_workspace(workspace_id).filter(
+                pk__in=ids,
+                provider="instagram",
+                status="active",
+                is_test=False,
+                expires_at__gt=timezone.now(),
+            )
+        )
+        if len(connections) != len(ids):
+            raise serializers.ValidationError("Choose active connected Instagram accounts.")
+        for connection in connections:
+            check_connection_unlocked(connection)
+        return ids
 
     def validate_slug(self, value):
         value = value.lower()
@@ -89,11 +157,24 @@ class CreatorView(APIView):
 
             Workspace.objects.select_for_update().get(pk=workspace_id)
             item = CreatorKit.objects.for_workspace(workspace_id).first()
-            serializer = CreatorSerializer(item, data=request.data)
+            old_ids = item.live_connection_ids if item else []
+            serializer = CreatorSerializer(
+                item, data=request.data, context={"workspace_id": workspace_id}
+            )
             serializer.is_valid(raise_exception=True)
             try:
                 with transaction.atomic():
                     item = serializer.save(workspace=member.workspace)
+                    if item.live_connection_ids != old_ids:
+                        item.live_stats_next_at = (
+                            timezone.now() if item.live_connection_ids else None
+                        )
+                        item.live_stats_token, item.live_stats_started_at, item.live_stats_error = (
+                            None,
+                            None,
+                            "",
+                        )
+                        item.save()
             except IntegrityError:
                 raise serializers.ValidationError(
                     "That creator address is already in use."
@@ -108,4 +189,12 @@ class PublicCreatorView(APIView):
 
     def get(self, request, slug):
         item = get_object_or_404(CreatorKit.all_objects, slug=slug, published=True)
-        return Response(CreatorSerializer(item).data)
+        data = dict(CreatorSerializer(item).data)
+        for key in [
+            "live_connection_ids",
+            "live_stats_next_at",
+            "live_stats_checked_at",
+            "live_stats_error",
+        ]:
+            data.pop(key, None)
+        return Response(data)

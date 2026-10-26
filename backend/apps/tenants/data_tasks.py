@@ -107,6 +107,7 @@ def export_tables():
                 "slug",
                 "description",
                 "fields",
+                "submission_actions",
                 "consent_text",
                 "success_text",
                 "published",
@@ -115,7 +116,16 @@ def export_tables():
         ),
         "form_submissions": (
             FormSubmission,
-            ["id", "form_id", "lead_id", "link_id", "answers", "consent_text", "created_at"],
+            [
+                "id",
+                "form_id",
+                "lead_id",
+                "link_id",
+                "answers",
+                "consent_text",
+                "action_errors",
+                "created_at",
+            ],
         ),
         "creator_kit": (
             CreatorKit,
@@ -128,6 +138,10 @@ def export_tables():
                 "contact_email",
                 "links",
                 "statistics",
+                "live_connection_ids",
+                "live_stats_checked_at",
+                "live_stats_next_at",
+                "live_stats_error",
                 "services",
                 "published",
             ],
@@ -305,7 +319,7 @@ def export_tables():
         ),
         "integration_jobs": (
             IntegrationJob,
-            ["id", "integration_id", "operation", "status", "created_at"],
+            ["id", "integration_id", "form_submission_id", "operation", "status", "created_at"],
         ),
         "ai_credit_balance": (
             AICreditBalance,

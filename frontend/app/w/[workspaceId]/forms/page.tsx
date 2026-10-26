@@ -9,6 +9,7 @@ import {
   type FormResponse,
 } from "@/lib/portal-tools";
 import { useWorkspace } from "@/lib/workspace";
+import { FormAutomationActions } from "@/components/form-automation-actions";
 import {
   ErrorNotice,
   SuccessNotice,
@@ -332,6 +333,13 @@ export default function FormsPage() {
             >
               Add question
             </button>
+            <FormAutomationActions
+              prefix={prefix}
+              actions={draft.submission_actions || []}
+              onChange={(submission_actions) =>
+                setDraft({ ...draft, submission_actions })
+              }
+            />
             <label>
               Consent statement
               <textarea
@@ -414,6 +422,23 @@ export default function FormsPage() {
                 ))}
               </dl>
               <small>Consent: {row.consent_text}</small>
+              {row.actions?.map((action) => (
+                <p key={action.id}>
+                  {action.operation.replaceAll("_", " ")} ·{" "}
+                  {action.status.replaceAll("_", " ")}
+                  {action.error
+                    ? ` · ${action.error.replaceAll("_", " ")}`
+                    : ""}
+                  {action.accepted === false
+                    ? " · Provider suppressed this recipient"
+                    : ""}
+                </p>
+              ))}
+              {row.action_errors?.map((error, index) => (
+                <p role="alert" key={index}>
+                  Action {error.action}: {error.error.replaceAll("_", " ")}
+                </p>
+              ))}
             </details>
           ))}
         </Modal>

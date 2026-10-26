@@ -199,6 +199,10 @@ CELERY_RESULT_EXPIRES = 3600
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 120}
 CELERY_BEAT_SCHEDULE = {
+    "creator-statistics": {
+        "task": "apps.tools.creator_metrics.dispatch_creator_metrics",
+        "schedule": 60.0,
+    },
     "billing-trial-reminders": {
         "task": "apps.billing.emails.send_trial_reminders",
         "schedule": 86400.0,

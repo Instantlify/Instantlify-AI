@@ -172,6 +172,39 @@ class CRMIntegration(IntegrationAdapter):
         token = credentials.get("api_key") or credentials.get("access_token", "")
         headers = {"Authorization": f"Bearer {token}"}
         provider = self.config.provider
+        if provider == "zorromail" and operation == "send_email":
+            from django.core.validators import validate_email
+
+            sender = str(options.get("sender_email") or "")
+            recipient = str(payload.get("to") or payload.get("email") or "")
+            validate_email(sender)
+            validate_email(recipient)
+            if not token or not str(payload.get("text") or "").strip():
+                raise ProviderError("zorromail_configuration_missing")
+            email = {
+                "from": sender,
+                "to": [recipient],
+                "subject": str(payload.get("subject") or "Message from our team")[:200],
+                "text": str(payload["text"])[:20000],
+            }
+            if str(options.get("sender_name") or "").strip():
+                email["fromName"] = str(options["sender_name"]).strip()[:78]
+            body = request(
+                "POST",
+                "https://www.zorromail.app/tx/v1/messages",
+                side_effect=True,
+                headers={**headers, "Idempotency-Key": idempotency_key},
+                json=email,
+            )
+            if not body.get("id"):
+                raise ProviderError("zorromail_result_unknown")
+            suppressed = bool(body.get("suppressedRecipients"))
+            return {
+                "id": str(body["id"]),
+                "status": body.get("status", "accepted"),
+                "accepted": not suppressed,
+                "suppressed": suppressed,
+            }
         if provider == "outlook" and operation == "send_email":
             from django.core.validators import validate_email
 

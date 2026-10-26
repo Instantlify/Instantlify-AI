@@ -24,6 +24,7 @@ export function integrationConfiguration(
     stripe: [],
     gmail: ["sender_email"],
     outlook: [],
+    zorromail: ["sender_email", "sender_name"],
     mailerlite: ["group_id"],
     klaviyo: ["list_id"],
   };

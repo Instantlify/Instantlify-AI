@@ -714,6 +714,7 @@ class IntegrationSerializer(serializers.ModelSerializer):
             "google_sheets",
             "gmail",
             "outlook",
+            "zorromail",
             "mailerlite",
             "klaviyo",
             "shopify",

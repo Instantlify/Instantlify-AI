@@ -5,6 +5,7 @@ import uuid
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, serializers
 from rest_framework.permissions import AllowAny
@@ -12,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
-from apps.crm.models import Lead
+from apps.crm.models import IntegrationJob, Lead
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
 
@@ -31,6 +32,7 @@ class FormSerializer(serializers.ModelSerializer):
             "slug",
             "description",
             "fields",
+            "submission_actions",
             "consent_text",
             "success_text",
             "published",
@@ -47,6 +49,16 @@ class FormSerializer(serializers.ModelSerializer):
         if query.exists():
             raise serializers.ValidationError("That form address is already in use.")
         return value
+
+    def validate_submission_actions(self, value):
+        from .form_actions import validate_actions
+
+        workspace_id = (
+            self.instance.workspace_id
+            if self.instance
+            else self.context["view"].kwargs["workspace_id"]
+        )
+        return validate_actions(value, workspace_id)
 
     def validate_fields(self, value):
         if not isinstance(value, list) or not 1 <= len(value) <= 20:
@@ -152,10 +164,27 @@ class SubmissionList(APIView):
                     "answers": json.loads(row.answers),
                     "consent_text": row.consent_text,
                     "link_id": row.link_id,
+                    "action_errors": row.action_errors,
+                    "actions": [
+                        {
+                            "id": job.pk,
+                            "operation": job.operation,
+                            "status": job.status,
+                            "error": json.loads(job.result).get("error", ""),
+                            "accepted": json.loads(job.result).get("accepted"),
+                        }
+                        for job in row.action_jobs
+                    ],
                 }
-                for row in FormSubmission.objects.for_workspace(workspace_id).filter(form=form)[
-                    :500
-                ]
+                for row in FormSubmission.objects.for_workspace(workspace_id)
+                .filter(form=form)
+                .prefetch_related(
+                    Prefetch(
+                        "integrationjob_set",
+                        queryset=IntegrationJob.objects.for_workspace(workspace_id),
+                        to_attr="action_jobs",
+                    )
+                )[:500]
             ]
         )
 
@@ -257,7 +286,7 @@ class PublicFormView(APIView):
                         ),
                     },
                 )
-            FormSubmission.objects.for_workspace(form.workspace_id).create(
+            submission = FormSubmission.objects.for_workspace(form.workspace_id).create(
                 workspace_id=form.workspace_id,
                 form=form,
                 lead=lead,
@@ -266,5 +295,20 @@ class PublicFormView(APIView):
                 answers=json.dumps(answers),
                 consent_text=form.consent_text,
             )
-            # Existing opt-outs remain opted out. Submitting a form never sends a message.
+            from apps.public_api.services import emit
+
+            from .form_actions import queue_submission_actions
+
+            queue_submission_actions(submission, form, lead, answers)
+            emit(
+                form.workspace_id,
+                "form.submitted",
+                {
+                    "form_id": str(form.pk),
+                    "submission_id": str(submission.pk),
+                    "lead_id": str(lead.pk),
+                    "answers": answers,
+                },
+            )
+            # Existing opt-outs remain opted out; workers recheck before performing any action.
         return Response({"received": True, "message": form.success_text}, status=201)

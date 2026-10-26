@@ -436,12 +436,36 @@ function getConfigSchema(
       docsLabel: "HeyGen avatar API documentation",
     };
   }
+  if (pk === "zorromail") {
+    return {
+      guideTitle: "Connect transactional email",
+      guideSteps: [
+        {
+          text: "Verify your sending domain in ZorroMail, create a transactional API key and enter the sender address below.",
+        },
+      ],
+      guideNotice:
+        "Use Send email in an integration step. Provider suppressions are preserved. Accepted messages are not confirmed deliveries.",
+      fields: [
+        {
+          key: "api_key",
+          label: "Transactional API key",
+          type: "password",
+          required: true,
+        },
+        { key: "sender_email", label: "Verified sender email", required: true },
+        { key: "sender_name", label: "Sender display name (optional)" },
+      ],
+      docsUrl: "https://www.zorromail.app/docs/transactional",
+      docsLabel: "ZorroMail transactional API documentation",
+    };
+  }
   if (["vapi", "retell"].includes(pk)) {
     return {
       guideTitle: "Connect AI calling",
       guideSteps: [
         {
-          text: "Create and configure an agent and an outbound phone number in your provider dashboard, then copy their identifiers here.",
+          text: "Connect your provider API key. Use Create AI call agent on its integration card, or enter an existing agent ID. Add your outbound phone number before using a call step.",
         },
       ],
       guideNotice:
@@ -451,14 +475,19 @@ function getConfigSchema(
         {
           key: "agent_id",
           label: pk === "vapi" ? "Assistant ID" : "Agent ID",
-          required: true,
+          helper:
+            "Optional when connecting. Create an agent from the integration card after saving.",
         },
         pk === "vapi"
-          ? { key: "phone_number_id", label: "Phone number ID", required: true }
+          ? {
+              key: "phone_number_id",
+              label: "Phone number ID",
+              helper: "Required before placing calls.",
+            }
           : {
               key: "from_number",
               label: "Caller number (+country format)",
-              required: true,
+              helper: "Required before placing calls.",
             },
       ],
       docsUrl:

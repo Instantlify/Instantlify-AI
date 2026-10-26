@@ -5,6 +5,12 @@ export type FormField = {
   required: boolean;
   options?: string[];
 };
+export type FormAction = {
+  integration_id: string;
+  operation: "send_email" | "sync_lead" | "notify" | "webhook";
+  text?: string;
+  subject?: string;
+};
 export type LeadForm = {
   id: string;
   slug: string;
@@ -14,9 +20,18 @@ export type LeadForm = {
   consent_text: string;
   success_text: string;
   published: boolean;
+  submission_actions?: FormAction[];
   submissions?: number;
 };
 export type FormResponse = {
+  actions?: {
+    id: string;
+    operation: string;
+    status: string;
+    error: string;
+    accepted?: boolean;
+  }[];
+  action_errors?: { action: number; error: string }[];
   id: string;
   lead_id: string | null;
   created_at: string;
@@ -33,10 +48,20 @@ export type CreatorKit = {
   published: boolean;
   links: { label: string; url: string }[];
   statistics: { label: string; value: string }[];
+  live_connection_ids?: string[];
+  live_statistics?: {
+    label: string;
+    value: string;
+    account: string;
+    as_of: string;
+  }[];
+  live_stats_error?: string;
+  live_stats_checked_at?: string | null;
   services: { title: string; description: string }[];
 };
 
 export const defaultForm = (): Omit<LeadForm, "id"> => ({
+  submission_actions: [],
   slug: "",
   title: "Contact us",
   description: "Tell us how we can help.",

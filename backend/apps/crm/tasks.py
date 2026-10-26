@@ -47,9 +47,16 @@ def process_campaign(workspace_id, campaign_id):
 
 @shared_task(ignore_result=True)
 def dispatch_integrations():
-    IntegrationJob.all_objects.filter(
+    stale = IntegrationJob.all_objects.filter(
         status="executing", available_at__lt=timezone.now() - timedelta(minutes=5)
-    ).update(status="needs_review", result=json.dumps({"error": "worker_interrupted"}))
+    )
+    for job_id in list(stale.values_list("pk", flat=True)[:100]):
+        with transaction.atomic():
+            job = stale.select_for_update().filter(pk=job_id).first()
+            if job:
+                job.status = "needs_review"
+                job.result = json.dumps({**json.loads(job.result), "error": "worker_interrupted"})
+                job.save(update_fields=["status", "result"])
     for wid, pk in IntegrationJob.all_objects.filter(
         status="pending", available_at__lte=timezone.now()
     ).values_list("workspace_id", "pk")[:100]:
@@ -67,6 +74,23 @@ def process_integration(workspace_id, job_id):
             .first()
         )
         if not job:
+            return
+        if job.form_submission_id:
+            from apps.tools.models import FormSubmission
+
+            if (
+                not FormSubmission.objects.for_workspace(workspace_id)
+                .filter(pk=job.form_submission_id, form__published=True, lead__opted_out=False)
+                .exists()
+            ):
+                job.status = "needs_review"
+                job.result = json.dumps({"error": "form_or_contact_unavailable"})
+                job.save()
+                return
+        if not job.integration.enabled or job.integration.status != "active":
+            job.status = "needs_review"
+            job.result = json.dumps({"error": "integration_unavailable"})
+            job.save()
             return
         flow = json.loads(job.payload).get("_flow")
         if flow:
@@ -104,12 +128,19 @@ def process_integration(workspace_id, job_id):
     try:
         payload = json.loads(job.payload)
         payload.pop("_flow", None)
-        result = integration_for(job.integration).execute(
-            job.operation, payload, job.idempotency_key
-        )
+        if job.operation == "create_call_agent":
+            from apps.agents.call_agents import create_call_agent
+
+            result = create_call_agent(job)
+        else:
+            result = integration_for(job.integration).execute(
+                job.operation, payload, job.idempotency_key
+            )
     except Exception:
         job.status = "needs_review"
-        job.result = json.dumps({"error": "integration_failed_or_unknown"})
+        job.result = json.dumps(
+            {**json.loads(job.result), "error": "integration_failed_or_unknown"}
+        )
     else:
         job.status = "complete"
         job.result = json.dumps(result)

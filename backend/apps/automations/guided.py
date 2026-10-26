@@ -250,7 +250,7 @@ def validate_workspace_references(graph, workspace_id, automation_id):
                     "klaviyo",
                     "systeme_io",
                 },
-                "send_email": {"gmail", "outlook"},
+                "send_email": {"gmail", "outlook", "zorromail"},
                 "webhook": {"n8n", "make", "discord", "webhook"},
             }
             if not config or config.provider not in allowed[data["operation"]]:

@@ -1,5 +1,45 @@
 # Current continuation — 26 October 2026
 
+Remaining-feature implementation continuation (deployed locally):
+
+- Reusable custom call-agent authoring for Vapi and Retell: instructions, greeting,
+  provider model/voice and duration. Durable, idempotent creation jobs publish Retell agents,
+  preserve confirmed IDs after partial failure and do not replay uncertain creations.
+  Selecting an agent as the integration default is a separate explicit action.
+- ZorroMail transactional email adapter and configuration are now available. Uses the
+  provider's documented idempotency header, verified sender options and suppression results;
+  acceptance is not represented as confirmed delivery.
+- Creator kits can select real connected Instagram accounts for hourly provider-sourced
+  follower counts. Public metrics show their account and timestamp. Manual reach/engagement
+  figures remain separately labelled; those metrics are not automatically retrieved.
+- Forms can queue up to five integration actions per new consented submission: confirmation
+  email, CRM sync, Slack notification or n8n/Make/custom webhook. Jobs link to the submission,
+  recheck opt-outs, active form/integration and plan, and expose action status in responses.
+  Duplicate request IDs do not queue duplicate actions. Added the signed form.submitted event.
+  These are native form actions and webhook triggers, not arbitrary conversation-canvas runs.
+- Focused backend checks: 108 marketing/guided checks; 30 call/marketing/integration checks;
+  23 creator/tool/export checks; 46 form/call/integration/export checks passed.
+- Browser source checks: eight creator/form/integration/knowledge scenarios passed across the
+  main run and focused form-test retry. The full PostgreSQL suite passed 670 tests; a final
+  optional-sender-name email fix passed its nine affected tests afterward.
+- Final production build and TypeScript passed. Tools 0003/0004 and CRM 0008 migrated locally;
+  backend, worker, beat and frontend deployed. All eight production browser checks passed.
+  Worker reports the creator-statistics and knowledge-sync tasks registered; services healthy.
+- Requested official Notavo/Poppy API documentation and sandbox accounts for live provider
+  and billing verification. Neither request is authorization to send real customer messages.
+- Stripe read-only account verification succeeded in test mode. A platform webhook signing
+  secret is configured; no workspace Stripe payment integrations or local BillingEvent records
+  were present. Its enabled Stripe test webhook targets nemio.ai at a path that differs from
+  this build's /webhooks/stripe/ route; a GET probe returned 200, not proof of a signed callback.
+  Requested a choice of temporary local forwarding or the deployed backend before changing
+  callback setup. No payments, endpoint updates or fabricated signed events were initiated.
+
+Provider contracts used: [Vapi assistant creation](https://docs.vapi.ai/api-reference/assistants/create),
+[Retell agent creation](https://docs.retellai.com/api-references/create-agent),
+[Retell response-engine creation](https://docs.retellai.com/api-references/create-retell-llm),
+[Retell publication](https://docs.retellai.com/api-references/publish-agent),
+[ZorroMail transactional API](https://www.zorromail.app/docs/transactional).
+
 Automatic knowledge syncing continuation:
 
 - Added opt-in hourly, six-hourly and daily schedules for connected Sheets, Airtable,
@@ -81,12 +121,12 @@ Verification at this checkpoint:
 Known scope limits, which must not be represented as completed parity:
 
 - Live provider credentials/delivery and billing-provider callbacks are not verified by mocks.
-- Notavo, ZorroMail and Poppy have no native adapter and are marked coming soon.
-- Calls use saved provider agents; a transient/custom-agent authoring interface is absent.
+- Notavo and Poppy still need usable official API contracts. ZorroMail now has a native adapter.
+- Reusable call agents can now be authored in Nemio. Per-call transient agent definitions are not implemented.
 - Knowledge sources now support opt-in scheduled refreshes; live provider validation remains.
-- Creator-kit audience numbers are entered by the creator, not automatically verified live stats.
+- Connected Instagram follower counts are provider-sourced; additional creator metrics remain manual.
 - Tracking links use HTTPS redirects; automatic escape from every in-app browser is not implemented.
-- Form submissions capture CRM leads; arbitrary automation triggers on submission are not implemented.
+- Forms trigger native integration actions and form.submitted webhooks; arbitrary conversation-canvas runs are not supported for form-only contacts.
 - The full reference audit remains incomplete where the reference account has no records.
 
 ## Historical checkpoints below (superseded where the current notes differ)
