@@ -9,7 +9,6 @@ import {
   Folder,
   Layers,
   Mic,
-  MoreVertical,
   Plus,
   Search,
   Sparkles,
@@ -29,7 +28,13 @@ import { BrandIcon, type BrandName } from "@/lib/brand-icons";
 import { channelLabel } from "@/lib/channels";
 import { META_TEMPLATES, triggerChannels } from "@/lib/meta-templates";
 import { SimpleAutomationBuilder } from "@/components/simple-automation-builder";
-import { ErrorNotice, SuccessNotice, useFeedback } from "@/components/ui";
+import { AutomationActions } from "@/components/automation-actions";
+import {
+  ErrorNotice,
+  Modal,
+  SuccessNotice,
+  useFeedback,
+} from "@/components/ui";
 
 /** The advanced builder opens on this draft: a comment trigger and one reply. */
 const STARTER_GRAPH = {
@@ -82,6 +87,7 @@ export default function AutomationsPage() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [builderMode, setBuilderMode] = useState<"simple" | null>(null);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Automation | null>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
   const importFile = useRef<HTMLInputElement>(null);
   const feedback = useFeedback();
@@ -259,6 +265,49 @@ export default function AutomationsPage() {
 
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
+      {deleteTarget && (
+        <Modal
+          title="Delete automation"
+          onClose={() => {
+            if (!feedback.busy) setDeleteTarget(null);
+          }}
+        >
+          <p>
+            Delete <strong>{deleteTarget.name}</strong>? This permanently
+            removes the automation and its execution history.
+          </p>
+          <ErrorNotice error={feedback.error} />
+          <div className="row" style={{ marginTop: 24, gap: 12 }}>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={feedback.busy}
+              onClick={() => setDeleteTarget(null)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="button primary"
+              disabled={feedback.busy}
+              onClick={() =>
+                void feedback.run(async () => {
+                  await api(
+                    `${prefix}/automations/${deleteTarget.id}/`,
+                    "DELETE",
+                  );
+                  setAutomations((rows) =>
+                    rows.filter((row) => row.id !== deleteTarget.id),
+                  );
+                  setDeleteTarget(null);
+                }, "Automation deleted.")
+              }
+            >
+              {feedback.busy ? "Deleting…" : "Delete automation"}
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* VIEW 1: AUTOMATIONS LIST */}
       {tab === "list" && (
@@ -524,13 +573,24 @@ export default function AutomationsPage() {
                       <span className="switch-thumb" />
                     </button>
 
-                    <Link
+                    <AutomationActions
+                      item={item}
                       href={`/w/${workspace.id}/automations/${item.id}`}
-                      className="icon-button-dots"
-                      aria-label={`Edit ${item.name}`}
-                    >
-                      <MoreVertical size={16} />
-                    </Link>
+                      busy={feedback.busy}
+                      onDelete={() => {
+                        feedback.setError("");
+                        setDeleteTarget(item);
+                      }}
+                      onDuplicate={() =>
+                        void feedback.run(async () => {
+                          const copy = await api<Automation>(
+                            `${prefix}/automations/${item.id}/duplicate/`,
+                            "POST",
+                          );
+                          setAutomations((rows) => [copy, ...rows]);
+                        }, "Automation duplicated as a draft.")
+                      }
+                    />
                   </div>
                 );
               })

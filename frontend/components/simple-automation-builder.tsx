@@ -4,16 +4,24 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  BatteryFull,
+  Camera,
   Check,
   Link2,
   Mail,
   MessageSquare,
+  Mic,
+  Phone,
   Plus,
   Save,
+  Signal,
+  Smartphone,
   Tag,
   Trash2,
   Users,
   Workflow,
+  Video,
+  X,
 } from "lucide-react";
 import {
   api,
@@ -92,6 +100,7 @@ export function SimpleAutomationBuilder({
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [continued, setContinued] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const savedId = useRef<string | null>(null);
   const [persistedId, setPersistedId] = useState<string | null>(null);
   const [openedAt] = useState(() => Date.now());
@@ -310,10 +319,9 @@ export function SimpleAutomationBuilder({
         <div className="nm-guided-form">
           <div className="nm-guided-intro">
             <span className="eyebrow">A BETTER FOLLOW-UP</span>
-            <h1>Turn interest into a conversation.</h1>
+            <h1>Simple automation</h1>
             <p>
-              Choose a trigger, write your response, and give each lead a clear
-              next step.
+              Build your automation one step at a time, no flowcharts needed.
             </p>
             <label>
               Automation name
@@ -329,7 +337,7 @@ export function SimpleAutomationBuilder({
           </div>
           <fieldset>
             <legend>
-              <span>01</span> Choose your channel
+              <span>1</span> Select a platform
             </legend>
             <div className="platform-cards-grid">
               {(["instagram", "facebook", "whatsapp", "telegram"] as const).map(
@@ -390,34 +398,74 @@ export function SimpleAutomationBuilder({
           </fieldset>
           <fieldset>
             <legend>
-              <span>02</span> Set the trigger
+              <span>2</span> How should this be triggered?
             </legend>
-            <label>
-              Start when
-              <select
-                value={settings.trigger}
-                onChange={(e) =>
-                  patch({
-                    trigger: e.target.value as GuidedSettings["trigger"],
-                  })
-                }
-              >
-                <option value="dm">Someone sends a direct message</option>
-                {["instagram", "facebook"].includes(settings.platform) && (
-                  <option value="comment">Someone comments on a post</option>
-                )}
-                {settings.platform === "instagram" && (
-                  <>
-                    <option value="story_reply">
-                      Someone replies to a story
-                    </option>
-                    <option value="live_comment">
-                      Someone comments on a live stream
-                    </option>
-                  </>
-                )}
-              </select>
-            </label>
+            <div
+              className="nm-guided-triggers"
+              role="group"
+              aria-label="Start when"
+            >
+              {[
+                ...(settings.platform === "instagram" ||
+                settings.platform === "facebook"
+                  ? [
+                      {
+                        value: "comment",
+                        title: "Comments on a post",
+                        detail: "Send a private reply when someone comments.",
+                      },
+                    ]
+                  : []),
+                ...(settings.platform === "instagram"
+                  ? [
+                      {
+                        value: "story_reply",
+                        title: "Story replies",
+                        detail: "Respond when someone replies to your story.",
+                      },
+                    ]
+                  : []),
+                {
+                  value: "dm",
+                  title:
+                    settings.platform === "facebook"
+                      ? "Facebook Page message"
+                      : settings.platform === "whatsapp"
+                        ? "WhatsApp message"
+                        : settings.platform === "telegram"
+                          ? "Telegram message"
+                          : "Direct message",
+                  detail: "Start when someone sends you a message.",
+                },
+                ...(settings.platform === "instagram"
+                  ? [
+                      {
+                        value: "live_comment",
+                        title: "Live comments",
+                        detail: "Respond to comments during a live stream.",
+                      },
+                    ]
+                  : []),
+              ].map((trigger) => (
+                <label className="nm-guided-trigger" key={trigger.value}>
+                  <input
+                    type="radio"
+                    name="guided-trigger"
+                    checked={settings.trigger === trigger.value}
+                    onChange={() =>
+                      patch({
+                        trigger: trigger.value as GuidedSettings["trigger"],
+                      })
+                    }
+                  />
+                  <MessageSquare size={19} aria-hidden="true" />
+                  <span>
+                    <strong>{trigger.title}</strong>
+                    <small>{trigger.detail}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
             <p>
               This trigger listens only to the selected account
               {settings.trigger === "comment" &&
@@ -494,6 +542,11 @@ export function SimpleAutomationBuilder({
                 )}
               </>
             )}
+          </fieldset>
+          <fieldset>
+            <legend>
+              <span>3</span> Choose your trigger words
+            </legend>
             <div className="nm-guided-radios">
               <label>
                 <input
@@ -611,7 +664,7 @@ export function SimpleAutomationBuilder({
           </fieldset>
           <fieldset>
             <legend>
-              <span>03</span> Start the conversation
+              <span>4</span> Opening message
             </legend>
             <label className="nm-guided-check">
               <input
@@ -675,7 +728,7 @@ export function SimpleAutomationBuilder({
             )}
           </fieldset>
           {settings.platform === "instagram" && (
-            <fieldset>
+            <fieldset className="nm-guided-extra">
               <legend>Verify Instagram follow status</legend>
               <label className="nm-guided-switch">
                 <input
@@ -725,7 +778,7 @@ export function SimpleAutomationBuilder({
           )}
           <fieldset>
             <legend>
-              <span>04</span> Deliver something useful
+              <span>5</span> Send the link
             </legend>
             <label>
               Resource message
@@ -858,7 +911,7 @@ export function SimpleAutomationBuilder({
           </fieldset>
           <fieldset>
             <legend>
-              <span>05</span> Keep the next step organised
+              <span>6</span> Next steps
             </legend>
             <label>
               Contact tag <small>Optional</small>
@@ -904,100 +957,172 @@ export function SimpleAutomationBuilder({
             </small>
           </fieldset>
         </div>
-        <aside className="nm-guided-preview" aria-label="Conversation preview">
-          <div className="nm-guided-preview-head">
-            <MessageSquare size={18} />
-            <div>
-              <strong>{workspaceName}</strong>
-              <p>Conversation preview</p>
+        <button
+          type="button"
+          className="button primary nm-guided-preview-toggle"
+          aria-expanded={previewOpen}
+          aria-controls="guided-phone-preview"
+          onClick={() => setPreviewOpen(!previewOpen)}
+        >
+          <Smartphone size={16} />{" "}
+          {previewOpen ? "Close phone preview" : "Show phone preview"}
+        </button>
+        <aside
+          id="guided-phone-preview"
+          className={`nm-guided-preview ${previewOpen ? "is-mobile-open" : ""}`}
+          aria-label="Conversation preview"
+        >
+          <button
+            type="button"
+            className="button secondary nm-guided-preview-close"
+            onClick={() => setPreviewOpen(false)}
+          >
+            <X size={16} /> Close preview
+          </button>
+          <div
+            className={`nm-guided-phone theme-${settings.platform}`}
+            data-channel={settings.platform}
+          >
+            <div className="nm-guided-phone-status" aria-hidden="true">
+              <span>9:41</span>
+              <span className="nm-guided-phone-island" />
+              <span>
+                <Signal size={12} />
+                <BatteryFull size={16} />
+              </span>
             </div>
-            <BrandIcon name={settings.platform} size={22} />
-          </div>
-          <p className="nm-guided-preview-note">
-            Preview only. No messages are sent.
-          </p>
-          <div className="nm-guided-preview-body">
-            <div className="nm-guided-bubble incoming">
-              {settings.matchAny
-                ? "Hi, I’d like to know more."
-                : settings.keywords.split(",")[0] || "Your trigger word"}
-            </div>
-            {settings.trigger === "comment" &&
-              Boolean(settings.publicReplies?.length) && (
-                <>
-                  <div className="nm-guided-public-preview">
-                    <small>Public comment reply · example</small>
-                    <p>{settings.publicReplies?.[0]}</p>
-                  </div>
-                  <small>Private messages</small>
-                </>
-              )}
-            {settings.opening && (
-              <div className="nm-guided-bubble">
-                <p>{settings.openingText}</p>
-                <button
-                  type="button"
-                  className="nm-guided-preview-button"
-                  onClick={() => setContinued(true)}
-                >
-                  {settings.openingButton || "Continue"}
-                </button>
+            <div className="nm-guided-preview-head">
+              <ArrowLeft size={17} aria-hidden="true" />
+              <span className="nm-guided-phone-avatar">
+                <BrandIcon
+                  name={
+                    settings.platform === "facebook"
+                      ? "messenger"
+                      : settings.platform
+                  }
+                  size={20}
+                />
+              </span>
+              <div>
+                <strong>
+                  {accounts.find((account) => account.id === accountId)
+                    ?.display_name || workspaceName}
+                </strong>
+                <p>
+                  {settings.platform === "facebook"
+                    ? "Messenger · Active now"
+                    : settings.platform === "whatsapp"
+                      ? "WhatsApp · online"
+                      : settings.platform === "telegram"
+                        ? "Telegram · bot"
+                        : "Instagram · Active now"}
+                </p>
               </div>
-            )}
-            {settings.opening && !continued ? (
-              <p className="nm-guided-pause">
-                Waiting for the lead to tap the button. Try it above.
-              </p>
-            ) : (
-              <>
-                {settings.opening && (
-                  <div className="nm-guided-bubble incoming">
-                    {settings.openingButton}
-                  </div>
-                )}
-                {settings.collectEmail && (
+              <Phone size={16} aria-hidden="true" />
+              <Video size={17} aria-hidden="true" />
+            </div>
+            <p className="nm-guided-preview-note">
+              Preview only. No messages are sent.
+            </p>
+            <div className="nm-guided-preview-body">
+              <div className="nm-guided-bubble incoming">
+                {settings.matchAny
+                  ? "Hi, I’d like to know more."
+                  : settings.keywords.split(",")[0] || "Your trigger word"}
+              </div>
+              {settings.trigger === "comment" &&
+                Boolean(settings.publicReplies?.length) && (
                   <>
-                    <div className="nm-guided-bubble">
-                      <Mail size={14} />
-                      <p>{settings.emailQuestion}</p>
+                    <div className="nm-guided-public-preview">
+                      <small>Public comment reply · example</small>
+                      <p>{settings.publicReplies?.[0]}</p>
                     </div>
-                    <div className="nm-guided-bubble incoming">
-                      lead@example.com
-                    </div>
+                    <small>Private messages</small>
                   </>
                 )}
+              {settings.opening && (
                 <div className="nm-guided-bubble">
-                  <p>{settings.resourceText}</p>
-                  {settings.links.map((link, i) => (
-                    <div className="nm-guided-resource" key={i}>
-                      <Link2 size={13} />
-                      {link.title || "Resource link"}
-                    </div>
-                  ))}
+                  <p>{settings.openingText}</p>
+                  <button
+                    type="button"
+                    className="nm-guided-preview-button"
+                    onClick={() => setContinued(true)}
+                  >
+                    {settings.openingButton || "Continue"}
+                  </button>
                 </div>
-                <ul className="nm-guided-outcomes">
-                  {settings.tag && (
-                    <li>
-                      <Tag size={13} /> Tag: {settings.tag}
-                    </li>
+              )}
+              {settings.opening && !continued ? (
+                <p className="nm-guided-pause">
+                  Waiting for the lead to tap the button. Try it above.
+                </p>
+              ) : (
+                <>
+                  {settings.opening && (
+                    <div className="nm-guided-bubble incoming">
+                      {settings.openingButton}
+                    </div>
                   )}
-                  {settings.assignee && (
-                    <li>
-                      <Users size={13} /> Assign:{" "}
-                      {members.find(
-                        (m) => String(m.user_id) === settings.assignee,
-                      )?.name || "Selected teammate"}
-                    </li>
+                  {settings.collectEmail && (
+                    <>
+                      <div className="nm-guided-bubble">
+                        <Mail size={14} />
+                        <p>{settings.emailQuestion}</p>
+                      </div>
+                      <div className="nm-guided-bubble incoming">
+                        lead@example.com
+                      </div>
+                    </>
                   )}
-                  {settings.transfer && (
-                    <li>
-                      <Workflow size={13} /> Continue:{" "}
-                      {targets.find((a) => a.id === settings.transfer)?.name}
-                    </li>
-                  )}
-                </ul>
-              </>
-            )}
+                  <div className="nm-guided-bubble">
+                    <p>{settings.resourceText}</p>
+                    {settings.links.map((link, i) => (
+                      <div className="nm-guided-resource" key={i}>
+                        <Link2 size={13} />
+                        {link.title || "Resource link"}
+                      </div>
+                    ))}
+                  </div>
+                  <ul className="nm-guided-outcomes">
+                    {settings.tag && (
+                      <li>
+                        <Tag size={13} /> Tag: {settings.tag}
+                      </li>
+                    )}
+                    {settings.assignee && (
+                      <li>
+                        <Users size={13} /> Assign:{" "}
+                        {members.find(
+                          (m) => String(m.user_id) === settings.assignee,
+                        )?.name || "Selected teammate"}
+                      </li>
+                    )}
+                    {settings.transfer && (
+                      <li>
+                        <Workflow size={13} /> Continue:{" "}
+                        {targets.find((a) => a.id === settings.transfer)?.name}
+                      </li>
+                    )}
+                  </ul>
+                </>
+              )}
+            </div>
+            <div className="nm-guided-phone-composer" aria-hidden="true">
+              <Camera size={20} />
+              <span>Message…</span>
+              <Mic size={18} />
+            </div>
+            <div className="nm-guided-phone-home" aria-hidden="true" />
+          </div>
+          <div className="nm-guided-phone-caption">
+            <span>Live preview · updates as you build</span>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => setContinued(false)}
+            >
+              Replay
+            </button>
           </div>
         </aside>
       </div>

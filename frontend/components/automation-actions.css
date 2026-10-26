@@ -1,0 +1,53 @@
+.nm-automation-actions {
+  position: relative;
+  flex-shrink: 0;
+}
+.nm-automation-actions > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.nm-automation-actions > summary::-webkit-details-marker {
+  display: none;
+}
+.nm-automation-actions > summary:focus-visible {
+  outline: 2px solid var(--brand-action);
+  outline-offset: 3px;
+}
+.nm-automation-actions-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+  width: 210px;
+  padding: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px #20281924;
+}
+.nm-automation-actions-popover :is(a, button) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: none;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.nm-automation-actions-popover :is(a, button):hover {
+  background: var(--bg-subtle);
+}
+.nm-automation-actions-popover .nm-automation-delete {
+  color: #a1352b;
+}
+.nm-automation-actions-popover button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}

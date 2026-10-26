@@ -1,5 +1,18 @@
 # Current continuation — 26 October 2026
 
+Automation UI regression correction:
+
+- Three-dot controls now open Edit/Duplicate/Delete actions instead of navigating.
+  Deletion requires confirmation, preserves the row on server failure and removes only
+  the selected row after a successful DELETE. Escape/outside clicks dismiss the actions.
+- Restored the simple builder's six-step timeline and channel-specific trigger cards.
+  Restored a live phone frame with Instagram, Messenger, WhatsApp and Telegram themes,
+  current account/message content, interactive consent/replay and a mobile preview toggle.
+- TypeScript and changed-file lint passed. Guided/management browser checks: 16 passed;
+  four expanded management checks passed, including duplication and keyboard dismissal.
+  Production frontend build passed and was deployed to localhost:3000. All four management
+  checks passed again against that production build; desktop/mobile screenshots inspected.
+
 The user resumed implementation and authorized the GitHub push previously requested.
 BooSend is strictly read-only: no records, drafts, settings, messages or automations were
 created, removed or saved there. Opening the CRM segmentation dialog exposed named
