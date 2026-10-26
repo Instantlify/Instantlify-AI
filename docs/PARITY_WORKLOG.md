@@ -40,9 +40,11 @@ Verification at this checkpoint:
   checks: 27 passed; final credit-revision/segment/Snapchat checks: 7 passed.
 - Final production images built successfully, including frontend TypeScript validation.
 - Final images deployed locally; migrations through agents 0010 and CRM 0007 applied.
-- Implementation is committed locally in 9cb437b; verification notes in 443e262. The local
-  origin/main reference contains these commits, but terminal fetch still cannot authenticate,
-  so remote publication has not been independently verified from this session.
+- Implementation is committed in 9cb437b, verification notes in 443e262 and the browser
+  correction in b698c66. GitHub accepted the push of main through b698c66 after local sign-in;
+  HEAD and origin/main matched. This verifies publication, not full functional parity.
+- The worker answered a direct Celery ping while its ten-second Docker probe timed out.
+  The probe now allows Django CLI startup plus the reply window, with a startup grace period.
 - Plan restrictions read the configured catalogue, including billing-period AI message caps,
   feature flags, account/contact/seat limits and billing status for paid AI execution. The
   current paid tiers share feature flags and differ in allowances; this is catalogue policy.
