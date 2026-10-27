@@ -374,9 +374,33 @@ export function LandingPage({
   const [audience, setAudience] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
+  const productMenuRef = useRef<HTMLDetailsElement>(null);
   const [playing, setPlaying] = useState(true);
   const [motionAllowed, setMotionAllowed] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
+
+  useEffect(() => {
+    const close = () => {
+      if (productMenuRef.current?.open) productMenuRef.current.open = false;
+    };
+    const outside = (event: PointerEvent) => {
+      if (!productMenuRef.current?.contains(event.target as Node)) close();
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !productMenuRef.current?.open) return;
+      event.preventDefault();
+      close();
+      productMenuRef.current.querySelector("summary")?.focus();
+    };
+    window.addEventListener("scroll", close, { passive: true });
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => {
+      window.removeEventListener("scroll", close);
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", escape);
+    };
+  }, []);
 
   useEffect(() => {
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -476,7 +500,15 @@ export function LandingPage({
           Meet your next sales teammate <ArrowUpRight size={13} />
         </a>
       </div>
-      <header className="nm-nav">
+      <header
+        className="nm-nav"
+        onClick={(event) => {
+          if ((event.target as HTMLElement).closest("a")) {
+            if (productMenuRef.current) productMenuRef.current.open = false;
+            setMobile(false);
+          }
+        }}
+      >
         <Link href="/" aria-label="Nemio home" onClick={returnToTop}>
           <Brand />
         </Link>
@@ -484,21 +516,11 @@ export function LandingPage({
           className={mobile ? "nm-nav-links open" : "nm-nav-links"}
           aria-label="Main navigation"
         >
-          <details className="nm-mega">
+          <details className="nm-mega" ref={productMenuRef}>
             <summary>
               Product <ChevronDown size={13} />
             </summary>
-            <div
-              className="nd-mega-menu"
-              onClick={(event) => {
-                if ((event.target as HTMLElement).closest("a")) {
-                  setMobile(false);
-                  event.currentTarget
-                    .closest("details")
-                    ?.removeAttribute("open");
-                }
-              }}
-            >
+            <div className="nd-mega-menu">
               {[
                 {
                   title: "Automate",

@@ -75,3 +75,43 @@ test("the portal rail uses the supplied logo and remains usable when expanded", 
       .locator(".nav-label-text"),
   ).toBeVisible();
 });
+
+test("Product dropdown closes on scrolling and outside clicks", async ({
+  page,
+}) => {
+  await mockLanding(page);
+  await page.goto("/");
+  const menu = page.locator(".nm-mega");
+  const trigger = menu.locator("summary");
+  await trigger.click();
+  await expect(menu).toHaveAttribute("open", "");
+  await page.getByRole("heading", { level: 1 }).click();
+  await expect(menu).not.toHaveAttribute("open");
+  await trigger.click();
+  await expect(menu).toHaveAttribute("open", "");
+  await page.mouse.move(1100, 500);
+  await page.mouse.wheel(0, 500);
+  await expect(menu).not.toHaveAttribute("open");
+});
+
+test("Product dropdown closes on keyboard navigation links and Escape", async ({
+  page,
+}) => {
+  await mockLanding(page);
+  await page.goto("/");
+  const menu = page.locator(".nm-mega");
+  const trigger = menu.locator("summary");
+  await trigger.click();
+  await page.keyboard.press("Escape");
+  await expect(menu).not.toHaveAttribute("open");
+  await expect(trigger).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(menu).toHaveAttribute("open", "");
+  const pricing = page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name: "Pricing", exact: true });
+  await pricing.focus();
+  await page.keyboard.press("Enter");
+  await expect(menu).not.toHaveAttribute("open");
+  await expect(page).toHaveURL(/#pricing$/);
+});

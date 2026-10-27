@@ -1,3 +1,11 @@
+# Landing Product menu dismissal — 27 October 2026
+
+- Product dropdown closes on page scroll, pointer clicks outside it, any header link
+  activation and Escape. Escape returns keyboard focus to its trigger; native details
+  toggling and product links retain their behavior. Event listeners are cleaned up on unmount.
+- Production frontend deployed locally; build/TypeScript and focused lint passed.
+  All five landing-logo/menu browser checks passed.
+
 # Validation and supplied brand asset — 27 October 2026
 
 - Shared client form validation now covers the existing form screens and their controls:
