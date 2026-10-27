@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   useEffect,
+  useRef,
   useState,
   type FormEvent,
   type MouseEvent,
@@ -34,7 +35,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { api, message, type Billing, type Workspace } from "@/lib/api";
-import { APPS, appById } from "@/lib/apps";
+import { appById } from "@/lib/apps";
 import { Announcements } from "@/components/growth";
 import { VerifyBanner } from "@/components/verify-banner";
 import { useWorkspace } from "@/lib/workspace";
@@ -129,8 +130,8 @@ export function Shell({ children }: { children: ReactNode }) {
   const section = pathname.split("/")[3] || "overview";
   const [creating, setCreating] = useState(false);
   const [drawer, setDrawer] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
   const [workspaceMenu, setWorkspaceMenu] = useState(false);
+  const workspaceCard = useRef<HTMLDivElement>(null);
   const [appsOpen, setAppsOpen] = useState(true);
   const [plan, setPlan] = useState("Lifetime");
   const [busy, setBusy] = useState(false);
@@ -149,6 +150,24 @@ export function Shell({ children }: { children: ReactNode }) {
     }));
 
   useEffect(() => {
+    if (!workspaceMenu) return;
+    const close = (event: globalThis.MouseEvent | KeyboardEvent) => {
+      if (
+        event instanceof KeyboardEvent
+          ? event.key === "Escape"
+          : !workspaceCard.current?.contains(event.target as Node)
+      )
+        setWorkspaceMenu(false);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [workspaceMenu]);
+
+  useEffect(() => {
     if (!manager) return;
     const controller = new AbortController();
     api<Billing>(`${prefix}/billing/`, "GET", undefined, controller.signal)
@@ -157,9 +176,7 @@ export function Shell({ children }: { children: ReactNode }) {
           billing.catalog.find((card) => card.slug === billing.plan)?.name ||
           billing.plan;
         setPlan(
-          billing.status === "trialing"
-            ? `${name} trial`
-            : name || "Lifetime",
+          billing.status === "trialing" ? `${name} trial` : name || "Lifetime",
         );
       })
       .catch(() => undefined);
@@ -210,6 +227,7 @@ export function Shell({ children }: { children: ReactNode }) {
         href={`/w/${workspace.id}/${item.id}`}
         className={`boosend-nav-link ${active ? "active" : ""} ${isSub ? "sub-item" : ""}`}
         aria-current={active ? "page" : undefined}
+        aria-label={item.label}
         title={item.label}
       >
         <span
@@ -222,16 +240,14 @@ export function Shell({ children }: { children: ReactNode }) {
             <Icon size={18} />
           )}
         </span>
-        {!collapsed && <span className="nav-label-text">{item.label}</span>}
-        {item.badge && !collapsed && (
-          <span className="nav-badge-pill">{item.badge}</span>
-        )}
+        <span className="nav-label-text">{item.label}</span>
+        {item.badge && <span className="nav-badge-pill">{item.badge}</span>}
       </Link>
     );
   };
 
   return (
-    <div className={`app-shell-root ${collapsed ? "rail-collapsed" : ""}`}>
+    <div className="app-shell-root">
       {/* Pitch-Black Modern Sidebar */}
       <aside
         className={`boosend-sidebar ${drawer ? "drawer-open" : ""}`}
@@ -240,8 +256,15 @@ export function Shell({ children }: { children: ReactNode }) {
       >
         {/* Top Brand */}
         <div className="sidebar-brand-row">
-          <Link href={`/w/${workspace.id}/overview`} className="brand-link">
-            <Brand name={branding.brand_name || "Nemio"} logo={branding.logo_url} />
+          <Link
+            href={`/w/${workspace.id}/overview`}
+            className="brand-link"
+            aria-label={`${branding.brand_name || "Nemio"} Home`}
+          >
+            <Brand
+              name={branding.brand_name || "Nemio"}
+              logo={branding.logo_url}
+            />
           </Link>
           <button
             className="icon-button mobile-close-btn"
@@ -253,36 +276,39 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
 
         {/* 1. Workspace Card */}
-        <div className="workspace-pill-card">
-          <div
+        <div className="workspace-pill-card" ref={workspaceCard}>
+          <button
+            type="button"
             className="workspace-pill-header"
+            aria-label={`Switch workspace, current workspace: ${workspace.name}`}
+            aria-expanded={workspaceMenu}
+            aria-controls="workspace-switch-menu"
             onClick={() => setWorkspaceMenu(!workspaceMenu)}
           >
             <div className="workspace-avatar-sq">
               {initials(workspace.name)}
             </div>
-            {!collapsed && (
-              <div className="workspace-pill-info">
-                <div className="workspace-name-row">
-                  <span className="workspace-title">{workspace.name}</span>
-                  <span className="default-tag">Default</span>
-                </div>
-                <span className="workspace-role">
-                  <ShieldCheck size={12} /> {workspace.role || "Owner"}
-                </span>
+            <div className="workspace-pill-info">
+              <div className="workspace-name-row">
+                <span className="workspace-title">{workspace.name}</span>
+                <span className="default-tag">Default</span>
               </div>
-            )}
-            {!collapsed && (
-              <ChevronDown
-                size={14}
-                className={`dropdown-arrow ${workspaceMenu ? "flip" : ""}`}
-              />
-            )}
-          </div>
+              <span className="workspace-role">
+                <ShieldCheck size={12} /> {workspace.role || "Owner"}
+              </span>
+            </div>
+            <ChevronDown
+              size={14}
+              className={`dropdown-arrow ${workspaceMenu ? "flip" : ""}`}
+            />
+          </button>
 
           {/* Workspace dropdown menu */}
           {workspaceMenu && (
-            <div className="workspace-dropdown-popover">
+            <div
+              className="workspace-dropdown-popover"
+              id="workspace-switch-menu"
+            >
               <span className="popover-heading">WORKSPACES</span>
               <div className="workspace-items-list">
                 {workspaces.map((item) => (
@@ -291,7 +317,8 @@ export function Shell({ children }: { children: ReactNode }) {
                     className={`workspace-select-item ${item.id === workspace.id ? "current" : ""}`}
                     onClick={() => {
                       setWorkspaceMenu(false);
-                      router.push(`/w/${item.id}/${section}`);
+                      setDrawer(false);
+                      router.push(`/w/${item.id}/overview`);
                     }}
                   >
                     <span className="item-initials">{initials(item.name)}</span>
@@ -322,32 +349,35 @@ export function Shell({ children }: { children: ReactNode }) {
 
         {/* 3. Main Navigation List */}
         <nav className="boosend-nav-menu" aria-label="Workspace navigation">
-          {PRIMARY_NAV.filter((item) => allowed(item.id)).map((item) => renderNavLink(item))}
+          {PRIMARY_NAV.filter((item) => allowed(item.id)).map((item) =>
+            renderNavLink(item),
+          )}
 
           {/* Expandable Apps Accordion Group */}
           <div className="nav-accordion-group">
             <button
               type="button"
               className={`boosend-nav-link accordion-header ${appsOpen ? "open" : ""}`}
+              aria-label="Apps"
+              aria-expanded={appsOpen}
               onClick={() => setAppsOpen(!appsOpen)}
             >
               <span className="nav-icon-wrap">
                 <Layers size={18} />
               </span>
-              {!collapsed && <span className="nav-label-text">Apps</span>}
-              {!collapsed && (
-                <span className="accordion-arrow">
-                  <ChevronDown size={14} className={appsOpen ? "flip" : ""} />
-                </span>
-              )}
+              <span className="nav-label-text">Apps</span>
+              <span className="accordion-arrow">
+                <ChevronDown size={14} className={appsOpen ? "flip" : ""} />
+              </span>
             </button>
 
-            {appsOpen && !collapsed && (
+            {appsOpen && (
               <div className="accordion-children">
                 {docked.map((item) => renderNavLink(item, true))}
                 <Link
                   href={`/w/${workspace.id}/app-store`}
                   className={`boosend-nav-link sub-item ${section === "app-store" ? "active" : ""}`}
+                  aria-label="Browse all apps"
                 >
                   <span className="nav-icon-wrap">
                     <LayoutGrid size={16} />
@@ -358,12 +388,15 @@ export function Shell({ children }: { children: ReactNode }) {
             )}
           </div>
 
-          {tools.length > 0 && !collapsed && (
+          {tools.length > 0 && (
             <details
               className="nav-tools"
               open={tools.some((item) => item.id === section)}
             >
-              <summary className="boosend-nav-link accordion-header">
+              <summary
+                className="boosend-nav-link accordion-header"
+                aria-label="Business tools"
+              >
                 <span className="nav-icon-wrap">
                   <Wrench size={18} />
                 </span>
@@ -392,19 +425,17 @@ export function Shell({ children }: { children: ReactNode }) {
             <div className="user-avatar-circle">
               {initials(user.name || user.email)}
             </div>
-            {!collapsed && (
-              <div className="user-info-text">
-                <div className="user-name-row">
-                  <span className="user-name" title={user.name || user.email}>
-                    {user.name || "My Account"}
-                  </span>
-                  <span className="lifetime-badge">{plan || "Lifetime"}</span>
-                </div>
-                <span className="user-email" title={user.email}>
-                  {user.email}
+            <div className="user-info-text">
+              <div className="user-name-row">
+                <span className="user-name" title={user.name || user.email}>
+                  {user.name || "My Account"}
                 </span>
+                <span className="lifetime-badge">{plan || "Lifetime"}</span>
               </div>
-            )}
+              <span className="user-email" title={user.email}>
+                {user.email}
+              </span>
+            </div>
             <button
               className="icon-button logout-btn"
               aria-label="Sign out"
@@ -433,6 +464,8 @@ export function Shell({ children }: { children: ReactNode }) {
           <button
             className="icon-button mobile-drawer-toggle"
             aria-label="Open navigation"
+            aria-expanded={drawer}
+            aria-controls="workspace-sidebar"
             onClick={() => setDrawer(true)}
           >
             <Menu size={20} />

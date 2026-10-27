@@ -1,3 +1,14 @@
+# Workspace navigation update — 27 October 2026
+
+- Sidebar and Settings workspace switches open the selected workspace's Home screen.
+- Desktop navigation starts as a 76px icon rail and expands on hover or keyboard focus.
+  Expansion overlays the page, keeps icons on the same rows and respects reduced motion.
+  Open account/workspace menus stay usable; workspace menus dismiss outside or with Escape.
+- Mobile retains its full navigation drawer; choosing a workspace closes the drawer.
+- Production frontend deployed locally. All 13 navigation/client browser checks passed,
+  including keyboard access, workspace switching, channel selection and app pin/unpin.
+  Production build/TypeScript and changed-component lint/format checks passed.
+
 # Current continuation — 26 October 2026
 
 Remaining-feature implementation continuation (deployed locally):

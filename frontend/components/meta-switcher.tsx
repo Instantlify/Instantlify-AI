@@ -41,8 +41,7 @@ const accountSubtitle = (connection: Connection) =>
     : (ACCOUNT_KINDS[connection.provider] ?? channelLabel(connection.provider));
 
 export function MetaAccountSwitcher() {
-  const { workspace, prefix, manager, activeAccount, setActiveAccount } =
-    useWorkspace();
+  const { workspace, prefix, activeAccount, setActiveAccount } = useWorkspace();
   const [connections, setConnections] = useState<Connection[] | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -105,10 +104,7 @@ export function MetaAccountSwitcher() {
     setBusy(true);
     setNotice("");
     try {
-      await api<{ queued: number }>(
-        `${prefix}/connections/refresh/`,
-        "POST",
-      );
+      await api<{ queued: number }>(`${prefix}/connections/refresh/`, "POST");
       await load();
       setNotice("Accounts refreshed.");
     } catch (err) {
@@ -121,19 +117,26 @@ export function MetaAccountSwitcher() {
   const list = connections || [];
   // No account chosen means every channel in the workspace is in scope.
   const active = list.find((item) => item.id === activeAccount) || null;
-  const attention = list.filter((item) => tokenHealth(item, now) !== "active").length;
+  const attention = list.filter(
+    (item) => tokenHealth(item, now) !== "active",
+  ).length;
 
   const pillClass = (provider?: string) =>
-    provider === "instagram" || provider === "whatsapp" || provider === "telegram"
+    provider === "instagram" ||
+    provider === "whatsapp" ||
+    provider === "telegram"
       ? provider
       : "facebook";
 
   const renderChannelIcon = (provider: string) => {
-    if (provider === "instagram") return <BrandIcon name="instagram" size={10} mono />;
+    if (provider === "instagram")
+      return <BrandIcon name="instagram" size={10} mono />;
     if (provider === "messenger" || provider === "facebook")
       return <BrandIcon name="facebook" size={10} mono />;
-    if (provider === "whatsapp") return <BrandIcon name="whatsapp" size={10} mono />;
-    if (provider === "telegram") return <BrandIcon name="telegram" size={10} mono />;
+    if (provider === "whatsapp")
+      return <BrandIcon name="whatsapp" size={10} mono />;
+    if (provider === "telegram")
+      return <BrandIcon name="telegram" size={10} mono />;
     return <MessageCircle size={11} />;
   };
 
@@ -142,6 +145,7 @@ export function MetaAccountSwitcher() {
       <button
         type="button"
         className="social-account-card-trigger"
+        aria-label={`Switch channel account, current: ${active?.display_name || "All accounts"}`}
         aria-expanded={open}
         onClick={() => {
           setOpen((val) => !val);
@@ -153,13 +157,18 @@ export function MetaAccountSwitcher() {
             {active ? initials(active.display_name) : list.length}
           </div>
           {active && (
-            <span className={`platform-badge-pill ${pillClass(active.provider)}`}>
+            <span
+              className={`platform-badge-pill ${pillClass(active.provider)}`}
+            >
               {renderChannelIcon(active.provider)}
             </span>
           )}
         </div>
         <div className="account-card-text">
-          <span className="account-handle" title={active?.display_name || "All accounts"}>
+          <span
+            className="account-handle"
+            title={active?.display_name || "All accounts"}
+          >
             {active ? active.display_name : "All accounts"}
           </span>
           <span className="account-followers-sub">
@@ -178,7 +187,10 @@ export function MetaAccountSwitcher() {
             {attention}
           </span>
         )}
-        <ChevronDown size={14} className={`dropdown-chevron ${open ? "flip" : ""}`} />
+        <ChevronDown
+          size={14}
+          className={`dropdown-chevron ${open ? "flip" : ""}`}
+        />
       </button>
 
       {/* Dropdown Menu matching BooSend Screenshot 4 */}
@@ -199,7 +211,9 @@ export function MetaAccountSwitcher() {
               </div>
               <div className="account-row-info">
                 <span className="row-handle">All accounts</span>
-                <span className="row-followers">Every channel in {workspace.name}</span>
+                <span className="row-followers">
+                  Every channel in {workspace.name}
+                </span>
               </div>
               {!active && <Check size={16} className="selected-check" />}
             </button>
@@ -221,9 +235,9 @@ export function MetaAccountSwitcher() {
                       {initials(item.display_name)}
                     </div>
                     <span
-                      className={`platform-badge-pill ${
-                        pillClass(item.provider)
-                      }`}
+                      className={`platform-badge-pill ${pillClass(
+                        item.provider,
+                      )}`}
                     >
                       {renderChannelIcon(item.provider)}
                     </span>

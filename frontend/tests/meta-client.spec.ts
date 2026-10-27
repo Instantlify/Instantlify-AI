@@ -34,7 +34,7 @@ test("account switcher lists Meta accounts with token health and scopes the inbo
   await expect(trigger.locator(".account-attention")).toHaveText("1");
   await trigger.click();
   const menu = page.locator(".social-account-menu-popover");
-  await expect(menu).toContainText("12.4K followers");
+  await expect(menu).toContainText(/12\.4k followers/i);
   await expect(menu).toContainText("Expiring soon");
   await expect(menu).toContainText("WhatsApp number");
   await page.screenshot({ path: "test-results/meta-switcher.png" });
@@ -212,7 +212,13 @@ test("app store pins apps to the sidebar dock", async ({ page }) => {
   await expect(
     nav(page).getByRole("link", { name: "Content calendar" }),
   ).toHaveCount(0);
-  await expect(page.locator(".boosend-appstore-btn-soon")).not.toHaveCount(0);
+  await page
+    .locator(".boosend-appstore-card", { hasText: "Content Calendar" })
+    .getByRole("button", { name: "Add To Menu" })
+    .click();
+  await expect(
+    nav(page).getByRole("link", { name: "Content calendar" }),
+  ).toBeVisible();
   await page.screenshot({
     path: "test-results/meta-app-store.png",
     fullPage: true,

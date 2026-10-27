@@ -1,0 +1,129 @@
+/* Desktop navigation reserves a slim rail; expansion overlays the canvas. */
+.workspace-pill-header {
+  width: 100%;
+  text-align: left;
+}
+
+@media (min-width: 901px) {
+  .app-shell-root {
+    padding-left: 76px;
+  }
+
+  .boosend-sidebar {
+    position: fixed;
+    left: 0;
+    width: 76px;
+    min-width: 76px;
+    height: 100dvh;
+    transition:
+      width 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .boosend-sidebar:hover,
+  .boosend-sidebar:has(
+    :focus-visible,
+    .workspace-dropdown-popover,
+    .social-account-menu-popover
+  ) {
+    width: 250px;
+    box-shadow: 12px 0 32px rgb(39 48 34 / 8%);
+  }
+
+  .boosend-sidebar .brand-logo-container,
+  .boosend-sidebar .boosend-nav-link {
+    white-space: nowrap;
+  }
+
+  /* Keep icons on the same row while labels appear under the pointer. */
+  .boosend-sidebar .sidebar-brand-row {
+    height: 48px;
+    flex-shrink: 0;
+  }
+
+  .boosend-sidebar .workspace-pill-header {
+    height: 60px;
+  }
+
+  .boosend-sidebar .social-account-card-trigger {
+    height: 68px;
+  }
+
+  .boosend-sidebar .boosend-nav-link {
+    height: 40px;
+    flex-shrink: 0;
+  }
+
+  .boosend-sidebar .boosend-nav-link.sub-item {
+    height: 38px;
+  }
+
+  .boosend-sidebar .brand-logo,
+  .boosend-sidebar .brand-icon-ghost {
+    flex-shrink: 0;
+  }
+
+  .boosend-sidebar:not(:hover):not(
+      :has(
+        :focus-visible,
+        .workspace-dropdown-popover,
+        .social-account-menu-popover
+      )
+    ) {
+    .brand-title,
+    .workspace-pill-info,
+    .workspace-pill-header > .dropdown-arrow,
+    .account-card-text,
+    .social-account-card-trigger > .dropdown-chevron,
+    .account-attention,
+    .nav-label-text,
+    .nav-badge-pill,
+    .accordion-arrow,
+    .user-info-text {
+      display: none;
+    }
+
+    .sidebar-brand-row {
+      justify-content: center;
+      padding: 4px 0 16px;
+    }
+
+    .workspace-pill-header,
+    .social-account-card-trigger {
+      padding: 8px;
+      gap: 0;
+      justify-content: center;
+      min-height: 52px;
+    }
+
+    .boosend-nav-link,
+    .boosend-nav-link.sub-item {
+      justify-content: center;
+      padding: 10px 0;
+      min-height: 38px;
+      gap: 0;
+    }
+
+    .accordion-children {
+      padding-left: 0;
+    }
+
+    .user-profile-card {
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 0;
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .boosend-sidebar:not(.drawer-open) {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boosend-sidebar {
+    transition: none;
+  }
+}

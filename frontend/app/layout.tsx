@@ -7,6 +7,7 @@ import "./landing.css";
 import "./landing-depth.css";
 import "./landing-motion.css";
 import "./meta.css";
+import "./sidebar.css";
 import "@xyflow/react/dist/style.css";
 import "./theme.css";
 

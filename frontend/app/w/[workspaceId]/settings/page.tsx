@@ -1314,7 +1314,7 @@ export default function SettingsPage() {
                 return (
                   <Link
                     key={ws.id}
-                    href={`/w/${ws.id}/settings`}
+                    href={`/w/${ws.id}/${isCurrent ? "settings" : "overview"}`}
                     className="active-workspace-card-item"
                     style={{
                       borderColor: isCurrent ? "#0f172a" : "#e2e8f0",
