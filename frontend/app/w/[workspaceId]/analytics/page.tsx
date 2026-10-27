@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+} from "@/components/validated-form";
+
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
   FlaskConical,
@@ -125,7 +131,7 @@ export default function AnalyticsPage() {
       />
       <ErrorNotice error={error} />
       <div className="toolbar">
-        <select
+        <ValidatedSelect
           aria-label="Period"
           value={period}
           onChange={(e) => setPeriod(e.target.value)}
@@ -133,8 +139,8 @@ export default function AnalyticsPage() {
           <option value="7d">Last 7 days</option>
           <option value="30d">Last 30 days</option>
           <option value="90d">Last 90 days</option>
-        </select>
-        <select
+        </ValidatedSelect>
+        <ValidatedSelect
           aria-label="Automation"
           value={automation}
           onChange={(e) => setAutomation(e.target.value)}
@@ -145,8 +151,8 @@ export default function AnalyticsPage() {
               {item.name}
             </option>
           ))}
-        </select>
-        <select
+        </ValidatedSelect>
+        <ValidatedSelect
           aria-label="Channel"
           value={provider}
           onChange={(e) => setProvider(e.target.value)}
@@ -157,7 +163,7 @@ export default function AnalyticsPage() {
               {item}
             </option>
           ))}
-        </select>
+        </ValidatedSelect>
       </div>
       {!funnel ? (
         <p className="loading-text">Loading analytics…</p>
@@ -431,11 +437,11 @@ function Experiments({ automations }: { automations: Automation[] }) {
       <h3 className="small" style={{ marginBottom: 10 }}>
         Start an experiment
       </h3>
-      <form className="form-grid" onSubmit={create}>
+      <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={create}>
         <div className="three-col">
           <label>
             Name
-            <input
+            <ValidatedInput name="name"
               value={form.name}
               maxLength={100}
               required
@@ -444,7 +450,7 @@ function Experiments({ automations }: { automations: Automation[] }) {
           </label>
           <label>
             Control (published)
-            <select
+            <ValidatedSelect name="control"
               value={form.control}
               required
               onChange={(e) => setForm({ ...form, control: e.target.value })}
@@ -455,11 +461,11 @@ function Experiments({ automations }: { automations: Automation[] }) {
                   {item.name}
                 </option>
               ))}
-            </select>
+            </ValidatedSelect>
           </label>
           <label>
             Variant (published)
-            <select
+            <ValidatedSelect name="variant"
               value={form.variant}
               required
               onChange={(e) => setForm({ ...form, variant: e.target.value })}
@@ -472,13 +478,13 @@ function Experiments({ automations }: { automations: Automation[] }) {
                     {item.name}
                   </option>
                 ))}
-            </select>
+            </ValidatedSelect>
           </label>
         </div>
         <div className="three-col">
           <label>
             Variant share (%)
-            <input
+            <ValidatedInput name="split"
               type="number"
               min={1}
               max={99}
@@ -490,18 +496,18 @@ function Experiments({ automations }: { automations: Automation[] }) {
           </label>
           <label>
             Goal
-            <select
+            <ValidatedSelect name="goal"
               value={form.goal}
               onChange={(e) => setForm({ ...form, goal: e.target.value })}
             >
               <option value="replied">Replied</option>
               <option value="booked">Booked</option>
               <option value="paid">Paid</option>
-            </select>
+            </ValidatedSelect>
           </label>
           <label>
             Minimum leads per arm
-            <input
+            <ValidatedInput name="min_leads"
               type="number"
               min={1}
               value={form.min_leads}
@@ -512,7 +518,7 @@ function Experiments({ automations }: { automations: Automation[] }) {
           </label>
         </div>
         <label className="inline">
-          <input
+          <ValidatedInput
             type="checkbox"
             checked={form.auto_promote}
             onChange={(e) =>
@@ -535,7 +541,7 @@ function Experiments({ automations }: { automations: Automation[] }) {
             </span>
           )}
         </div>
-      </form>
+      </ValidatedForm>
     </Panel>
   );
 }

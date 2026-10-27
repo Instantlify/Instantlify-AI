@@ -1,6 +1,13 @@
 "use client";
 
 import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
+import {
   useCallback,
   useEffect,
   useMemo,
@@ -300,20 +307,20 @@ export default function CalendarPage() {
               ) : !manager ? (
                 <Empty>Owners and admins schedule posts.</Empty>
               ) : (
-                <form className="form-grid" onSubmit={schedule}>
+                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={schedule}>
                   <label>
                     Account
-                    <select name="connection" required>
+                    <ValidatedSelect name="connection" required>
                       {connections.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.display_name}
                         </option>
                       ))}
-                    </select>
+                    </ValidatedSelect>
                   </label>
                   <label>
                     Caption
-                    <textarea
+                    <ValidatedTextarea
                       name="caption"
                       maxLength={2200}
                       placeholder="What do you want to say?"
@@ -322,7 +329,7 @@ export default function CalendarPage() {
                   </label>
                   <label>
                     Media URL
-                    <input
+                    <ValidatedInput
                       name="media_url"
                       type="url"
                       pattern="https://.*"
@@ -335,14 +342,14 @@ export default function CalendarPage() {
                   </label>
                   <label>
                     Media type
-                    <select name="media_type" defaultValue="image">
+                    <ValidatedSelect name="media_type" defaultValue="image">
                       <option value="image">Image</option>
                       <option value="video">Video (Reel)</option>
-                    </select>
+                    </ValidatedSelect>
                   </label>
                   <label>
                     Publish at
-                    <input
+                    <ValidatedInput
                       name="scheduled_at"
                       type="datetime-local"
                       min={toLocalInput(new Date())}
@@ -355,7 +362,7 @@ export default function CalendarPage() {
                       <Plus size={16} />
                     </button>
                   </div>
-                </form>
+                </ValidatedForm>
               )}
             </Panel>
             <Panel title="Upcoming" aside={`${upcoming.length} scheduled`}>
@@ -434,14 +441,14 @@ export default function CalendarPage() {
             </dl>
           </div>
           {selected.status === "scheduled" && manager ? (
-            <form
+            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
               className="form-grid"
               onSubmit={edit}
               style={{ marginTop: 18 }}
             >
               <label>
                 Caption
-                <textarea
+                <ValidatedTextarea
                   name="caption"
                   maxLength={2200}
                   defaultValue={selected.caption}
@@ -449,7 +456,7 @@ export default function CalendarPage() {
               </label>
               <label>
                 Media URL
-                <input
+                <ValidatedInput
                   name="media_url"
                   type="url"
                   pattern="https://.*"
@@ -459,14 +466,14 @@ export default function CalendarPage() {
               </label>
               <label>
                 Media type
-                <select name="media_type" defaultValue={selected.media_type}>
+                <ValidatedSelect name="media_type" defaultValue={selected.media_type}>
                   <option value="image">Image</option>
                   <option value="video">Video (Reel)</option>
-                </select>
+                </ValidatedSelect>
               </label>
               <label>
                 Publish at
-                <input
+                <ValidatedInput
                   name="scheduled_at"
                   type="datetime-local"
                   defaultValue={toLocalInput(selected.scheduled_at)}
@@ -486,7 +493,7 @@ export default function CalendarPage() {
                   Cancel post
                 </button>
               </div>
-            </form>
+            </ValidatedForm>
           ) : (
             <p className="muted-text" style={{ marginTop: 14 }}>
               {selected.caption || "No caption."}

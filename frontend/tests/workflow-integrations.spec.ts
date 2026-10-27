@@ -41,8 +41,11 @@ test("Sheets configuration keeps destinations separate and preserves saved token
     .getByRole("button", { name: "Save Configuration", exact: true })
     .click();
   await expect(
-    page.getByText("Enter Access token.", { exact: true }),
-  ).toBeVisible();
+    page.getByLabel("Access token", { exact: true }),
+  ).toHaveAttribute("aria-invalid", "true");
+  await expect(
+    page.getByLabel("Access token", { exact: true }),
+  ).toHaveAccessibleDescription("Enter access token.");
   expect(saved).toBeUndefined();
   await page
     .getByLabel("Access token", { exact: true })
@@ -107,7 +110,10 @@ test("failed Google authorization stays an error and never creates a fake connec
   await page.getByLabel("Spreadsheet ID", { exact: true }).fill("sheet-123");
   await page.getByRole("button", { name: "Connect", exact: true }).click();
   await expect(
-    page.getByText("Google authorization is unavailable.", { exact: true }),
+    page.getByText(
+      "We couldn’t complete this request. Please try again in a moment.",
+      { exact: true },
+    ),
   ).toBeVisible();
   expect(oauth).toEqual({
     options: { spreadsheet_id: "sheet-123", range: "Sheet1!A:C" },

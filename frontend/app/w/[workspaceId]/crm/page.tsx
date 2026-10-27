@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+} from "@/components/validated-form";
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -390,7 +396,7 @@ export default function CrmPage() {
       <div className="boosend-crm-topbar">
         <div className="boosend-crm-search-box">
           <Search size={15} color="#94a3b8" />
-          <input
+          <ValidatedInput
             type="text"
             className="boosend-crm-search-input"
             placeholder="Search by name, @handle or email…"
@@ -432,14 +438,14 @@ export default function CrmPage() {
                     Move to {stage.label}
                   </button>
                 ))}
-                <form
+                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
                   className="crm-menu-form"
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (tagInput.trim()) bulkAction("tag", tagInput.trim());
                   }}
                 >
-                  <input
+                  <ValidatedInput
                     placeholder="Add tag..."
                     aria-label="Tag to apply"
                     maxLength={40}
@@ -449,7 +455,7 @@ export default function CrmPage() {
                   <button type="submit" aria-label="Apply tag">
                     Apply
                   </button>
-                </form>
+                </ValidatedForm>
               </div>
             )}
           </div>
@@ -744,7 +750,7 @@ export default function CrmPage() {
                         </span>
                       </td>
                       <td>
-                        <select
+                        <ValidatedSelect
                           className="crm-stage-select"
                           aria-label={`Stage for ${name}`}
                           value={lead.stage || "new"}
@@ -755,7 +761,7 @@ export default function CrmPage() {
                               ● {stage.label}
                             </option>
                           ))}
-                        </select>
+                        </ValidatedSelect>
                       </td>
                     </tr>
                   );
@@ -776,7 +782,7 @@ export default function CrmPage() {
             <span>·</span>
             <label className="crm-perpage">
               Per page
-              <select
+              <ValidatedSelect
                 className="boosend-crm-perpage-select"
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
@@ -786,7 +792,7 @@ export default function CrmPage() {
                     {size}
                   </option>
                 ))}
-              </select>
+              </ValidatedSelect>
             </label>
           </div>
         </div>
@@ -841,7 +847,7 @@ export default function CrmPage() {
                             {lead.handle && <span>{lead.handle}</span>}
                           </span>
                         </button>
-                        <select
+                        <ValidatedSelect
                           className="kanban-stage-select"
                           aria-label={`Move ${name} to stage`}
                           value={lead.stage || "new"}
@@ -852,7 +858,7 @@ export default function CrmPage() {
                               {item.label}
                             </option>
                           ))}
-                        </select>
+                        </ValidatedSelect>
                         <div className="crm-kanban-foot">
                           {channelMarks(lead)}
                           <span className="crm-messages">
@@ -913,7 +919,7 @@ export default function CrmPage() {
 
       {addContactModal && (
         <Modal title="Create contact" onClose={() => setAddContactModal(false)}>
-          <form onSubmit={createContact}>
+          <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} onSubmit={createContact}>
             <p className="modal-copy">
               Contacts normally arrive on their own when someone messages a
               connected account. Add one by hand to keep notes on a person
@@ -922,16 +928,16 @@ export default function CrmPage() {
             <ErrorNotice error={feedback.error} />
             <label>
               Name
-              <input name="name" required maxLength={150} autoFocus />
+              <ValidatedInput name="name" required maxLength={150} autoFocus />
             </label>
             <label>
               Email (optional)
-              <input name="email" type="email" maxLength={254} />
+              <ValidatedInput name="email" type="email" maxLength={254} />
             </label>
             <button className="button primary" disabled={feedback.busy}>
               Create contact
             </button>
-          </form>
+          </ValidatedForm>
         </Modal>
       )}
     </div>

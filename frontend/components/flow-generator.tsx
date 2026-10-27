@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, MicOff, WandSparkles } from "lucide-react";
@@ -120,11 +125,11 @@ export function FlowGenerator({
           draft in the builder before anything goes live.
         </p>
       </div>
-      <form onSubmit={generate} className="generator-bar">
+      <ValidatedForm onSubmit={generate} className="generator-bar">
         <label className="sr-only" htmlFor="flow-prompt">
           Describe your automation
         </label>
-        <textarea
+        <ValidatedTextarea
           id="flow-prompt"
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
@@ -155,7 +160,7 @@ export function FlowGenerator({
             <WandSparkles size={15} />
           </button>
         </div>
-      </form>
+      </ValidatedForm>
       {!prompt && (
         <button
           type="button"

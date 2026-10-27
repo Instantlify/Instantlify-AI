@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+} from "@/components/validated-form";
+
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Gift, MessageCircle, Send, X } from "lucide-react";
@@ -352,10 +357,10 @@ export function SupportChat({
         ))}
       </ol>
       {card ? (
-        <form className="chat-card" onSubmit={submitCard}>
+        <ValidatedForm className="chat-card" onSubmit={submitCard}>
           <label>
             {card === NAME_CARD ? "Your name" : "Your email"}
-            <input
+            <ValidatedInput
               name="value"
               type={card === NAME_CARD ? "text" : "email"}
               autoComplete={card === NAME_CARD ? "name" : "email"}
@@ -364,10 +369,10 @@ export function SupportChat({
             />
           </label>
           <button className="button primary">Continue</button>
-        </form>
+        </ValidatedForm>
       ) : (
-        <form className="chat-input" onSubmit={send}>
-          <input
+        <ValidatedForm className="chat-input" onSubmit={send}>
+          <ValidatedInput
             name="message"
             placeholder={ticket ? "Anything else?" : "Type your question…"}
             aria-label="Message"
@@ -381,7 +386,7 @@ export function SupportChat({
           >
             <Send size={16} />
           </button>
-        </form>
+        </ValidatedForm>
       )}
     </section>
   );

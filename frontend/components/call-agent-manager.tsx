@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
 import { useEffect, useRef, useState } from "react";
 import { api, message } from "@/lib/api";
 import { ErrorNotice, SuccessNotice, useFeedback } from "@/components/ui";
@@ -84,7 +90,7 @@ export function CallAgentManager({
             account. This does not place a call. Provider charges apply when the
             agent is used.
           </p>
-          <form
+          <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
             className="form-grid"
             onSubmit={(event) => {
               event.preventDefault();
@@ -115,7 +121,7 @@ export function CallAgentManager({
             >
               <label>
                 Agent name
-                <input
+                <ValidatedInput
                   required
                   maxLength={40}
                   value={name}
@@ -124,7 +130,7 @@ export function CallAgentManager({
               </label>
               <label>
                 Agent instructions
-                <textarea
+                <ValidatedTextarea
                   required
                   maxLength={8000}
                   rows={5}
@@ -134,7 +140,7 @@ export function CallAgentManager({
               </label>
               <label>
                 First message
-                <textarea
+                <ValidatedTextarea
                   required
                   maxLength={1000}
                   rows={2}
@@ -146,7 +152,7 @@ export function CallAgentManager({
                 {provider === "vapi"
                   ? "Vapi OpenAI model ID"
                   : "Retell model ID"}
-                <input
+                <ValidatedInput
                   required
                   maxLength={100}
                   value={model}
@@ -157,7 +163,7 @@ export function CallAgentManager({
                 {provider === "vapi"
                   ? "ElevenLabs voice ID"
                   : "Retell voice ID"}
-                <input
+                <ValidatedInput
                   required
                   maxLength={150}
                   value={voice}
@@ -169,7 +175,7 @@ export function CallAgentManager({
               </small>
               <label>
                 Maximum call length (seconds)
-                <input
+                <ValidatedInput
                   required
                   type="number"
                   min={30}
@@ -182,7 +188,7 @@ export function CallAgentManager({
                 {feedback.busy ? "Requesting…" : "Create and publish agent"}
               </button>
             </fieldset>
-          </form>
+          </ValidatedForm>
           {createdId && !pending && (
             <button
               type="button"

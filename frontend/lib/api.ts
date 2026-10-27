@@ -1,3 +1,10 @@
+import {
+  errorSummary,
+  friendlyError,
+  validationErrors,
+  type FieldErrors,
+} from "./form-errors";
+
 export type User = {
   id: number;
   name: string;
@@ -725,6 +732,7 @@ export class ApiError extends Error {
     public status: number,
     /** Set on 402 plan-gate responses: the limit or feature that blocked the action. */
     public upgradeRequired?: string,
+    public fieldErrors: FieldErrors = {},
   ) {
     super(message);
   }
@@ -747,23 +755,25 @@ function failure(payload: unknown, status: number) {
     upgrade && payload && typeof payload === "object"
       ? String((payload as { detail?: string }).detail || "Upgrade required.")
       : errorMessage(payload);
-  return new ApiError(detail, status, upgrade || undefined);
+  return new ApiError(
+    status >= 500
+      ? "We couldn’t complete this request. Please try again in a moment."
+      : detail,
+    status,
+    upgrade || undefined,
+    status === 400 || status === 422 ? validationErrors(payload) : {},
+  );
 }
 
 function errorMessage(data: unknown): string {
-  if (!data || typeof data !== "object")
-    return "Something went wrong. Please try again.";
-  return Object.entries(data)
-    .map(
-      ([key, value]) =>
-        `${key === "detail" || key === "non_field_errors" ? "" : `${key}: `}${Array.isArray(value) ? value.join(" ") : String(value)}`,
-    )
-    .join(" ");
+  return errorSummary(data);
 }
 
 export const message = (error: unknown) =>
   error instanceof Error
-    ? error.message
+    ? /Failed to fetch|NetworkError|Load failed/i.test(error.message)
+      ? "We couldn’t connect. Check your internet connection and try again."
+      : friendlyError(error.message)
     : "Something went wrong. Please try again.";
 
 /* Concurrent first requests must share one token fetch. With no csrftoken cookie yet,

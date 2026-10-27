@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
 import { useEffect, useState } from "react";
 import {
   Bot,
@@ -90,10 +96,10 @@ export default function WebChatPage() {
       <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "24px", alignItems: "start" }}>
         <div>
           <Panel title="Widget Configuration">
-            <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <label>
                 Widget Title
-                <input
+                <ValidatedInput
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Chat with us"
@@ -103,7 +109,7 @@ export default function WebChatPage() {
 
               <label>
                 Greeting Message
-                <textarea
+                <ValidatedTextarea
                   value={greeting}
                   onChange={(e) => setGreeting(e.target.value)}
                   rows={3}
@@ -115,13 +121,13 @@ export default function WebChatPage() {
                 <label>
                   Brand Accent Color
                   <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "4px" }}>
-                    <input
+                    <ValidatedInput
                       type="color"
                       value={color}
                       onChange={(e) => setColor(e.target.value)}
                       style={{ width: "42px", height: "36px", padding: "2px", cursor: "pointer", border: "1px solid var(--brand-line)", borderRadius: "6px" }}
                     />
-                    <input
+                    <ValidatedInput
                       type="text"
                       value={color}
                       onChange={(e) => setColor(e.target.value)}
@@ -135,7 +141,7 @@ export default function WebChatPage() {
                   AI Assistant Autoreply
                   <div style={{ marginTop: "8px" }}>
                     <label style={{ display: "flex", gap: "8px", alignItems: "center", cursor: "pointer", fontWeight: "normal" }}>
-                      <input
+                      <ValidatedInput
                         type="checkbox"
                         checked={botEnabled}
                         onChange={(e) => setBotEnabled(e.target.checked)}
@@ -148,7 +154,7 @@ export default function WebChatPage() {
 
               <label>
                 Allowed Host Domains (comma separated)
-                <input
+                <ValidatedInput
                   value={allowedDomains}
                   onChange={(e) => setAllowedDomains(e.target.value)}
                   placeholder="e.g. acme.com, shop.acme.com"
@@ -158,7 +164,7 @@ export default function WebChatPage() {
               <button type="submit" className="button primary" style={{ alignSelf: "flex-start", marginTop: "6px" }}>
                 Save Widget Settings
               </button>
-            </form>
+            </ValidatedForm>
           </Panel>
 
           <div style={{ marginTop: "20px" }}>
@@ -283,7 +289,7 @@ export default function WebChatPage() {
                 gap: "8px",
               }}
             >
-              <input
+              <ValidatedInput
                 placeholder="Ask a question…"
                 disabled
                 style={{

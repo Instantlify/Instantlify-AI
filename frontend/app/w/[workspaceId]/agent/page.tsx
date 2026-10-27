@@ -1,4 +1,11 @@
 "use client";
+
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+  ValidatedTextarea,
+} from "@/components/validated-form";
 import { AgentPreview } from "@/components/agent-preview";
 
 import Link from "next/link";
@@ -265,10 +272,10 @@ export default function AgentPage() {
             title="Agent settings"
             aside={configured ? "Configured" : "Not configured yet"}
           >
-            <form className="form-grid" onSubmit={save}>
+            <ValidatedForm fieldErrors={settings.fieldErrors} validationTarget={settings.validationTarget} onEdit={() => settings.setError("")} className="form-grid" onSubmit={save}>
               <label>
                 Agent name
-                <input
+                <ValidatedInput name="name"
                   value={form.name}
                   maxLength={100}
                   required
@@ -278,7 +285,7 @@ export default function AgentPage() {
               </label>
               <label>
                 System prompt
-                <textarea
+                <ValidatedTextarea name="system_prompt"
                   value={form.system_prompt}
                   required
                   disabled={!manager}
@@ -417,7 +424,7 @@ export default function AgentPage() {
               <div className="two-col" style={{ marginTop: 10 }}>
                 <label>
                   Fallback model (optional)
-                  <select
+                  <ValidatedSelect name="fallback_model"
                     value={form.fallback_model}
                     disabled={!manager}
                     onChange={(e) => {
@@ -439,7 +446,7 @@ export default function AgentPage() {
                           {m.label} ({m.provider}) — {m.rate_summary}
                         </option>
                       ))}
-                  </select>
+                  </ValidatedSelect>
                   <span className="hint">
                     Automatic failover if the primary vendor is temporarily
                     rate-limited or unavailable.
@@ -447,7 +454,7 @@ export default function AgentPage() {
                 </label>
                 <label>
                   Reply mode
-                  <select
+                  <ValidatedSelect name="mode"
                     value={form.mode}
                     disabled={!manager}
                     onChange={(e) =>
@@ -460,7 +467,7 @@ export default function AgentPage() {
                     <option value="simple">
                       Simple replies: one grounded answer per message, no tools
                     </option>
-                  </select>
+                  </ValidatedSelect>
                 </label>
               </div>
               <div>
@@ -470,7 +477,7 @@ export default function AgentPage() {
                 <div className="checkbox-grid">
                   {AGENT_TOOLS.map((tool) => (
                     <label key={tool}>
-                      <input
+                      <ValidatedInput
                         type="checkbox"
                         checked={form.allowed_tools.includes(tool)}
                         disabled={!manager}
@@ -500,7 +507,7 @@ export default function AgentPage() {
                 <div className="checkbox-grid">
                   {QUALIFYING.map((field) => (
                     <label key={field}>
-                      <input
+                      <ValidatedInput
                         type="checkbox"
                         checked={form.qualifying_fields.includes(field)}
                         disabled={!manager}
@@ -523,7 +530,7 @@ export default function AgentPage() {
               <div className="two-col">
                 <label>
                   Handoff keywords
-                  <input
+                  <ValidatedInput name="handoff_keywords"
                     value={form.handoff_keywords}
                     placeholder="human, refund, lawyer, complaint"
                     disabled={!manager}
@@ -536,7 +543,7 @@ export default function AgentPage() {
                 </label>
                 <label>
                   Max tool rounds per reply
-                  <input
+                  <ValidatedInput name="max_tool_rounds"
                     type="number"
                     min={1}
                     max={8}
@@ -551,7 +558,7 @@ export default function AgentPage() {
 
               <div className="checkbox-grid">
                 <label>
-                  <input
+                  <ValidatedInput
                     type="checkbox"
                     checked={form.triage_enabled}
                     disabled={!manager}
@@ -560,7 +567,7 @@ export default function AgentPage() {
                   Triage sentiment and urgency; hand off angry or urgent leads
                 </label>
                 <label>
-                  <input
+                  <ValidatedInput
                     type="checkbox"
                     checked={form.is_test}
                     disabled={!manager}
@@ -569,7 +576,7 @@ export default function AgentPage() {
                   Use the local test provider (no API key)
                 </label>
                 <label>
-                  <input
+                  <ValidatedInput
                     type="checkbox"
                     checked={form.enabled}
                     disabled={!manager}
@@ -586,7 +593,7 @@ export default function AgentPage() {
                   </button>
                 </div>
               )}
-            </form>
+            </ValidatedForm>
           </Panel>
           <Knowledge />
           {manager && <AgentPreview prefix={prefix} />}
@@ -692,11 +699,11 @@ function Knowledge() {
         reply. Documents index in the background after you add them.
       </p>
       {manager && (
-        <form className="form-grid" onSubmit={add}>
+        <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={add}>
           <div className="two-col">
             <label>
               Title
-              <input
+              <ValidatedInput
                 value={title}
                 maxLength={200}
                 placeholder="Pricing FAQ"
@@ -705,7 +712,7 @@ function Knowledge() {
             </label>
             <label>
               Upload a file (PDF, TXT or Markdown, up to 2 MB)
-              <input
+              <ValidatedInput
                 ref={fileInput}
                 type="file"
                 accept=".pdf,.txt,.md"
@@ -715,7 +722,7 @@ function Knowledge() {
           </div>
           <label>
             Paste FAQ text
-            <textarea
+            <ValidatedTextarea
               value={source}
               maxLength={250000}
               placeholder="Or paste the text directly…"
@@ -729,7 +736,7 @@ function Knowledge() {
               <Upload size={14} />
             </button>
           </div>
-        </form>
+        </ValidatedForm>
       )}
       <div className="card-list" style={{ marginTop: 18 }}>
         {documents.length === 0 ? (

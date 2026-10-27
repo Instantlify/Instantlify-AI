@@ -1,3 +1,30 @@
+# Validation and supplied brand asset — 27 October 2026
+
+- Shared client form validation now covers the existing form screens and their controls:
+  required markers, inline field messages/outlines, first-error focus, whitespace checks,
+  email/link formats, text lengths, numeric limits and required permission checkboxes.
+  Errors clear as the affected field is corrected; server errors are scoped to the submitting
+  form and use readable field names instead of API keys or nested response objects.
+- Form creation suggests an available public address and explains the resulting link.
+  Internal answer names are under Advanced; mandatory contact email is protected, duplicate
+  answer names and empty dropdown choices are checked before saving. Plain-language option
+  labels replace text/textarea/tel/select. Password settings now match the backend's 12-character
+  rule and show confirmation mismatches beside the confirmation field.
+- Integration setup highlights every missing required value and malformed email/web address.
+  API errors translate slug to public address, explain missing values and invalid choices,
+  and avoid raw server failures or technical nested object output.
+- Copied the owner's supplied nemio_ai_logo_v2.gif unchanged into public/brand. The shared
+  default Nemio mark uses the full animation with readable brand text; custom workspace
+  branding is preserved. Landing header/footer logo clicks return to the top without a reload,
+  respect modified-click navigation and use instant scrolling for reduced-motion preferences.
+- Production build/TypeScript and focused shared-component lint passed. All 51 production
+  browser checks passed across validation, publishing, integrations, CRM, automation setup,
+  logo scrolling and workspace navigation. After a logo fitting adjustment to remove clipping,
+  all 19 affected logo/navigation/validation checks passed again on the final local build.
+- Broader changed-file lint still reports the seven pre-existing Settings errors (explicit-any
+  and state-in-effect rules), confirmed against HEAD before these edits; no clean full-lint
+  claim is made. No backend validation or access restrictions were removed.
+
 # Workspace navigation update — 27 October 2026
 
 - Sidebar and Settings workspace switches open the selected workspace's Home screen.

@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+} from "@/components/validated-form";
+
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
@@ -323,8 +329,8 @@ export default function SettingsPage() {
   // Update password (real POST to /api/auth/password/)
   const handleUpdatePassword = async (e: FormEvent) => {
     e.preventDefault();
-    if (!newPassword || newPassword.length < 8) {
-      feedback.setError("Password must be at least 8 characters.");
+    if (!newPassword || newPassword.length < 12) {
+      feedback.setError("Use at least 12 characters for your new password.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -589,7 +595,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <form onSubmit={handleSaveProfile} className="settings-profile-form">
+            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} onSubmit={handleSaveProfile} className="settings-profile-form">
               <div className="profile-details-grid">
                 {/* Left column: Avatar */}
                 <div className="profile-avatar-col">
@@ -601,7 +607,7 @@ export default function SettingsPage() {
                   </div>
                   <label className="change-photo-link">
                     Change photo
-                    <input
+                    <ValidatedInput
                       type="file"
                       accept="image/*"
                       style={{ display: "none" }}
@@ -616,7 +622,9 @@ export default function SettingsPage() {
                 <div className="profile-fields-col">
                   <div className="form-group">
                     <label className="field-label" htmlFor="settings-full-name">Full Name</label>
-                    <input id="settings-full-name"
+                    <ValidatedInput id="settings-full-name"
+                      name="name"
+                      maxLength={150}
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
@@ -627,7 +635,10 @@ export default function SettingsPage() {
 
                   <div className="form-group">
                     <label className="field-label" htmlFor="settings-email-address">Email Address</label>
-                    <input id="settings-email-address"
+                    <ValidatedInput id="settings-email-address"
+                      name="email"
+                      required
+                      maxLength={254}
                       type="email"
                       value={emailAddress}
                       onChange={(e) => setEmailAddress(e.target.value)}
@@ -682,7 +693,7 @@ export default function SettingsPage() {
                   Save changes
                 </button>
               </div>
-            </form>
+            </ValidatedForm>
           </div>
 
           {/* Card 2: Change password */}
@@ -694,12 +705,23 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <form onSubmit={handleUpdatePassword} className="change-password-form">
+            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} onSubmit={handleUpdatePassword} className="change-password-form"
+              validate={() => {
+                const errors: Record<string, string> = {};
+                if (newPassword && confirmPassword && newPassword !== confirmPassword)
+                  errors.confirm_password = "Passwords don’t match. Enter the same password again.";
+                return errors;
+              }}
+            >
               <div className="password-fields-two-col">
                 <div className="form-group">
                   <label className="field-label" htmlFor="settings-new-password">New password</label>
                   <div className="password-input-wrapper">
-                    <input id="settings-new-password"
+                    <ValidatedInput id="settings-new-password"
+                      name="password"
+                      required
+                      minLength={12}
+                      maxLength={128}
                       type={showNewPassword ? "text" : "password"}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
@@ -715,13 +737,16 @@ export default function SettingsPage() {
                       {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
-                  <span className="field-helper-note">Minimum 8 characters</span>
+                  <span className="field-helper-note">Use at least 12 characters.</span>
                 </div>
 
                 <div className="form-group">
                   <label className="field-label" htmlFor="settings-confirm-password">Confirm Password</label>
                   <div className="password-input-wrapper">
-                    <input id="settings-confirm-password"
+                    <ValidatedInput id="settings-confirm-password"
+                      name="confirm_password"
+                      required
+                      maxLength={128}
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -744,12 +769,12 @@ export default function SettingsPage() {
                 <button
                   type="submit"
                   className="update-password-btn"
-                  disabled={!newPassword || feedback.busy}
+                  disabled={feedback.busy}
                 >
                   Update password
                 </button>
               </div>
-            </form>
+            </ValidatedForm>
           </div>
         </div>
       )}
@@ -1160,7 +1185,7 @@ export default function SettingsPage() {
                     <label className="field-label" htmlFor="settings-trigger-when-balance-drops-below">Trigger when balance drops below</label>
                     <div className="dollar-input-wrapper">
                       <span className="currency-symbol">$</span>
-                      <input id="settings-trigger-when-balance-drops-below"
+                      <ValidatedInput id="settings-trigger-when-balance-drops-below"
                         type="text"
                         value={autoRechargeThreshold}
                         onChange={(e) => setAutoRechargeThreshold(e.target.value)}
@@ -1173,7 +1198,7 @@ export default function SettingsPage() {
                   <div className="form-group" style={{ flex: 1 }}>
                     <label className="field-label" htmlFor="settings-recharge-amount">Recharge amount</label>
                     <div className="custom-select-box">
-                      <select id="settings-recharge-amount"
+                      <ValidatedSelect id="settings-recharge-amount"
                         value={autoRechargeAmount}
                         onChange={(e) => {
                           setAutoRechargeAmount(e.target.value);
@@ -1185,7 +1210,7 @@ export default function SettingsPage() {
                         <option value="25">$25</option>
                         <option value="50">$50</option>
                         <option value="100">$100</option>
-                      </select>
+                      </ValidatedSelect>
                       <ChevronDown size={15} className="select-dropdown-chevron" />
                     </div>
                   </div>
@@ -1395,7 +1420,7 @@ export default function SettingsPage() {
 
               <div className="form-group">
                 <label className="field-label" htmlFor="settings-workspace-name">Workspace Name</label>
-                <input id="settings-workspace-name"
+                <ValidatedInput id="settings-workspace-name"
                   type="text"
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
@@ -1407,7 +1432,7 @@ export default function SettingsPage() {
                 <label className="field-label" htmlFor="settings-workspace-color">Workspace Color</label>
                 <div className="color-input-hex-row">
                   <div className="color-preview-box" style={{ background: workspaceColor }} />
-                  <input id="settings-workspace-color"
+                  <ValidatedInput id="settings-workspace-color"
                     type="text"
                     value={workspaceColor}
                     onChange={(e) => setWorkspaceColor(e.target.value)}
@@ -1468,7 +1493,7 @@ export default function SettingsPage() {
                         />
                       ))}
                     </div>
-                    <input
+                    <ValidatedInput
                       type="text"
                       value={sidebarBgColor}
                       onChange={(e) => setSidebarBgColor(e.target.value)}
@@ -1491,7 +1516,7 @@ export default function SettingsPage() {
                         />
                       ))}
                     </div>
-                    <input
+                    <ValidatedInput
                       type="text"
                       value={sidebarTextColor}
                       onChange={(e) => setSidebarTextColor(e.target.value)}
@@ -1523,7 +1548,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="upload-file-btn">
                       Upload
-                      <input
+                      <ValidatedInput
                         type="file"
                         accept="image/*"
                         style={{ display: "none" }}
@@ -1546,7 +1571,7 @@ export default function SettingsPage() {
 
               <div className="form-group" style={{ marginTop: 14 }}>
                 <label className="field-label" htmlFor="settings-brand-name">Brand name</label>
-                <input id="settings-brand-name"
+                <ValidatedInput id="settings-brand-name"
                   type="text"
                   value={brandName}
                   onChange={(e) => setBrandName(e.target.value)}
@@ -1581,10 +1606,12 @@ export default function SettingsPage() {
               Collaborate with colleagues on {workspaceName || workspace.name}.
             </p>
 
-            <form onSubmit={handleInviteMember} style={{ marginTop: 16 }}>
+            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} onSubmit={handleInviteMember} style={{ marginTop: 16 }}>
               <div className="form-group">
                 <label className="field-label" htmlFor="settings-email-address-2">Email Address</label>
-                <input id="settings-email-address-2"
+                <ValidatedInput id="settings-email-address-2"
+                  name="email"
+                  maxLength={254}
                   type="email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
@@ -1597,14 +1624,14 @@ export default function SettingsPage() {
               <div className="form-group" style={{ marginTop: 12 }}>
                 <label className="field-label" htmlFor="settings-role">Role</label>
                 <div className="custom-select-box">
-                  <select id="settings-role"
+                  <ValidatedSelect id="settings-role"
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value as "admin" | "agent")}
                     className="native-page-select"
                   >
                     <option value="admin">Admin (full access)</option>
                     <option value="agent">Agent (conversations & CRM only)</option>
-                  </select>
+                  </ValidatedSelect>
                   <ChevronDown size={15} className="select-dropdown-chevron" />
                 </div>
               </div>
@@ -1621,7 +1648,7 @@ export default function SettingsPage() {
                   Send Invitation
                 </button>
               </div>
-            </form>
+            </ValidatedForm>
           </div>
         </div>
       )}

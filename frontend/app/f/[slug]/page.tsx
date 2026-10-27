@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { api, message } from "@/lib/api";
@@ -44,7 +51,7 @@ export default function PublicFormPage() {
           {success ? (
             <p role="status">{success}</p>
           ) : (
-            <form
+            <ValidatedForm
               className="form-grid"
               onSubmit={async (event) => {
                 event.preventDefault();
@@ -86,14 +93,14 @@ export default function PublicFormPage() {
                   {field.label}
                   {field.required ? " *" : ""}
                   {field.type === "textarea" ? (
-                    <textarea
+                    <ValidatedTextarea
                       name={`answer:${field.id}`}
                       required={field.required}
                       maxLength={2000}
                       rows={4}
                     />
                   ) : field.type === "select" ? (
-                    <select
+                    <ValidatedSelect
                       name={`answer:${field.id}`}
                       required={field.required}
                     >
@@ -101,9 +108,9 @@ export default function PublicFormPage() {
                       {field.options?.map((option) => (
                         <option key={option}>{option}</option>
                       ))}
-                    </select>
+                    </ValidatedSelect>
                   ) : (
-                    <input
+                    <ValidatedInput
                       name={`answer:${field.id}`}
                       type={field.type}
                       required={field.required}
@@ -124,11 +131,11 @@ export default function PublicFormPage() {
               >
                 <label>
                   Website
-                  <input name="website" tabIndex={-1} autoComplete="off" />
+                  <ValidatedInput name="website" tabIndex={-1} autoComplete="off" />
                 </label>
               </div>
               <label className="inline" style={{ alignItems: "flex-start" }}>
-                <input
+                <ValidatedInput
                   name="consent"
                   type="checkbox"
                   required
@@ -140,7 +147,7 @@ export default function PublicFormPage() {
               <button className="button primary" disabled={busy}>
                 {busy ? "Submitting…" : "Send response"}
               </button>
-            </form>
+            </ValidatedForm>
           )}
         </section>
       )}

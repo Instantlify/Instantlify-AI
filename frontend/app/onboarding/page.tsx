@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+} from "@/components/validated-form";
+
 /** Short setup: connect an account, name the workspace, choose a plan. Team and
  * integrations remain available in the workspace. */
 
@@ -413,10 +418,10 @@ function WorkspaceStep({
         Name your business. Next you&rsquo;ll choose a plan; team invitations
         and integrations can wait until you need them.
       </p>
-      <form onSubmit={save}>
+      <ValidatedForm onSubmit={save}>
         <label>
           Workspace name
-          <input
+          <ValidatedInput
             name="name"
             defaultValue={workspace.name}
             placeholder="e.g. Acme Studio"
@@ -429,7 +434,7 @@ function WorkspaceStep({
           {busy ? "Saving…" : "Continue to plans"}
           <ArrowRight size={15} />
         </button>
-      </form>
+      </ValidatedForm>
     </>
   );
 }

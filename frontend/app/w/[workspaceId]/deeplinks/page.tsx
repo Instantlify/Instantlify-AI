@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+} from "@/components/validated-form";
+
 import { useEffect, useState } from "react";
 import {
   ExternalLink,
@@ -317,13 +323,13 @@ export default function DeepLinksPage() {
           title="Create Smart Deep Link"
           onClose={() => setCreating(false)}
         >
-          <form
+          <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
             onSubmit={handleCreate}
             style={{ display: "flex", flexDirection: "column", gap: "14px" }}
           >
             <label>
               Link Title
-              <input
+              <ValidatedInput
                 required
                 placeholder="e.g. Instagram VIP Profile Link"
                 value={title}
@@ -332,7 +338,7 @@ export default function DeepLinksPage() {
             </label>
             <label>
               App Target
-              <select
+              <ValidatedSelect
                 value={platform}
                 onChange={(e) =>
                   setPlatform(e.target.value as DeepLink["platform"])
@@ -343,11 +349,11 @@ export default function DeepLinksPage() {
                 <option value="youtube">YouTube (Native App)</option>
                 <option value="telegram">Telegram (Direct App)</option>
                 <option value="custom">Custom Web Fallback</option>
-              </select>
+              </ValidatedSelect>
             </label>
             <label>
               Destination HTTPS URL
-              <input
+              <ValidatedInput
                 required
                 type="url"
                 placeholder={
@@ -363,7 +369,7 @@ export default function DeepLinksPage() {
             </label>
             <label>
               Campaign (utm_campaign)
-              <input
+              <ValidatedInput
                 maxLength={100}
                 value={campaign}
                 onChange={(e) => setCampaign(e.target.value)}
@@ -372,7 +378,7 @@ export default function DeepLinksPage() {
             </label>
             <label>
               Source (utm_source)
-              <input
+              <ValidatedInput
                 maxLength={100}
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
@@ -381,7 +387,7 @@ export default function DeepLinksPage() {
             </label>
             <label>
               Medium (utm_medium)
-              <input
+              <ValidatedInput
                 maxLength={100}
                 value={medium}
                 onChange={(e) => setMedium(e.target.value)}
@@ -389,8 +395,8 @@ export default function DeepLinksPage() {
               />
             </label>
             <label>
-              Custom Slug (optional)
-              <input
+              Custom link ending (optional)
+              <ValidatedInput
                 placeholder="e.g. vip-chat"
                 value={customCode}
                 onChange={(e) => setCustomCode(e.target.value)}
@@ -415,7 +421,7 @@ export default function DeepLinksPage() {
                 Generate Smart Link
               </button>
             </div>
-          </form>
+          </ValidatedForm>
         </Modal>
       )}
 

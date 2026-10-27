@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+} from "@/components/validated-form";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -206,7 +211,7 @@ export default function AutomationsPage() {
     <div className="automations-page-container">
       {/* Page Header with List vs Templates Toggle */}
       <div className="automations-header-row">
-        <input
+        <ValidatedInput
           ref={importFile}
           hidden
           type="file"
@@ -350,7 +355,7 @@ export default function AutomationsPage() {
           <div className="automations-toolbar-row">
             <div className="search-input-wrapper">
               <Search size={16} className="search-icon" />
-              <input
+              <ValidatedInput
                 type="text"
                 placeholder="Search automations..."
                 aria-label="Search automations"
@@ -612,7 +617,7 @@ export default function AutomationsPage() {
               You describe the automation you want to build, and our AI will do
               it!
             </p>
-            <form
+            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
               onSubmit={handleVoicePrompt}
               className="voice-prompt-input-row"
             >
@@ -624,7 +629,7 @@ export default function AutomationsPage() {
               >
                 <Mic size={16} />
               </button>
-              <input
+              <ValidatedInput
                 type="text"
                 placeholder="I want to build an automation to deliver a free PDF when someone comments LEADS..."
                 aria-label="Describe the automation"
@@ -640,7 +645,7 @@ export default function AutomationsPage() {
               >
                 {feedback.busy ? "Building…" : "Generate"}
               </button>
-            </form>
+            </ValidatedForm>
           </div>
 
           {/* Grid of Ready-to-Use Templates */}

@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+} from "@/components/validated-form";
+
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Plug, Plus, Send } from "lucide-react";
 import { api, message, when, type Connection, type Delivery, type Page } from "@/lib/api";
@@ -140,13 +146,13 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                     </Pill>
                   </div>
                   {manager && connection.is_test && connection.status === "active" && (
-                    <form
+                    <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
                       className="channel-simulate"
                       onSubmit={(event) => simulate(event, connection)}
                     >
                       <label>
                         Simulate an inbound message
-                        <input
+                        <ValidatedInput
                           name="text"
                           maxLength={2000}
                           placeholder="e.g. What is the price?"
@@ -154,13 +160,13 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                         />
                       </label>
                       <div className="row">
-                        <select name="kind" defaultValue="dm" aria-label="Kind">
+                        <ValidatedSelect name="kind" defaultValue="dm" aria-label="Kind">
                           <option value="dm">DM</option>
                           <option value="comment">Comment</option>
                           <option value="story_reply">Story reply</option>
                           <option value="live_comment">Live comment</option>
-                        </select>
-                        <input
+                        </ValidatedSelect>
+                        <ValidatedInput
                           name="sender_id"
                           maxLength={100}
                           placeholder="Sender ID (test-lead)"
@@ -170,7 +176,7 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                           Send <Send size={14} />
                         </button>
                       </div>
-                    </form>
+                    </ValidatedForm>
                   )}
                   {manager && connection.status !== "disconnected" && (
                     <div className="form-actions">
@@ -218,16 +224,16 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
               </div>
               <details className="channel-advanced">
                 <summary>Manual credentials, WhatsApp, Telegram and test channels</summary>
-                <form className="form-grid" onSubmit={connectChannel}>
+                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={connectChannel}>
                   <label>
                     Provider
-                    <select name="provider" defaultValue="whatsapp">
+                    <ValidatedSelect name="provider" defaultValue="whatsapp">
                       {CHANNEL_PROVIDERS.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.label}
                         </option>
                       ))}
-                    </select>
+                    </ValidatedSelect>
                     <span className="hint">
                       {CHANNEL_PROVIDERS.map((item) => `${item.label}: ${item.account}`).join(
                         " · ",
@@ -236,7 +242,7 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                   </label>
                   <label>
                     Account ID
-                    <input
+                    <ValidatedInput
                       name="external_account_id"
                       maxLength={200}
                       pattern="[A-Za-z0-9_\-]{1,200}"
@@ -245,11 +251,11 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                   </label>
                   <label>
                     Display name
-                    <input name="display_name" maxLength={150} required />
+                    <ValidatedInput name="display_name" maxLength={150} required />
                   </label>
                   <label>
                     Access token
-                    <input
+                    <ValidatedInput
                       name="access_token"
                       type="password"
                       autoComplete="off"
@@ -260,7 +266,7 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                     </span>
                   </label>
                   <label className="inline">
-                    <input type="checkbox" name="is_test" />
+                    <ValidatedInput type="checkbox" name="is_test" />
                     Create a local test channel (no provider calls)
                   </label>
                   <div className="form-actions">
@@ -268,7 +274,7 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                       Connect <Plus size={16} />
                     </button>
                   </div>
-                </form>
+                </ValidatedForm>
                 <div className="channel-webhooks">
                   <p className="muted-text">
                     Webhook URLs for custom apps. Telegram and LinkedIn register theirs

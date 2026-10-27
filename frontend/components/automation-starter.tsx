@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { api, message, type Automation } from "@/lib/api";
@@ -102,29 +109,29 @@ export function AutomationStarter({
         Fill in your business details to create a draft. Review it before
         publishing.
       </p>
-      <form onSubmit={create} className="form-grid">
+      <ValidatedForm onSubmit={create} className="form-grid">
         <label>
           What should happen first?
-          <select
+          <ValidatedSelect
             value={goal}
             onChange={(event) => setGoal(event.target.value)}
           >
             <option value="pricing">Answer pricing questions</option>
             <option value="qualify">Ask what the customer needs</option>
             <option value="booking">Share my booking link</option>
-          </select>
+          </ValidatedSelect>
         </label>
         <label>
           When a customer sends
-          <select name="trigger">
+          <ValidatedSelect name="trigger">
             <option value="comment">A comment</option>
             <option value="dm">A direct message</option>
             <option value="story_reply">A story reply</option>
-          </select>
+          </ValidatedSelect>
         </label>
         <label>
           Containing this keyword
-          <input
+          <ValidatedInput
             key={goal}
             name="keyword"
             defaultValue={
@@ -140,7 +147,7 @@ export function AutomationStarter({
         </label>
         <label>
           {goal === "qualify" ? "Your qualifying question" : "Your reply"}
-          <textarea
+          <ValidatedTextarea
             key={goal}
             name="reply"
             placeholder={
@@ -157,7 +164,7 @@ export function AutomationStarter({
         {goal === "booking" && (
           <label>
             Booking page
-            <input
+            <ValidatedInput
               name="url"
               type="url"
               placeholder="https://your-booking-page.com"
@@ -180,7 +187,7 @@ export function AutomationStarter({
             {busy ? "Creating draft…" : "Create starter draft"}
           </button>
         </div>
-      </form>
+      </ValidatedForm>
       <ErrorNotice error={error} />
     </Panel>
   );

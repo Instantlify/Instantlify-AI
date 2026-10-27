@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
 import { useEffect, useState, type FormEvent } from "react";
 import {
   ArrowDown,
@@ -144,7 +150,7 @@ export default function BioPageEditor() {
             {!manager && (
               <Empty>Owners and admins edit the link-in-bio page.</Empty>
             )}
-            <form className="form-grid" onSubmit={save}>
+            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={save}>
               <fieldset
                 disabled={!manager}
                 style={{
@@ -156,12 +162,12 @@ export default function BioPageEditor() {
               >
                 <label>
                   Page address
-                  <input
+                  <ValidatedInput name="slug"
                     value={page.slug}
                     onChange={(event) =>
                       update("slug", event.target.value.toLowerCase())
                     }
-                    pattern="[a-z0-9]([a-z0-9-]{1,58}[a-z0-9])?"
+                    pattern="[a-z0-9]([a-z0-9\-]{1,58}[a-z0-9])?"
                     minLength={3}
                     maxLength={60}
                     placeholder="acme-studio"
@@ -173,7 +179,7 @@ export default function BioPageEditor() {
                 </label>
                 <label>
                   Title
-                  <input
+                  <ValidatedInput name="title"
                     value={page.title}
                     onChange={(event) => update("title", event.target.value)}
                     maxLength={80}
@@ -182,7 +188,7 @@ export default function BioPageEditor() {
                 </label>
                 <label>
                   Bio
-                  <textarea
+                  <ValidatedTextarea name="bio"
                     value={page.bio}
                     onChange={(event) => update("bio", event.target.value)}
                     maxLength={300}
@@ -191,7 +197,7 @@ export default function BioPageEditor() {
                 </label>
                 <label>
                   Avatar URL
-                  <input
+                  <ValidatedInput name="avatar_url"
                     type="url"
                     pattern="https://.*"
                     value={page.avatar_url}
@@ -203,7 +209,7 @@ export default function BioPageEditor() {
                 </label>
                 <label>
                   Accent colour
-                  <input
+                  <ValidatedInput name="accent"
                     type="color"
                     value={page.accent}
                     onChange={(event) => update("accent", event.target.value)}
@@ -215,7 +221,7 @@ export default function BioPageEditor() {
                     {page.links.map((link, index) => (
                       <div className="card" key={index}>
                         <div className="row">
-                          <input
+                          <ValidatedInput name="title"
                             aria-label={`Link ${index + 1} title`}
                             value={link.title}
                             maxLength={60}
@@ -226,7 +232,7 @@ export default function BioPageEditor() {
                             required
                             style={{ flex: "1 1 140px" }}
                           />
-                          <input
+                          <ValidatedInput name="url"
                             aria-label={`Link ${index + 1} URL`}
                             type="url"
                             pattern="https://.*"
@@ -289,7 +295,7 @@ export default function BioPageEditor() {
                   )}
                 </div>
                 <label className="inline">
-                  <input
+                  <ValidatedInput
                     type="checkbox"
                     checked={page.published}
                     onChange={(event) =>
@@ -305,7 +311,7 @@ export default function BioPageEditor() {
                   </button>
                 </div>
               </fieldset>
-            </form>
+            </ValidatedForm>
             {publicUrl && <CopyField label="Public URL" value={publicUrl} />}
           </Panel>
           <Panel title="Preview" aside={page.published ? "Live" : "Draft"}>

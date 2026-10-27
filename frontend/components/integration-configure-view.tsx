@@ -78,6 +78,7 @@ export function IntegrationConfigureView({
     existingIntegration?.is_test || false,
   );
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const pk = (app.providerKey || app.id || "").toLowerCase();
 
@@ -117,37 +118,57 @@ export function IntegrationConfigureView({
 
   const handleFieldChange = (key: string, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
   };
 
-  const handleSaveClick = async () => {
-    const missing = schema.fields.find(
+  const validateRequired = () => {
+    const missing = schema.fields.filter(
       (field) =>
         field.required &&
         !field.isRedirectUrl &&
         !formData[field.key]?.trim() &&
         !(field.type === "password" && existingIntegration?.configured),
     );
-    if (missing && !testMode) {
-      setFormError(`Enter ${missing.label}.`);
-      return;
+    const errors = Object.fromEntries(
+      missing.map((field) => [
+        field.key,
+        `Enter ${field.label.toLowerCase()}.`,
+      ]),
+    );
+    for (const field of schema.fields) {
+      if (!formData[field.key]?.trim() || field.isRedirectUrl) continue;
+      const input = document.getElementById(
+        `integration-field-${field.key}`,
+      ) as HTMLInputElement | null;
+      if (input?.validity.typeMismatch)
+        errors[field.key] =
+          input.type === "email"
+            ? "Enter a valid email address, such as name@example.com."
+            : "Enter a complete web address starting with https://.";
+    }
+    setFieldErrors(testMode ? {} : errors);
+    const firstError = Object.keys(errors)[0];
+    if (firstError && !testMode) {
+      setFormError("Please complete the highlighted connection details.");
+      document.getElementById(`integration-field-${firstError}`)?.focus();
+      return false;
     }
     setFormError("");
+    return true;
+  };
+
+  const handleSaveClick = async () => {
+    if (!validateRequired()) return;
     await onSave(formData, testMode);
   };
 
   const handleConnectClick = async () => {
     if (!["google_calendar", "google_sheets", "gmail", "slack"].includes(pk)) {
-      const missing = schema.fields.find(
-        (field) =>
-          field.required &&
-          !field.isRedirectUrl &&
-          !formData[field.key]?.trim() &&
-          !(field.type === "password" && existingIntegration?.configured),
-      );
-      if (missing && !testMode) {
-        setFormError(`Enter ${missing.label}.`);
-        return;
-      }
+      if (!validateRequired()) return;
     }
     setFormError("");
     if (onConnect) {
@@ -310,17 +331,31 @@ export function IntegrationConfigureView({
               ? visible
                 ? "text"
                 : "password"
-              : "text";
+              : /email$/.test(field.key)
+                ? "email"
+                : /(?:_url|endpoint)$/.test(field.key)
+                  ? "url"
+                  : "text";
 
             return (
               <div key={field.key} className="config-form-field-group">
-                <label className="config-field-label">
+                <label
+                  className="config-field-label"
+                  htmlFor={`integration-field-${field.key}`}
+                >
                   {field.label}{" "}
                   {field.required && <span className="req-star">*</span>}
                 </label>
 
                 <div className="config-input-wrapper">
                   <input
+                    id={`integration-field-${field.key}`}
+                    aria-invalid={Boolean(fieldErrors[field.key]) || undefined}
+                    aria-describedby={
+                      fieldErrors[field.key]
+                        ? `integration-error-${field.key}`
+                        : undefined
+                    }
                     aria-label={field.label}
                     type={inputType}
                     value={formData[field.key] || ""}
@@ -365,6 +400,15 @@ export function IntegrationConfigureView({
                     </button>
                   )}
                 </div>
+
+                {fieldErrors[field.key] && (
+                  <p
+                    className="field-error"
+                    id={`integration-error-${field.key}`}
+                  >
+                    {fieldErrors[field.key]}
+                  </p>
+                )}
 
                 {field.helper && (
                   <p className="config-field-helper">{field.helper}</p>

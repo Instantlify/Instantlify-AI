@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+} from "@/components/validated-form";
+
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { api, message } from "@/lib/api";
@@ -80,12 +85,12 @@ export default function PasswordRecovery() {
         <ErrorNotice error={error} />
         <SuccessNotice notice={notice} />
         {!done && (
-          <form onSubmit={submit}>
+          <ValidatedForm onSubmit={submit}>
             {credentials ? (
               <>
                 <label>
                   New password
-                  <input
+                  <ValidatedInput
                     name="password"
                     type="password"
                     autoComplete="new-password"
@@ -96,7 +101,7 @@ export default function PasswordRecovery() {
                 </label>
                 <label>
                   Confirm password
-                  <input
+                  <ValidatedInput
                     name="confirm"
                     type="password"
                     autoComplete="new-password"
@@ -109,7 +114,7 @@ export default function PasswordRecovery() {
             ) : (
               <label>
                 Email address
-                <input
+                <ValidatedInput
                   name="email"
                   type="email"
                   autoComplete="email"
@@ -124,7 +129,7 @@ export default function PasswordRecovery() {
                   ? "Save new password"
                   : "Send reset link"}
             </button>
-          </form>
+          </ValidatedForm>
         )}
         <p>
           <Link href="/auth">Back to sign in</Link>

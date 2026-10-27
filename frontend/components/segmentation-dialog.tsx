@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
 import { useEffect, useState } from "react";
 import { api, message } from "@/lib/api";
 import {
@@ -78,7 +84,7 @@ export function SegmentationDialog({
             </p>
           )}
           {editing ? (
-            <form
+            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
               className="form-grid"
               onSubmit={(event) => {
                 event.preventDefault();
@@ -102,7 +108,7 @@ export function SegmentationDialog({
             >
               <label>
                 Segment name
-                <input
+                <ValidatedInput
                   required
                   maxLength={32}
                   value={editing.name || ""}
@@ -113,7 +119,7 @@ export function SegmentationDialog({
               </label>
               <label>
                 Segment prompt
-                <textarea
+                <ValidatedTextarea
                   required
                   rows={6}
                   maxLength={4000}
@@ -139,7 +145,7 @@ export function SegmentationDialog({
                   Cancel
                 </button>
               </div>
-            </form>
+            </ValidatedForm>
           ) : (
             <button
               className="button primary small"
@@ -205,7 +211,7 @@ export function SegmentationDialog({
           ))}
           <details>
             <summary>Classification settings</summary>
-            <form
+            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
               className="form-grid"
               onSubmit={(event) => {
                 event.preventDefault();
@@ -218,7 +224,7 @@ export function SegmentationDialog({
               }}
             >
               <label className="inline">
-                <input
+                <ValidatedInput
                   type="checkbox"
                   checked={enabled}
                   onChange={(event) => setEnabled(event.target.checked)}
@@ -227,7 +233,7 @@ export function SegmentationDialog({
               </label>
               <label>
                 Standard cold, warm and hot criteria
-                <textarea
+                <ValidatedTextarea
                   rows={5}
                   maxLength={6000}
                   value={prompt}
@@ -241,7 +247,7 @@ export function SegmentationDialog({
               <button className="button primary small" disabled={feedback.busy}>
                 Save classification settings
               </button>
-            </form>
+            </ValidatedForm>
           </details>
         </div>
       )}

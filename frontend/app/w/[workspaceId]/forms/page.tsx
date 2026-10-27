@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+  ValidatedTextarea,
+  ValidationError,
+} from "@/components/validated-form";
+
 import { useEffect, useState } from "react";
 import { Download, ExternalLink, FileText, Plus, Trash2 } from "lucide-react";
 import { api, message } from "@/lib/api";
@@ -30,6 +38,11 @@ export default function FormsPage() {
   const [active, setActive] = useState<LeadForm | null>(null);
   const [loaded, setLoaded] = useState(false);
   const feedback = useFeedback();
+  const requiredEmailIndex =
+    draft?.fields.findIndex(
+      (field) =>
+        field.id === "email" && field.type === "email" && field.required,
+    ) ?? -1;
   useEffect(() => {
     const controller = new AbortController();
     api<LeadForm[]>(`${prefix}/forms/`, "GET", undefined, controller.signal)
@@ -67,7 +80,15 @@ export default function FormsPage() {
           manager ? (
             <button
               className="button primary"
-              onClick={() => setDraft(defaultForm())}
+              onClick={() => {
+                const form = defaultForm();
+                let slug = "contact-us";
+                let suffix = 2;
+                while (forms.some((item) => item.slug === slug))
+                  slug = `contact-us-${suffix++}`;
+                feedback.setError("");
+                setDraft({ ...form, slug });
+              }}
             >
               <Plus size={15} /> Create form
             </button>
@@ -135,15 +156,68 @@ export default function FormsPage() {
           title={draft.id ? "Edit form" : "Create form"}
           onClose={() => setDraft(null)}
         >
-          <form
+          <ValidatedForm
+            fieldErrors={feedback.fieldErrors}
+            validationTarget={feedback.validationTarget}
+            onEdit={() => feedback.setError("")}
             className="form-grid"
+            validate={() => {
+              const errors: Record<string, string> = {};
+              const names = new Set<string>();
+              if (!draft.fields.length)
+                errors.fields =
+                  "Add at least an Email address question before saving.";
+              draft.fields.forEach((field, index) => {
+                if (names.has(field.id))
+                  errors[`fields.${index}.id`] =
+                    "This answer name is already used by another question. Choose a different name.";
+                names.add(field.id);
+                if (field.type === "select") {
+                  const options = (field.options || [])
+                    .map((option) => option.trim())
+                    .filter(Boolean);
+                  if (!options.length)
+                    errors[`fields.${index}.options`] =
+                      "Add at least one choice, with each choice on its own line.";
+                  else if (
+                    options.length > 30 ||
+                    options.some((option) => option.length > 120)
+                  )
+                    errors[`fields.${index}.options`] =
+                      "Use up to 30 choices, with no more than 120 characters each.";
+                }
+              });
+              if (
+                !draft.fields.some(
+                  (field) =>
+                    field.id === "email" &&
+                    field.type === "email" &&
+                    field.required,
+                )
+              )
+                errors.fields =
+                  "Keep an Email address question marked as required so responses can be saved to your contacts.";
+              return errors;
+            }}
             onSubmit={(event) => {
               event.preventDefault();
               void feedback.run(async () => {
                 const saved = await api<LeadForm>(
                   `${prefix}/forms/${draft.id ? `${draft.id}/` : ""}`,
                   draft.id ? "PATCH" : "POST",
-                  draft,
+                  {
+                    ...draft,
+                    fields: draft.fields.map((field) =>
+                      field.type === "select"
+                        ? {
+                            ...field,
+                            options: field.options
+                              ?.map((option) => option.trim())
+                              .filter(Boolean),
+                          }
+                        : field,
+                    ),
+                  },
                 );
                 setForms((rows) => [
                   saved,
@@ -156,7 +230,8 @@ export default function FormsPage() {
             <ErrorNotice error={feedback.error} />
             <label>
               Title
-              <input
+              <ValidatedInput
+                name="title"
                 required
                 maxLength={120}
                 value={draft.title}
@@ -165,18 +240,27 @@ export default function FormsPage() {
             </label>
             <label>
               Public address
-              <input
+              <ValidatedInput
+                name="slug"
+                aria-label="Public address"
+                aria-describedby="form-address-help"
+                data-validation-hint="Use lowercase letters, numbers and hyphens, such as contact-us."
                 required
-                pattern="[a-z0-9_-]+"
+                pattern="[a-z0-9_\-]+"
                 maxLength={80}
                 placeholder="contact-us"
                 value={draft.slug}
                 onChange={(e) => setDraft({ ...draft, slug: e.target.value })}
               />
+              <small id="form-address-help" className="field-hint">
+                This is the last part of your form’s web address. Example: /f/
+                {draft.slug || "contact-us"}
+              </small>
             </label>
             <label>
               Description
-              <textarea
+              <ValidatedTextarea
+                name="description"
                 maxLength={1000}
                 value={draft.description}
                 onChange={(e) =>
@@ -185,6 +269,7 @@ export default function FormsPage() {
               />
             </label>
             <strong>Questions</strong>
+            <ValidationError name="fields" />
             {draft.fields.map((field, index) => (
               <fieldset
                 key={index}
@@ -196,26 +281,40 @@ export default function FormsPage() {
                 }}
               >
                 <legend>Question {index + 1}</legend>
+                <details>
+                  <summary>Advanced answer settings</summary>
+                  <label>
+                    Answer name
+                    <ValidatedInput
+                      name={`fields.${index}.id`}
+                      disabled={index === requiredEmailIndex}
+                      data-validation-hint="Start with a lowercase letter, then use lowercase letters, numbers or underscores. Each question needs a different name."
+                      required
+                      pattern="[a-z][a-z0-9_]*"
+                      maxLength={40}
+                      value={field.id}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          fields: draft.fields.map((item, i) =>
+                            i === index
+                              ? { ...item, id: e.target.value }
+                              : item,
+                          ),
+                        })
+                      }
+                    />
+                    <small className="field-hint">
+                      Used to match this answer in your saved contacts and
+                      follow-up actions. You can usually keep the suggested
+                      name.
+                    </small>
+                  </label>
+                </details>
                 <label>
-                  Field ID
-                  <input
-                    required
-                    pattern="[a-z][a-z0-9_]*"
-                    maxLength={40}
-                    value={field.id}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        fields: draft.fields.map((item, i) =>
-                          i === index ? { ...item, id: e.target.value } : item,
-                        ),
-                      })
-                    }
-                  />
-                </label>
-                <label>
-                  Label
-                  <input
+                  Question text
+                  <ValidatedInput
+                    name={`fields.${index}.label`}
                     required
                     maxLength={120}
                     value={field.label}
@@ -233,7 +332,9 @@ export default function FormsPage() {
                 </label>
                 <label>
                   Type
-                  <select
+                  <ValidatedSelect
+                    name="type"
+                    disabled={index === requiredEmailIndex}
                     value={field.type}
                     onChange={(e) =>
                       setDraft({
@@ -254,15 +355,29 @@ export default function FormsPage() {
                   >
                     {["text", "textarea", "email", "tel", "select"].map(
                       (type) => (
-                        <option key={type}>{type}</option>
+                        <option key={type} value={type}>
+                          {
+                            (
+                              {
+                                text: "Short answer",
+                                textarea: "Long answer",
+                                email: "Email address",
+                                tel: "Phone number",
+                                select: "Dropdown choices",
+                              } as Record<string, string>
+                            )[type]
+                          }
+                        </option>
                       ),
                     )}
-                  </select>
+                  </ValidatedSelect>
                 </label>
                 {field.type === "select" && (
                   <label>
                     Options, one per line
-                    <textarea
+                    <ValidatedTextarea
+                      name={`fields.${index}.options`}
+                      required
                       value={field.options?.join("\n") || ""}
                       onChange={(e) =>
                         setDraft({
@@ -278,8 +393,9 @@ export default function FormsPage() {
                   </label>
                 )}
                 <label className="inline">
-                  <input
+                  <ValidatedInput
                     type="checkbox"
+                    disabled={index === requiredEmailIndex}
                     checked={field.required}
                     onChange={(e) =>
                       setDraft({
@@ -297,6 +413,7 @@ export default function FormsPage() {
                 <button
                   type="button"
                   className="text-button"
+                  disabled={index === requiredEmailIndex}
                   onClick={() =>
                     setDraft({
                       ...draft,
@@ -309,27 +426,35 @@ export default function FormsPage() {
               </fieldset>
             ))}
             <small>
-              Keep a required email field with ID email. Use name as the ID of
-              your name field for CRM capture.
+              An email address is required so each response can be saved to your
+              contacts. Answer names are managed for you under Advanced answer
+              settings.
             </small>
             <button
               type="button"
               className="button secondary"
               disabled={draft.fields.length >= 20}
-              onClick={() =>
+              onClick={() => {
+                let number = draft.fields.length + 1;
+                while (
+                  draft.fields.some(
+                    (field) => field.id === `question_${number}`,
+                  )
+                )
+                  number += 1;
                 setDraft({
                   ...draft,
                   fields: [
                     ...draft.fields,
                     {
-                      id: `question_${draft.fields.length + 1}`,
+                      id: `question_${number}`,
                       label: "New question",
                       type: "text",
                       required: false,
                     },
                   ],
-                })
-              }
+                });
+              }}
             >
               Add question
             </button>
@@ -342,7 +467,8 @@ export default function FormsPage() {
             />
             <label>
               Consent statement
-              <textarea
+              <ValidatedTextarea
+                name="consent_text"
                 required
                 maxLength={500}
                 value={draft.consent_text}
@@ -353,7 +479,8 @@ export default function FormsPage() {
             </label>
             <label>
               Thank-you message
-              <textarea
+              <ValidatedTextarea
+                name="success_text"
                 required
                 maxLength={500}
                 value={draft.success_text}
@@ -363,7 +490,7 @@ export default function FormsPage() {
               />
             </label>
             <label className="inline">
-              <input
+              <ValidatedInput
                 type="checkbox"
                 checked={draft.published}
                 onChange={(e) =>
@@ -375,7 +502,7 @@ export default function FormsPage() {
             {draft.id && (
               <label>
                 Embed on your website
-                <textarea
+                <ValidatedTextarea
                   readOnly
                   rows={2}
                   value={`<iframe src="${publicUrl(draft.slug)}" title="${draft.title.replace(/[<>"&]/g, "")}" style="width:100%;height:720px;border:0" loading="lazy"></iframe>`}
@@ -385,7 +512,7 @@ export default function FormsPage() {
             <button className="button primary" disabled={feedback.busy}>
               Save form
             </button>
-          </form>
+          </ValidatedForm>
         </Modal>
       )}
       {responses && (

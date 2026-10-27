@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
 import { useEffect, useState } from "react";
 import { ExternalLink, Plus, Save, Trash2 } from "lucide-react";
 import { api, apiPages, message, when, type Connection } from "@/lib/api";
@@ -105,7 +111,7 @@ export default function CreatorKitPage() {
       {!loaded ? (
         <p>Loading creator kit…</p>
       ) : (
-        <form
+        <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
           className="form-grid"
           style={{ maxWidth: 760 }}
           onSubmit={(e) => {
@@ -121,9 +127,9 @@ export default function CreatorKitPage() {
             <div className="form-grid">
               <label>
                 Public address
-                <input
+                <ValidatedInput name="slug"
                   required
-                  pattern="[a-z0-9_-]+"
+                  pattern="[a-z0-9_\-]+"
                   maxLength={80}
                   value={kit.slug}
                   onChange={(e) => setKit({ ...kit, slug: e.target.value })}
@@ -132,7 +138,7 @@ export default function CreatorKitPage() {
               </label>
               <label>
                 Name
-                <input
+                <ValidatedInput name="name"
                   required
                   maxLength={120}
                   value={kit.name}
@@ -141,7 +147,7 @@ export default function CreatorKitPage() {
               </label>
               <label>
                 Headline
-                <input
+                <ValidatedInput name="headline"
                   maxLength={200}
                   value={kit.headline}
                   onChange={(e) => setKit({ ...kit, headline: e.target.value })}
@@ -150,7 +156,7 @@ export default function CreatorKitPage() {
               </label>
               <label>
                 About you
-                <textarea
+                <ValidatedTextarea name="bio"
                   rows={5}
                   maxLength={2000}
                   value={kit.bio}
@@ -159,7 +165,7 @@ export default function CreatorKitPage() {
               </label>
               <label>
                 Public contact email
-                <input
+                <ValidatedInput name="contact_email"
                   type="email"
                   maxLength={254}
                   value={kit.contact_email}
@@ -189,7 +195,7 @@ export default function CreatorKitPage() {
                   );
                   return (
                     <label className="inline" key={connection.id}>
-                      <input
+                      <ValidatedInput
                         type="checkbox"
                         checked={selected}
                         disabled={
@@ -263,7 +269,7 @@ export default function CreatorKitPage() {
                 <div key={index} className="row">
                   <label>
                     Metric
-                    <input
+                    <ValidatedInput name="label"
                       required
                       maxLength={250}
                       value={row.label}
@@ -282,7 +288,7 @@ export default function CreatorKitPage() {
                   </label>
                   <label>
                     Value
-                    <input
+                    <ValidatedInput name="value"
                       required
                       maxLength={250}
                       value={row.value}
@@ -337,7 +343,7 @@ export default function CreatorKitPage() {
                 <div key={index} className="form-grid">
                   <label>
                     Link label
-                    <input
+                    <ValidatedInput name="label"
                       required
                       maxLength={250}
                       value={row.label}
@@ -355,7 +361,7 @@ export default function CreatorKitPage() {
                   </label>
                   <label>
                     HTTPS link
-                    <input
+                    <ValidatedInput name="url"
                       type="url"
                       required
                       maxLength={2000}
@@ -407,7 +413,7 @@ export default function CreatorKitPage() {
                 <div className="form-grid" key={index}>
                   <label>
                     Offer title
-                    <input
+                    <ValidatedInput name="title"
                       required
                       maxLength={250}
                       value={row.title}
@@ -425,7 +431,7 @@ export default function CreatorKitPage() {
                   </label>
                   <label>
                     Description
-                    <textarea
+                    <ValidatedTextarea name="description"
                       required
                       maxLength={250}
                       value={row.description}
@@ -471,7 +477,7 @@ export default function CreatorKitPage() {
             </div>
           </Panel>
           <label className="inline">
-            <input
+            <ValidatedInput
               type="checkbox"
               checked={kit.published}
               onChange={(e) => setKit({ ...kit, published: e.target.checked })}
@@ -484,7 +490,7 @@ export default function CreatorKitPage() {
           >
             <Save size={15} /> Save creator kit
           </button>
-        </form>
+        </ValidatedForm>
       )}
     </>
   );

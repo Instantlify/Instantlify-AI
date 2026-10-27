@@ -1,5 +1,7 @@
 "use client";
 
+import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
+
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -54,9 +56,22 @@ export function Brand({
   name?: string;
   logo?: string;
 }) {
+  const defaultBrand = !logo && /^nemio(?:\s*ai)?$/i.test(name.trim());
   return (
     <div className="brand-logo-container">
-      {logo ? (
+      {defaultBrand ? (
+        <span className="nemio-mark" aria-hidden="true">
+          {/* Keep the supplied GIF intact, including its animation. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/nemio-ai-logo.gif"
+            alt=""
+            width={900}
+            height={600}
+            className="nemio-mark-image"
+          />
+        </span>
+      ) : logo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={logo} alt="" className="brand-logo" />
       ) : (
@@ -516,10 +531,10 @@ export function Shell({ children }: { children: ReactNode }) {
               </button>
             </div>
             <ErrorNotice error={error} />
-            <form onSubmit={createWorkspace} className="stacked-form">
+            <ValidatedForm onSubmit={createWorkspace} className="stacked-form">
               <label>
                 <span>Workspace name</span>
-                <input
+                <ValidatedInput
                   type="text"
                   name="name"
                   placeholder="e.g. Acme Marketing"
@@ -543,7 +558,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   {busy ? "Creating…" : "Create workspace"}
                 </button>
               </div>
-            </form>
+            </ValidatedForm>
           </div>
         </div>
       )}
@@ -559,10 +574,10 @@ export function WorkspaceForm({
   busy: boolean;
 }) {
   return (
-    <form onSubmit={create} className="stacked-form">
+    <ValidatedForm onSubmit={create} className="stacked-form">
       <label>
         <span>Workspace name</span>
-        <input
+        <ValidatedInput
           name="name"
           maxLength={80}
           placeholder="e.g. Acme Marketing"
@@ -573,6 +588,6 @@ export function WorkspaceForm({
       <button className="button primary" disabled={busy}>
         {busy ? "Creating…" : "Create workspace"}
       </button>
-    </form>
+    </ValidatedForm>
   );
 }

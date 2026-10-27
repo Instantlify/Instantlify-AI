@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
 import { useState, type FormEvent } from "react";
 import { api, message } from "@/lib/api";
 import { ErrorNotice, Panel } from "@/components/ui";
@@ -63,10 +68,10 @@ export function AgentPreview({ prefix }: { prefix: string }) {
           </button>
         ))}
       </div>
-      <form onSubmit={preview}>
+      <ValidatedForm onSubmit={preview}>
         <label>
           Customer question
-          <textarea
+          <ValidatedTextarea
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             maxLength={2000}
@@ -76,7 +81,7 @@ export function AgentPreview({ prefix }: { prefix: string }) {
         <button className="button primary" disabled={busy || !question.trim()}>
           {busy ? "Preparing answer…" : "Preview answer"}
         </button>
-      </form>
+      </ValidatedForm>
       <ErrorNotice error={error} />
       {answer && (
         <div

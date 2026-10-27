@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type MouseEvent,
+} from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -426,8 +432,34 @@ export function LandingPage({
       (category === "All" || group === category) &&
       name.toLowerCase().includes(search.toLowerCase()),
   );
+  function returnToTop(event: MouseEvent<HTMLAnchorElement>) {
+    if (
+      detailed ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
+    event.preventDefault();
+    setMobile(false);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      window.location.pathname + window.location.search,
+    );
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+  }
   return (
     <div
+      id="top"
       ref={rootRef}
       data-motion={
         playing && motionAllowed && pageVisible ? "running" : "paused"
@@ -445,7 +477,7 @@ export function LandingPage({
         </a>
       </div>
       <header className="nm-nav">
-        <Link href="/" aria-label="Nemio home">
+        <Link href="/" aria-label="Nemio home" onClick={returnToTop}>
           <Brand />
         </Link>
         <nav
@@ -1425,7 +1457,7 @@ export function LandingPage({
       </main>
       <footer className="nm-footer">
         <div>
-          <Link href="/" aria-label="Nemio home">
+          <Link href="/" aria-label="Nemio home" onClick={returnToTop}>
             <Brand />
           </Link>
           <p>

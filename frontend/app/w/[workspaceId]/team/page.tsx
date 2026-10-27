@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+} from "@/components/validated-form";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { Plus } from "lucide-react";
@@ -170,7 +176,7 @@ export default function TeamPage() {
                     <td>{member.email}</td>
                     <td>
                       {workspace.role === "owner" && member.role !== "owner" ? (
-                        <select
+                        <ValidatedSelect name="role"
                           aria-label={`Role for ${member.email}`}
                           value={member.role}
                           disabled={feedback.busy}
@@ -180,7 +186,7 @@ export default function TeamPage() {
                         >
                           <option value="agent">Agent</option>
                           <option value="admin">Admin</option>
-                        </select>
+                        </ValidatedSelect>
                       ) : (
                         <span className="role-pill">{member.role}</span>
                       )}
@@ -204,10 +210,10 @@ export default function TeamPage() {
           {manager && (
             <div className="invite-section">
               <h3>Invite a teammate</h3>
-              <form className="invite-form" onSubmit={sendInvite}>
+              <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="invite-form" onSubmit={sendInvite}>
                 <label>
                   Email address
-                  <input
+                  <ValidatedInput
                     name="email"
                     type="email"
                     maxLength={254}
@@ -217,23 +223,23 @@ export default function TeamPage() {
                 </label>
                 <label>
                   Role
-                  <select name="role" defaultValue="agent">
+                  <ValidatedSelect name="role" defaultValue="agent">
                     <option value="agent">Agent</option>
                     {workspace.role === "owner" && (
                       <option value="admin">Admin</option>
                     )}
-                  </select>
+                  </ValidatedSelect>
                 </label>
                 <button className="button primary" disabled={feedback.busy}>
                   {feedback.busy ? "Inviting…" : "Create invite"}
                   <Plus size={16} />
                 </button>
-              </form>
+              </ValidatedForm>
               {inviteLink && (
                 <label className="invite-link">
                   One-time invite link, valid for 7 days. It works only for the
                   invited email address and is not shown again.
-                  <input
+                  <ValidatedInput
                     value={inviteLink}
                     readOnly
                     onFocus={(event) => event.currentTarget.select()}

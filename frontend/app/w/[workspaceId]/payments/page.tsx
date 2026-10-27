@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+} from "@/components/validated-form";
+
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Plus } from "lucide-react";
@@ -176,18 +182,18 @@ export default function PaymentsPage() {
             </Panel>
             {manager ? (
               <Panel title="New offer">
-                <form className="form-grid" onSubmit={createOffer}>
+                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={createOffer}>
                   <label>
                     Name
-                    <input name="name" maxLength={100} required />
+                    <ValidatedInput name="name" maxLength={100} required />
                   </label>
                   <label>
                     Description
-                    <input name="description" maxLength={300} />
+                    <ValidatedInput name="description" maxLength={300} />
                   </label>
                   <label>
                     Amount
-                    <input
+                    <ValidatedInput
                       name="amount"
                       type="number"
                       min="0.5"
@@ -200,13 +206,13 @@ export default function PaymentsPage() {
                   </label>
                   <label>
                     Currency
-                    <select name="currency" defaultValue="usd">
+                    <ValidatedSelect name="currency" defaultValue="usd">
                       {CURRENCIES.map((code) => (
                         <option key={code} value={code}>
                           {code.toUpperCase()}
                         </option>
                       ))}
-                    </select>
+                    </ValidatedSelect>
                   </label>
                   <div className="form-actions">
                     <button className="button primary" disabled={feedback.busy}>
@@ -214,7 +220,7 @@ export default function PaymentsPage() {
                       <Plus size={16} />
                     </button>
                   </div>
-                </form>
+                </ValidatedForm>
               </Panel>
             ) : (
               <Panel title="Offers">

@@ -77,7 +77,11 @@ test("keyboard navigation expands the rail and workspace menus dismiss with Esca
   await page.mouse.move(900, 100);
   await page.keyboard.press("Tab");
   const sidebar = page.locator("#workspace-sidebar");
-  await expect(sidebar.locator(".brand-title")).toBeVisible();
+  await expect(
+    sidebar
+      .getByRole("link", { name: "Home", exact: true })
+      .locator(".nav-label-text"),
+  ).toBeVisible();
   await page.keyboard.press("Tab");
   const switcher = sidebar.getByRole("button", { name: /Switch workspace/ });
   await expect(switcher).toBeFocused();

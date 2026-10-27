@@ -1,6 +1,11 @@
 "use client";
 
 import {
+  ValidatedForm,
+  ValidatedInput,
+} from "@/components/validated-form";
+
+import {
   useCallback,
   useEffect,
   useState,
@@ -1336,14 +1341,14 @@ export default function IntegrationsPage() {
               )}
 
               {owner && (
-                <form
+                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
                   className="form-grid"
                   style={{ marginTop: "16px" }}
                   onSubmit={createKey}
                 >
                   <label>
                     Key name
-                    <input
+                    <ValidatedInput
                       name="name"
                       maxLength={80}
                       placeholder="e.g. My Automation Script"
@@ -1359,7 +1364,7 @@ export default function IntegrationsPage() {
                         fontSize: "13px",
                       }}
                     >
-                      <input type="checkbox" name="read" defaultChecked />
+                      <ValidatedInput type="checkbox" name="read" defaultChecked />
                       Read
                     </label>
                     <label
@@ -1370,7 +1375,7 @@ export default function IntegrationsPage() {
                         fontSize: "13px",
                       }}
                     >
-                      <input type="checkbox" name="write" />
+                      <ValidatedInput type="checkbox" name="write" />
                       Write
                     </label>
                   </div>
@@ -1382,7 +1387,7 @@ export default function IntegrationsPage() {
                     <KeyRound size={14} />
                     Create Key
                   </button>
-                </form>
+                </ValidatedForm>
               )}
             </div>
 
@@ -1481,14 +1486,14 @@ export default function IntegrationsPage() {
                 </div>
               )}
 
-              <form
+              <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
                 className="form-grid"
                 style={{ marginTop: "16px" }}
                 onSubmit={createSubscription}
               >
                 <label>
                   Endpoint URL
-                  <input
+                  <ValidatedInput
                     name="url"
                     type="url"
                     placeholder="https://api.yourdomain.com/webhook"
@@ -1512,7 +1517,7 @@ export default function IntegrationsPage() {
                         gap: "4px",
                       }}
                     >
-                      <input type="checkbox" name={name} />
+                      <ValidatedInput type="checkbox" name={name} />
                       {name}
                     </label>
                   ))}
@@ -1525,7 +1530,7 @@ export default function IntegrationsPage() {
                   <Webhook size={14} />
                   Subscribe Endpoint
                 </button>
-              </form>
+              </ValidatedForm>
             </div>
           </div>
         </div>

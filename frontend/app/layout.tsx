@@ -8,6 +8,8 @@ import "./landing-depth.css";
 import "./landing-motion.css";
 import "./meta.css";
 import "./sidebar.css";
+import "./validation.css";
+import "./brand.css";
 import "@xyflow/react/dist/style.css";
 import "./theme.css";
 

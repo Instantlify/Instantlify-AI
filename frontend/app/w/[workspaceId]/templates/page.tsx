@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
@@ -350,7 +357,7 @@ export default function TemplatesPage() {
     try {
       parsed = JSON.parse(pasted);
     } catch {
-      feedback.setError("That is not valid JSON.");
+      feedback.setError("We couldn’t read this template file. Choose an exported Nemio template and try again.");
       return;
     }
     const result = await feedback.run(
@@ -414,14 +421,14 @@ export default function TemplatesPage() {
       <div className="stack">
         <Panel title="Marketplace" aside={`${market.length} template(s)`}>
           <div className="toolbar">
-            <input
+            <ValidatedInput
               type="search"
               placeholder="Search templates"
               aria-label="Search templates"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
-            <select
+            <ValidatedSelect
               aria-label="Category"
               value={category}
               onChange={(event) => setCategory(event.target.value)}
@@ -432,7 +439,7 @@ export default function TemplatesPage() {
                   {item}
                 </option>
               ))}
-            </select>
+            </ValidatedSelect>
           </div>
           {market.length === 0 ? (
             <Empty>No templates match yet. Be the first to publish one.</Empty>
@@ -508,7 +515,7 @@ export default function TemplatesPage() {
                   </p>
                   <label>
                     Country
-                    <input
+                    <ValidatedInput
                       value={country}
                       maxLength={2}
                       aria-label="Country code"
@@ -590,24 +597,24 @@ export default function TemplatesPage() {
                   shared.
                 </Empty>
               ) : (
-                <form className="form-grid" onSubmit={publish}>
+                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={publish}>
                   <label>
                     Automation
-                    <select name="automation" required>
+                    <ValidatedSelect name="automation" required>
                       {publishable.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.name}
                         </option>
                       ))}
-                    </select>
+                    </ValidatedSelect>
                   </label>
                   <label>
                     Title
-                    <input name="title" maxLength={120} required />
+                    <ValidatedInput name="title" maxLength={120} required />
                   </label>
                   <label>
                     Description
-                    <textarea
+                    <ValidatedTextarea
                       name="description"
                       maxLength={2000}
                       placeholder="What does this flow do, and who is it for?"
@@ -615,17 +622,17 @@ export default function TemplatesPage() {
                   </label>
                   <label>
                     Category
-                    <select name="category" defaultValue="sales">
+                    <ValidatedSelect name="category" defaultValue="sales">
                       {CATEGORIES.map((item) => (
                         <option key={item} value={item}>
                           {item}
                         </option>
                       ))}
-                    </select>
+                    </ValidatedSelect>
                   </label>
                   <label>
                     Price (cents)
-                    <input
+                    <ValidatedInput
                       name="price_cents"
                       type="number"
                       min={0}
@@ -644,7 +651,7 @@ export default function TemplatesPage() {
                       <Store size={16} /> Publish
                     </button>
                   </div>
-                </form>
+                </ValidatedForm>
               )}
               <h3 style={{ marginTop: 22 }}>Your published templates</h3>
               {mine.length === 0 ? (
@@ -735,10 +742,10 @@ export default function TemplatesPage() {
               </Panel>
 
               <Panel title="Import & export">
-                <form className="form-grid" onSubmit={importFile}>
+                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={importFile}>
                   <label>
                     Import a template file
-                    <input
+                    <ValidatedInput
                       name="file"
                       type="file"
                       accept=".json,application/json"
@@ -752,15 +759,15 @@ export default function TemplatesPage() {
                       <Upload size={16} /> Import file
                     </button>
                   </div>
-                </form>
-                <form
+                </ValidatedForm>
+                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
                   className="form-grid"
                   onSubmit={importPasted}
                   style={{ marginTop: 16 }}
                 >
                   <label>
                     Or paste template JSON
-                    <textarea
+                    <ValidatedTextarea
                       value={pasted}
                       onChange={(event) => setPasted(event.target.value)}
                       placeholder='{"format": "nemio.automation", …}'
@@ -775,11 +782,11 @@ export default function TemplatesPage() {
                       <Upload size={16} /> Import JSON
                     </button>
                   </div>
-                </form>
+                </ValidatedForm>
                 <div className="form-grid" style={{ marginTop: 22 }}>
                   <label>
                     Export an automation
-                    <select
+                    <ValidatedSelect
                       value={exportId}
                       onChange={(event) => setExportId(event.target.value)}
                     >
@@ -789,7 +796,7 @@ export default function TemplatesPage() {
                           {item.name}
                         </option>
                       ))}
-                    </select>
+                    </ValidatedSelect>
                   </label>
                   <div className="form-actions">
                     <button
@@ -811,7 +818,7 @@ export default function TemplatesPage() {
                     )}
                   </div>
                   {exported && (
-                    <textarea
+                    <ValidatedTextarea
                       className="mono"
                       readOnly
                       value={exported}

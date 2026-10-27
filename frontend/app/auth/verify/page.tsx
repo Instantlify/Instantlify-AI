@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+} from "@/components/validated-form";
+
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, message } from "@/lib/api";
@@ -80,15 +85,15 @@ export default function VerifyEmail() {
         <ErrorNotice error={error} />
         <SuccessNotice notice={notice} />
         {state === "resend" && (
-          <form onSubmit={resend}>
+          <ValidatedForm onSubmit={resend}>
             <label>
               Email address
-              <input name="email" type="email" autoComplete="email" required />
+              <ValidatedInput name="email" type="email" autoComplete="email" required />
             </label>
             <button className="button primary" disabled={busy}>
               {busy ? "Please wait…" : "Send a new link"}
             </button>
-          </form>
+          </ValidatedForm>
         )}
         <p>
           <Link href="/auth">Back to sign in</Link>

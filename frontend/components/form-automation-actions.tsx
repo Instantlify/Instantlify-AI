@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedInput,
+  ValidatedSelect,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
 import { useEffect, useState } from "react";
 import { apiPages, message, type Integration } from "@/lib/api";
 import type { FormAction } from "@/lib/portal-tools";
@@ -80,7 +86,7 @@ export function FormAutomationActions({
           <legend>Action {index + 1}</legend>
           <label>
             Action type
-            <select
+            <ValidatedSelect
               value={action.operation}
               aria-label={`Action ${index + 1} type`}
               onChange={(event) => {
@@ -101,11 +107,11 @@ export function FormAutomationActions({
                   </option>
                 ),
               )}
-            </select>
+            </ValidatedSelect>
           </label>
           <label>
             Connected integration
-            <select
+            <ValidatedSelect
               required
               value={action.integration_id}
               aria-label={`Action ${index + 1} integration`}
@@ -123,7 +129,7 @@ export function FormAutomationActions({
                     {item.provider.replaceAll("_", " ")}
                   </option>
                 ))}
-            </select>
+            </ValidatedSelect>
           </label>
           {action.operation === "send_email" && (
             <>
@@ -133,7 +139,7 @@ export function FormAutomationActions({
               </p>
               <label>
                 Email subject
-                <input
+                <ValidatedInput
                   required
                   maxLength={200}
                   value={action.subject || ""}
@@ -147,7 +153,7 @@ export function FormAutomationActions({
           {["send_email", "notify"].includes(action.operation) && (
             <label>
               Message text
-              <textarea
+              <ValidatedTextarea
                 required
                 rows={4}
                 maxLength={2000}

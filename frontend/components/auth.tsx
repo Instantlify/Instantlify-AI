@@ -1,5 +1,7 @@
 "use client";
 
+import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
+
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -13,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { api, ApiError, message, type Branding, type User } from "@/lib/api";
+import type { FieldErrors } from "@/lib/form-errors";
 import { lastWorkspaceId, loadWorkspaces } from "@/lib/workspace";
 import { Brand, WorkspaceForm } from "@/components/shell";
 import { ErrorNotice } from "@/components/ui";
@@ -173,11 +176,13 @@ function Auth({
   const [signup, setSignup] = useState(signupInitially);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const name = branding?.brand_name || "Nemio";
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError("");
+    setFieldErrors({});
     const data = Object.fromEntries(new FormData(event.currentTarget));
     try {
       onSuccess(
@@ -188,6 +193,7 @@ function Auth({
         ),
       );
     } catch (err) {
+      setFieldErrors(err instanceof ApiError ? err.fieldErrors : {});
       setError(message(err));
     } finally {
       setBusy(false);
@@ -273,12 +279,16 @@ function Auth({
               ? "Start with your account. Your workspace comes next."
               : "Sign in and pick up the conversation."}
           </p>
-          <form onSubmit={submit}>
+          <ValidatedForm
+            onSubmit={submit}
+            fieldErrors={fieldErrors}
+            onEdit={() => setError("")}
+          >
             <ErrorNotice error={error} />
             {signup && (
               <label>
                 Your name
-                <input
+                <ValidatedInput
                   name="name"
                   autoComplete="name"
                   placeholder="Alex Morgan"
@@ -289,7 +299,7 @@ function Auth({
             )}
             <label>
               Email address
-              <input
+              <ValidatedInput
                 name="email"
                 type="email"
                 autoComplete="email"
@@ -299,7 +309,7 @@ function Auth({
             </label>
             <label>
               Password
-              <input
+              <ValidatedInput
                 name="password"
                 type="password"
                 autoComplete={signup ? "new-password" : "current-password"}
@@ -315,7 +325,7 @@ function Auth({
               {busy ? "Please wait…" : signup ? "Create account" : "Sign in"}
               <ArrowRight size={17} />
             </button>
-          </form>
+          </ValidatedForm>
           {!signup && (
             <p>
               <Link href="/auth/reset/">Forgot your password?</Link>

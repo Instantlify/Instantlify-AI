@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+  ValidatedTextarea,
+} from "@/components/validated-form";
+
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -543,7 +550,7 @@ export default function InboxPage() {
         <div className="boosend-inbox-search-row">
           <div className="boosend-inbox-search-box">
             <Search size={14} color="#94a3b8" />
-            <input
+            <ValidatedInput
               type="search"
               className="boosend-inbox-search-input"
               placeholder="Search conversations..."
@@ -552,7 +559,7 @@ export default function InboxPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <select
+          <ValidatedSelect
             className="inbox-filter-select"
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
@@ -564,7 +571,7 @@ export default function InboxPage() {
             <option value="needs_human">Needs a human</option>
             <option value="open">Open</option>
             <option value="closed">Closed</option>
-          </select>
+          </ValidatedSelect>
         </div>
 
         {/* Conversations list scroll */}
@@ -698,7 +705,7 @@ export default function InboxPage() {
                     {windowClosed ? "24h window closed" : countdown(left)}
                   </span>
                 )}
-                <select
+                <ValidatedSelect
                   className="inbox-head-select"
                   aria-label="Assign to"
                   value={current.assigned_to ?? ""}
@@ -723,8 +730,8 @@ export default function InboxPage() {
                         {member.name || member.email}
                       </option>
                     ))}
-                </select>
-                <select
+                </ValidatedSelect>
+                <ValidatedSelect name="status"
                   className="inbox-head-select"
                   aria-label="Status"
                   value={current.status}
@@ -737,7 +744,7 @@ export default function InboxPage() {
                   <option value="open">Open</option>
                   <option value="needs_human">Needs a human</option>
                   <option value="closed">Closed</option>
-                </select>
+                </ValidatedSelect>
                 <button
                   type="button"
                   className="boosend-chat-action-btn"
@@ -877,7 +884,7 @@ export default function InboxPage() {
                       </button>
                     </div>
                   )}
-                  <form
+                  <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
                     onSubmit={(e) => {
                       e.preventDefault();
                       send();
@@ -895,7 +902,7 @@ export default function InboxPage() {
                       >
                         <Plus size={18} />
                       </button>
-                      <input
+                      <ValidatedInput
                         type="file"
                         ref={fileInputRef}
                         style={{ display: "none" }}
@@ -918,7 +925,7 @@ export default function InboxPage() {
                         }}
                       />
 
-                      <textarea
+                      <ValidatedTextarea
                         ref={composerRef}
                         rows={1}
                         className="boosend-chat-input-field"
@@ -954,7 +961,7 @@ export default function InboxPage() {
                         <ArrowUpRight size={16} />
                       </button>
                     </div>
-                  </form>
+                  </ValidatedForm>
                   <div className="composer-tools">
                     <div className="tool-anchor">
                       <button
@@ -1051,7 +1058,7 @@ export default function InboxPage() {
                       )}
                     </div>
                     {offers.length > 0 ? (
-                      <select
+                      <ValidatedSelect
                         className="inbox-head-select"
                         aria-label="Send payment link"
                         defaultValue=""
@@ -1067,7 +1074,7 @@ export default function InboxPage() {
                             {money(offer.amount_cents, offer.currency)}
                           </option>
                         ))}
-                      </select>
+                      </ValidatedSelect>
                     ) : (
                       <span className="muted-text inbox-offers-hint">
                         <CreditCard size={12} /> Create offers to send payment
@@ -1075,7 +1082,7 @@ export default function InboxPage() {
                       </span>
                     )}
                     <span className="spacer" />
-                    <input
+                    <ValidatedInput
                       placeholder="Internal note (team only)"
                       value={note}
                       onChange={(event) => setNote(event.target.value)}
@@ -1140,7 +1147,7 @@ export default function InboxPage() {
           <dl className="lead-panel">
             <dt>Email</dt>
             <dd>
-              <input
+              <ValidatedInput
                 defaultValue={current.lead.email}
                 key={`${current.id}-email`}
                 placeholder="lead@example.com"
@@ -1154,7 +1161,7 @@ export default function InboxPage() {
             </dd>
             <dt>Stage</dt>
             <dd>
-              <select
+              <ValidatedSelect name="stage"
                 value={current.lead.stage}
                 aria-label="Lead stage"
                 onChange={(event) => updateLead({ stage: event.target.value })}
@@ -1164,7 +1171,7 @@ export default function InboxPage() {
                     {stage}
                   </option>
                 ))}
-              </select>
+              </ValidatedSelect>
             </dd>
             {current.lead.tags.length > 0 && (
               <>

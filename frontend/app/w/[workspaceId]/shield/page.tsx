@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+} from "@/components/validated-form";
+
 import { useEffect, useState } from "react";
 import {
   AlertTriangle,
@@ -183,10 +189,10 @@ export default function CommentShieldPage() {
         </Panel>
 
         <Panel title="Add Custom Shield Rule">
-          <form onSubmit={addRule} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} onSubmit={addRule} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             <label>
               Rule Label
-              <input
+              <ValidatedInput
                 required
                 placeholder="e.g. Hate Speech & Slurs"
                 value={newRuleName}
@@ -195,7 +201,7 @@ export default function CommentShieldPage() {
             </label>
             <label>
               Trigger Keywords (comma separated)
-              <input
+              <ValidatedInput
                 required
                 placeholder="e.g. scam, liar, fraud, refund now"
                 value={newKeywords}
@@ -204,19 +210,19 @@ export default function CommentShieldPage() {
             </label>
             <label>
               Action on Match
-              <select
+              <ValidatedSelect
                 value={newAction}
                 onChange={(e) => setNewAction(e.target.value as ShieldRule["action"])}
               >
                 <option value="hide">Hide from post (Only commenter sees it)</option>
                 <option value="delete">Delete comment permanently</option>
                 <option value="flag">Flag in Inbox for human review</option>
-              </select>
+              </ValidatedSelect>
             </label>
             <button type="submit" className="button primary small" style={{ alignSelf: "flex-start" }}>
               <Plus size={14} /> Add shield rule
             </button>
-          </form>
+          </ValidatedForm>
         </Panel>
       </div>
 

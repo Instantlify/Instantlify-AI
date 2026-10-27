@@ -2,7 +2,8 @@
 
 import { useCallback, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
-import { message } from "@/lib/api";
+import { ApiError, message } from "@/lib/api";
+import type { FieldErrors } from "@/lib/form-errors";
 
 export function ErrorNotice({ error }: { error: string }) {
   if (!error) return null;
@@ -27,19 +28,28 @@ export function useFeedback() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [validationTarget, setValidationTarget] = useState("");
   const run = useCallback(
     async <T,>(
       action: () => Promise<T>,
       success?: string,
     ): Promise<T | undefined> => {
+      const formId =
+        typeof document === "undefined"
+          ? ""
+          : document.activeElement?.closest("form")?.id || "";
       setBusy(true);
       setError("");
+      setFieldErrors({});
       setNotice("");
       try {
         const result = await action();
         if (success) setNotice(success);
         return result;
       } catch (err) {
+        setValidationTarget(formId);
+        setFieldErrors(err instanceof ApiError ? err.fieldErrors : {});
         setError(message(err));
         return undefined;
       } finally {
@@ -48,7 +58,16 @@ export function useFeedback() {
     },
     [],
   );
-  return { error, notice, busy, run, setError, setNotice };
+  return {
+    error,
+    notice,
+    busy,
+    run,
+    setError,
+    setNotice,
+    fieldErrors,
+    validationTarget,
+  };
 }
 
 export function PageHeading({

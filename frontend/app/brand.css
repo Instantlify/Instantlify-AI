@@ -1,0 +1,61 @@
+.nemio-mark {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: 54px;
+  height: 36px;
+  overflow: hidden;
+  vertical-align: middle;
+  mix-blend-mode: multiply;
+}
+
+.nemio-mark-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.boosend-sidebar .nemio-mark {
+  width: 42px;
+  height: 28px;
+}
+
+@media (min-width: 901px) {
+  .boosend-sidebar:not(:hover):not(
+      :has(
+        :focus-visible,
+        .workspace-dropdown-popover,
+        .social-account-menu-popover
+      )
+    )
+    .nemio-mark {
+    width: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nemio-mark {
+    display: none;
+  }
+  .boosend-sidebar:not(:hover):not(
+      :has(
+        :focus-visible,
+        .workspace-dropdown-popover,
+        .social-account-menu-popover
+      )
+    )
+    .nemio-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .boosend-sidebar .nemio-mark-image {
+    display: none;
+  }
+  .boosend-sidebar .nemio-mark::after {
+    content: "N";
+    font-size: 21px;
+    font-weight: 700;
+  }
+}

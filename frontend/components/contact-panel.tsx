@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ValidatedForm,
+  ValidatedInput,
+  ValidatedSelect,
+} from "@/components/validated-form";
+
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import {
@@ -254,7 +260,7 @@ export function ContactPanel({
         <header className="contact-panel-head">
           <ContactAvatar name={name} avatarUrl={lead.avatar_url} size={56} />
           <div className="contact-panel-title">
-            <input
+            <ValidatedInput
               className="contact-name-input"
               aria-label="Contact name"
               defaultValue={lead.name}
@@ -394,7 +400,7 @@ export function ContactPanel({
         <section className="contact-section contact-grid">
           <label>
             Stage
-            <select
+            <ValidatedSelect
               value={lead.stage || "new"}
               onChange={(event) => patch({ stage: event.target.value })}
             >
@@ -403,11 +409,11 @@ export function ContactPanel({
                   {stage.label}
                 </option>
               ))}
-            </select>
+            </ValidatedSelect>
           </label>
           <label>
             Assigned to
-            <select
+            <ValidatedSelect
               value={lead.assigned_to ?? ""}
               disabled={!conversationId}
               title={
@@ -425,11 +431,11 @@ export function ContactPanel({
                   {member.name || member.email}
                 </option>
               ))}
-            </select>
+            </ValidatedSelect>
           </label>
           <label>
             Email
-            <input
+            <ValidatedInput
               type="email"
               defaultValue={lead.email}
               key={`${lead.id}-email`}
@@ -443,7 +449,7 @@ export function ContactPanel({
           </label>
           <label>
             Opt-out
-            <select
+            <ValidatedSelect
               value={lead.opted_out ? "yes" : "no"}
               onChange={(event) =>
                 patch({ opted_out: event.target.value === "yes" })
@@ -451,7 +457,7 @@ export function ContactPanel({
             >
               <option value="no">Receives messages</option>
               <option value="yes">Opted out</option>
-            </select>
+            </ValidatedSelect>
           </label>
         </section>
 
@@ -474,8 +480,8 @@ export function ContactPanel({
             ))}
             {!lead.tags.length && <span className="subtle">No tags yet</span>}
           </div>
-          <form className="contact-inline-form" onSubmit={addTag}>
-            <input
+          <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="contact-inline-form" onSubmit={addTag}>
+            <ValidatedInput
               aria-label="New tag"
               placeholder="Add a tag"
               maxLength={40}
@@ -485,7 +491,7 @@ export function ContactPanel({
             <button className="button secondary small" disabled={!tag.trim()}>
               Add tag
             </button>
-          </form>
+          </ValidatedForm>
         </section>
 
         <section className="contact-section">
@@ -530,8 +536,8 @@ export function ContactPanel({
               </div>
             )}
           </dl>
-          <form className="contact-inline-form" onSubmit={addField}>
-            <input
+          <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="contact-inline-form" onSubmit={addField}>
+            <ValidatedInput name="key"
               aria-label="Field name"
               placeholder="Field, e.g. City"
               maxLength={60}
@@ -540,7 +546,7 @@ export function ContactPanel({
                 setField({ ...field, key: event.target.value })
               }
             />
-            <input
+            <ValidatedInput name="value"
               aria-label="Field value"
               placeholder="Value"
               maxLength={500}
@@ -555,7 +561,7 @@ export function ContactPanel({
             >
               Add field
             </button>
-          </form>
+          </ValidatedForm>
         </section>
 
         {conversationId && (
@@ -603,8 +609,8 @@ export function ContactPanel({
             ) : (
               <p className="subtle">Only your team sees notes.</p>
             )}
-            <form className="contact-inline-form" onSubmit={addNote}>
-              <input
+            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="contact-inline-form" onSubmit={addNote}>
+              <ValidatedInput
                 aria-label="New note"
                 placeholder="Add a private note"
                 maxLength={5000}
@@ -617,7 +623,7 @@ export function ContactPanel({
               >
                 Add note
               </button>
-            </form>
+            </ValidatedForm>
           </section>
         )}
 
@@ -625,8 +631,8 @@ export function ContactPanel({
           <section className="contact-section">
             <h3>Housekeeping</h3>
             {syncTargets.length > 0 && (
-              <form className="contact-inline-form" onSubmit={sync}>
-                <select
+              <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="contact-inline-form" onSubmit={sync}>
+                <ValidatedSelect
                   aria-label="Send to CRM"
                   value={syncTarget}
                   onChange={(event) => setSyncTarget(event.target.value)}
@@ -637,18 +643,18 @@ export function ContactPanel({
                       {CRM_SYNC_TARGETS[item.provider]}
                     </option>
                   ))}
-                </select>
+                </ValidatedSelect>
                 <button
                   className="button secondary small"
                   disabled={!syncTarget}
                 >
                   Send
                 </button>
-              </form>
+              </ValidatedForm>
             )}
             {duplicates.length > 0 && (
-              <form className="contact-inline-form" onSubmit={merge}>
-                <select
+              <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="contact-inline-form" onSubmit={merge}>
+                <ValidatedSelect
                   aria-label="Merge a duplicate into this contact"
                   value={mergeSource}
                   onChange={(event) => setMergeSource(event.target.value)}
@@ -661,14 +667,14 @@ export function ContactPanel({
                       {item.channels.length ? "" : " · added by hand"}
                     </option>
                   ))}
-                </select>
+                </ValidatedSelect>
                 <button
                   className="button secondary small"
                   disabled={!mergeSource}
                 >
                   <UserCheck size={13} /> Merge
                 </button>
-              </form>
+              </ValidatedForm>
             )}
           </section>
         )}
