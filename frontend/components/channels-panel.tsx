@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Plug, Plus, Send } from "lucide-react";
 import { api, message, when, type Connection, type Delivery, type Page } from "@/lib/api";
 import { ChannelIcon, channelLabel } from "@/lib/channels";
+import { WhatsAppConnect } from "@/components/whatsapp-connect";
 import {
   CopyField,
   Empty,
@@ -37,6 +38,7 @@ const CHANNEL_PROVIDERS = [
 export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: boolean }) {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [manualProvider, setManualProvider] = useState("whatsapp");
   const feedback = useFeedback();
   const origin = typeof window === "undefined" ? "" : window.location.origin;
 
@@ -85,6 +87,7 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
         external_account_id: data.external_account_id,
         display_name: data.display_name,
         access_token: data.access_token || "",
+        ...(data.business_account_id ? { business_account_id: data.business_account_id } : {}),
         is_test: data.is_test === "on",
       });
       await load();
@@ -142,7 +145,7 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                       </div>
                     </div>
                     <Pill tone={connection.is_test ? "neutral" : statusTone(connection.status)}>
-                      {connection.is_test ? "test" : connection.status}
+                      {connection.is_test ? "test" : connection.status === "setup_required" ? "Finish setup" : connection.status}
                     </Pill>
                   </div>
                   {manager && connection.is_test && connection.status === "active" && (
@@ -180,6 +183,9 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                   )}
                   {manager && connection.status !== "disconnected" && (
                     <div className="form-actions">
+                      {connection.provider === "whatsapp" && !connection.is_test && (
+                        <WhatsAppConnect prefix={prefix} connection={connection} onConnected={load} />
+                      )}
                       <button
                         type="button"
                         className="button small danger"
@@ -205,6 +211,7 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                 Connect your business accounts with one click. No developer tokens needed.
               </p>
               <div className="row wrap channel-connect-buttons">
+                <WhatsAppConnect key={prefix} prefix={prefix} onConnected={load} />
                 <button
                   type="button"
                   className="button primary"
@@ -223,11 +230,11 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                 </button>
               </div>
               <details className="channel-advanced">
-                <summary>Manual credentials, WhatsApp, Telegram and test channels</summary>
+                <summary>Advanced: manual credentials and test channels</summary>
                 <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={connectChannel}>
                   <label>
                     Provider
-                    <ValidatedSelect name="provider" defaultValue="whatsapp">
+                    <ValidatedSelect name="provider" value={manualProvider} onChange={(event) => setManualProvider(event.target.value)}>
                       {CHANNEL_PROVIDERS.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.label}
@@ -249,6 +256,11 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                       required
                     />
                   </label>
+                  {manualProvider === "whatsapp" && <label>
+                    WhatsApp business account ID
+                    <ValidatedInput name="business_account_id" aria-label="WhatsApp business account ID" pattern="[0-9]{1,40}" maxLength={40} />
+                    <span className="hint">From Meta’s WhatsApp API setup. Add this to load approved messages and enable notifications for your own account. This is different from your phone number ID.</span>
+                  </label>}
                   <label>
                     Display name
                     <ValidatedInput name="display_name" maxLength={150} required />

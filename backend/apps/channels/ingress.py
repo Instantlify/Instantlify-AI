@@ -121,6 +121,21 @@ def normalize_meta(payload, provider):
                             else [],
                         },
                     )
+                for receipt in value.get("statuses", []):
+                    if receipt.get("status") not in {"sent", "delivered", "read", "failed"}:
+                        continue
+                    stable = f"{receipt['id']}:{receipt['status']}:{receipt.get('timestamp', '')}"
+                    yield (
+                        account_id,
+                        "status:" + hashlib.sha256(stable.encode()).hexdigest(),
+                        {
+                            "kind": "whatsapp_status",
+                            "message_id": receipt["id"],
+                            "status": receipt["status"],
+                            "timestamp": receipt.get("timestamp"),
+                            "recipient_id": receipt.get("recipient_id", ""),
+                        },
+                    )
 
 
 @transaction.atomic

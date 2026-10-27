@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       { source: "/api/:path*/", destination: `${backend}/api/:path*/` },
+      { source: "/webhooks/:path*/", destination: `${backend}/webhooks/:path*/` },
       { source: "/health/:path*/", destination: `${backend}/health/:path*/` },
       { source: "/go/:code/", destination: `${backend}/go/:code/` },
       { source: "/r/:code/", destination: `${backend}/r/:code/` },

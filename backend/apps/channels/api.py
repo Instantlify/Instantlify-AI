@@ -50,6 +50,7 @@ class ConnectSerializer(serializers.Serializer):
     )
     expires_at = serializers.DateTimeField(required=False)
     is_test = serializers.BooleanField(default=False)
+    business_account_id = serializers.RegexField(r"^[0-9]{1,40}$", required=False, allow_blank=True)
 
 
 class ConnectView(APIView):
@@ -59,6 +60,11 @@ class ConnectView(APIView):
         serializer = ConnectSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        business_account_id = data.pop("business_account_id", "")
+        if business_account_id and data["provider"] != "whatsapp":
+            raise serializers.ValidationError(
+                {"business_account_id": "This value is only needed for WhatsApp."}
+            )
         if data["is_test"] and settings.CHANNEL_ADAPTER_MODE != "fake":
             raise serializers.ValidationError("Test connections are disabled.")
         if not data["is_test"] and (
@@ -68,11 +74,23 @@ class ConnectView(APIView):
         if not data["is_test"] and data["provider"] == "instagram":
             raise serializers.ValidationError("Connect Instagram using its OAuth flow.")
         Workspace.objects.select_for_update().get(pk=workspace_id)
-        check_within_limit(workspace_id, "max_instagram_accounts")
+        existing = (
+            ChannelConnection.objects.for_workspace(workspace_id)
+            .select_for_update()
+            .filter(provider="whatsapp", external_account_id=data["external_account_id"])
+            .first()
+            if data["provider"] == "whatsapp"
+            else None
+        )
+        if existing and existing.status != "disconnected":
+            from apps.billing.gating import check_connection_unlocked
+
+            check_connection_unlocked(existing)
+        else:
+            check_within_limit(workspace_id, "max_instagram_accounts")
         try:
             with transaction.atomic():
-                item = ChannelConnection.objects.for_workspace(workspace_id).create(
-                    workspace=member.workspace,
+                defaults = dict(
                     **data,
                     **({"access_token": "local-test-token"} if "access_token" not in data else {}),
                     **(
@@ -83,6 +101,18 @@ class ConnectView(APIView):
                     webhook_secret=secrets.token_urlsafe(32),
                     status="active" if data["is_test"] else "verifying",
                 )
+                if business_account_id:
+                    defaults["profile"] = {"waba_id": business_account_id}
+                if existing:
+                    item = existing
+                    for field, value in defaults.items():
+                        setattr(item, field, value)
+                    item.save()
+                else:
+                    item = ChannelConnection.objects.for_workspace(workspace_id).create(
+                        workspace=member.workspace,
+                        **defaults,
+                    )
         except IntegrityError:
             raise serializers.ValidationError("This account is already connected.") from None
         audit(member.workspace, request.user, "channel.connection_requested", item.id)

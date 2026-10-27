@@ -7,6 +7,9 @@ from .transport import AmbiguousDelivery, ProviderError, request
 
 
 class WhatsAppAdapter(InstagramAdapter):
+    def send_template(self, *, recipient_id, template, idempotency_key):
+        return self._send(recipient_id, {"type": "template", "template": template})
+
     def send_media(self, *, recipient_id, media_url, media_type, idempotency_key):
         return self._send(recipient_id, {"type": media_type, media_type: {"link": media_url}})
 

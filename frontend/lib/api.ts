@@ -138,6 +138,7 @@ export type Conversation = {
 };
 export type MessageSender = "customer" | "ai" | "human" | "automation" | "api";
 export type Message = {
+  provider_status?: string;
   media_url?: string;
   id: string;
   direction: "inbound" | "outbound";

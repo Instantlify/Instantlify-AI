@@ -1,3 +1,34 @@
+# WhatsApp onboarding and approved messages — 27 October 2026
+
+- Added a dedicated Connect WhatsApp flow using Meta Embedded Signup. One-use state is
+  scoped to the signing-in user/workspace; the backend validates the token's app, permissions,
+  shared business account and phone ownership. Tokens remain encrypted. Number registration
+  and business-account notification subscription resume from durable checkpoints; reconnects
+  preserve conversation history and recheck account limits/locks.
+- Added an own-account developer path to the advanced channel form using the phone number
+  ID, business account ID and token from Meta API setup. This path can use Meta's real test
+  number before an Embedded Signup configuration is available. Number ownership is checked,
+  notifications are subscribed and unregistered numbers offer Finish WhatsApp setup.
+- WhatsApp inbox conversations can load approved templates, validate required text/media/link
+  details and customer consent, preview the message and queue it outside the ordinary 24-hour
+  window. The sender checks approval and the exact definition again before delivery. Opt-outs,
+  rate limits, connection expiry, platform controls and ambiguous-delivery protections remain.
+  Ordinary replies stay closed until a customer responds. Special template formats are shown
+  as unavailable; template authoring/approval remains in WhatsApp Manager.
+- Signed sent/delivered/read/failed callbacks update inbox progress without creating inbound
+  customer messages. Receipt processing handles duplicates, ordering and a receipt arriving
+  before the send transaction commits. Frontend /webhooks forwarding enables one HTTPS
+  tunnel to cover the local portal and callback route.
+- Final PostgreSQL regression suite: 711 passed. Production frontend build/TypeScript,
+  focused lint, backend lint/format, Django system checks and migration drift checks passed.
+  The 26 browser checks for WhatsApp/inbox/validation passed on local production port 3000;
+  an additional own-account setup browser check passed. Migration channels.0006 is applied,
+  and backend, frontend and worker report healthy.
+- No live WhatsApp messages were sent. Meta credentials, a public HTTPS callback and an
+  authorized recipient are still needed for provider acceptance; old WhatsApp app history,
+  coexistence migration, calling and special template formats are outside this increment.
+  See docs/WHATSAPP_LOCAL_SETUP.md for precise local setup and live verification steps.
+
 # Landing Product menu dismissal — 27 October 2026
 
 - Product dropdown closes on page scroll, pointer clicks outside it, any header link

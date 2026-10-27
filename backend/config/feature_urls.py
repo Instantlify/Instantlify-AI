@@ -46,6 +46,8 @@ from apps.channels.api import (
     DisconnectView,
     SimulateView,
 )
+from apps.channels.whatsapp import WhatsAppActivateView, WhatsAppCompleteView, WhatsAppConnectView
+from apps.channels.whatsapp_templates import ConversationTemplatesView
 from apps.content.views import BioView, PostDetail, PostList, PublicBioView
 from apps.crm.campaigns import (
     CampaignAudienceView,
@@ -180,6 +182,10 @@ urlpatterns = [
     path(P + "offers/<uuid:pk>/", OfferDetail.as_view()),
     path(P + "payments/", PaymentList.as_view()),
     path(P + "channels/connect/", ConnectView.as_view()),
+    path(P + "whatsapp/connect/", WhatsAppConnectView.as_view()),
+    path(P + "whatsapp/complete/", WhatsAppCompleteView.as_view()),
+    path(P + "whatsapp/<uuid:pk>/activate/", WhatsAppActivateView.as_view()),
+    path(P + "conversations/<uuid:pk>/whatsapp-templates/", ConversationTemplatesView.as_view()),
     path(P + "connections/<uuid:pk>/posts/", AccountPostsView.as_view()),
     path(P + "channels/<uuid:pk>/simulate/", SimulateView.as_view()),
     path(P + "channels/<uuid:pk>/disconnect/", DisconnectView.as_view()),

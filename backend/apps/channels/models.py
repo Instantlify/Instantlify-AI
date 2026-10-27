@@ -66,6 +66,8 @@ class Delivery(TenantModel):
     available_at = models.DateTimeField()
     sent_at = models.DateTimeField(null=True)
     provider_message_id = models.CharField(max_length=255, blank=True)
+    provider_status = models.CharField(max_length=20, blank=True)
+    provider_status_at = models.DateTimeField(null=True, blank=True)
     error_code = models.CharField(max_length=50, blank=True)
 
     class Meta:

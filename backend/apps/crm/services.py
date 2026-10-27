@@ -251,6 +251,7 @@ def queue_reply(
     media_type="voice",
     automation_id=None,
     unless_clicked=None,
+    whatsapp_template=None,
 ):
     from apps.platform_ops.security import assert_enabled
 
@@ -271,13 +272,22 @@ def queue_reply(
     if conversation.identity.lead.opted_out:
         raise ValidationError("This lead has opted out.")
     connection = conversation.identity.connection
+    template_payload = None
+    if whatsapp_template is not None:
+        from apps.channels.whatsapp_templates import prepare_template
+
+        if not actor or whatsapp_template.get("consent_confirmed") is not True:
+            raise ValidationError(
+                "Confirm the customer's agreement before sending an approved message."
+            )
+        template_payload, text = prepare_template(connection, whatsapp_template)
     if private_reply_id and private_reply_sent(
         conversation.workspace_id, connection, private_reply_id
     ):
         # Meta allows exactly one private reply per comment. Later steps of the same
         # flow continue in the DM thread, subject to the ordinary window rules.
         private_reply_id = None
-    if not private_reply_id and window_closed(connection, conversation):
+    if not template_payload and not private_reply_id and window_closed(connection, conversation):
         raise ValidationError("The messaging window has closed. Wait for a new customer message.")
     if not text and not media_url:
         raise ValidationError("A message is required.")
@@ -289,6 +299,8 @@ def queue_reply(
         "buttons": buttons or [],
         "private_reply": bool(private_reply_id),
     }
+    if template_payload:
+        payload.update(kind="whatsapp_template", template_selection=whatsapp_template)
     if automation_id:
         payload["automation_id"] = str(automation_id)
     if unless_clicked:
@@ -317,9 +329,9 @@ def queue_reply(
         workspace_id=conversation.workspace_id,
         conversation=conversation,
         direction="outbound",
-        text=text[:2000],
+        text=text[:8192] if template_payload else text[:2000],
         delivery=item,
-        kind=media_type if media_url else "text",
+        kind="template" if template_payload else media_type if media_url else "text",
         attachments=json.dumps([{"type": media_type, "url": media_url}]) if media_url else "[]",
         author=actor,
     )

@@ -5,6 +5,19 @@ behavior but do not prove a customer's provider permissions, delivery or billing
 The following checks require owner-supplied sandbox accounts and an agreed test recipient.
 No real customer messages or charges have been sent during implementation.
 
+On 27 October 2026, WhatsApp Embedded Signup, number registration/subscription, own-account
+API-setup connection, approved-template inbox sending and signed delivery/read receipts were
+implemented. The final isolated PostgreSQL suite passed 711 tests and the production browser
+WhatsApp/inbox/validation suite passed 26 checks; an additional own-account setup browser
+check passed. These use provider doubles, not real Meta
+accounts. Local inspection found no Meta app credentials, WhatsApp signup configuration,
+public HTTPS app URL or live WhatsApp connection. The owner will configure Meta locally.
+[WhatsApp local setup](WHATSAPP_LOCAL_SETUP.md) describes both the developer test-number path
+and the client Embedded Signup path. Test inbound, human/AI/automation replies, receipts,
+expired-window templates, opt-outs and reconnects with an authorized recipient before claiming
+live acceptance. Special template formats, mobile-app history/coexistence migration and calls
+are not implemented by this increment.
+
 On 26 October 2026, the owner confirmed that everything runs locally and authorized Stripe
 test-mode verification. Stripe CLI now forwards genuine, signed test events to the local
 `/webhooks/stripe/` route; no deployed backend is required. Isolated ownerless workspaces

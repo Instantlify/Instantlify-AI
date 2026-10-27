@@ -86,7 +86,16 @@ def process_webhook(workspace_id, event_id):
             return
         try:
             with transaction.atomic():
-                receive(event, json.loads(event.payload))
+                payload = json.loads(event.payload)
+                if (
+                    event.connection.provider == "whatsapp"
+                    and payload.get("kind") == "whatsapp_status"
+                ):
+                    from .whatsapp_receipts import receive_receipt
+
+                    receive_receipt(event, payload)
+                else:
+                    receive(event, payload)
         except PlanLimitExceeded:
             # Keep the inbound event durable while the workspace is at its cap.
             # Plan limits are not poison events and must not consume retry attempts.
@@ -178,6 +187,9 @@ def send_delivery(workspace_id, delivery_id):
             elif (
                 not private
                 and payload.get("kind") != "public_comment"
+                and not (
+                    connection.provider == "whatsapp" and payload.get("kind") == "whatsapp_template"
+                )
                 and window_closed(connection, conversation)
             ):
                 reason = "messaging_window_closed"
@@ -206,7 +218,22 @@ def send_delivery(workspace_id, delivery_id):
     try:
         adapter = adapter_for(connection)
         payload = json.loads(item.payload)
-        if payload.get("kind") == "public_comment":
+        if payload.get("kind") == "whatsapp_template":
+            from .whatsapp_templates import prepare_template
+
+            if (
+                not message
+                or not message.author_id
+                or payload.get("template_selection", {}).get("consent_confirmed") is not True
+            ):
+                raise ValidationError("An approved message needs the customer's agreement.")
+            template, _ = prepare_template(connection, payload["template_selection"])
+            message_id = adapter.send_template(
+                recipient_id=item.recipient_id,
+                template=template,
+                idempotency_key=item.idempotency_key,
+            )
+        elif payload.get("kind") == "public_comment":
             message_id = adapter.reply_comment(
                 comment_id=item.recipient_id,
                 text=payload["text"],
@@ -346,6 +373,24 @@ def verify_connection(workspace_id, connection_id):
                 adapter.configure_webhook(
                     settings.PUBLIC_APP_URL + f"/webhooks/telegram/{connection.pk}/"
                 )
+            elif connection.provider == "whatsapp" and connection.profile.get("waba_id"):
+                from .whatsapp import graph, verified_phone
+
+                waba = connection.profile["waba_id"]
+                verified_phone(waba, connection.external_account_id, connection.access_token)
+                phone = graph(
+                    "GET",
+                    connection.external_account_id,
+                    connection.access_token,
+                    params={"fields": "id,status"},
+                )
+                if phone.get("status") != "CONNECTED":
+                    connection.status = "setup_required"
+                    connection.save(update_fields=["status"])
+                    return
+                result = graph("POST", f"{waba}/subscribed_apps", connection.access_token, json={})
+                if result.get("success") not in (True, "true"):
+                    raise ProviderError()
             else:
                 fields = (
                     "id,name" if connection.provider == "messenger" else "id,display_phone_number"
@@ -366,7 +411,7 @@ def verify_connection(workspace_id, connection_id):
                     )
                 if str(profile["id"]) != connection.external_account_id:
                     raise ValueError("account_mismatch")
-        except (ProviderError, IntegrationUnavailable, ValueError, KeyError):
+        except (ProviderError, IntegrationUnavailable, ValidationError, ValueError, KeyError):
             connection.status = "reconnect_required"
         else:
             connection.status = "active"

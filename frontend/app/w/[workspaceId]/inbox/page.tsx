@@ -61,6 +61,7 @@ import {
   useFeedback,
 } from "@/components/ui";
 import { TourMarker } from "@/components/growth";
+import { WhatsAppTemplateComposer } from "@/components/whatsapp-template-composer";
 
 const STAGES = ["new", "qualified", "interested", "booked", "won", "lost"];
 const TABS = [
@@ -863,9 +864,13 @@ export default function InboxPage() {
                   </div>
                   {windowClosed && (
                     <p className="inbox-window-note">
-                      The 24-hour messaging window has closed; wait for the
-                      customer to write again.
+                      {current.provider === "whatsapp"
+                        ? "The 24-hour reply window has closed. Send an approved message, or wait for the customer to reply."
+                        : "The 24-hour messaging window has closed; wait for the customer to write again."}
                     </p>
+                  )}
+                  {current.provider === "whatsapp" && !current.is_test && (
+                    <WhatsAppTemplateComposer key={`${prefix}:${current.id}`} prefix={prefix} conversation={current} onSent={async () => { await loadThread(current.id); await loadList(); }} />
                   )}
                   {attachedFile && (
                     <div className="inbox-attachment">
@@ -1260,7 +1265,7 @@ function MessageBubble({ message }: { message: Message }) {
           hour: "2-digit",
           minute: "2-digit",
         })}
-        {message.delivery_status ? ` · ${message.delivery_status}` : ""}
+        {message.provider_status || message.delivery_status ? ` · ${message.provider_status || message.delivery_status}` : ""}
       </time>
     </div>
   );

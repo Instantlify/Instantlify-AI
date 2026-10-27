@@ -187,6 +187,9 @@ SENDER_PREFIXES = {
 class MessageSerializer(serializers.ModelSerializer):
     media_url = serializers.SerializerMethodField()
     delivery_status = serializers.CharField(source="delivery.status", default=None, read_only=True)
+    provider_status = serializers.CharField(
+        source="delivery.provider_status", default="", read_only=True
+    )
     sender = serializers.SerializerMethodField()
     author_name = serializers.SerializerMethodField()
 
@@ -227,6 +230,7 @@ class MessageSerializer(serializers.ModelSerializer):
             "kind",
             "created_at",
             "delivery_status",
+            "provider_status",
             "sender",
             "author_name",
             "media_url",
