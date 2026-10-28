@@ -1,38 +1,42 @@
-/* Shared white and olive palette for public pages, onboarding, and the workspace. */
+/* White and navy throughout Nemio, with a restrained electric-lime accent. */
 :root {
   /* Canvas & Surfaces */
-  --bg-canvas: #fafbf8;
+  --bg-canvas: #ffffff;
   --bg-surface: #ffffff;
-  --bg-subtle: #f1f3ed;
-  --bg-hover: #e2e6da;
-  --border-light: #e2e6da;
-  --border-subtle: #cbd2c1;
+  --bg-subtle: #f3f6fc;
+  --bg-hover: #e8eef8;
+  --border-light: #dce4f1;
+  --border-subtle: #c6d2e5;
 
   /* Typography Colors */
-  --text-primary: #272a21;
-  --text-secondary: #535c49;
-  --text-muted: #68715f;
-  --text-light: #77816e;
+  --text-primary: #0c1b3a;
+  --text-secondary: #41516e;
+  --text-muted: #5c6b84;
+  --text-light: #63728a;
 
   /* Light sidebar surfaces */
   --sidebar-bg: #ffffff;
-  --sidebar-card-bg: #f7f8f3;
-  --sidebar-card-border: #e2e6da;
-  --sidebar-card-hover: #edf0e6;
-  --sidebar-text: #77816e;
-  --sidebar-text-hover: #f1f3ed;
+  --sidebar-card-bg: #f3f6fc;
+  --sidebar-card-border: #dce4f1;
+  --sidebar-card-hover: #e8eef8;
+  --sidebar-text: #63728a;
+  --sidebar-text-hover: #0c1b3a;
   --sidebar-active-bg: #ffffff;
-  --sidebar-active-text: #000000;
-  --sidebar-subtle-border: #e2e6da;
+  --sidebar-active-text: #10244a;
+  --sidebar-subtle-border: #dce4f1;
 
   /* Primary Accent & Brand Identity */
-  --brand-primary: #52634d;
-  --brand-primary-hover: #40513c;
-  --brand-primary-light: #edf1e7;
+  --brand-primary: #10244a;
+  --brand-primary-hover: #1b3765;
+  --brand-primary-light: #edf2fc;
+  --brand-teammate: #344966;
   --brand-accent-amber: #f59e0b;
-  --brand-accent-purple: #7b8961;
-  --brand-accent-cyan: #6d8462;
+  --brand-accent-purple: #6177b1;
+  --brand-accent-cyan: #3478f6;
   --brand-accent-emerald: #10b981;
+  --brand-neon: #c3ff5c;
+  --brand-neon-soft: #f1ffdb;
+  --brand-focus: #3478f6;
   --brand-radius-sm: 8px;
   --brand-radius: 14px;
   --brand-radius-lg: 18px;
@@ -58,20 +62,20 @@
 
 :root {
   color-scheme: light;
-  --brand-action: #52634d;
-  --brand-action-hover: #40513c;
+  --brand-action: var(--brand-primary);
+  --brand-action-hover: var(--brand-primary-hover);
   --brand-ink: var(--text-primary);
   --brand-muted: var(--text-muted);
   --brand-line: var(--border-light);
   --brand-soft: var(--bg-subtle);
   --brand-canvas: var(--bg-canvas);
-  --brand-paper: #fffef9;
-  --brand-accent: #879769;
+  --brand-paper: #ffffff;
+  --brand-accent: var(--brand-neon);
   --brand-sidebar: #ffffff;
   --sidebar-text: var(--text-secondary);
   --sidebar-text-hover: var(--text-primary);
-  --sidebar-active-bg: var(--brand-primary-light);
-  --sidebar-active-text: var(--brand-action);
+  --sidebar-active-bg: var(--brand-action);
+  --sidebar-active-text: #ffffff;
 }
 
 /* Account menus and navigation use light surfaces throughout the client. */
@@ -155,11 +159,6 @@
   background: var(--brand-action);
   color: white;
 }
-.boosend-sidebar .boosend-nav-link.active,
-.boosend-sidebar .boosend-nav-link.active .nav-icon-wrap {
-  background: var(--brand-primary-light) !important;
-  color: var(--brand-action) !important;
-}
 .boosend-sidebar::-webkit-scrollbar-thumb {
   background: var(--border-subtle);
 }
@@ -169,4 +168,135 @@
 .secondary:hover,
 .button.secondary:hover {
   background: var(--bg-subtle) !important;
+}
+
+/* Navy provides the contrast; neon is reserved for small, deliberate highlights. */
+::selection {
+  background: var(--brand-neon);
+  color: var(--text-primary);
+}
+input,
+select,
+textarea {
+  accent-color: var(--brand-action);
+}
+input:focus,
+textarea:focus,
+select:focus-visible {
+  border-color: var(--brand-focus);
+  box-shadow: 0 0 0 3px rgb(52 120 246 / 12%);
+}
+:is(button, a, summary):focus-visible {
+  outline-color: var(--brand-focus);
+}
+:is(.button.primary, .nm-button) > svg {
+  color: var(--brand-neon);
+}
+.boosend-sidebar .boosend-nav-link.active {
+  background: var(--brand-action) !important;
+  color: #fff !important;
+  box-shadow: inset 3px 0 var(--brand-neon);
+}
+.boosend-sidebar .boosend-nav-link.active .nav-icon-wrap {
+  background: transparent !important;
+  color: var(--brand-neon) !important;
+}
+.mcp-dark-card {
+  background-image: radial-gradient(rgb(195 255 92 / 16%) 1px, transparent 1px);
+}
+.mcp-dark-card :is(.action-card-title, .action-card-desc, .hover-arrow) {
+  color: #fff;
+}
+.mcp-dark-card .mcp-starburst-icon {
+  color: var(--brand-neon);
+}
+
+/* Public pages use the same palette as the signed-in workspace. */
+.nm-home {
+  background:
+    radial-gradient(ellipse at 85% 11%, rgb(52 120 246 / 5%), transparent 33%),
+    #fff;
+}
+.nm-home .nm-hero-copy > .nm-eyebrow {
+  background: var(--bg-surface);
+  color: var(--brand-action);
+  border-color: var(--border-light);
+}
+.nm-hero-underline {
+  stroke: var(--brand-neon);
+  stroke-width: 5;
+}
+.nm-home .nm-hero-scene {
+  background:
+    radial-gradient(ellipse at 5% 0, rgb(195 255 92 / 8%), transparent 45%),
+    linear-gradient(145deg, #edf2fc, #f8faff);
+  border-color: var(--border-light);
+}
+.nm-demo-toolbar {
+  background: var(--brand-action);
+  color: #fff;
+  border-color: var(--brand-action);
+}
+.nm-demo-toolbar > svg,
+.nm-demo-toolbar > span > svg {
+  color: var(--brand-neon);
+}
+.nm-home .nm-bubble.outgoing {
+  background: var(--brand-primary-light);
+}
+.nm-status {
+  background: var(--brand-neon-soft);
+  color: var(--brand-action);
+}
+.nm-home .nm-preview-tabs button[aria-pressed="true"] {
+  background: var(--brand-action);
+  border-color: var(--brand-action);
+  color: #fff;
+}
+.nm-home-benefit-icon,
+.nm-mini-ai,
+.nm-mini-node.accent {
+  color: var(--brand-action);
+  background: var(--brand-primary-light);
+  border-color: var(--border-subtle);
+}
+.nm-mini-pulse,
+.nm-mini-wire span {
+  background: var(--brand-neon);
+  box-shadow: 0 0 0 3px rgb(195 255 92 / 16%);
+}
+.nm-home .nm-closing {
+  background: var(--brand-action);
+  color: #fff;
+  border-color: var(--brand-action);
+}
+.nm-home .nm-closing::before {
+  border-color: rgb(195 255 92 / 18%);
+}
+.nm-home .nm-closing h2 {
+  color: #fff;
+}
+.nm-home .nm-closing .nm-button {
+  background: var(--brand-neon);
+  color: var(--text-primary);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+.nm-home .nm-closing .nm-button:hover {
+  background: #d1ff85;
+}
+.nm-home .nm-closing .nm-button > svg {
+  color: var(--text-primary);
+}
+
+/* Onboarding keeps its light canvas, with navy artwork and a small neon signal. */
+.auth-story {
+  background:
+    radial-gradient(ellipse at 5% 100%, rgb(52 120 246 / 8%), transparent 60%),
+    var(--bg-subtle);
+}
+.auth-story .small-dot {
+  background: var(--brand-neon);
+}
+.art-bubble.second > svg {
+  color: var(--brand-neon);
 }

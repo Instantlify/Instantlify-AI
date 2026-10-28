@@ -1124,6 +1124,20 @@
   justify-content: space-between;
 }
 
+@media (max-width: 600px) {
+  .automations-header-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .automations-header-row > div:not(.tab-pill-toggle) {
+    flex-basis: 100%;
+    order: -1;
+  }
+  .automations-header-row > .tab-pill-toggle {
+    flex-shrink: 0;
+  }
+}
+
 .page-heading-title {
   font-size: 22px;
   font-weight: 700;
@@ -7195,14 +7209,14 @@
   border-bottom-right-radius: 4px;
 }
 .boosend-inbox-layout .bubble.sender-automation {
-  background: #2c3a30;
+  background: var(--brand-primary-hover);
 }
 .boosend-inbox-layout .bubble.sender-ai,
 .boosend-inbox-layout .bubble.sender-api {
   background: var(--brand-action);
 }
 .boosend-inbox-layout .bubble.sender-human {
-  background: #3d4a57;
+  background: var(--brand-teammate);
   padding-left: 46px;
 }
 .boosend-inbox-layout .bubble-author {
@@ -7308,8 +7322,8 @@
   color: #ffffff;
 }
 .boosend-inbox-layout .handoff-toggle > button.on.human {
-  background: #3d4a57;
-  border-color: #3d4a57;
+  background: var(--brand-teammate);
+  border-color: var(--brand-teammate);
 }
 .boosend-inbox-layout .handoff-toggle .muted-text,
 .boosend-inbox-layout .inbox-offers-hint {

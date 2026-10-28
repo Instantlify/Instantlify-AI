@@ -1,3 +1,20 @@
+# White, navy and neon theme — 28 October 2026
+
+- Replaced the ivory/olive brand palette across landing/feature pages, authentication,
+  onboarding and the client portal. Shared surfaces are white and cool blue-white, primary
+  controls/headings use navy (#10244a), and small highlights use neon lime (#c3ff5c).
+- Moved hard-coded legacy brand colors onto shared tokens, including menus, cards, form
+  fields, pricing, public demos and onboarding artwork. Navy active sidebar items have a
+  neon marker; inbox AI/automation/team messages use distinct navy/slate tones.
+- Neon is limited to accents and the final landing CTA. That CTA uses navy text with a
+  measured 14.4:1 contrast ratio. Brand/channel icons, status meanings, custom customer
+  branding and the supplied animated logo remain available.
+- Desktop/mobile visual review covered landing, feature tour, signup, onboarding, portal,
+  expanded navigation and inbox. Fixed an Automations header overflow exposed during mobile
+  navigation by allowing its title and tabs to wrap on small screens.
+- Final production build/TypeScript, focused lint and all 34 public/onboarding/client/navigation
+  browser checks passed. Updated frontend is running locally; application services are healthy.
+
 # WhatsApp onboarding and approved messages — 27 October 2026
 
 - Added a dedicated Connect WhatsApp flow using Meta Embedded Signup. One-use state is

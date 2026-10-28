@@ -290,7 +290,7 @@ function BenefitVisual({ kind }: { kind: string }) {
           <div className="nm-mini-wire">
             <span />
           </div>
-          <div className="nm-mini-node olive">
+          <div className="nm-mini-node accent">
             <Zap size={17} />
             <span>Send a personal reply</span>
             <Check size={14} />

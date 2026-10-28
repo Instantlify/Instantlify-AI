@@ -33,8 +33,8 @@ a.nav-item {
   font-weight: 700;
   letter-spacing: 0.4px;
   text-transform: uppercase;
-  background: #eef0ea;
-  color: #6f7a6f;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
   white-space: nowrap;
 }
 .pill-good {
@@ -119,7 +119,7 @@ a.nav-item {
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #4d5a50;
+  color: var(--brand-action);
 }
 .form-grid input,
 .form-grid select,
@@ -379,7 +379,7 @@ table th {
 }
 .bubble.inbound {
   align-self: flex-start;
-  background: #f1f3ee;
+  background: var(--bg-subtle);
   border-bottom-left-radius: 4px;
 }
 .bubble.outbound {
@@ -392,8 +392,8 @@ table th {
   align-self: stretch;
   max-width: none;
   background: #fff8e1;
-  border: 1px dashed #e4d3a0;
-  color: #6a5a2a;
+  border: 1px dashed var(--border-subtle);
+  color: var(--brand-action);
 }
 .bubble time,
 .bubble small {
@@ -491,11 +491,11 @@ table th {
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 12px;
-  box-shadow: 0 3px 12px rgba(35, 58, 51, 0.06);
+  box-shadow: 0 3px 12px rgb(16 36 74 / 6%);
 }
 .flow-node.selected {
   border-color: var(--green);
-  box-shadow: 0 0 0 2px rgba(52, 115, 89, 0.2);
+  box-shadow: 0 0 0 2px rgb(16 36 74 / 20%);
 }
 .flow-node header {
   display: flex;
@@ -688,7 +688,7 @@ table th {
 }
 .plan-card.featured {
   border-color: var(--green);
-  box-shadow: 0 14px 30px rgba(52, 115, 89, 0.14);
+  box-shadow: 0 14px 30px rgb(16 36 74 / 14%);
   transform: translateY(-4px);
 }
 .plan-badge {
@@ -747,7 +747,7 @@ table th {
   gap: 9px;
 }
 .plan-features li.off {
-  color: #a0a797;
+  color: var(--text-light);
 }
 .plan-features svg {
   flex: none;
@@ -814,7 +814,7 @@ table th {
   align-items: center;
   gap: 7px;
   font-size: 11px;
-  color: #a3aca6;
+  color: var(--text-light);
   flex: 1 1 auto;
 }
 .wizard-rail .dot {
@@ -891,7 +891,7 @@ table th {
 }
 .wizard-steps li p {
   font-size: 12.5px;
-  color: #6c7a72;
+  color: var(--text-muted);
   line-height: 1.6;
   margin: 2px 0 0;
 }
@@ -914,7 +914,7 @@ table th {
   align-items: flex-start;
   gap: 7px;
   font-size: 11.5px;
-  color: #6c7a72;
+  color: var(--text-muted);
   line-height: 1.55;
   text-align: left;
   margin: 14px 0 10px;
@@ -999,11 +999,11 @@ table th {
 .promo-gift p,
 .connect-prompt p {
   font-size: 12.5px;
-  color: #6c7a72;
+  color: var(--text-muted);
   margin: 3px 0 0;
 }
 .connect-prompt {
-  border-color: #d2e0d2;
+  border-color: var(--border-light);
 }
 .support-chat {
   border: 1px solid var(--line);
@@ -1097,5 +1097,5 @@ table th {
 }
 .blog-lede {
   font-size: 16px;
-  color: #6c7a72;
+  color: var(--text-muted);
 }

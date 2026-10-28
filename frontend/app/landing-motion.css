@@ -1,7 +1,7 @@
 /* Quiet surfaces, expressive product motion. All animation is optional. */
 .nm-home {
   background:
-    radial-gradient(ellipse at 85% 11%, #edf1e280, transparent 33%), #fff;
+    radial-gradient(ellipse at 85% 11%, rgb(16 36 74 / 50.20%), transparent 33%), #fff;
 }
 .nm-home main > section, .nm-home #interactive-demo { scroll-margin-top: 110px; }
 .nm-home .nm-nav {
@@ -12,11 +12,11 @@
   max-width: 1152px;
   padding: 14px 22px;
   margin: 14px auto 0;
-  border: 1px solid #dfe5d7b3;
+  border: 1px solid rgb(16 36 74 / 70.20%);
   border-radius: 60px;
   background: #ffffffeb;
   backdrop-filter: blur(20px);
-  box-shadow: 0 5px 30px #34422c09;
+  box-shadow: 0 5px 30px rgb(16 36 74 / 3.53%);
 }
 .nm-home .nm-hero {
   padding-top: 74px;
@@ -27,9 +27,9 @@
 }
 .nm-home .nm-hero-copy > .nm-eyebrow {
   padding: 9px 13px;
-  border: 1px solid #dfe6d6;
+  border: 1px solid var(--border-light);
   border-radius: 30px;
-  background: #f6f8f0;
+  background: var(--bg-subtle);
   font-size: 9px;
   letter-spacing: 1.3px;
 }
@@ -40,7 +40,7 @@
 .nm-home .nm-hero h1 em {
   position: relative;
   display: inline-block;
-  color: #586a42;
+  color: var(--brand-action);
 }
 .nm-hero-underline {
   position: absolute;
@@ -50,7 +50,7 @@
   left: 0;
   overflow: visible;
   fill: none;
-  stroke: #aabb8b;
+  stroke: var(--text-light);
   stroke-width: 3;
   stroke-linecap: round;
   stroke-dasharray: 500;
@@ -61,8 +61,8 @@
   position: relative;
   overflow: hidden;
   box-shadow:
-    0 5px 0 #26331d12,
-    0 10px 22px #42582f12;
+    0 5px 0 rgb(16 36 74 / 7.06%),
+    0 10px 22px rgb(16 36 74 / 7.06%);
   transition:
     transform 220ms,
     box-shadow 220ms,
@@ -80,8 +80,8 @@
 .nm-home .nm-button:hover {
   transform: translateY(-3px);
   box-shadow:
-    0 7px 0 #26331d0c,
-    0 14px 28px #42582f20;
+    0 7px 0 rgb(16 36 74 / 4.71%),
+    0 14px 28px rgb(16 36 74 / 12.55%);
 }
 .nm-home .nm-button:hover:after {
   left: 150%;
@@ -101,13 +101,13 @@
   isolation: isolate;
   perspective: 1000px;
   padding: 26px 25px 20px;
-  border: 1px solid #dfe6d5;
+  border: 1px solid var(--border-light);
   border-radius: 30px;
   background:
-    radial-gradient(ellipse at 10% 0, #f5f8e9, transparent 60%), #eef2e8;
+    radial-gradient(ellipse at 10% 0, var(--bg-subtle), transparent 60%), var(--bg-subtle);
   box-shadow:
     inset 0 0 0 6px #ffffff75,
-    0 25px 65px #394b2410;
+    0 25px 65px rgb(16 36 74 / 6.27%);
   animation: nm-rise 1s 170ms both;
 }
 .nm-home .nm-hero-scene:before {
@@ -116,8 +116,8 @@
   z-index: -2;
   inset: -40px;
   background-image:
-    linear-gradient(#8e9d7417 1px, transparent 1px),
-    linear-gradient(90deg, #8e9d7417 1px, transparent 1px);
+    linear-gradient(rgb(16 36 74 / 9.02%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(16 36 74 / 9.02%) 1px, transparent 1px);
   background-size: 32px 32px;
   mask-image: radial-gradient(ellipse, #000 25%, transparent 70%);
   transform: rotate(-8deg);
@@ -127,8 +127,8 @@
   position: relative;
   transform: rotateX(var(--nm-tilt-x, 0deg)) rotateY(var(--nm-tilt-y, 0deg));
   transition: transform 450ms cubic-bezier(0.2, 0.7, 0.3, 1);
-  border: 1px solid #d7dfce;
-  box-shadow: 0 20px 45px #33432712;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 20px 45px rgb(16 36 74 / 7.06%);
 }
 .nm-home .nm-chat {
   height: 328px;
@@ -140,7 +140,7 @@
   animation: nm-message 450ms both;
 }
 .nm-home .nm-bubble.outgoing {
-  background: #eaf0e1;
+  background: var(--border-light);
   animation-delay: 250ms;
 }
 .nm-home .nm-result {
@@ -161,7 +161,7 @@
   height: 580px;
   top: -18px;
   left: -30px;
-  border: 1px dashed #acba995e;
+  border: 1px dashed rgb(16 36 74 / 36.86%);
   border-radius: 50%;
   animation: nm-turn 90s linear infinite;
 }
@@ -171,10 +171,10 @@
   position: absolute;
   width: 56px;
   height: 56px;
-  border: 1px solid #e4e9de;
+  border: 1px solid var(--border-light);
   border-radius: 17px;
   background: #fffffff5;
-  box-shadow: 0 10px 25px #3144200d;
+  box-shadow: 0 10px 25px rgb(16 36 74 / 5.10%);
   animation: nm-float 6s ease-in-out infinite;
 }
 .nm-orbit-brand.instagram {
@@ -191,7 +191,7 @@
   position: absolute;
   right: -21px;
   bottom: 90px;
-  color: #7d925e;
+  color: var(--text-muted);
   animation: nm-float 7s ease-in-out -3s infinite;
 }
 .nm-home .nm-float {
@@ -226,13 +226,13 @@
   border: 0;
   border-radius: 20px;
   background: transparent;
-  color: #657057;
+  color: var(--brand-action);
   font: inherit;
   font-size: 9px;
   cursor: pointer;
 }
 .nm-motion-control:hover {
-  background: #dfe6d3;
+  background: var(--border-light);
 }
 .nm-motion-control:disabled {
   cursor: default;
@@ -245,10 +245,10 @@
 }
 .nm-home .nm-preview-tabs button:hover {
   transform: translateY(-2px);
-  background: #e2e9d8;
+  background: var(--border-light);
 }
 .nm-home .nm-preview-tabs button[aria-pressed="true"]:hover {
-  background: #52634d;
+  background: var(--brand-action);
 }
 .nm-home .nm-channels {
   position: relative;
@@ -281,8 +281,8 @@
     box-shadow 250ms;
 }
 .nm-home-benefit-grid article:hover {
-  border-color: #bdcba9;
-  box-shadow: 0 18px 35px #394b240a;
+  border-color: var(--border-subtle);
+  box-shadow: 0 18px 35px rgb(16 36 74 / 3.92%);
 }
 .nm-home-benefit-icon {
   margin-bottom: 18px;
@@ -294,9 +294,9 @@
   justify-content: center;
   padding: 18px;
   margin: -10px -10px 26px;
-  border: 1px solid #e5eadf;
+  border: 1px solid var(--border-light);
   border-radius: 13px;
-  background: radial-gradient(ellipse at top, #fff, #edf1e5);
+  background: radial-gradient(ellipse at top, #fff, var(--border-light));
   overflow: hidden;
 }
 .nm-mini-node {
@@ -304,16 +304,16 @@
   align-items: center;
   gap: 8px;
   padding: 10px 11px;
-  border: 1px solid #e1e7d9;
+  border: 1px solid var(--border-light);
   border-radius: 9px;
   background: #fff;
   font-size: 9px;
-  box-shadow: 0 4px 10px #3d4c2d04;
+  box-shadow: 0 4px 10px rgb(16 36 74 / 1.57%);
 }
-.nm-mini-node.olive {
-  color: #405831;
-  background: #e4ecd9;
-  border-color: #ccdaba;
+.nm-mini-node.accent {
+  color: var(--brand-action);
+  background: var(--border-light);
+  border-color: var(--border-subtle);
 }
 .nm-mini-node > svg:last-child {
   margin-left: auto;
@@ -322,7 +322,7 @@
   font-size: 8px;
   padding: 3px;
   border-radius: 3px;
-  background: #f0f3ea;
+  background: var(--bg-subtle);
 }
 .nm-mini-pulse {
   display: inline-block;
@@ -330,8 +330,8 @@
   height: 5px;
   margin-left: auto;
   border-radius: 50%;
-  background: #77955b;
-  box-shadow: 0 0 0 4px #77955b13;
+  background: var(--text-muted);
+  box-shadow: 0 0 0 4px rgb(16 36 74 / 7.45%);
   animation: nm-pulse 2.8s ease-out infinite;
 }
 .nm-mini-wire {
@@ -339,7 +339,7 @@
   min-height: 16px;
   width: 1px;
   align-self: center;
-  background: #bbcba9;
+  background: var(--border-subtle);
   position: relative;
 }
 .nm-mini-wire span {
@@ -348,7 +348,7 @@
   height: 4px;
   left: -1px;
   border-radius: 50%;
-  background: #627d46;
+  background: var(--brand-action);
   animation: nm-travel 2.6s ease-in-out infinite;
 }
 .nm-mini-tag {
@@ -356,7 +356,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #597044;
+  color: var(--brand-action);
   font-size: 8px;
 }
 .nm-mini-sources {
@@ -369,7 +369,7 @@
   align-items: center;
   gap: 4px;
   padding: 5px 7px;
-  border: 1px solid #dfe6d5;
+  border: 1px solid var(--border-light);
   border-radius: 5px;
   background: #fff;
   font-size: 8px;
@@ -386,16 +386,16 @@
   height: 38px;
   display: grid;
   place-items: center;
-  border: 1px solid #ccd9bb;
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
-  background: #e6eddd;
-  color: #566f3e;
-  box-shadow: 0 0 0 5px #e8eedd80;
+  background: var(--border-light);
+  color: var(--brand-action);
+  box-shadow: 0 0 0 5px rgb(16 36 74 / 50.20%);
 }
 .nm-mini-assistant small {
   display: block;
   margin-top: 3px;
-  color: #7c8672;
+  color: var(--text-muted);
   font-size: 9px;
 }
 .nm-mini-wave {
@@ -409,7 +409,7 @@
   width: 3px;
   height: 70%;
   border-radius: 5px;
-  background: #829865;
+  background: var(--text-muted);
   animation: nm-wave 1.4s ease-in-out infinite;
 }
 .nm-mini-wave i:nth-child(2n) {
@@ -423,7 +423,7 @@
   flex-direction: column;
   gap: 6px;
   padding: 9px;
-  border: 1px solid #e3e9db;
+  border: 1px solid var(--border-light);
   border-radius: 7px;
   background: #fff;
 }
@@ -431,7 +431,7 @@
   width: 95%;
   height: 3px;
   border-radius: 2px;
-  background: linear-gradient(90deg, #dce5d0, #f6f8ef, #dce5d0);
+  background: linear-gradient(90deg, var(--border-light), var(--bg-subtle), var(--border-light));
   background-size: 200% 100%;
   animation: nm-shimmer 4s ease-in-out infinite;
 }
@@ -447,7 +447,7 @@
   align-items: center;
   gap: 7px;
   margin-bottom: 11px;
-  color: #66765a;
+  color: var(--brand-action);
 }
 .nm-mini-inbox-title .nm-mini-pulse {
   margin-left: 0;
@@ -456,7 +456,7 @@
   display: flex;
   gap: 9px;
   align-items: center;
-  border-bottom: 1px solid #e2e8da;
+  border-bottom: 1px solid var(--border-light);
   padding: 7px 1px;
   font-size: 9px;
 }
@@ -468,13 +468,13 @@
 }
 .nm-mini-thread small {
   display: block;
-  color: #849178;
+  color: var(--text-muted);
   margin-top: 3px;
   font-size: 8px;
 }
 .nm-mini-thread > svg:last-child {
   margin-left: auto;
-  color: #77935b;
+  color: var(--text-muted);
 }
 .nm-home .nm-home-logos {
   position: relative;
@@ -484,7 +484,7 @@
   position: absolute;
   z-index: 0;
   inset: -18px;
-  border: 1px dashed #d8e0cc;
+  border: 1px dashed var(--border-subtle);
   border-radius: 50%;
   transform: rotate(-12deg);
   pointer-events: none;
@@ -499,8 +499,8 @@
 }
 .nm-home-logos a:hover {
   transform: translateY(-5px) rotate(-2deg);
-  box-shadow: 0 10px 20px #3e512110;
-  border-color: #bbcaa6;
+  box-shadow: 0 10px 20px rgb(16 36 74 / 6.27%);
+  border-color: var(--border-subtle);
 }
 .nm-home-logos a svg {
   animation: nm-logo-breathe 7s ease-in-out infinite;
@@ -512,7 +512,7 @@
   transition: background 250ms;
 }
 .nm-home .nm-faq details[open] {
-  background: #f7f9f2;
+  background: var(--bg-subtle);
 }
 .nm-home .nm-faq details[open] p {
   animation: nm-rise 350ms both;
@@ -520,14 +520,14 @@
 .nm-home .nm-closing {
   position: relative;
   overflow: hidden;
-  background: #e8efdc;
-  border: 1px solid #dae5ca;
+  background: var(--border-light);
+  border: 1px solid var(--border-subtle);
 }
 .nm-home .nm-closing:before {
   content: "";
   position: absolute;
   inset: -150px 20% -150px -30%;
-  border: 1px solid #bacba44d;
+  border: 1px solid rgb(16 36 74 / 30.20%);
   border-radius: 50%;
   transform: rotate(-25deg);
   pointer-events: none;
@@ -586,10 +586,10 @@
 @keyframes nm-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 3px #77955b13;
+    box-shadow: 0 0 0 3px rgb(16 36 74 / 7.45%);
   }
   50% {
-    box-shadow: 0 0 0 7px #77955b05;
+    box-shadow: 0 0 0 7px rgb(16 36 74 / 1.96%);
   }
 }
 @keyframes nm-travel {
@@ -662,9 +662,9 @@
   }
   .nm-home .nm-nav-links.open {
     top: calc(100% + 10px);
-    border: 1px solid #e1e7d8;
+    border: 1px solid var(--border-light);
     border-radius: 20px;
-    box-shadow: 0 20px 40px #32432214;
+    box-shadow: 0 20px 40px rgb(16 36 74 / 7.84%);
   }
   .nm-home .nm-hero {
     padding-top: 44px;

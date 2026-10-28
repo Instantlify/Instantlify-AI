@@ -211,7 +211,7 @@ export const isBrand = (name: string): name is BrandName =>
   Object.hasOwn(BRANDS, name) || Object.hasOwn(BRAND_ASSETS, name);
 
 export const brandColor = (name: BrandName) =>
-  name in BRANDS ? BRANDS[name as keyof typeof BRANDS].hex : "#52634d";
+  name in BRANDS ? BRANDS[name as keyof typeof BRANDS].hex : "#10244a";
 
 export function BrandIcon({
   name,
