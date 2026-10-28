@@ -12,7 +12,7 @@
   max-width: 1152px;
   padding: 14px 22px;
   margin: 14px auto 0;
-  border: 1px solid rgb(16 36 74 / 70.20%);
+  border: 1px solid var(--border-light);
   border-radius: 60px;
   background: #ffffffeb;
   backdrop-filter: blur(20px);
@@ -390,7 +390,7 @@
   border-radius: 12px;
   background: var(--border-light);
   color: var(--brand-action);
-  box-shadow: 0 0 0 5px rgb(16 36 74 / 50.20%);
+  box-shadow: 0 0 0 5px rgb(237 242 252 / 50%);
 }
 .nm-mini-assistant small {
   display: block;

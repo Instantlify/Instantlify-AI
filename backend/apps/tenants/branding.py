@@ -1,8 +1,11 @@
 """White-label: agencies own client workspaces and brand the app they see."""
 
+import hashlib
 import re
 
 from django.db import IntegrityError, transaction
+from django.http import HttpResponse, HttpResponseNotModified
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -16,17 +19,27 @@ from .services import audit, create_workspace
 DEFAULT_BRANDING = {
     "brand_name": "Nemio",
     "logo_url": "",
-    "primary_color": "#347359",
+    "primary_color": "#10244a",
+    "sidebar_bg_color": "#ffffff",
+    "sidebar_text_color": "#41516e",
     "support_email": "",
     "hide_platform_branding": False,
 }
 
 
+def logo_url(branding):
+    if branding.logo_digest:
+        return f"/api/public/workspace-logos/{branding.workspace_id}/{branding.logo_digest}/"
+    return branding.logo_url
+
+
 def branding_dict(branding):
     return {
         "brand_name": branding.brand_name,
-        "logo_url": branding.logo_url,
+        "logo_url": logo_url(branding),
         "primary_color": branding.primary_color,
+        "sidebar_bg_color": branding.sidebar_bg_color,
+        "sidebar_text_color": branding.sidebar_text_color,
         "support_email": branding.support_email,
         "hide_platform_branding": branding.hide_platform_branding,
         "custom_domain_status": branding.custom_domain_status,
@@ -39,7 +52,7 @@ def effective_branding(workspace):
     for candidate in [workspace, workspace.parent]:
         if candidate is None:
             continue
-        branding = WorkspaceBranding.objects.for_workspace(candidate).first()
+        branding = WorkspaceBranding.objects.for_workspace(candidate).defer("logo_data").first()
         if branding:
             return {**branding_dict(branding), "custom_domain": branding.custom_domain}
     return {
@@ -51,12 +64,19 @@ def effective_branding(workspace):
 
 
 class BrandingSerializer(serializers.ModelSerializer):
+    logo = serializers.FileField(write_only=True, required=False)
+    workspace_name = serializers.CharField(max_length=100, required=False, write_only=True)
+
     class Meta:
         model = WorkspaceBranding
         fields = [
             "brand_name",
             "logo_url",
             "primary_color",
+            "sidebar_bg_color",
+            "sidebar_text_color",
+            "logo",
+            "workspace_name",
             "support_email",
             "custom_domain",
             "custom_domain_status",
@@ -72,10 +92,96 @@ class BrandingSerializer(serializers.ModelSerializer):
             "tls_status",
         ]
 
-    def validate_primary_color(self, value):
+    def validate_color(self, value):
         if not re.fullmatch(r"#[0-9a-fA-F]{6}", value):
-            raise serializers.ValidationError("Use a hex colour like #347359.")
+            raise serializers.ValidationError(
+                "Enter a color code such as #10244a, or choose a color above."
+            )
         return value.lower()
+
+    validate_primary_color = validate_color
+    validate_sidebar_bg_color = validate_color
+    validate_sidebar_text_color = validate_color
+
+    def validate(self, attrs):
+        background = attrs.get(
+            "sidebar_bg_color", getattr(self.instance, "sidebar_bg_color", "#ffffff")
+        )
+        text = attrs.get(
+            "sidebar_text_color", getattr(self.instance, "sidebar_text_color", "#41516e")
+        )
+
+        def luminance(color):
+            channels = [int(color[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+            channels = [
+                v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in channels
+            ]
+            return sum(
+                v * weight for v, weight in zip(channels, [0.2126, 0.7152, 0.0722], strict=True)
+            )
+
+        light, dark = sorted([luminance(background), luminance(text)], reverse=True)
+        if (light + 0.05) / (dark + 0.05) < 4.5:
+            raise serializers.ValidationError(
+                {
+                    "sidebar_text_color": "Choose a text color that is easier to read against your sidebar background."
+                }
+            )
+        return attrs
+
+    def validate_logo(self, value):
+        if not 0 < value.size <= 5 * 1024 * 1024:
+            raise serializers.ValidationError("Choose an image smaller than 5 MB.")
+        data = value.read()
+        value.seek(0)
+        content_type = (
+            "image/png"
+            if data.startswith(b"\x89PNG\r\n\x1a\n")
+            else "image/jpeg"
+            if data.startswith(b"\xff\xd8\xff")
+            else "image/gif"
+            if data.startswith((b"GIF87a", b"GIF89a"))
+            else "image/webp"
+            if data.startswith(b"RIFF") and data[8:12] == b"WEBP"
+            else ""
+        )
+        if not content_type:
+            raise serializers.ValidationError("Choose a PNG, JPG, GIF or WebP image.")
+        return {
+            "data": data,
+            "content_type": content_type,
+            "digest": hashlib.sha256(data).hexdigest(),
+        }
+
+    def to_representation(self, instance):
+        return {**super().to_representation(instance), "logo_url": logo_url(instance)}
+
+    def _logo_attributes(self, attrs):
+        upload = attrs.pop("logo", None)
+        if upload:
+            attrs.update(
+                logo_url="",
+                logo_data=upload["data"],
+                logo_content_type=upload["content_type"],
+                logo_digest=upload["digest"],
+            )
+        elif "logo_url" in attrs:
+            attrs.update(logo_data=b"", logo_content_type="", logo_digest="")
+        return attrs
+
+    def create(self, validated_data):
+        name = validated_data.pop("workspace_name", None)
+        instance = super().create(self._logo_attributes(validated_data))
+        if name is not None:
+            Workspace.objects.filter(pk=instance.workspace_id).update(name=name)
+        return instance
+
+    def update(self, instance, validated_data):
+        name = validated_data.pop("workspace_name", None)
+        instance = super().update(instance, self._logo_attributes(validated_data))
+        if name is not None:
+            Workspace.objects.filter(pk=instance.workspace_id).update(name=name)
+        return instance
 
     def validate_logo_url(self, value):
         if value and not value.startswith("https://"):
@@ -92,7 +198,7 @@ class BrandingSerializer(serializers.ModelSerializer):
 class BrandingView(APIView):
     def get(self, request, workspace_id):
         member = workspace_membership(request, workspace_id)
-        own = WorkspaceBranding.objects.for_workspace(workspace_id).first()
+        own = WorkspaceBranding.objects.for_workspace(workspace_id).defer("logo_data").first()
         return Response(
             {
                 "own": BrandingSerializer(own).data if own else None,
@@ -107,7 +213,7 @@ class BrandingView(APIView):
         from .domain_verification import generate_verification_token
 
         member = workspace_membership(request, workspace_id, ["owner"])
-        branding = WorkspaceBranding.objects.for_workspace(workspace_id).first()
+        branding = WorkspaceBranding.objects.for_workspace(workspace_id).defer("logo_data").first()
         prev_domain = branding.custom_domain if branding else ""
 
         serializer = BrandingSerializer(branding, data=request.data, partial=bool(branding))
@@ -147,6 +253,37 @@ class BrandingView(APIView):
         WorkspaceBranding.objects.for_workspace(workspace_id).delete()
         audit(member.workspace, request.user, "branding.reset", workspace_id)
         return Response(status=204)
+
+
+class PublicWorkspaceLogoView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [AnonRateThrottle]
+
+    def get(self, request, workspace_id, digest):
+        image = get_object_or_404(
+            WorkspaceBranding.all_objects, workspace_id=workspace_id, logo_digest=digest
+        )
+        if not image.logo_data or image.logo_content_type not in {
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/webp",
+        }:
+            from django.http import Http404
+
+            raise Http404
+        etag = f'"{image.logo_digest}"'
+        response = (
+            HttpResponseNotModified()
+            if request.headers.get("If-None-Match") == etag
+            else HttpResponse(bytes(image.logo_data), content_type=image.logo_content_type)
+        )
+        response["ETag"] = etag
+        response["Cache-Control"] = "public, max-age=86400, immutable"
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Content-Security-Policy"] = "default-src 'none'; sandbox"
+        return response
 
 
 class VerifyDomainView(APIView):

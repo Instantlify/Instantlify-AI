@@ -107,6 +107,7 @@ from apps.tenants.branding import (
     BrandingView,
     ClientWorkspaceList,
     PublicBrandingView,
+    PublicWorkspaceLogoView,
     VerifyDomainView,
 )
 from apps.tenants.data_views import DataOperationsView, DownloadExportView
@@ -224,6 +225,10 @@ urlpatterns = [
     path(P + "clients/", ClientWorkspaceList.as_view()),
     # Public (anonymous) surfaces.
     path("api/public/templates/", PublicTemplateList.as_view()),
+    path(
+        "api/public/workspace-logos/<uuid:workspace_id>/<str:digest>/",
+        PublicWorkspaceLogoView.as_view(),
+    ),
     path("api/public/templates/<slug:slug>/", PublicTemplateDetail.as_view()),
     path("api/public/bio/<slug:slug>/", PublicBioView.as_view()),
     path("api/public/forms/<slug:slug>/", PublicFormView.as_view()),

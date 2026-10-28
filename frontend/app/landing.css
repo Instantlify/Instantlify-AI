@@ -339,7 +339,8 @@
   max-width: 1440px;
   margin: auto;
   padding: 21px 6%;
-  background: rgb(16 36 74 / 96.08%);
+  background: rgb(255 255 255 / 96%);
+  color: var(--nm-ink);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-light);
 }

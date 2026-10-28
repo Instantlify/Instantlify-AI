@@ -1,3 +1,31 @@
+# Saved workspace appearance — 28 October 2026
+
+- Workspace primary color now controls the actual client shell, actions, active navigation
+  and message accents. Saved sidebar background/text colors are persisted in branding and
+  applied only inside that workspace; switching workspaces restores the selected theme.
+  Light accents choose readable action text, and low-contrast sidebar combinations receive
+  an inline validation message. Public pages keep the default Nemio palette.
+- Settings saves workspace name and branding together in one transaction. Sidebar values
+  are included in saves and reloads, color inputs have field validation and labelled swatches,
+  and only owners can edit appearance. Existing agency branding inheritance is preserved.
+- Replaced the logo's temporary data-URL preview with a real image upload. PNG/JPG/GIF/WebP
+  files up to 5 MB are stored durably in the database and served from a versioned image URL.
+  Invalid formats/oversized files are rejected; logos can be replaced or removed without
+  losing the saved theme. Workspace JSON never includes the binary image data.
+- Migration tenants.0009 is applied locally. Full PostgreSQL suite: 723 passed. The five
+  new browser cases passed for save/reload, cross-workspace isolation, validation, uploaded
+  logos, owner permissions and bright accents; 16 existing navigation/validation cases also
+  passed. Production build/TypeScript, focused lint and backend checks passed. Settings
+  retains its seven pre-existing lint errors; no clean full-file lint claim is made.
+
+# Product-tour header contrast — 28 October 2026
+
+- Corrected the detailed product-tour header's translucent surface to white so the navy
+  logo, navigation links and sign-in control remain readable. The home and tour headers
+  now share the same contrast treatment. Softened the home header border and AI preview halo.
+- All 17 public-page browser checks passed; desktop review confirmed a white header with
+  navy logo/text on the product-tour page.
+
 # White, navy and neon theme — 28 October 2026
 
 - Replaced the ivory/olive brand palette across landing/feature pages, authentication,

@@ -3,6 +3,7 @@
 import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
 
 import Link from "next/link";
+import { workspaceTheme } from "@/lib/workspace-theme";
 import { usePathname, useRouter } from "next/navigation";
 import {
   useEffect,
@@ -262,7 +263,7 @@ export function Shell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="app-shell-root">
+    <div className="app-shell-root" data-workspace-theme={workspace.id} style={workspaceTheme(branding)}>
       {/* Pitch-Black Modern Sidebar */}
       <aside
         className={`boosend-sidebar ${drawer ? "drawer-open" : ""}`}

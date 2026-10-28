@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import {
   api,
+  upload,
   limit,
   money,
   type Billing,
@@ -69,10 +70,12 @@ import {
 } from "@/components/ui";
 import { startCheckout } from "@/lib/billing";
 import { PlanCards, type Interval } from "@/components/plans";
+import { colorContrast, DEFAULT_SIDEBAR_BACKGROUND, DEFAULT_SIDEBAR_TEXT, DEFAULT_WORKSPACE_COLOR, isThemeColor } from "@/lib/workspace-theme";
 
 type SettingsTab = "profile" | "meta" | "team" | "subscription" | "workspaces";
 
 const QUICK_COLORS = [
+  "#10244a",
   "#6366f1",
   "#ef4444",
   "#f97316",
@@ -86,6 +89,8 @@ const QUICK_COLORS = [
 ];
 
 const SIDEBAR_BG_COLORS = [
+  "#ffffff",
+  "#10244a",
   "#0a0a0a",
   "#0f172a",
   "#1e293b",
@@ -99,6 +104,7 @@ const SIDEBAR_BG_COLORS = [
 ];
 
 const SIDEBAR_TEXT_COLORS = [
+  "#41516e",
   "#ffffff",
   "#f8fafc",
   "#e2e8f0",
@@ -155,14 +161,18 @@ export default function SettingsPage() {
   const [allWorkspaces, setAllWorkspaces] = useState<Workspace[]>([workspace]);
   const [workspaceName, setWorkspaceName] = useState(workspace.name || "");
   const [workspaceColor, setWorkspaceColor] = useState(
-    workspace.branding?.primary_color || "#6366f1"
+    workspace.branding?.primary_color || DEFAULT_WORKSPACE_COLOR
   );
-  const [sidebarBgColor, setSidebarBgColor] = useState("#0a0a0a");
-  const [sidebarTextColor, setSidebarTextColor] = useState("#ffffff");
+  const [sidebarBgColor, setSidebarBgColor] = useState(workspace.branding?.sidebar_bg_color || DEFAULT_SIDEBAR_BACKGROUND);
+  const [sidebarTextColor, setSidebarTextColor] = useState(workspace.branding?.sidebar_text_color || DEFAULT_SIDEBAR_TEXT);
   const [brandName, setBrandName] = useState(
-    workspace.branding?.brand_name || workspace.name || "BooSend"
+    workspace.branding?.brand_name || "Nemio"
   );
   const [logoUrl, setLogoUrl] = useState(workspace.branding?.logo_url || "");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState("");
+  const logoObjectUrl = useRef("");
+  useEffect(() => () => { if (logoObjectUrl.current) URL.revokeObjectURL(logoObjectUrl.current); }, []);
   const [workspaceSubTab, setWorkspaceSubTab] = useState<"general" | "accounts" | "billing">("general");
 
   // 1. Load User Profile
@@ -294,7 +304,9 @@ export default function SettingsPage() {
         if (brand) {
           if (brand.primary_color) setWorkspaceColor(brand.primary_color);
           if (brand.brand_name) setBrandName(brand.brand_name);
-          if (brand.logo_url) setLogoUrl(brand.logo_url);
+          setLogoUrl(brand.logo_url || "");
+          setSidebarBgColor(brand.sidebar_bg_color || DEFAULT_SIDEBAR_BACKGROUND);
+          setSidebarTextColor(brand.sidebar_text_color || DEFAULT_SIDEBAR_TEXT);
         }
       })
       .catch(() => undefined);
@@ -466,16 +478,30 @@ export default function SettingsPage() {
   };
 
   // Save Workspace & Branding changes
-  const handleSaveWorkspace = async () => {
+  const handleSaveWorkspace = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     await feedback.run(async () => {
-      await api(`${prefix}/`, "PATCH", {
-        name: workspaceName,
-      });
-      await api(`${prefix}/branding/`, "PUT", {
+      const values = {
+        workspace_name: workspaceName,
         brand_name: brandName,
         primary_color: workspaceColor,
-        logo_url: logoUrl,
-      });
+        sidebar_bg_color: sidebarBgColor,
+        sidebar_text_color: sidebarTextColor,
+        ...(!logoFile && !logoUrl.startsWith("/api/public/workspace-logos/") ? { logo_url: logoUrl } : {}),
+      };
+      let saved: Branding;
+      if (logoFile) {
+        const data = new FormData();
+        Object.entries(values).forEach(([key, value]) => data.append(key, value));
+        data.append("logo", logoFile);
+        saved = await upload<Branding>(`${prefix}/branding/`, data, "PUT");
+      } else {
+        saved = await api<Branding>(`${prefix}/branding/`, "PUT", values);
+      }
+      setLogoUrl(saved.logo_url || "");
+      setLogoFile(null);
+      setLogoPreview("");
+      if (logoObjectUrl.current) { URL.revokeObjectURL(logoObjectUrl.current); logoObjectUrl.current = ""; }
       await refresh();
     }, "Workspace settings saved successfully!");
   };
@@ -1372,7 +1398,10 @@ export default function SettingsPage() {
           </div>
 
           {/* Right Column: Active Workspace Settings */}
-          <div className="workspaces-right-column">
+          <ValidatedForm className="workspaces-right-column" aria-label="Workspace appearance" fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} onSubmit={handleSaveWorkspace}
+            validate={(): Record<string, string> => isThemeColor(sidebarBgColor) && isThemeColor(sidebarTextColor) && colorContrast(sidebarBgColor, sidebarTextColor) < 4.5 ? { sidebar_text_color: "Choose a text color that is easier to read against your sidebar background." } : {}}>
+            {workspace.role !== "owner" && <p className="muted-text">Only the workspace owner can change its appearance.</p>}
+            <fieldset className="workspace-appearance-fields" disabled={workspace.role !== "owner" || feedback.busy}>
             <div className="ws-settings-header-banner">
               <div className="ws-banner-avatar" style={{ background: workspaceColor }}>
                 <span>{(workspaceName || workspace.name || "W").charAt(0).toUpperCase()}</span>
@@ -1421,6 +1450,7 @@ export default function SettingsPage() {
               <div className="form-group">
                 <label className="field-label" htmlFor="settings-workspace-name">Workspace Name</label>
                 <ValidatedInput id="settings-workspace-name"
+                  name="workspace_name" required maxLength={100}
                   type="text"
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
@@ -1433,6 +1463,7 @@ export default function SettingsPage() {
                 <div className="color-input-hex-row">
                   <div className="color-preview-box" style={{ background: workspaceColor }} />
                   <ValidatedInput id="settings-workspace-color"
+                    name="primary_color" required pattern="#[0-9a-fA-F]{6}" maxLength={7} data-validation-hint="Use a color code such as #10244a, or choose a color above."
                     type="text"
                     value={workspaceColor}
                     onChange={(e) => setWorkspaceColor(e.target.value)}
@@ -1448,6 +1479,7 @@ export default function SettingsPage() {
                         type="button"
                         key={c}
                         className={`color-dot-swatch ${workspaceColor === c ? "active" : ""}`}
+                        aria-label={`Workspace color ${c}`} aria-pressed={workspaceColor === c}
                         style={{ background: c }}
                         onClick={() => setWorkspaceColor(c)}
                       />
@@ -1480,7 +1512,7 @@ export default function SettingsPage() {
 
               <div className="sidebar-color-controls">
                 <div className="form-group">
-                  <label className="field-label">Side Bar Color</label>
+                  <label className="field-label" htmlFor="settings-sidebar-background">Sidebar background color</label>
                   <div className="swatch-with-hex-row">
                     <div className="swatch-dots-row">
                       {SIDEBAR_BG_COLORS.map((c) => (
@@ -1488,12 +1520,14 @@ export default function SettingsPage() {
                           type="button"
                           key={c}
                           className={`color-dot-swatch ${sidebarBgColor === c ? "active" : ""}`}
+                          aria-label={`Sidebar background ${c}`} aria-pressed={sidebarBgColor === c}
                           style={{ background: c }}
                           onClick={() => setSidebarBgColor(c)}
                         />
                       ))}
                     </div>
                     <ValidatedInput
+                      id="settings-sidebar-background" name="sidebar_bg_color" required pattern="#[0-9a-fA-F]{6}" maxLength={7} data-validation-hint="Use a color code such as #10244a, or choose a color above."
                       type="text"
                       value={sidebarBgColor}
                       onChange={(e) => setSidebarBgColor(e.target.value)}
@@ -1503,7 +1537,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="form-group" style={{ marginTop: 14 }}>
-                  <label className="field-label">Sidebar Text Color</label>
+                  <label className="field-label" htmlFor="settings-sidebar-text">Sidebar text color</label>
                   <div className="swatch-with-hex-row">
                     <div className="swatch-dots-row">
                       {SIDEBAR_TEXT_COLORS.map((c) => (
@@ -1511,12 +1545,14 @@ export default function SettingsPage() {
                           type="button"
                           key={c}
                           className={`color-dot-swatch ${sidebarTextColor === c ? "active" : ""}`}
+                          aria-label={`Sidebar text ${c}`} aria-pressed={sidebarTextColor === c}
                           style={{ background: c }}
                           onClick={() => setSidebarTextColor(c)}
                         />
                       ))}
                     </div>
                     <ValidatedInput
+                      id="settings-sidebar-text" name="sidebar_text_color" required pattern="#[0-9a-fA-F]{6}" maxLength={7} data-validation-hint="Use a color code such as #ffffff, or choose a color above."
                       type="text"
                       value={sidebarTextColor}
                       onChange={(e) => setSidebarTextColor(e.target.value)}
@@ -1535,9 +1571,9 @@ export default function SettingsPage() {
                 <label className="field-label">Logo</label>
                 <div className="logo-upload-wrapper">
                   <div className="logo-ghost-box">
-                    {logoUrl ? (
+                    {logoPreview || logoUrl ? (
                       <img
-                        src={logoUrl}
+                        src={logoPreview || logoUrl}
                         alt="Logo"
                         style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: 8 }}
                       />
@@ -1550,21 +1586,30 @@ export default function SettingsPage() {
                       Upload
                       <ValidatedInput
                         type="file"
-                        accept="image/*"
+                        name="logo" aria-label="Workspace logo" accept="image/png,image/jpeg,image/gif,image/webp"
                         style={{ display: "none" }}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            const reader = new FileReader();
-                            reader.onload = () => {
-                              setLogoUrl(reader.result as string);
-                            };
-                            reader.readAsDataURL(file);
+                            if (file.size > 5 * 1024 * 1024 || !["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.type)) {
+                              feedback.setError("Choose a PNG, JPG, GIF or WebP image smaller than 5 MB.");
+                              e.target.value = "";
+                              return;
+                            }
+                            if (logoObjectUrl.current) URL.revokeObjectURL(logoObjectUrl.current);
+                            logoObjectUrl.current = URL.createObjectURL(file);
+                            setLogoPreview(logoObjectUrl.current);
+                            setLogoFile(file);
                           }
+                          e.target.value = "";
                         }}
                       />
                     </label>
                     <span className="file-format-hint">PNG, JPG, GIF or WebP - max 5MB</span>
+                    {(logoFile || logoUrl) && <button type="button" className="text-button" onClick={() => {
+                      if (logoObjectUrl.current) { URL.revokeObjectURL(logoObjectUrl.current); logoObjectUrl.current = ""; }
+                      setLogoFile(null); setLogoPreview(""); setLogoUrl("");
+                    }}>Remove logo</button>}
                   </div>
                 </div>
               </div>
@@ -1572,28 +1617,29 @@ export default function SettingsPage() {
               <div className="form-group" style={{ marginTop: 14 }}>
                 <label className="field-label" htmlFor="settings-brand-name">Brand name</label>
                 <ValidatedInput id="settings-brand-name"
+                  name="brand_name" required maxLength={60}
                   type="text"
                   value={brandName}
                   onChange={(e) => setBrandName(e.target.value)}
                   className="settings-text-input"
                 />
                 <span className="field-helper-note">
-                  Shown in the sidebar instead of &ldquo;BooSend&rdquo;.
+                  Shown in the sidebar instead of &ldquo;Nemio&rdquo;.
                 </span>
               </div>
 
               <div className="ws-save-btn-row">
                 <button
-                  type="button"
+                  type="submit"
                   className="save-changes-black-btn"
-                  onClick={handleSaveWorkspace}
                   disabled={feedback.busy}
                 >
                   Save Changes
                 </button>
               </div>
             </div>
-          </div>
+            </fieldset>
+          </ValidatedForm>
         </div>
       )}
 

@@ -12,6 +12,7 @@ import "./validation.css";
 import "./brand.css";
 import "@xyflow/react/dist/style.css";
 import "./theme.css";
+import "./workspace-theme.css";
 
 // Self-hosted at build time; meta.css points the shared font tokens at these.
 const body = DM_Sans({ subsets: ["latin"], variable: "--font-body" });

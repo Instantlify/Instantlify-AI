@@ -15,6 +15,8 @@ export type Branding = {
   brand_name: string;
   logo_url: string;
   primary_color: string;
+  sidebar_bg_color?: string;
+  sidebar_text_color?: string;
   support_email: string;
   hide_platform_branding: boolean;
   custom_domain: string;
@@ -835,9 +837,9 @@ export async function api<T>(
 }
 
 /** Multipart upload (files) with the same CSRF and error handling as `api`. */
-export async function upload<T>(path: string, form: FormData): Promise<T> {
+export async function upload<T>(path: string, form: FormData, method = "POST"): Promise<T> {
   const response = await fetch(path, {
-    method: "POST",
+    method,
     headers: { "X-CSRFToken": await csrfToken() },
     credentials: "same-origin",
     cache: "no-store",

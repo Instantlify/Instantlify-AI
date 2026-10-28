@@ -154,7 +154,12 @@ class WorkspaceBranding(TenantModel):
 
     brand_name = models.CharField(max_length=60)
     logo_url = models.URLField(max_length=2000, blank=True)
-    primary_color = models.CharField(max_length=7, default="#347359")
+    primary_color = models.CharField(max_length=7, default="#10244a")
+    sidebar_bg_color = models.CharField(max_length=7, default="#ffffff")
+    sidebar_text_color = models.CharField(max_length=7, default="#41516e")
+    logo_data = models.BinaryField(default=bytes, blank=True)
+    logo_content_type = models.CharField(max_length=30, blank=True)
+    logo_digest = models.CharField(max_length=64, blank=True)
     support_email = models.EmailField(blank=True)
     custom_domain = models.CharField(max_length=253, blank=True)
     custom_domain_status = models.CharField(

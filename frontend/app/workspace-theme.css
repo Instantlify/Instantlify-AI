@@ -1,0 +1,98 @@
+/* Workspace-only overrides: saved appearance never changes public pages or another workspace. */
+[data-workspace-theme]
+  :is(
+    .primary,
+    .button.primary,
+    .save-changes-black-btn,
+    .pill-toggle-btn.active
+  ) {
+  color: var(--brand-on-primary);
+}
+[data-workspace-theme] :is(.button.primary, .primary) > svg {
+  color: var(--workspace-indicator);
+}
+[data-workspace-theme] :is(.text-button, .menu-action-btn.primary-link) {
+  color: var(--brand-link);
+}
+[data-workspace-theme] .save-changes-black-btn {
+  background: var(--brand-action);
+}
+[data-workspace-theme] .save-changes-black-btn:hover {
+  background: var(--brand-action-hover);
+}
+.preview-copy-col :is(.preview-ws-name, .preview-subtitle) {
+  color: inherit;
+}
+[data-workspace-theme] .boosend-sidebar {
+  --text-primary: var(--workspace-sidebar-text);
+  --text-secondary: var(--workspace-sidebar-text);
+  --text-muted: var(--workspace-sidebar-muted);
+  --text-light: var(--workspace-sidebar-muted);
+  --bg-canvas: var(--workspace-sidebar-card);
+  --bg-subtle: var(--workspace-sidebar-hover);
+  --border-light: var(--workspace-sidebar-border);
+  --border-subtle: var(--workspace-sidebar-border);
+  color: var(--workspace-sidebar-text);
+}
+[data-workspace-theme]
+  .boosend-sidebar
+  :is(.workspace-dropdown-popover, .social-account-menu-popover) {
+  --text-primary: #0c1b3a;
+  --text-secondary: #41516e;
+  --text-muted: #5c6b84;
+  --text-light: #63728a;
+  --bg-subtle: #f3f6fc;
+  --border-light: #dce4f1;
+  --border-subtle: #c6d2e5;
+  color: var(--text-primary);
+}
+[data-workspace-theme] .boosend-sidebar .boosend-nav-link.active {
+  color: var(--brand-on-primary) !important;
+  box-shadow: inset 3px 0 var(--workspace-indicator);
+}
+[data-workspace-theme]
+  .boosend-sidebar
+  .boosend-nav-link.active
+  .nav-icon-wrap {
+  color: var(--workspace-indicator) !important;
+}
+[data-workspace-theme]
+  .boosend-sidebar
+  :is(.workspace-avatar-sq, .account-avatar-circle, .user-avatar-circle) {
+  color: var(--brand-on-primary);
+}
+[data-workspace-theme]
+  .boosend-sidebar
+  :is(
+    .workspace-select-item.current,
+    .account-switch-row.selected,
+    .default-tag
+  ) {
+  color: var(--brand-link);
+}
+[data-workspace-theme] .boosend-sidebar .nemio-mark {
+  mix-blend-mode: normal;
+  background: #fff;
+  border-radius: 6px;
+}
+[data-workspace-theme]
+  .boosend-inbox-layout
+  :is(
+    .bubble.sender-ai,
+    .bubble.sender-api,
+    .handoff-toggle > button.on:not(.human)
+  ),
+[data-workspace-theme]
+  .mcp-dark-card
+  :is(.action-card-title, .action-card-desc, .hover-arrow) {
+  color: var(--brand-on-primary);
+}
+.workspace-appearance-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.workspace-appearance-fields:disabled {
+  opacity: 0.7;
+}
