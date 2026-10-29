@@ -40,6 +40,9 @@ import { TrackVisit } from "@/components/growth";
 import { PublicPricing } from "@/components/public-pricing";
 import { ProductDepth } from "@/components/landing-depth";
 
+const landingJourney =
+  "M1230 -30 C920 230 1460 520 1130 800 S80 1110 230 1420 S1410 1690 1150 2020 S80 2260 220 2530 S1380 2810 1100 3110 S100 3400 310 3680 S1320 4010 1040 4290 S570 4480 760 4630";
+
 const scenarios = [
   {
     name: "Comment → DM",
@@ -490,6 +493,48 @@ export function LandingPage({
       }
       className={`nm-landing ${detailed ? "nm-product-tour" : "nm-home"}`}
     >
+      {!detailed && (
+        <svg
+          className="nm-journey-line"
+          viewBox="0 0 1440 4600"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <defs>
+            <linearGradient id="nemio-journey-ink" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#b4f277" stopOpacity="0.06" />
+              <stop offset="15%" stopColor="#b4f277" stopOpacity="0.95" />
+              <stop offset="85%" stopColor="#b4f277" stopOpacity="0.85" />
+              <stop offset="100%" stopColor="#b4f277" stopOpacity="0.06" />
+            </linearGradient>
+          </defs>
+          <path
+            className="nm-journey-fog"
+            d={landingJourney}
+            fill="none"
+            stroke="#b4f277"
+            strokeWidth="14"
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            className="nm-journey-glow"
+            d={landingJourney}
+            fill="none"
+            stroke="#b4f277"
+            strokeWidth="5"
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            className="nm-journey-stroke"
+            d={landingJourney}
+            fill="none"
+            stroke="url(#nemio-journey-ink)"
+            strokeWidth="1.5"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      )}
       <TrackVisit page="/" />
       <a className="skip-link" href="#main">
         Skip to content

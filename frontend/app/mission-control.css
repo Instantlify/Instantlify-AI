@@ -699,3 +699,205 @@ body {
   outline-offset: 6px;
   border-radius: 4px;
 }
+
+/* One continuous brand thread connects the landing-page sections. */
+.nm-home {
+  position: relative;
+  isolation: isolate;
+}
+.nm-home .nm-journey-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.nm-home > main,
+.nm-home > footer {
+  position: relative;
+  z-index: 1;
+}
+@media (max-width: 600px) {
+  .nm-home .nm-journey-line {
+    opacity: 0.7;
+  }
+}
+
+/* A slow breathing stroke with two soft halos; no abrupt flashing. */
+.nm-journey-stroke {
+  animation: nm-line-breathe 6s ease-in-out infinite;
+}
+.nm-journey-glow {
+  filter: blur(4px);
+  animation: nm-glow-breathe 6s ease-in-out infinite;
+}
+.nm-journey-fog {
+  filter: blur(13px);
+  animation: nm-fog-breathe 6s ease-in-out infinite;
+}
+@keyframes nm-line-breathe {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+@keyframes nm-glow-breathe {
+  0%,
+  100% {
+    opacity: 0.05;
+  }
+  50% {
+    opacity: 0.34;
+  }
+}
+@keyframes nm-fog-breathe {
+  0%,
+  100% {
+    opacity: 0.03;
+  }
+  50% {
+    opacity: 0.18;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nm-journey-stroke {
+    animation: none;
+    opacity: 0.3;
+  }
+  .nm-journey-glow {
+    animation: none;
+    opacity: 0.1;
+  }
+  .nm-journey-fog {
+    animation: none;
+    opacity: 0.06;
+  }
+}
+
+/* Keep the closing call-to-action clear of its older diagonal artwork. */
+.nm-home .nm-closing::before {
+  display: none;
+}
+
+/* Let wide desktop screens breathe without squeezing content into a narrow column. */
+.nm-home {
+  --nm-page-gutter: clamp(24px, 5vw, 96px);
+  --nm-content-width: 1600px;
+}
+.nm-home .nm-nav,
+.nm-home .nm-hero,
+.nm-home .nm-channels,
+.nm-home .nm-section,
+.nm-home .nm-footer,
+.nm-home .nm-closing {
+  width: calc(100% - var(--nm-page-gutter) * 2);
+  max-width: var(--nm-content-width);
+  margin-inline: auto;
+}
+.nm-home .nm-hero,
+.nm-home .nm-section,
+.nm-home .nm-footer {
+  padding-inline: 0;
+}
+.nm-home .nm-nav {
+  padding-inline: 28px;
+}
+.nm-home .nm-hero {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
+  gap: clamp(36px, 5vw, 96px);
+}
+.nm-home .nm-hero h1 {
+  font-size: clamp(48px, 4.6vw, 88px);
+  max-width: 850px;
+}
+.nm-home .nm-hero-copy > p {
+  max-width: 560px;
+  font-size: clamp(16px, 1.05vw, 19px);
+}
+.nm-home .nm-hero-scene {
+  max-width: 550px;
+  width: 100%;
+  justify-self: end;
+}
+@media (min-width: 1440px) {
+  .nm-home .nm-hero {
+    padding-block: 85px;
+  }
+  .nm-home .nm-hero-scene .nm-demo {
+    width: 350px;
+  }
+  .nm-home .nm-chat {
+    height: 310px;
+    min-height: 310px;
+  }
+  .nm-home .nm-demo-person strong {
+    font-size: 14px;
+  }
+  .nm-home .nm-bubble {
+    font-size: 14px;
+  }
+  .nm-home .nm-preview-tabs button {
+    font-size: 10px;
+  }
+  .nm-home .nm-section-head h2 {
+    font-size: clamp(36px, 3vw, 52px);
+  }
+}
+.nm-home .nm-pricing {
+  width: 100%;
+  max-width: none;
+  padding-inline: max(
+    var(--nm-page-gutter),
+    calc((100% - var(--nm-content-width)) / 2)
+  );
+}
+.nm-home .nm-closing {
+  padding-inline: 5%;
+}
+@media (max-width: 900px) {
+  .nm-home .nm-hero {
+    grid-template-columns: 1fr;
+  }
+  .nm-home .nm-hero-scene {
+    justify-self: center;
+  }
+  .nm-home .nm-hero h1 {
+    margin-inline: auto;
+  }
+  .nm-home .nm-hero-copy > p {
+    max-width: 520px;
+  }
+}
+@media (max-width: 600px) {
+  .nm-home {
+    --nm-page-gutter: 6vw;
+  }
+  .nm-home .nm-nav {
+    width: calc(100% - 24px);
+    padding-inline: 18px;
+  }
+  .nm-home .nm-hero {
+    padding-block: 40px 45px;
+  }
+  .nm-home .nm-hero h1 {
+    font-size: clamp(39px, 10vw, 54px);
+  }
+  .nm-home .nm-closing {
+    padding-inline: 24px;
+  }
+}
+
+.nm-journey-stroke {
+  opacity: 0.3;
+}
+.nm-journey-glow {
+  opacity: 0.1;
+}
+.nm-journey-fog {
+  opacity: 0.05;
+}
