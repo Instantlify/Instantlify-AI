@@ -1435,7 +1435,7 @@ export function LandingPage({
           </div>
           <div>
             {faqs.map(([question, answer]) => (
-              <details key={question}>
+              <details key={question} name="nemio-faq">
                 <summary>
                   <span>{question}</span>
                   <span aria-hidden="true">+</span>

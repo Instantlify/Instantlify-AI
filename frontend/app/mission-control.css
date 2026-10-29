@@ -513,18 +513,189 @@ body {
 }
 
 /* Preserve the original umbrella GIF; filter its ink instead of replacing its animation. */
-.nemio-original-brand .brand-title { display: none; }
-.nemio-original-brand .nemio-mark { width: 106px; height: 64px; color: var(--brand-action); }
-.nemio-logo-filter { position: absolute; pointer-events: none; }
-.nemio-original-brand .nemio-mark-image { display: block; width: 100%; height: 100%; object-fit: contain; }
-.boosend-sidebar .nemio-original-brand .nemio-mark { width: 100px; height: 60px; }
+.nemio-original-brand .brand-title {
+  display: none;
+}
+.nemio-original-brand .nemio-mark {
+  width: 106px;
+  height: 64px;
+  color: var(--brand-action);
+}
+.nemio-logo-filter {
+  position: absolute;
+  pointer-events: none;
+}
+.nemio-original-brand .nemio-mark-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.boosend-sidebar .nemio-original-brand .nemio-mark {
+  width: 100px;
+  height: 60px;
+}
 @media (min-width: 901px) {
-  .boosend-sidebar:not(:hover):not(:has(:focus-visible, .workspace-dropdown-popover, .social-account-menu-popover)) .nemio-original-brand .nemio-mark { width: 48px; height: 32px; }
+  .boosend-sidebar:not(:hover):not(
+      :has(
+        :focus-visible,
+        .workspace-dropdown-popover,
+        .social-account-menu-popover
+      )
+    )
+    .nemio-original-brand
+    .nemio-mark {
+    width: 48px;
+    height: 32px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .nemio-original-brand .nemio-mark-image { display: none; }
-  .nemio-original-brand .brand-title { display: inline; color: var(--brand-action); }
-  .nemio-original-brand .nemio-mark { display: none; }
-  .boosend-sidebar:not(:hover):not(:has(:focus-visible, .workspace-dropdown-popover, .social-account-menu-popover)) .nemio-original-brand .nemio-mark { display: flex; }
-  .boosend-sidebar .nemio-original-brand .nemio-mark::after { content: "N"; }
+  .nemio-original-brand .nemio-mark-image {
+    display: none;
+  }
+  .nemio-original-brand .brand-title {
+    display: inline;
+    color: var(--brand-action);
+  }
+  .nemio-original-brand .nemio-mark {
+    display: none;
+  }
+  .boosend-sidebar:not(:hover):not(
+      :has(
+        :focus-visible,
+        .workspace-dropdown-popover,
+        .social-account-menu-popover
+      )
+    )
+    .nemio-original-brand
+    .nemio-mark {
+    display: flex;
+  }
+  .boosend-sidebar .nemio-original-brand .nemio-mark::after {
+    content: "N";
+  }
+}
+
+/* FAQ: separated, padded cards instead of a dense table of dividers. */
+.nm-landing .nm-faq {
+  gap: clamp(32px, 6vw, 80px);
+  align-items: start;
+  padding-block: 80px;
+}
+.nm-landing .nm-faq > div:last-child {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.nm-landing .nm-faq details,
+.nm-landing .nm-faq details:first-child {
+  padding: 0;
+  border: 1px solid #26353b;
+  border-radius: 16px;
+  background: #10181c;
+  overflow: hidden;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease;
+}
+.nm-landing .nm-faq details:hover {
+  border-color: #45594f;
+  background: #131e22;
+}
+.nm-landing .nm-faq details[open] {
+  background: #141f22;
+  border-color: #536b47;
+}
+.nm-landing .nm-faq summary {
+  padding: 22px 24px;
+  align-items: center;
+  gap: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #e5eeec;
+  border-radius: 15px;
+  min-height: 76px;
+}
+.nm-landing .nm-faq summary:focus-visible {
+  outline: 2px solid #b4f277;
+  outline-offset: -4px;
+}
+.nm-landing .nm-faq summary > span:last-child {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #213034;
+  color: #a6b8b8;
+  font-size: 20px;
+  line-height: 1;
+}
+.nm-landing .nm-faq details[open] summary > span:last-child {
+  background: #b4f277;
+  color: #142010;
+}
+.nm-landing .nm-faq details p {
+  margin: 0;
+  padding: 0 72px 26px 24px;
+  color: #a8b8ba;
+  font-size: 13px;
+  line-height: 1.85;
+  max-width: 65ch;
+}
+@media (max-width: 600px) {
+  .nm-landing .nm-faq {
+    padding-block: 48px;
+  }
+  .nm-landing .nm-faq summary {
+    padding: 18px;
+    font-size: 13px;
+    min-height: 68px;
+    gap: 12px;
+  }
+  .nm-landing .nm-faq details p {
+    padding: 0 20px 22px;
+    font-size: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nm-landing .nm-faq details {
+    transition: none;
+  }
+}
+
+/* Product navigation is a dark elevated surface, including its mobile layout. */
+.nm-landing .nm-mega > .nd-mega-menu {
+  background: #111b20;
+  color: #edf4f3;
+  border: 1px solid #34464d;
+  border-radius: 18px;
+  box-shadow: 0 24px 70px #0008;
+  padding: 24px;
+}
+.nm-landing .nd-mega-menu > div > strong {
+  color: #b4f277;
+}
+.nm-landing .nd-mega-menu a {
+  color: #edf4f3;
+  padding: 14px 12px;
+  border-radius: 10px;
+}
+.nm-landing .nd-mega-menu a small {
+  color: #a8b8ba;
+  line-height: 1.6;
+}
+.nm-landing .nd-mega-menu a > svg {
+  color: #9bb1a5;
+}
+.nm-landing .nd-mega-menu a:hover,
+.nm-landing .nd-mega-menu a:focus-visible {
+  background: #203024;
+  color: #c8ff95;
+}
+.nm-landing .nm-mega > summary:focus-visible {
+  outline: 2px solid #b4f277;
+  outline-offset: 6px;
+  border-radius: 4px;
 }

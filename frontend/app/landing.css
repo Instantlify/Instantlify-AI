@@ -425,7 +425,7 @@
   position: absolute;
   top: 35px;
   left: -30px;
-  background: white;
+  background: var(--bg-surface);
   border: 1px solid var(--border-light);
   padding: 12px;
   border-radius: 10px;
@@ -559,7 +559,7 @@
   margin-bottom: 18px;
 }
 .nm-demo {
-  background: white;
+  background: var(--bg-surface);
   border: 1px solid var(--border-light);
   border-radius: 12px;
   overflow: hidden;
@@ -989,7 +989,7 @@
   margin-bottom: 23px;
 }
 .nm-workflow-card {
-  background: white;
+  background: var(--bg-surface);
   border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 25px 30px;

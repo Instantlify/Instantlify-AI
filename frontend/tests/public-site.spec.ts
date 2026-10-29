@@ -86,6 +86,14 @@ test("mobile homepage fits and links to sign in", async ({ page }) => {
     .getByText("Do I need to know how to code?", { exact: true })
     .click();
   await expect(page.getByText(/No. Build automations visually/)).toBeVisible();
+  await page
+    .getByText("Which channels can I connect?", { exact: true })
+    .click();
+  await expect(page.locator(".nm-faq details[open]")).toHaveCount(1);
+  await expect(page.getByText(/No. Build automations visually/)).toBeHidden();
+  await expect(page.locator(".nm-faq details[open] summary")).toContainText(
+    "Which channels can I connect?",
+  );
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await page.screenshot({
     path: "test-results/nemio-home-mobile.png",
