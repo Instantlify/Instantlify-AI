@@ -648,28 +648,16 @@ export function LandingPage({
         <section className="nm-hero">
           <div className="nm-hero-copy">
             <span className="nm-eyebrow">
-              <span className="nm-dot" /> YOUR CONVERSATIONS. MORE
-              POSSIBILITIES.
+              <span className="nm-dot" /> THE SYSTEM BEHIND YOUR NEXT SALE
             </span>
             <h1>
-              Turn enquiries into
+              Every conversation.
               <br />
-              <em>
-                your next customer.
-                {!detailed && (
-                  <svg
-                    className="nm-hero-underline"
-                    viewBox="0 0 470 20"
-                    aria-hidden="true"
-                  >
-                    <path d="M3 15Q180 -4 467 9" />
-                  </svg>
-                )}
-              </em>
+              <em>A clear next move.</em>
             </h1>
             <p>
-              Reply faster. Capture the right leads. Keep every conversation
-              moving—with automations, AI and your team in one place.
+              Connect your channels. Deploy your AI sales assistant. Give your
+              team one place to move every lead forward.
             </p>
             <div className="nm-hero-actions">
               <Link className="nm-button" href="/auth?mode=signup">
@@ -783,8 +771,8 @@ export function LandingPage({
                 <Zap size={19} />
               </span>
               <div>
-                <strong>Less chasing. More connecting.</strong>
-                <small>Reply → qualify → move things forward</small>
+                <strong>A comment. A connection.</strong>
+                <small>Your next customer starts with a hello.</small>
               </div>
             </div>
             <span className="nm-orbit">✳</span>

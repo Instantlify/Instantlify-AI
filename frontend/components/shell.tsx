@@ -7,6 +7,7 @@ import { workspaceTheme } from "@/lib/workspace-theme";
 import { usePathname, useRouter } from "next/navigation";
 import {
   useEffect,
+  useId,
   useRef,
   useState,
   type FormEvent,
@@ -57,12 +58,84 @@ export function Brand({
   name?: string;
   logo?: string;
 }) {
+  const logoFilter = `nemio-logo-${useId().replace(/:/g, "")}`;
   const defaultBrand = !logo && /^nemio(?:\s*ai)?$/i.test(name.trim());
   return (
-    <div className="brand-logo-container">
+    <div
+      className={`brand-logo-container${defaultBrand ? " nemio-original-brand" : ""}`}
+    >
       {defaultBrand ? (
         <span className="nemio-mark" aria-hidden="true">
-          {/* Keep the supplied GIF intact, including its animation. */}
+          <svg
+            width="0"
+            height="0"
+            aria-hidden="true"
+            className="nemio-logo-filter"
+          >
+            <defs>
+              <filter
+                id={logoFilter}
+                x="0"
+                y="0"
+                width="100%"
+                height="100%"
+                colorInterpolationFilters="sRGB"
+              >
+                {/* Separate saturated icons from neutral umbrella/text pixels. */}
+                <feColorMatrix
+                  in="SourceGraphic"
+                  type="saturate"
+                  values="0"
+                  result="gray"
+                />
+                <feBlend
+                  in="SourceGraphic"
+                  in2="gray"
+                  mode="difference"
+                  result="chroma"
+                />
+                <feColorMatrix
+                  in="chroma"
+                  type="matrix"
+                  values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  8 8 8 0 0"
+                  result="colorMask"
+                />
+                <feComposite
+                  in="SourceGraphic"
+                  in2="colorMask"
+                  operator="in"
+                  result="originalIcons"
+                />
+                {/* Key out white while retaining smooth animated ink edges. */}
+                <feColorMatrix
+                  in="SourceGraphic"
+                  type="matrix"
+                  values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -0.2126 -0.7152 -0.0722 0 1"
+                />
+                <feComponentTransfer result="ink">
+                  <feFuncA type="linear" slope="1.1" intercept="-0.1" />
+                </feComponentTransfer>
+                <feFlood floodColor="currentColor" />
+                <feComposite in2="ink" operator="in" result="limeInk" />
+                <feComposite
+                  in="limeInk"
+                  in2="colorMask"
+                  operator="out"
+                  result="neutralInk"
+                />
+                <feMerge result="recoloredLogo">
+                  <feMergeNode in="neutralInk" />
+                  <feMergeNode in="originalIcons" />
+                </feMerge>
+                <feComposite
+                  in="recoloredLogo"
+                  in2="SourceAlpha"
+                  operator="in"
+                />
+              </filter>
+            </defs>
+          </svg>
+          {/* Keep all original GIF frames, timing, and looping. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/brand/nemio-ai-logo.gif"
@@ -70,6 +143,7 @@ export function Brand({
             width={900}
             height={600}
             className="nemio-mark-image"
+            style={{ filter: `url(#${logoFilter})` }}
           />
         </span>
       ) : logo ? (
@@ -263,7 +337,11 @@ export function Shell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="app-shell-root" data-workspace-theme={workspace.id} style={workspaceTheme(branding)}>
+    <div
+      className="app-shell-root"
+      data-workspace-theme={workspace.id}
+      style={workspaceTheme(branding)}
+    >
       {/* Pitch-Black Modern Sidebar */}
       <aside
         className={`boosend-sidebar ${drawer ? "drawer-open" : ""}`}

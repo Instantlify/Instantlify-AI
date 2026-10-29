@@ -13,7 +13,7 @@ body {
 }
 .primary {
   background: var(--green);
-  box-shadow: 0 5px 13px rgb(16 36 74 / 10.20%);
+  box-shadow: 0 5px 13px rgb(16 36 74 / 10.2%);
 }
 .primary:hover {
   background: color-mix(in srgb, var(--green) 85%, var(--text-primary));
@@ -23,7 +23,7 @@ body {
 }
 .brand-icon {
   background: var(--green);
-  color: #fff;
+  color: var(--brand-on-primary);
   box-shadow: 0 4px 10px rgb(16 36 74 / 16.86%);
 }
 .brand-dot {
@@ -46,7 +46,8 @@ summary:focus-visible {
 }
 .auth-story {
   background:
-    radial-gradient(ellipse at 10% 80%, var(--border-light), transparent 60%), var(--border-light);
+    radial-gradient(ellipse at 10% 80%, var(--border-light), transparent 60%),
+    var(--border-light);
 }
 .story-copy h1 em {
   color: var(--brand-action);
@@ -54,10 +55,10 @@ summary:focus-visible {
 .art-bubble.second,
 .mini-brand {
   background: var(--green);
-  color: #fff;
+  color: var(--brand-on-primary);
 }
 .art-chip {
-  background: #fff;
+  background: var(--bg-surface);
   color: var(--brand-action);
 }
 .setup-card,
@@ -70,7 +71,7 @@ summary:focus-visible {
   border-color: var(--brand-action);
 }
 .sidebar .brand {
-  color: #fff;
+  color: var(--text-primary);
 }
 .sidebar .brand-dot {
   color: var(--border-subtle);
@@ -83,8 +84,8 @@ summary:focus-visible {
   color: var(--bg-subtle);
 }
 .sidebar .workspace-select option {
-  background: var(--text-primary);
-  color: #fff;
+  background: var(--brand-action);
+  color: var(--brand-on-primary);
 }
 .sidebar .tiny-label,
 .sidebar .nav-label {
@@ -100,13 +101,13 @@ summary:focus-visible {
   color: var(--border-subtle);
 }
 .sidebar .nav-item.active {
-  color: #fff;
+  color: var(--brand-on-primary);
   background: var(--green);
-  box-shadow: 0 4px 12px rgb(16 36 74 / 14.90%);
+  box-shadow: 0 4px 12px rgb(16 36 74 / 14.9%);
 }
 .sidebar .nav-item:not(.muted):hover {
-  background: var(--text-primary);
-  color: #fff;
+  background: var(--brand-action);
+  color: var(--brand-on-primary);
 }
 .sidebar .nav-item.active:hover {
   background: color-mix(in srgb, var(--green) 85%, var(--brand-ink));
@@ -138,7 +139,7 @@ summary:focus-visible {
   background: var(--text-primary);
 }
 .topbar {
-  background: #fff;
+  background: var(--bg-surface);
   color: var(--brand-muted);
 }
 .topbar strong {
@@ -161,7 +162,7 @@ summary:focus-visible {
   border-color: var(--border-light);
 }
 .banner-art .floating-icon {
-  background: #fbfbfb;
+  background: var(--bg-subtle);
   border-color: var(--border-light);
   color: var(--text-light);
 }
@@ -181,7 +182,7 @@ summary:focus-visible {
 }
 .welcome-banner .button {
   background: var(--green);
-  color: #fff;
+  color: var(--brand-on-primary);
 }
 .panel,
 .stat-card,
@@ -206,7 +207,7 @@ summary:focus-visible {
 }
 .plan-card.featured {
   border-color: var(--green);
-  background: #fbfbfb;
+  background: var(--bg-subtle);
   box-shadow: 0 12px 35px rgb(16 36 74 / 7.45%);
 }
 .plan-features .ok {
@@ -224,7 +225,7 @@ summary:focus-visible {
 
 /* Public website */
 .marketing {
-  background: #fff;
+  background: var(--bg-surface);
   font-size: 15px;
 }
 .marketing h1,
@@ -271,7 +272,7 @@ summary:focus-visible {
   top: -80px;
   left: 20px;
   padding: 12px 20px;
-  background: #fff;
+  background: var(--bg-surface);
   z-index: 100;
   clip-path: inset(100%);
 }
@@ -289,7 +290,8 @@ summary:focus-visible {
   gap: 52px;
   background:
     radial-gradient(ellipse at 85% 30%, var(--bg-subtle), transparent 52%),
-    radial-gradient(ellipse at 10% 100%, var(--bg-subtle), transparent 45%), #fefefe;
+    radial-gradient(ellipse at 10% 100%, var(--bg-subtle), transparent 45%),
+    var(--bg-surface);
   overflow: hidden;
 }
 .hero-kicker {
@@ -332,7 +334,7 @@ summary:focus-visible {
   margin-top: 30px;
 }
 .hero-secondary {
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid var(--border-light) !important;
 }
 .hero-assurances {
@@ -369,7 +371,7 @@ summary:focus-visible {
   height: 5px;
 }
 .demo-window {
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid var(--border-light);
   border-radius: 16px;
   box-shadow:
@@ -476,7 +478,7 @@ summary:focus-visible {
 }
 .outgoing {
   background: var(--green);
-  color: #fff;
+  color: var(--brand-on-primary);
   margin-left: auto;
   border-bottom-right-radius: 3px;
 }
@@ -531,7 +533,7 @@ summary:focus-visible {
   bottom: 12px;
   left: -20px;
   padding: 14px 22px;
-  background: #fff;
+  background: var(--bg-surface);
   box-shadow: 0 12px 28px rgb(16 36 74 / 9.41%);
   border: 1px solid var(--bg-subtle);
   border-radius: 12px;
@@ -711,8 +713,8 @@ summary:focus-visible {
   font-size: 13px;
 }
 .closing-cta {
-  background: var(--text-primary);
-  color: #fff;
+  background: var(--brand-action);
+  color: var(--brand-on-primary);
   padding: 65px 24px;
   text-align: center;
 }

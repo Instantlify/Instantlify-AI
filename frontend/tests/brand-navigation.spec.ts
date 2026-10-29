@@ -8,7 +8,7 @@ async function mockLanding(page: Page) {
   );
 }
 
-test("the supplied animated logo loads and the landing header logo returns to the top", async ({
+test("the transparent brand mark renders and the landing header logo returns to the top", async ({
   page,
 }) => {
   await mockLanding(page);
@@ -16,16 +16,12 @@ test("the supplied animated logo loads and the landing header logo returns to th
   const home = page
     .locator(".nm-nav")
     .getByRole("link", { name: "Nemio home", exact: true });
-  const image = home.locator('img[src="/brand/nemio-ai-logo.gif"]');
-  await expect(image).toBeVisible();
-  await expect
-    .poll(() =>
-      image.evaluate(
-        (element: HTMLImageElement) =>
-          element.complete && element.naturalWidth === 900,
-      ),
-    )
-    .toBe(true);
+  const mark = home.locator(".nemio-mark-image");
+  await expect(mark).toBeVisible();
+  await expect(home.locator(".nemio-mark")).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
   await page.locator("#pricing").scrollIntoViewIfNeeded();
   await expect
     .poll(() => page.evaluate(() => window.scrollY))
@@ -33,8 +29,6 @@ test("the supplied animated logo loads and the landing header logo returns to th
   await home.click();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   await expect(page).toHaveURL(/\/$/);
-  // Show a representative frame of the user-supplied animation for visual review.
-  await page.waitForTimeout(2200);
   await page.screenshot({ path: "test-results/nemio-animated-logo.png" });
 });
 
@@ -55,7 +49,7 @@ test("the footer logo also returns to the top with reduced motion", async ({
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 });
 
-test("the portal rail uses the supplied logo and remains usable when expanded", async ({
+test("the portal rail uses the transparent brand mark and remains usable when expanded", async ({
   page,
 }) => {
   await mockApi(page);
@@ -64,9 +58,10 @@ test("the portal rail uses the supplied logo and remains usable when expanded", 
   const sidebar = page.locator("#workspace-sidebar");
   await page.mouse.move(900, 100);
   await expect(sidebar.locator(".nemio-mark")).toBeVisible();
-  await expect(sidebar.locator(".nemio-mark-image")).toHaveAttribute(
-    "src",
-    "/brand/nemio-ai-logo.gif",
+  await expect(sidebar.locator(".nemio-mark-image")).toBeVisible();
+  await expect(sidebar.locator(".nemio-mark")).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
   );
   await sidebar.hover();
   await expect(

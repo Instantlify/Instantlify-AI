@@ -12,7 +12,7 @@
 
 /* The homepage gives a short overview; the complete tour lives at /features. */
 .nm-home {
-  background: #fff;
+  background: var(--bg-surface);
   font-family: var(--font-body), sans-serif;
 }
 .nm-home h1,
@@ -65,7 +65,7 @@
 .nm-home .nm-hero-scene .nm-demo {
   transform: none;
   border-radius: 18px;
-  box-shadow: 0 16px 40px rgb(16 36 74 / 5.10%);
+  box-shadow: 0 16px 40px rgb(16 36 74 / 5.1%);
 }
 .nm-home .nm-scene-caption {
   font-size: 9px;
@@ -89,7 +89,7 @@
 }
 .nm-preview-tabs button[aria-pressed="true"] {
   background: var(--brand-action);
-  color: #fff;
+  color: var(--brand-on-primary);
   border-color: var(--brand-action);
 }
 .nm-home .nm-channels {
@@ -378,7 +378,7 @@
 }
 .nm-button {
   background: var(--nm-accent);
-  color: #fff;
+  color: var(--text-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -545,7 +545,10 @@
   border-radius: 16px;
   padding: 26px 31px 61px;
   transform: rotate(1.5deg);
-  background-image: radial-gradient(rgb(16 36 74 / 50.20%) 0.8px, transparent 0.8px);
+  background-image: radial-gradient(
+    rgb(16 36 74 / 50.2%) 0.8px,
+    transparent 0.8px
+  );
   background-size: 14px 14px;
 }
 .nm-scene-caption {
@@ -958,8 +961,8 @@
   border-radius: 5px;
 }
 .nm-audience-tabs button.active {
-  background: var(--text-primary);
-  color: white;
+  background: var(--brand-action);
+  color: var(--brand-on-primary);
 }
 .nm-solution-panel {
   display: grid;
@@ -1111,7 +1114,7 @@
   color: var(--brand-action);
 }
 .nm-app-icon.has-logo {
-  background: #ffffff;
+  background: var(--bg-surface);
   box-shadow: inset 0 0 0 1px var(--border-light);
 }
 .tone-channels {
@@ -1288,12 +1291,12 @@
 }
 .nm-pricing .plan-badge {
   background: var(--brand-action);
-  color: white;
+  color: var(--brand-on-primary);
 }
 .nm-pricing .button.primary {
   background: var(--brand-action);
   border-color: var(--brand-action);
-  color: white;
+  color: var(--brand-on-primary);
   border-radius: 6px;
 }
 .nm-pricing > .nm-text-link {

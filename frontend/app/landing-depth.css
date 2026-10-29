@@ -77,9 +77,9 @@
   font-weight: 600;
 }
 .nd-channel-tabs button.active {
-  background: var(--text-primary);
+  background: var(--brand-action);
   border-color: var(--text-primary);
-  color: white;
+  color: var(--brand-on-primary);
 }
 .nd-channel-panel {
   display: grid;

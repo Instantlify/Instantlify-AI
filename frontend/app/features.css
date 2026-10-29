@@ -102,7 +102,7 @@ a.nav-item {
   padding: 9px 11px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #fff;
+  background: var(--bg-surface);
 }
 .toolbar input[type="search"] {
   flex: 1 1 220px;
@@ -131,7 +131,7 @@ a.nav-item {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #fff;
+  background: var(--bg-surface);
   color: var(--ink);
   width: 100%;
 }
@@ -163,7 +163,7 @@ a.nav-item {
   margin-top: 6px;
 }
 .button.secondary {
-  background: #fff;
+  background: var(--bg-surface);
   color: var(--ink);
   border: 1px solid var(--line);
 }
@@ -215,7 +215,7 @@ a.nav-item {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--bg-surface);
   display: grid;
   gap: 8px;
 }
@@ -287,7 +287,7 @@ table th {
 .inbox-list {
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-surface);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -318,7 +318,7 @@ table th {
   padding: 12px;
   border: 0;
   border-bottom: 1px solid var(--line);
-  background: #fff;
+  background: var(--bg-surface);
   text-align: left;
   font: inherit;
   cursor: pointer;
@@ -344,7 +344,7 @@ table th {
 .thread {
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-surface);
   display: grid;
   grid-template-rows: auto 1fr auto;
   min-height: 62vh;
@@ -385,7 +385,7 @@ table th {
 .bubble.outbound {
   align-self: flex-end;
   background: var(--green);
-  color: #fff;
+  color: var(--brand-on-primary);
   border-bottom-right-radius: 4px;
 }
 .bubble.note {
@@ -452,7 +452,7 @@ table th {
 .builder-side {
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-surface);
   padding: 14px;
   overflow-y: auto;
   display: grid;
@@ -462,7 +462,7 @@ table th {
 .builder-canvas {
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-surface);
   overflow: hidden;
   min-height: 400px;
 }
@@ -474,7 +474,7 @@ table th {
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-surface);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -486,7 +486,7 @@ table th {
 .flow-node {
   min-width: 170px;
   max-width: 220px;
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px 12px;
@@ -526,7 +526,7 @@ table th {
   font-size: 8px;
   letter-spacing: 1px;
   background: var(--green);
-  color: #fff;
+  color: var(--brand-on-primary);
   padding: 2px 6px;
   border-radius: 999px;
 }
@@ -543,7 +543,7 @@ table th {
   min-height: 84px;
   padding: 6px;
   font-size: 11px;
-  background: #fff;
+  background: var(--bg-surface);
   display: grid;
   align-content: start;
   gap: 4px;
@@ -577,7 +577,7 @@ table th {
   border: 1px solid var(--line);
   border-radius: 24px;
   padding: 28px 22px;
-  background: #fff;
+  background: var(--bg-surface);
   text-align: center;
   display: grid;
   gap: 12px;
@@ -594,7 +594,7 @@ table th {
   padding: 13px;
   border-radius: 12px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   text-align: center;
   border: 0;
   width: 100%;
@@ -648,7 +648,7 @@ table th {
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--bg-surface);
   margin-bottom: 22px;
 }
 .interval-toggle button {
@@ -661,8 +661,8 @@ table th {
   color: var(--muted);
 }
 .interval-toggle button.active {
-  background: var(--ink);
-  color: #fff;
+  background: var(--brand-action);
+  color: var(--brand-on-primary);
 }
 .interval-toggle .save {
   font-size: 10px;
@@ -684,7 +684,7 @@ table th {
   padding: 24px 22px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-surface);
 }
 .plan-card.featured {
   border-color: var(--green);
@@ -697,7 +697,7 @@ table th {
   left: 50%;
   transform: translateX(-50%);
   background: var(--green);
-  color: #fff;
+  color: var(--brand-on-primary);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.6px;
@@ -828,7 +828,7 @@ table th {
   font-size: 10px;
   font-weight: 700;
   flex-shrink: 0;
-  background: #fff;
+  background: var(--bg-surface);
 }
 .wizard-rail .label {
   white-space: nowrap;
@@ -844,7 +844,7 @@ table th {
 .wizard-rail li.done .dot {
   background: var(--green);
   border-color: var(--green);
-  color: #fff;
+  color: var(--brand-on-primary);
 }
 /* The step list collapses to dots before the labels can overlap. */
 @media (max-width: 720px) {
@@ -880,8 +880,8 @@ table th {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: var(--ink);
-  color: #fff;
+  background: var(--brand-action);
+  color: var(--brand-on-primary);
   font-size: 11px;
   font-weight: 700;
   display: inline-flex;
@@ -951,8 +951,8 @@ table th {
   border-radius: 8px;
   margin-bottom: 14px;
   font-size: 12.5px;
-  color: #fff;
-  background: var(--ink);
+  color: var(--brand-on-primary);
+  background: var(--brand-action);
 }
 .announcement-strip a {
   color: inherit;
@@ -1008,7 +1008,7 @@ table th {
 .support-chat {
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-surface);
   margin-bottom: 20px;
   max-width: 560px;
   overflow: hidden;
@@ -1042,8 +1042,8 @@ table th {
   background: var(--soft);
 }
 .chat-log li.you {
-  background: var(--ink);
-  color: #fff;
+  background: var(--brand-action);
+  color: var(--brand-on-primary);
   justify-self: end;
 }
 .chat-input,
@@ -1067,7 +1067,7 @@ table th {
 .blog-header {
   padding: 22px 24px;
   border-bottom: 1px solid var(--line);
-  background: #fff;
+  background: var(--bg-surface);
 }
 .blog-main {
   max-width: 720px;
@@ -1086,7 +1086,7 @@ table th {
   padding: 18px 20px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-surface);
 }
 .blog-list h2 {
   margin: 4px 0 6px;

@@ -127,18 +127,18 @@ p {
 .primary,
 .button.primary {
   background: var(--brand-action) !important;
-  color: #ffffff !important;
+  color: var(--brand-on-primary) !important;
   border: 1px solid var(--brand-action) !important;
 }
 .primary:hover,
 .button.primary:hover {
   background: var(--brand-action-hover) !important;
   border-color: var(--brand-action-hover) !important;
-  color: #ffffff !important;
+  color: var(--text-primary) !important;
 }
 .secondary,
 .button.secondary {
-  background: #ffffff !important;
+  background: var(--bg-surface) !important;
   color: var(--text-secondary) !important;
   border: 1px solid var(--border-subtle) !important;
 }
@@ -148,8 +148,8 @@ p {
   border-color: var(--text-light) !important;
 }
 .dark {
-  background: var(--text-primary);
-  color: #fff;
+  background: var(--brand-action);
+  color: var(--brand-on-primary);
 }
 .full {
   width: 100%;
@@ -209,7 +209,7 @@ label.inline input[type="checkbox"],
   flex-shrink: 0 !important;
 }
 input {
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid var(--border-light);
   color: var(--ink);
   padding: 13px 14px;
@@ -321,7 +321,7 @@ select {
   display: flex;
   flex-direction: column;
   padding: 38px 7%;
-  background: #fff;
+  background: var(--bg-surface);
 }
 .auth-top {
   display: flex;
@@ -381,7 +381,7 @@ select {
   align-items: center;
   gap: 15px;
   padding: 19px 21px;
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid var(--border-light);
   box-shadow: 0 10px 25px rgb(16 36 74 / 6.27%);
   border-radius: 13px;
@@ -433,7 +433,7 @@ select {
 }
 .sidebar {
   width: 234px;
-  background: #fff;
+  background: var(--bg-surface);
   border-right: 1px solid var(--line);
   padding: 29px 18px 0;
   position: fixed;
@@ -829,7 +829,7 @@ select {
   margin: 22px 0;
 }
 .stat-card {
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid var(--line);
   border-radius: 9px;
   padding: 19px 21px;
@@ -863,7 +863,7 @@ select {
   gap: 22px;
 }
 .panel {
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid var(--line);
   border-radius: 9px;
   padding: 23px;
@@ -915,7 +915,7 @@ select {
 }
 .step-number {
   font-size: 10px;
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid var(--border-light);
   color: var(--text-light);
 }
@@ -1087,7 +1087,7 @@ select {
 .setup-card {
   max-width: 540px;
   margin: 9vh auto;
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid var(--line);
   padding: 40px;
   border-radius: 12px;
@@ -1183,7 +1183,7 @@ td {
 .modal {
   width: 100%;
   max-width: 460px;
-  background: #fff;
+  background: var(--bg-surface);
   border-radius: 12px;
   padding: 34px;
   position: relative;

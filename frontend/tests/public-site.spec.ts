@@ -48,7 +48,7 @@ test("public homepage has metadata, live plan controls and signup navigation", a
   await page.goto("/");
   await expect(page).toHaveTitle("Nemio · Turn conversations into customers");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Turn enquiries into",
+    "Every conversation.",
   );
   // Keep the overview concise; the full catalogue remains accessible in the tour.
   await expect(page.locator("main > section")).toHaveCount(7);
