@@ -376,7 +376,11 @@ def support_tickets_dataset(queue="billing"):
         "unread": SupportTicket.objects.filter(is_read=False).count(),
         "counts": counts,
         "queue": queue,
-        "staff": list(PlatformRole.objects.select_related("user").filter(active=True)),
+        "staff": list(
+            PlatformRole.objects.select_related("user").filter(
+                active=True, user__is_active=True, role__in=["owner", "support"]
+            )
+        ),
         "tickets": [
             {
                 "id": ticket.pk,

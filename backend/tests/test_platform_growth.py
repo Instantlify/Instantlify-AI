@@ -618,3 +618,49 @@ def test_support_staff_reply_is_visible_to_reporter(
     client.force_authenticate(operator.user)
     rows = client.get(f"/api/workspaces/{workspace.pk}/support/tickets/").json()
     assert rows[0]["messages"][0]["body"] == "Please reconnect your channel."
+
+
+def test_ticket_controls_have_csp_compatible_save_button(operator):
+    import re
+
+    ticket = growth.open_ticket(subject="Controls regression", reporter_email="ask@example.com")
+    response = console(operator).get("/ops/?tab=support&sub=support")
+    assert response.status_code == 200
+    form = re.search(
+        r'<form[^>]+action="/ops/tickets/'
+        + str(ticket.pk)
+        + r'/" class="list-actions"[^>]*>(.*?)</form>',
+        response.content.decode(),
+        re.S,
+    ).group(1)
+    assert "onchange=" not in form
+    assert "Save changes" in form and "<noscript>" not in form
+    assert f'value="{operator.pk}"' in form
+
+
+def test_ticket_can_be_reopened_and_unassigned(operator):
+    ticket = growth.open_ticket(subject="Help", reporter_email="ask@example.com")
+    ticket.status = "resolved"
+    ticket.assignee = operator.user
+    ticket.save()
+    response = console(operator).post(
+        f"/ops/tickets/{ticket.pk}/", {"status": "unresolved", "assignee": "", "queue": "support"}
+    )
+    assert response.status_code == 302
+    ticket.refresh_from_db()
+    assert ticket.status == "unresolved" and ticket.assignee_id is None
+
+
+def test_inactive_staff_cannot_be_assigned(operator):
+    from apps.platform_ops.models import PlatformRole
+    from apps.tenants.models import User
+
+    staff = User.objects.create_user(username="inactive-support", email="inactive@example.com")
+    role = PlatformRole.objects.create(user=staff, role="support", active=False)
+    ticket = growth.open_ticket(subject="Help", reporter_email="ask@example.com")
+    response = console(operator).post(
+        f"/ops/tickets/{ticket.pk}/", {"assignee": str(role.pk), "status": "resolved"}
+    )
+    assert response.status_code == 404
+    ticket.refresh_from_db()
+    assert ticket.assignee_id is None and ticket.status == "unresolved"

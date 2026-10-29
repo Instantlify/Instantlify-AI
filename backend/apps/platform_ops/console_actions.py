@@ -147,7 +147,13 @@ def ticket_update(request, pk):
 
         value = request.POST["assignee"]
         if value:
-            role = get_object_or_404(PlatformRole.objects.select_related("user"), pk=value)
+            role = get_object_or_404(
+                PlatformRole.objects.select_related("user"),
+                pk=value,
+                active=True,
+                user__is_active=True,
+                role__in=["owner", "support"],
+            )
             ticket.assignee = role.user
             changes["assignee"] = role.user.get_username()
         else:

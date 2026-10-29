@@ -4029,17 +4029,17 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
           </div>
           <form method="post" action="/ops/tickets/{{ ticket.id }}/" class="list-actions">{% csrf_token %}
             <input type="hidden" name="queue" value="{{ tickets.queue }}">
-            <select class="select-control" name="assignee" onchange="this.form.submit()">
+            <select class="select-control" name="assignee" aria-label="Assign ticket {{ ticket.ref }}">
               <option value="">Unassigned</option>
               {% for member in tickets.staff %}
               <option value="{{ member.pk }}"{% if ticket.assignee_id == member.user_id %} selected{% endif %}>{{ member.user.get_username }}</option>
               {% endfor %}
             </select>
-            <select class="select-control" name="status" onchange="this.form.submit()">
+            <select class="select-control" name="status" aria-label="Status for ticket {{ ticket.ref }}">
               <option value="unresolved"{% if not ticket.resolved %} selected{% endif %}>Not resolved</option>
               <option value="resolved"{% if ticket.resolved %} selected{% endif %}>Resolved</option>
             </select>
-            <noscript><button class="btn-secondary" type="submit">Save</button></noscript>
+            <button class="btn-secondary" type="submit">Save changes</button>
           </form>
         </div>
         {% empty %}
