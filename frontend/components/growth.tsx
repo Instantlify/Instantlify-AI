@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  ValidatedForm,
-  ValidatedInput,
-} from "@/components/validated-form";
+import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -205,7 +202,10 @@ export function ConnectPrompt({ workspaceId }: { workspaceId: string }) {
           It takes about a minute.
         </p>
       </div>
-      <Link className="button primary" href={`/w/${workspaceId}/integrations?tab=channels`}>
+      <Link
+        className="button primary"
+        href={`/w/${workspaceId}/integrations?tab=channels`}
+      >
         Connect account
       </Link>
     </section>
@@ -247,9 +247,11 @@ type Line = { from: "you" | "bot"; text: string };
 export function SupportChat({
   defaultName = "",
   defaultEmail = "",
+  workspaceId,
 }: {
   defaultName?: string;
   defaultEmail?: string;
+  workspaceId?: string;
 }) {
   const [lines, setLines] = useState<Line[]>([
     {
@@ -263,6 +265,11 @@ export function SupportChat({
   const [pending, setPending] = useState("");
   const [busy, setBusy] = useState(false);
   const [ticket, setTicket] = useState("");
+  const chatLog = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    const log = chatLog.current;
+    if (log) log.scrollTop = log.scrollHeight;
+  }, [lines, busy]);
 
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -284,20 +291,35 @@ export function SupportChat({
     setBusy(true);
     try {
       if (wantsTicket && who && address) {
-        const opened = await chat({
+        const ticketBody = {
           create_ticket: true,
           name: who,
           email: address,
           subject: text.slice(0, 200),
-          body: text,
-        });
+          body: [
+            ...lines.map(
+              (line) =>
+                `${line.from === "you" ? "Client" : "Nemio assistant"}: ${line.text}`,
+            ),
+            `Client request: ${text}`,
+          ]
+            .join("\n\n")
+            .slice(-4000),
+        };
+        const opened = workspaceId
+          ? await api<{ ticket_number: string }>(
+              `/api/workspaces/${workspaceId}/support/tickets/`,
+              "POST",
+              ticketBody,
+            )
+          : await chat(ticketBody);
         if (opened.ticket_number) {
           setTicket(opened.ticket_number);
           setLines((current) => [
             ...current,
             {
               from: "bot",
-              text: `Ticket ${opened.ticket_number} is open. We'll reply by email.`,
+              text: `Ticket ${opened.ticket_number} is open. ${workspaceId ? "Track replies in My tickets." : "Our team can follow up by email."}`,
             },
           ]);
           return;
@@ -349,7 +371,12 @@ export function SupportChat({
       <header>
         <MessageCircle size={17} /> Nemio support
       </header>
-      <ol className="chat-log" aria-live="polite">
+      <ol
+        ref={chatLog}
+        className="chat-log"
+        aria-live="polite"
+        aria-busy={busy}
+      >
         {lines.map((line, index) => (
           <li key={index} className={line.from}>
             {line.text}

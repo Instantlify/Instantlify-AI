@@ -74,3 +74,16 @@ Audit entries are insert-only at the model layer and protected against UPDATE/DE
 `backend/tests/test_platform_ops.py` covers host isolation, tenant/superuser denial, mandatory enrollment, RFC TOTP vector/replay/encryption/lockout, role restrictions, session revocation, last-owner protection, database audit immutability, invitation binding, support expiry, CSRF, IP spoofing, login throttling, paused-worker behavior and revenue normalization. Run the complete backend suite in Compose to include PostgreSQL and Redis checks.
 
 Real Stripe data, provider review status, corporate DNS/TLS/VPN and staff enrollment must be configured by the operator. Local tests establish implementation behavior, not those external production conditions.
+
+
+## Website chat and client support tickets
+
+The public site and authenticated portal have a floating support launcher. Visitors can ask Nemio questions or submit a categorized ticket with a name, email, subject and description. Logged-in clients can also open **Help & support** in the sidebar to create tickets, see their status and read or send replies. Replying to a resolved ticket reopens it. Chat-created client tickets include the recent conversation.
+
+Apply the normal backend migrations before deploying this version (`python manage.py migrate`); migration `platform_ops.0008` adds a reporter relationship and reply messages. Existing tickets remain in the admin queues. They are not automatically linked by email to a client's account, so historical anonymous requests are not accidentally exposed.
+
+The authenticated API is `/api/workspaces/<workspace_id>/support/tickets/` (list/create) and `/api/workspaces/<workspace_id>/support/tickets/<ticket_id>/replies/` (reply). Both membership and ticket reporter ownership are required. The client list shows the latest 100 requests. Name and email are taken from the signed-in account, not trusted from the submitted JSON.
+
+In the platform console's Support queues, expand **Conversation and reply** to read the original request and its thread, then send a response. Replies are saved to the ticket and emailed through the configured Django email backend. A mail failure is logged without losing the reply; clients can still read it in the portal. Assignment and resolution controls continue to work.
+
+Production AI answers use `PLATFORM_OPENAI_API_KEY` and the platform knowledge base managed in the console. These are separate from customer agent keys, documents and credits. If the AI provider is unavailable, chat offers the ticket form instead. Real email delivery requires the existing mail provider configuration and `DEFAULT_FROM_EMAIL`; local/test delivery is not evidence of production email delivery.

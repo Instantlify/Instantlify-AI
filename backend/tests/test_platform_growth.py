@@ -592,3 +592,29 @@ def test_editing_an_announcement_prefills_it(operator):
     assert 'value="Launch"' in body and 'value="We shipped"' in body and 'value="home"' in body
     assert f'action="/ops/notices/{item.pk}/"' in body
     assert 'value="green" selected' in body
+
+
+def test_support_staff_reply_is_visible_to_reporter(
+    operator, workspace, django_capture_on_commit_callbacks
+):
+    from rest_framework.test import APIClient
+
+    from apps.platform_ops.models import SupportTicketMessage
+
+    ticket = growth.open_ticket(
+        subject="Cannot publish", reporter_email=operator.user.email, workspace=workspace
+    )
+    ticket.reporter = operator.user
+    ticket.save()
+    with django_capture_on_commit_callbacks(execute=True):
+        response = console(operator).post(
+            f"/ops/tickets/{ticket.pk}/",
+            {"reply": "Please reconnect your channel.", "queue": "support"},
+        )
+    assert response.status_code == 302
+    assert SupportTicketMessage.objects.get(ticket=ticket).from_staff
+    assert mail.outbox[-1].to == [operator.user.email]
+    client = APIClient()
+    client.force_authenticate(operator.user)
+    rows = client.get(f"/api/workspaces/{workspace.pk}/support/tickets/").json()
+    assert rows[0]["messages"][0]["body"] == "Please reconnect your channel."

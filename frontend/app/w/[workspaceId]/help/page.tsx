@@ -10,7 +10,11 @@ export default function HelpPage() {
   const w = `/w/${workspace.id}`;
   return (
     <>
-      <SupportChat defaultName={user.name} defaultEmail={user.email} />
+      <SupportChat
+        defaultName={user.name}
+        defaultEmail={user.email}
+        workspaceId={workspace.id}
+      />
       <PageHeading
         eyebrow="Getting started"
         title="Start with the essentials."

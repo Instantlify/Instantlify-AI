@@ -1,3 +1,4 @@
+import { SupportWidget } from "@/components/support-center";
 import type { Metadata } from "next";
 import { DM_Sans, Manrope } from "next/font/google";
 import "./globals.css";
@@ -14,6 +15,7 @@ import "@xyflow/react/dist/style.css";
 import "./theme.css";
 import "./workspace-theme.css";
 import "./mission-control.css";
+import "./support.css";
 
 // Self-hosted at build time; meta.css points the shared font tokens at these.
 const body = DM_Sans({ subsets: ["latin"], variable: "--font-body" });
@@ -29,7 +31,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${body.variable} ${display.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <SupportWidget />
+      </body>
     </html>
   );
 }

@@ -287,6 +287,13 @@ class SupportTicket(models.Model):
 
     CATEGORIES = ["billing", "support", "bug"]
 
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="support_tickets",
+    )
     ticket_number = models.CharField(max_length=20, unique=True)
     category = models.CharField(max_length=10, default="support")
     subject = models.CharField(max_length=200)
@@ -307,6 +314,17 @@ class SupportTicket(models.Model):
     class Meta:
         ordering = ["-created_at", "-id"]
         indexes = [models.Index(fields=["category", "status"])]
+
+
+class SupportTicketMessage(models.Model):
+    ticket = models.ForeignKey(SupportTicket, on_delete=models.CASCADE, related_name="messages")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    from_staff = models.BooleanField(default=False)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
 
 
 class PlatformKnowledgeDocument(models.Model):

@@ -299,6 +299,13 @@ def open_ticket(
         raise ValueError("A ticket needs a subject.")
     if not reporter_email:
         raise ValueError("A ticket needs a reporter email.")
+    from django.core.exceptions import ValidationError
+    from django.core.validators import validate_email
+
+    try:
+        validate_email(reporter_email)
+    except ValidationError as exc:
+        raise ValueError("Enter a valid email address.") from exc
     if category not in SupportTicket.CATEGORIES:
         raise ValueError(f"Unknown ticket category: {category}")
     for _ in range(5):

@@ -4010,6 +4010,18 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
               {% if ticket.by_agent %}<span class="badge-tag badge-tag-purple" style="margin-left:8px;">via agent</span>{% endif %}
             </div>
             <div style="font-size:12.5px; margin-top:4px;">{{ ticket.subject }}</div>
+            <details style="margin-top:12px;">
+              <summary>Conversation and reply</summary>
+              <p style="white-space:pre-wrap; margin:12px 0;">{{ ticket.body }}</p>
+              {% for message in ticket.messages %}
+              <p style="white-space:pre-wrap; margin:12px 0;"><strong>{% if message.from_staff %}Support{% else %}Client{% endif %}</strong> · {{ message.created_at }}<br>{{ message.body }}</p>
+              {% endfor %}
+              <form method="post" action="/ops/tickets/{{ ticket.id }}/">{% csrf_token %}
+                <input type="hidden" name="queue" value="{{ tickets.queue }}">
+                <label>Reply to client<textarea class="input-control" name="reply" required maxlength="10000" rows="3" style="display:block; width:100%;"></textarea></label>
+                <button class="btn-secondary" type="submit">Send reply</button>
+              </form>
+            </details>
           </div>
           <div style="font-size:11.5px; color:var(--text-muted); text-align:right; min-width:190px;">
             <div>{{ ticket.email }}</div>

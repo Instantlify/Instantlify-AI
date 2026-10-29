@@ -153,6 +153,18 @@ def ticket_update(request, pk):
         else:
             ticket.assignee = None
             changes["assignee"] = "unassigned"
+    reply = request.POST.get("reply", "").strip()
+    if len(reply) > 10000:
+        return HttpResponseForbidden("Reply is too long.")
+    if reply:
+        from .models import SupportTicketMessage
+        from .support import notify_reply
+
+        SupportTicketMessage.objects.create(
+            ticket=ticket, author=request.user, from_staff=True, body=reply
+        )
+        transaction.on_commit(lambda: notify_reply(ticket, reply))
+        changes["reply_sent"] = True
     ticket.is_read = True
     ticket.save()
     record(request.user, "ticket.updated", target=ticket.ticket_number, **changes)

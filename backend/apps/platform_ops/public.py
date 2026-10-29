@@ -8,6 +8,7 @@ and none of it exposes the console's aggregates.
 
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
+from rest_framework import serializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, ScopedRateThrottle, UserRateThrottle
@@ -159,6 +160,15 @@ class PublicBlogDetail(PublicBlogList):
 # -------------------------------------------------------------------- support
 
 
+class PublicTicketInput(serializers.Serializer):
+    subject = serializers.CharField(max_length=200)
+    email = serializers.EmailField()
+    name = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
+    body = serializers.CharField(max_length=10000, required=False, allow_blank=True, default="")
+    category = serializers.ChoiceField(choices=["billing", "bug", "support"], default="support")
+    channel = serializers.CharField(max_length=30, required=False, allow_blank=True, default="")
+
+
 class SupportTicketView(APIView):
     """A person filing a ticket from the app. The platform support agent files
     through the same service function, so neither path can skip validation."""
@@ -169,15 +179,19 @@ class SupportTicketView(APIView):
 
     def post(self, request):
         user = request.user if request.user.is_authenticated else None
-        email = request.data.get("email") or getattr(user, "email", "")
+        fields = PublicTicketInput(
+            data={**request.data, "email": request.data.get("email") or getattr(user, "email", "")}
+        )
+        fields.is_valid(raise_exception=True)
+        data = fields.validated_data
         try:
             ticket = growth.open_ticket(
-                subject=request.data.get("subject", ""),
-                body=request.data.get("body", ""),
-                category=request.data.get("category", "support"),
-                reporter_email=email,
-                reporter_name=request.data.get("name") or getattr(user, "first_name", ""),
-                reporter_channel=str(request.data.get("channel", ""))[:30],
+                subject=data["subject"],
+                body=data["body"],
+                category=data["category"],
+                reporter_email=data["email"],
+                reporter_name=data["name"] or getattr(user, "first_name", ""),
+                reporter_channel=data["channel"],
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
@@ -211,22 +225,33 @@ class SupportChatView(PublicWrite):
         name = str(request.data.get("name", ""))[:120]
         email = str(request.data.get("email", ""))[:254]
         if request.data.get("create_ticket"):
-            result = support_agent.create_ticket(
-                name=name,
-                email=email,
-                subject=str(request.data.get("subject", ""))[:200] or "Support request",
-                body=str(request.data.get("body", ""))[:4000],
-                category=str(request.data.get("category", "support")),
-            )
+            try:
+                result = support_agent.create_ticket(
+                    name=name,
+                    email=email,
+                    subject=str(request.data.get("subject", ""))[:200] or "Support request",
+                    body=str(request.data.get("body", ""))[:4000],
+                    category=str(request.data.get("category", "support")),
+                )
+            except ValueError as exc:
+                return Response({"detail": str(exc)}, status=400)
             return Response(result, status=201 if result.get("ok") else 200)
-        return Response(
-            support_agent.answer(
+        from apps.channels.transport import ProviderError
+
+        try:
+            result = support_agent.answer(
                 str(request.data.get("message", ""))[:2000],
                 name=name,
                 email=email,
                 wants_ticket=bool(request.data.get("wants_ticket")),
             )
-        )
+        except ProviderError:
+            result = {
+                "reply": "The assistant is temporarily unavailable. Please use Raise a ticket and our team will help.",
+                "sentinel": None,
+                "sources": [],
+            }
+        return Response(result)
 
 
 # -------------------------------------------------------- announcements + promos

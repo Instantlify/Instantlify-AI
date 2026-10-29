@@ -366,9 +366,11 @@ def support_tickets_dataset(queue="billing"):
     from .models import PlatformRole, SupportTicket
 
     counts = ticket_counts()
-    tickets = SupportTicket.objects.filter(category=queue).select_related("assignee", "workspace")[
-        :100
-    ]
+    tickets = (
+        SupportTicket.objects.filter(category=queue)
+        .select_related("assignee", "workspace")
+        .prefetch_related("messages")[:100]
+    )
     return {
         "total": SupportTicket.objects.count(),
         "unread": SupportTicket.objects.filter(is_read=False).count(),
@@ -381,6 +383,8 @@ def support_tickets_dataset(queue="billing"):
                 "ref": ticket.ticket_number,
                 "who": ticket.reporter_name or "—",
                 "subject": ticket.subject,
+                "body": ticket.body,
+                "messages": ticket.messages.all(),
                 "email": ticket.reporter_email,
                 "age": ticket.created_at,
                 "assignee": ticket.assignee.get_username() if ticket.assignee else "Unassigned",

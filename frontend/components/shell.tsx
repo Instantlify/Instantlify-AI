@@ -1,5 +1,6 @@
 "use client";
 
+import { SupportWidget } from "@/components/support-center";
 import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
 
 import Link from "next/link";
@@ -203,6 +204,8 @@ const TOOLS: NavItem[] = [
 
 /** Sections an agent can open; owners and admins see everything. */
 const AGENT_SECTIONS = [
+  "help",
+  "support",
   "overview",
   "inbox",
   "crm",
@@ -505,6 +508,11 @@ export function Shell({ children }: { children: ReactNode }) {
             </details>
           )}
 
+          {renderNavLink({
+            id: "support",
+            label: "Help & support",
+            icon: MessageCircle,
+          })}
           {/* Settings */}
           {renderNavLink({
             id: "settings",
@@ -582,6 +590,12 @@ export function Shell({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page Content Body */}
+        <SupportWidget
+          key={workspace.id}
+          workspaceId={workspace.id}
+          name={user.name}
+          email={user.email}
+        />
         <main className="canvas-body">
           <VerifyBanner user={user} />
           <Announcements workspaceId={workspace.id} page={section} />

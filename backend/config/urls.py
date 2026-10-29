@@ -28,6 +28,7 @@ from apps.platform_ops.public import (
     SupportTicketView,
     WizardProgressView,
 )
+from apps.platform_ops.support import MyTicketReplyView, MyTicketsView
 from apps.tenants.invitations import (
     AcceptInvitationView,
     InvitationDetailView,
@@ -105,6 +106,11 @@ urlpatterns = [
     path("api/growth/wizard/", WizardProgressView.as_view()),
     path("api/growth/visit/", PageVisitView.as_view()),
     path("api/growth/blog-view/", BlogViewBeaconView.as_view()),
+    path("api/workspaces/<uuid:workspace_id>/support/tickets/", MyTicketsView.as_view()),
+    path(
+        "api/workspaces/<uuid:workspace_id>/support/tickets/<int:ticket_id>/replies/",
+        MyTicketReplyView.as_view(),
+    ),
     path("api/growth/tickets/", SupportTicketView.as_view()),
     path("api/growth/support-chat/", SupportChatView.as_view()),
     path("api/growth/announcements/", AnnouncementListView.as_view()),
