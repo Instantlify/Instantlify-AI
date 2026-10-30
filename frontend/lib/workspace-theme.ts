@@ -51,10 +51,17 @@ export function workspaceTheme(branding: Branding): CSSProperties {
     legacyDefault ? undefined : branding.sidebar_text_color,
     DEFAULT_SIDEBAR_TEXT,
   );
-  const foreground =
+  let foreground =
     colorContrast(primary, "#ffffff") >= colorContrast(primary, "#0c1b3a")
       ? "#ffffff"
       : "#0c1b3a";
+  if (colorContrast(primary, foreground) < 4.5) foreground = "#000000";
+  // Move hover away from its label color so contrast cannot drop on hover.
+  const hover = mix(
+    primary,
+    foreground === "#ffffff" ? "#000000" : "#ffffff",
+    0.12,
+  );
   let link = primary;
   for (let i = 0; i < 20 && colorContrast(link, "#0b1013") < 4.5; i++)
     link = mix(link, "#ffffff", 0.15);
@@ -62,8 +69,8 @@ export function workspaceTheme(branding: Branding): CSSProperties {
     "--brand-primary": primary,
     "--brand-action": primary,
     "--green": primary,
-    "--brand-primary-hover": mix(primary, "#000000", 0.12),
-    "--brand-action-hover": mix(primary, "#000000", 0.12),
+    "--brand-primary-hover": hover,
+    "--brand-action-hover": hover,
     "--brand-primary-light": mix(primary, "#0b1013", 0.88),
     "--brand-on-primary": foreground,
     "--brand-link": link,

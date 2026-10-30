@@ -1468,8 +1468,7 @@
   background: linear-gradient(
     135deg,
     var(--brand-primary-light) 0%,
-    var(--brand-primary-light) 50%,
-    #fae8ff 100%
+    var(--bg-surface) 100%
   );
   border: 1px solid rgba(99, 102, 241, 0.2);
   border-radius: 16px;
@@ -1497,13 +1496,13 @@
 .hero-title {
   font-size: 20px;
   font-weight: 800;
-  color: #1e1b4b;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .hero-desc {
   font-size: 13.5px;
-  color: #4338ca;
+  color: var(--text-secondary);
   margin: 6px 0 20px 0;
 }
 
@@ -1553,7 +1552,8 @@
   cursor: pointer;
 }
 .generate-submit-btn:hover {
-  background: var(--bg-subtle);
+  background: var(--brand-action-hover);
+  color: var(--brand-on-primary);
 }
 
 /* 3-Column Template Catalog Grid (Screenshot 2) */
@@ -1625,7 +1625,8 @@
   transition: background-color 0.15s ease;
 }
 .import-template-btn:hover {
-  background: var(--bg-subtle);
+  background: var(--brand-action-hover);
+  color: var(--brand-on-primary);
 }
 
 /* ==========================================================================
@@ -1981,7 +1982,7 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
-  background: #fafbfd;
+  background: var(--bg-surface);
   border-bottom: 1px solid #edf2f7;
 }
 
@@ -1994,11 +1995,11 @@
 }
 
 .boosend-crm-table tr:hover td {
-  background: #fafbfc;
+  background: var(--bg-hover);
 }
 
 .boosend-crm-table tr.picked td {
-  background: #f0f7ff;
+  background: var(--brand-primary-light);
 }
 
 .boosend-checkbox-round {
@@ -2044,7 +2045,7 @@
 
 .boosend-crm-assign-pill {
   border: 1px dashed var(--border-subtle);
-  background: #fafbfd;
+  background: var(--bg-surface);
   color: var(--text-muted);
   font-size: 11px;
   font-weight: 500;
@@ -2751,7 +2752,7 @@
 }
 
 .cell-filled {
-  color: #065f46;
+  color: var(--text-secondary);
 }
 
 .mock-phone-screen {
@@ -3732,7 +3733,7 @@
   border: 1px solid #bfdbfe;
   border-radius: 10px;
   padding: 18px 22px;
-  color: #1e3a8a;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -3747,11 +3748,11 @@
 }
 
 .setup-step-item {
-  color: #1e40af;
+  color: var(--text-secondary);
 }
 
 .guide-ext-link {
-  color: var(--brand-action-hover);
+  color: var(--brand-link);
   text-decoration: underline;
   font-weight: 600;
   margin: 0 3px;
@@ -3773,7 +3774,7 @@
 
 .guide-copy-chip code {
   font-size: 12px;
-  color: #1e3a8a;
+  color: var(--text-secondary);
   font-family: monospace;
 }
 
@@ -3796,7 +3797,7 @@
   gap: 8px;
   font-size: 12.5px;
   font-weight: 500;
-  color: #1e40af;
+  color: var(--text-secondary);
 }
 
 .boosend-config-form {
@@ -5588,7 +5589,7 @@
 }
 
 .get-affiliate-link-btn:hover {
-  background: #fefce8;
+  background: var(--bg-hover);
   border-color: #eab308;
 }
 
@@ -5895,7 +5896,8 @@
 }
 
 .save-changes-black-btn:hover {
-  background: var(--bg-subtle);
+  background: var(--brand-action-hover);
+  color: var(--brand-on-primary);
 }
 
 .save-changes-black-btn:disabled {
@@ -5956,7 +5958,8 @@
 }
 
 .update-password-btn:not(:disabled):hover {
-  background: var(--bg-subtle);
+  background: var(--brand-action-hover);
+  color: var(--brand-on-primary);
 }
 
 /* Tab 2: Meta Accounts Cards */
@@ -5976,7 +5979,8 @@
 }
 
 .add-black-btn:hover {
-  background: var(--bg-subtle);
+  background: var(--brand-action-hover);
+  color: var(--brand-on-primary);
 }
 
 .add-facebook-blue-btn {
@@ -6302,7 +6306,8 @@
 }
 
 .upgrade-plan-black-btn:hover {
-  background: var(--bg-subtle);
+  background: var(--brand-action-hover);
+  color: var(--brand-on-primary);
 }
 
 .subscription-plan-banner {
@@ -7994,7 +7999,7 @@ button.boosend-checkbox-round:focus-visible {
   background: transparent;
   border-radius: 6px;
   cursor: pointer;
-  color: #334155;
+  color: var(--text-secondary);
 }
 .crm-menu-item:hover,
 .crm-menu-item.active {
@@ -8136,7 +8141,7 @@ button.boosend-checkbox-round:focus-visible {
 }
 .crm-assignee {
   font-size: 12px;
-  color: #334155;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 .crm-messages {
@@ -8436,7 +8441,7 @@ button.boosend-checkbox-round:focus-visible {
   align-items: center;
   gap: 4px;
   background: var(--bg-subtle);
-  color: #334155;
+  color: var(--text-secondary);
   padding: 3px 6px 3px 10px;
   border-radius: 999px;
   font-size: 12px;
@@ -8627,4 +8632,23 @@ button.boosend-checkbox-round:focus-visible {
 .onboarding-free-plan span {
   color: var(--muted, var(--text-muted));
   font-size: 0.875rem;
+}
+
+/* Keep workflow actions readable while unavailable and when reached by keyboard. */
+:is(.generate-submit-btn, .import-template-btn):disabled {
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  opacity: 1;
+  cursor: not-allowed;
+}
+:is(
+  .generate-submit-btn,
+  .import-template-btn,
+  .save-changes-black-btn,
+  .update-password-btn,
+  .add-black-btn,
+  .upgrade-plan-black-btn
+):focus-visible {
+  outline: 2px solid var(--brand-focus);
+  outline-offset: 3px;
 }
