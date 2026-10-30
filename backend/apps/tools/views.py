@@ -6,7 +6,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from django.db import IntegrityError, transaction
 from django.db.models import F
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, serializers
@@ -114,7 +114,22 @@ class DeepLinkRedirect(APIView):
     throttle_classes = [AnonRateThrottle]
 
     def get(self, request, code):
-        link = get_object_or_404(DeepLink.all_objects, code=code.lower(), active=True)
+        link = DeepLink.all_objects.filter(code=code.lower(), active=True).first()
+        if link is None:
+            response = HttpResponse(
+                '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+                '<meta name="viewport" content="width=device-width,initial-scale=1">'
+                '<title>Link unavailable | Nemio</title><style>'
+                'body{margin:0;background:#f4f7f5;color:#183c2c;font:18px system-ui;'
+                'min-height:100dvh;display:grid;place-items:center}'
+                'main{max-width:32rem;padding:2rem}a{color:inherit}</style></head>'
+                '<body><main><p>Nemio</p><h1>This link is unavailable</h1>'
+                '<p>This link may be paused or no longer available. Contact the person '
+                'who shared it for an updated link.</p><a href="/">Visit Nemio</a>'
+                '</main></body></html>', status=404, content_type="text/html",
+            )
+            response["Cache-Control"] = "no-store"
+            return response
         if request.method != "HEAD":
             with transaction.atomic():
                 DeepLink.all_objects.filter(pk=link.pk).update(clicks=F("clicks") + 1)

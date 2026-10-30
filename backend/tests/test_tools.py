@@ -81,7 +81,13 @@ def test_deep_links_are_created_counted_and_paused(client, workspace):
 
     link_id = created.json()["id"]
     assert client.patch(f"{url}{link_id}/", {"active": False}, format="json").status_code == 200
-    assert anon.get("/go/ig-profile/").status_code == 404
+    unavailable = anon.get("/go/ig-profile/")
+    assert unavailable.status_code == 404
+    assert unavailable["Content-Type"].startswith("text/html")
+    assert b"This link is unavailable" in unavailable.content
+    assert unavailable["Cache-Control"] == "no-store"
+    assert client.get(url).json()[0]["clicks"] == 1
+    assert b"This link is unavailable" in anon.get("/go/unknown-link/").content
     assert client.delete(f"{url}{link_id}/").status_code == 204
     assert not DeepLink.all_objects.exists()
 

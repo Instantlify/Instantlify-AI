@@ -114,7 +114,10 @@ export default function FormsPage() {
             aside={<Pill>{form.published ? "Published" : "Draft"}</Pill>}
           >
             <p>{form.description}</p>
-            <p>{form.submissions ?? 0} responses</p>
+            <p>
+              {form.submissions ?? 0}{" "}
+              {form.submissions === 1 ? "response" : "responses"}
+            </p>
             <div className="row" style={{ flexWrap: "wrap" }}>
               <button
                 className="button secondary small"
@@ -524,8 +527,9 @@ export default function FormsPage() {
             <Download size={14} /> Export responses
           </button>
           <p>
-            Latest {responses.length} responses (up to 500). Consent is recorded
-            with each submission.
+            Latest {responses.length}{" "}
+            {responses.length === 1 ? "response" : "responses"} (up to 500).
+            Consent is recorded with each submission.
           </p>
           {!responses.length && <p>No submissions yet.</p>}
           {responses.map((row) => (

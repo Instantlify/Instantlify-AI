@@ -33,7 +33,7 @@ import {
 import { BrandIcon, isBrand } from "@/lib/brand-icons";
 
 export default function DeepLinksPage() {
-  const { workspace, prefix, manager } = useWorkspace();
+  const { prefix, manager } = useWorkspace();
   const [links, setLinks] = useState<DeepLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -77,18 +77,6 @@ export default function DeepLinksPage() {
     form_submissions: number;
     daily: { day: string; clicks: number }[];
   } | null>(null);
-
-  function save(next: DeepLink[]) {
-    setLinks(next);
-    try {
-      localStorage.setItem(
-        `nemio:deeplinks:${workspace.id}`,
-        JSON.stringify(next),
-      );
-    } catch {
-      // storage quota or disabled
-    }
-  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -162,13 +150,17 @@ export default function DeepLinksPage() {
         action={
           <button
             className="button primary small"
-            onClick={() => setCreating(true)}
+            disabled={!manager}
+            onClick={() => {
+              feedback.setError("");
+              setCreating(true);
+            }}
           >
             <Plus size={15} /> Create deep link
           </button>
         }
       />
-      <ErrorNotice error={feedback.error} />
+      {!creating && <ErrorNotice error={feedback.error} />}
       <SuccessNotice notice={feedback.notice} />
 
       <div className="stats-grid" style={{ marginBottom: "20px" }}>
@@ -196,7 +188,7 @@ export default function DeepLinksPage() {
 
       <Panel
         title="Active Smart Links"
-        aside={`${links.length} links configured`}
+        aside={`${links.length} ${links.length === 1 ? "link" : "links"} configured`}
       >
         {loading ? (
           <p className="loading-text">Loading links…</p>
@@ -257,6 +249,7 @@ export default function DeepLinksPage() {
                     <button
                       className={`pill ${link.active ? "pill-good" : "pill-warn"}`}
                       style={{ border: "none", cursor: "pointer" }}
+                      disabled={!manager || feedback.busy}
                       onClick={() => toggleActive(link)}
                     >
                       {link.active ? "Active" : "Paused"}
@@ -300,6 +293,7 @@ export default function DeepLinksPage() {
                       </a>
                       <button
                         className="icon-button"
+                        disabled={!manager || feedback.busy}
                         onClick={() => remove(link)}
                         title="Delete link"
                       >
@@ -323,14 +317,24 @@ export default function DeepLinksPage() {
           title="Create Smart Deep Link"
           onClose={() => setCreating(false)}
         >
-          <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
+          <ValidatedForm
+            fieldErrors={feedback.fieldErrors}
+            validationTarget={feedback.validationTarget}
+            onEdit={() => feedback.setError("")}
+            validate={(): Record<string, string> =>
+              target.trim().startsWith("https://")
+                ? {}
+                : { target: "Enter a destination starting with https://." }
+            }
             onSubmit={handleCreate}
             style={{ display: "flex", flexDirection: "column", gap: "14px" }}
           >
+            <ErrorNotice error={feedback.error} />
             <label>
               Link Title
               <ValidatedInput
                 required
+                name="title"
                 placeholder="e.g. Instagram VIP Profile Link"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -355,6 +359,7 @@ export default function DeepLinksPage() {
               Destination HTTPS URL
               <ValidatedInput
                 required
+                name="target"
                 type="url"
                 placeholder={
                   platform === "instagram"
@@ -370,6 +375,7 @@ export default function DeepLinksPage() {
             <label>
               Campaign (utm_campaign)
               <ValidatedInput
+                name="campaign"
                 maxLength={100}
                 value={campaign}
                 onChange={(e) => setCampaign(e.target.value)}
@@ -398,6 +404,7 @@ export default function DeepLinksPage() {
               Custom link ending (optional)
               <ValidatedInput
                 placeholder="e.g. vip-chat"
+                name="code"
                 value={customCode}
                 onChange={(e) => setCustomCode(e.target.value)}
               />
@@ -431,6 +438,8 @@ export default function DeepLinksPage() {
           onClose={() => setQrModal(null)}
         >
           <div style={{ textAlign: "center", padding: "16px 0" }}>
+            {/* QR code is a generated external image, without an optimization source. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shortUrl(qrModal))}`}
               alt="Deep Link QR Code"
@@ -450,8 +459,9 @@ export default function DeepLinksPage() {
       {stats && (
         <Modal title="Link activity" onClose={() => setStats(null)}>
           <p>
-            {stats.clicks} clicks · {stats.form_submissions} attributed form
-            submissions
+            {stats.clicks} {stats.clicks === 1 ? "click" : "clicks"} ·{" "}
+            {stats.form_submissions} attributed form{" "}
+            {stats.form_submissions === 1 ? "submission" : "submissions"}
           </p>
           <p className="muted-text">
             To attribute a form submission, include ?ref=your-link-code in the

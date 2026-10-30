@@ -52,14 +52,18 @@ def test_form_captures_encrypted_answers_once_without_reopening_opt_out(client, 
         anonymous.get(f"/api/workspaces/{workspace.pk}/forms/{form['id']}/submissions/").status_code
         == 403
     )
-    assert (
-        client.patch(
-            f"/api/workspaces/{workspace.pk}/forms/{form['id']}/",
-            {"published": False},
-            format="json",
-        ).status_code
-        == 200
+    unpublished = client.patch(
+        f"/api/workspaces/{workspace.pk}/forms/{form['id']}/",
+        {"published": False},
+        format="json",
     )
+    assert unpublished.status_code == 200
+    assert unpublished.json()["submissions"] == 1
+    detail_url = f"/api/workspaces/{workspace.pk}/forms/{form['id']}/"
+    assert client.get(detail_url).json()["submissions"] == 1
+    updated = client.patch(detail_url, {"title": "Updated enquiry"}, format="json")
+    assert updated.json()["submissions"] == 1
+    assert client.get(f"/api/workspaces/{workspace.pk}/forms/").json()[0]["submissions"] == 1
     assert anonymous.post(url, body, format="json").status_code == 404
 
 

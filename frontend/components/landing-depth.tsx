@@ -420,10 +420,9 @@ const catalog = [
     "Keep a record of important workspace actions.",
   ],
   [
-    "Roadmap",
+    "Sales & growth",
     "Embeddable lead forms",
-    "Dedicated form creation and embedding.",
-    "Planned",
+    "Create, publish and embed forms with consent, response collection and CRM capture.",
   ],
   [
     "Roadmap",
@@ -910,8 +909,8 @@ export function ProductDepth() {
                   <div>
                     <strong>{name}</strong>
                     <small>
-                      <BrandIcon name={NETWORKS[network]} size={11} />{" "}
-                      {network} · {subject}
+                      <BrandIcon name={NETWORKS[network]} size={11} /> {network}{" "}
+                      · {subject}
                     </small>
                   </div>
                 </button>

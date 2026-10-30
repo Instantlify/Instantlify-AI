@@ -70,7 +70,9 @@ test("public homepage has metadata, live plan controls and signup navigation", a
     .getByRole("button", { name: "Get started" })
     .click();
   await expect(page).toHaveURL(/auth\/\?mode=signup&plan=pro&interval=annual/);
-  await expect(page.getByLabel("Your name")).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Your name", exact: true }),
+  ).toBeVisible();
 });
 
 test("mobile homepage fits and links to sign in", async ({ page }) => {
@@ -280,8 +282,8 @@ test("feature catalogue filters current and planned capabilities", async ({
   const catalogue = page.locator("#feature-catalog");
   expect(await catalogue.locator("article").count()).toBeGreaterThan(50);
   await catalogue.getByRole("button", { name: "Roadmap", exact: true }).click();
-  await expect(catalogue.locator("article")).toHaveCount(9);
-  await expect(catalogue.locator(".nm-planned")).toHaveCount(9);
+  await expect(catalogue.locator("article")).toHaveCount(8);
+  await expect(catalogue.locator(".nm-planned")).toHaveCount(8);
   await catalogue
     .getByRole("button", { name: "All features", exact: true })
     .click();
@@ -351,7 +353,9 @@ test("legacy invitation and pricing links reach authentication", async ({
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();
   await page.goto("/?plan=pro&interval=annual");
-  await expect(page.getByLabel("Your name")).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Your name", exact: true }),
+  ).toBeVisible();
   await expect(page).toHaveURL(/plan=pro&interval=annual&mode=signup/);
 });
 
@@ -388,7 +392,9 @@ test("signup preserves the selected plan through onboarding", async ({
     }),
   );
   await page.goto("/auth?mode=signup&plan=pro&interval=annual");
-  await page.getByLabel("Your name").fill(user.name);
+  await page
+    .getByRole("textbox", { name: "Your name", exact: true })
+    .fill(user.name);
   await page.getByLabel("Email address").fill(user.email);
   await page
     .getByLabel("Password", { exact: true })

@@ -19,6 +19,15 @@ import {
   useFeedback,
 } from "@/components/ui";
 
+function normalizeKit(value: CreatorKit): CreatorKit {
+  return {
+    ...value,
+    links: Array.isArray(value.links) ? value.links : [],
+    statistics: Array.isArray(value.statistics) ? value.statistics : [],
+    services: Array.isArray(value.services) ? value.services : [],
+  };
+}
+
 export default function CreatorKitPage() {
   const { prefix, workspace, manager } = useWorkspace();
   const [kit, setKit] = useState<CreatorKit>({
@@ -49,7 +58,7 @@ export default function CreatorKitPage() {
       controller.signal,
     )
       .then((value) => {
-        if (value) setKit(value);
+        if (value) setKit((current) => normalizeKit({ ...current, ...value }));
       })
       .catch((e) => {
         if (!controller.signal.aborted) feedback.setError(message(e));
@@ -111,14 +120,19 @@ export default function CreatorKitPage() {
       {!loaded ? (
         <p>Loading creator kit…</p>
       ) : (
-        <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
+        <ValidatedForm
+          fieldErrors={feedback.fieldErrors}
+          validationTarget={feedback.validationTarget}
+          onEdit={() => feedback.setError("")}
           className="form-grid"
           style={{ maxWidth: 760 }}
           onSubmit={(e) => {
             e.preventDefault();
             void feedback.run(async () => {
               setKit(
-                await api<CreatorKit>(`${prefix}/creator-kit/`, "PUT", kit),
+                normalizeKit(
+                  await api<CreatorKit>(`${prefix}/creator-kit/`, "PUT", kit),
+                ),
               );
             }, "Creator kit saved.");
           }}
@@ -127,7 +141,8 @@ export default function CreatorKitPage() {
             <div className="form-grid">
               <label>
                 Public address
-                <ValidatedInput name="slug"
+                <ValidatedInput
+                  name="slug"
                   required
                   pattern="[a-z0-9_\-]+"
                   maxLength={80}
@@ -138,7 +153,8 @@ export default function CreatorKitPage() {
               </label>
               <label>
                 Name
-                <ValidatedInput name="name"
+                <ValidatedInput
+                  name="name"
                   required
                   maxLength={120}
                   value={kit.name}
@@ -147,7 +163,8 @@ export default function CreatorKitPage() {
               </label>
               <label>
                 Headline
-                <ValidatedInput name="headline"
+                <ValidatedInput
+                  name="headline"
                   maxLength={200}
                   value={kit.headline}
                   onChange={(e) => setKit({ ...kit, headline: e.target.value })}
@@ -156,7 +173,8 @@ export default function CreatorKitPage() {
               </label>
               <label>
                 About you
-                <ValidatedTextarea name="bio"
+                <ValidatedTextarea
+                  name="bio"
                   rows={5}
                   maxLength={2000}
                   value={kit.bio}
@@ -165,7 +183,8 @@ export default function CreatorKitPage() {
               </label>
               <label>
                 Public contact email
-                <ValidatedInput name="contact_email"
+                <ValidatedInput
+                  name="contact_email"
                   type="email"
                   maxLength={254}
                   value={kit.contact_email}
@@ -269,7 +288,8 @@ export default function CreatorKitPage() {
                 <div key={index} className="row">
                   <label>
                     Metric
-                    <ValidatedInput name="label"
+                    <ValidatedInput
+                      name="label"
                       required
                       maxLength={250}
                       value={row.label}
@@ -288,7 +308,8 @@ export default function CreatorKitPage() {
                   </label>
                   <label>
                     Value
-                    <ValidatedInput name="value"
+                    <ValidatedInput
+                      name="value"
                       required
                       maxLength={250}
                       value={row.value}
@@ -343,7 +364,8 @@ export default function CreatorKitPage() {
                 <div key={index} className="form-grid">
                   <label>
                     Link label
-                    <ValidatedInput name="label"
+                    <ValidatedInput
+                      name="label"
                       required
                       maxLength={250}
                       value={row.label}
@@ -361,7 +383,8 @@ export default function CreatorKitPage() {
                   </label>
                   <label>
                     HTTPS link
-                    <ValidatedInput name="url"
+                    <ValidatedInput
+                      name="url"
                       type="url"
                       required
                       maxLength={2000}
@@ -413,7 +436,8 @@ export default function CreatorKitPage() {
                 <div className="form-grid" key={index}>
                   <label>
                     Offer title
-                    <ValidatedInput name="title"
+                    <ValidatedInput
+                      name="title"
                       required
                       maxLength={250}
                       value={row.title}
@@ -431,7 +455,8 @@ export default function CreatorKitPage() {
                   </label>
                   <label>
                     Description
-                    <ValidatedTextarea name="description"
+                    <ValidatedTextarea
+                      name="description"
                       required
                       maxLength={250}
                       value={row.description}

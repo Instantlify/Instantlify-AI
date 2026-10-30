@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { X } from "lucide-react";
 import { ApiError, message } from "@/lib/api";
 import type { FieldErrors } from "@/lib/form-errors";
@@ -181,14 +187,64 @@ export function Modal({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    const opener =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const overflow = document.body.style.overflow;
+    dialog?.showModal();
+    document.body.style.overflow = "hidden";
+    return () => {
+      dialog?.close();
+      document.body.style.overflow = overflow;
+      if (opener?.isConnected) opener.focus();
+    };
+  }, []);
   return (
-    <div className="modal-backdrop">
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className="modal"
-      >
+    <dialog
+      ref={dialogRef}
+      className="modal-backdrop"
+      aria-label={title}
+      onKeyDown={(event) => {
+        if (event.key !== "Tab") return;
+        const controls = Array.from(
+          event.currentTarget.querySelectorAll<HTMLElement>(
+            "button, a[href], input, select, textarea, [tabindex]",
+          ),
+        ).filter(
+          (element) =>
+            element.tabIndex >= 0 &&
+            !element.matches(":disabled") &&
+            element.getClientRects().length > 0,
+        );
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (!first) {
+          event.preventDefault();
+          event.currentTarget.focus();
+          return;
+        }
+        if (
+          event.shiftKey &&
+          (document.activeElement === first ||
+            document.activeElement === event.currentTarget)
+        ) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+    >
+      <section className="modal">
         <button
           className="icon-button close-modal"
           aria-label="Close dialog"
@@ -199,7 +255,7 @@ export function Modal({
         <h2>{title}</h2>
         {children}
       </section>
-    </div>
+    </dialog>
   );
 }
 

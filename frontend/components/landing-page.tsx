@@ -396,12 +396,12 @@ export function LandingPage({
       productMenuRef.current.querySelector("summary")?.focus();
     };
     window.addEventListener("scroll", close, { passive: true });
-    document.addEventListener("pointerdown", outside);
-    document.addEventListener("keydown", escape);
+    document.addEventListener("pointerdown", outside, true);
+    document.addEventListener("keydown", escape, true);
     return () => {
       window.removeEventListener("scroll", close);
-      document.removeEventListener("pointerdown", outside);
-      document.removeEventListener("keydown", escape);
+      document.removeEventListener("pointerdown", outside, true);
+      document.removeEventListener("keydown", escape, true);
     };
   }, []);
 
@@ -1215,9 +1215,9 @@ export function LandingPage({
                   {
                     icon: LayoutTemplate,
                     title: "Standalone form builder",
-                    copy: "A dedicated embeddable lead-form builder is not yet available.",
-                    status: "Planned",
-                    link: false,
+                    copy: "Create, publish and embed forms with consent, response collection and CRM capture.",
+                    status: "Available",
+                    link: true,
                   },
                   {
                     icon: Headphones,

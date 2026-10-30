@@ -5,7 +5,7 @@ import uuid
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
-from django.db.models import Prefetch
+from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, serializers
 from rest_framework.permissions import AllowAny
@@ -119,8 +119,6 @@ class FormList(generics.ListCreateAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        from django.db.models import Count
-
         workspace_membership(self.request, self.kwargs["workspace_id"], ["owner", "admin"])
         return LeadForm.objects.for_workspace(self.kwargs["workspace_id"]).annotate(
             submissions=Count("formsubmission")
@@ -145,7 +143,9 @@ class FormDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         workspace_membership(self.request, self.kwargs["workspace_id"], ["owner", "admin"])
-        return LeadForm.objects.for_workspace(self.kwargs["workspace_id"])
+        return LeadForm.objects.for_workspace(self.kwargs["workspace_id"]).annotate(
+            submissions=Count("formsubmission")
+        )
 
     def perform_update(self, serializer):
         save_form(serializer)

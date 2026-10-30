@@ -83,6 +83,21 @@ test("the builder tests a draft, shows retained executions and exports the same 
   );
   await page.goto(`/w/${id}/automations/${automationId}`);
   await page.getByRole("button", { name: "Test flow", exact: true }).click();
+  const testDialog = page.getByRole("dialog");
+  await testDialog.getByRole("button", { name: "Close dialog" }).focus();
+  await page.keyboard.press("Shift+Tab");
+  await expect
+    .poll(() =>
+      testDialog.evaluate((el) => el.contains(document.activeElement)),
+    )
+    .toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(testDialog).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Test flow", exact: true }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: "Test flow", exact: true }).click();
+
   await page
     .getByRole("button", { name: "Run walkthrough", exact: true })
     .click();
@@ -166,7 +181,9 @@ test("voice, calling and avatar settings survive saving the advanced draft", asy
   await page
     .getByLabel("Voice integration", { exact: true })
     .selectOption(integrations[0].id);
-  await page.getByLabel(/^Message/).fill("A saved voice script");
+  await page
+    .getByRole("textbox", { name: /^Message Use/ })
+    .fill("A saved voice script");
   await page
     .getByRole("button", { name: "AI phone call", exact: true })
     .click();
@@ -181,7 +198,9 @@ test("voice, calling and avatar settings survive saving the advanced draft", asy
   await page
     .getByLabel("HeyGen integration", { exact: true })
     .selectOption(integrations[2].id);
-  await page.getByLabel(/^Message/).fill("A saved avatar script");
+  await page
+    .getByRole("textbox", { name: /^Message Use/ })
+    .fill("A saved avatar script");
   await page
     .getByRole("combobox", { name: /Aspect ratio/ })
     .selectOption("9:16");
