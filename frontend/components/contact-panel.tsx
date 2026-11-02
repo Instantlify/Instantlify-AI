@@ -7,7 +7,8 @@ import {
 } from "@/components/validated-form";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { contactSourceLabel } from "@/lib/contact-source";
 import {
   ExternalLink,
   MessageSquare,
@@ -88,6 +89,7 @@ export function ContactPanel({
   onDelete: (id: string) => void;
 }) {
   const feedback = useFeedback();
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [recent, setRecent] = useState<Message[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [note, setNote] = useState("");
@@ -122,14 +124,22 @@ export function ContactPanel({
     return () => controller.abort();
   }, [prefix, conversationId]);
 
-  // Close on Escape like a dialog.
+  // Native modality makes the background inert and restores the opening control.
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+    const dialog = dialogRef.current;
+    const opener =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const overflow = document.body.style.overflow;
+    dialog?.showModal();
+    document.body.style.overflow = "hidden";
+    return () => {
+      dialog?.close();
+      document.body.style.overflow = overflow;
+      if (opener?.isConnected) opener.focus();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, []);
 
   const patch = async (data: Partial<LeadRow>, success?: string) => {
     const updated = await feedback.run(
@@ -246,16 +256,56 @@ export function ContactPanel({
 
   return (
     <>
-      <div
-        className="contact-panel-backdrop"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <aside
+      <dialog
+        ref={dialogRef}
         className="contact-panel"
         role="dialog"
         aria-modal="true"
         aria-label={`Contact ${name}`}
+        onCancel={(event) => {
+          event.preventDefault();
+          onClose();
+        }}
+        onClick={(event) => {
+          if (event.target !== event.currentTarget) return;
+          const bounds = event.currentTarget.getBoundingClientRect();
+          if (
+            event.clientX < bounds.left ||
+            event.clientX > bounds.right ||
+            event.clientY < bounds.top ||
+            event.clientY > bounds.bottom
+          )
+            onClose();
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Tab") return;
+          const controls = Array.from(
+            event.currentTarget.querySelectorAll<HTMLElement>(
+              "button, a[href], input, select, textarea, [tabindex]",
+            ),
+          ).filter(
+            (element) =>
+              element.tabIndex >= 0 &&
+              !element.matches(":disabled") &&
+              element.getClientRects().length > 0,
+          );
+          const first = controls[0];
+          const last = controls[controls.length - 1];
+          if (!first) {
+            event.preventDefault();
+            event.currentTarget.focus();
+          } else if (
+            event.shiftKey &&
+            (document.activeElement === first ||
+              document.activeElement === event.currentTarget)
+          ) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }}
       >
         <header className="contact-panel-head">
           <ContactAvatar name={name} avatarUrl={lead.avatar_url} size={56} />
@@ -274,7 +324,9 @@ export function ContactPanel({
             <div className="contact-panel-sub">
               {lead.handle && <span>{lead.handle}</span>}
               {lead.opted_out && <Pill tone="bad">Opted out</Pill>}
-              {!linked && <Pill tone="neutral">Added by hand</Pill>}
+              {(!linked || lead.fields?.source === "form") && (
+                <Pill tone="neutral">{contactSourceLabel(lead)}</Pill>
+              )}
             </div>
           </div>
           <button
@@ -480,7 +532,13 @@ export function ContactPanel({
             ))}
             {!lead.tags.length && <span className="subtle">No tags yet</span>}
           </div>
-          <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="contact-inline-form" onSubmit={addTag}>
+          <ValidatedForm
+            fieldErrors={feedback.fieldErrors}
+            validationTarget={feedback.validationTarget}
+            onEdit={() => feedback.setError("")}
+            className="contact-inline-form"
+            onSubmit={addTag}
+          >
             <ValidatedInput
               aria-label="New tag"
               placeholder="Add a tag"
@@ -536,8 +594,15 @@ export function ContactPanel({
               </div>
             )}
           </dl>
-          <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="contact-inline-form" onSubmit={addField}>
-            <ValidatedInput name="key"
+          <ValidatedForm
+            fieldErrors={feedback.fieldErrors}
+            validationTarget={feedback.validationTarget}
+            onEdit={() => feedback.setError("")}
+            className="contact-inline-form"
+            onSubmit={addField}
+          >
+            <ValidatedInput
+              name="key"
               aria-label="Field name"
               placeholder="Field, e.g. City"
               maxLength={60}
@@ -546,7 +611,8 @@ export function ContactPanel({
                 setField({ ...field, key: event.target.value })
               }
             />
-            <ValidatedInput name="value"
+            <ValidatedInput
+              name="value"
               aria-label="Field value"
               placeholder="Value"
               maxLength={500}
@@ -609,7 +675,13 @@ export function ContactPanel({
             ) : (
               <p className="subtle">Only your team sees notes.</p>
             )}
-            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="contact-inline-form" onSubmit={addNote}>
+            <ValidatedForm
+              fieldErrors={feedback.fieldErrors}
+              validationTarget={feedback.validationTarget}
+              onEdit={() => feedback.setError("")}
+              className="contact-inline-form"
+              onSubmit={addNote}
+            >
               <ValidatedInput
                 aria-label="New note"
                 placeholder="Add a private note"
@@ -631,7 +703,13 @@ export function ContactPanel({
           <section className="contact-section">
             <h3>Housekeeping</h3>
             {syncTargets.length > 0 && (
-              <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="contact-inline-form" onSubmit={sync}>
+              <ValidatedForm
+                fieldErrors={feedback.fieldErrors}
+                validationTarget={feedback.validationTarget}
+                onEdit={() => feedback.setError("")}
+                className="contact-inline-form"
+                onSubmit={sync}
+              >
                 <ValidatedSelect
                   aria-label="Send to CRM"
                   value={syncTarget}
@@ -653,7 +731,13 @@ export function ContactPanel({
               </ValidatedForm>
             )}
             {duplicates.length > 0 && (
-              <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="contact-inline-form" onSubmit={merge}>
+              <ValidatedForm
+                fieldErrors={feedback.fieldErrors}
+                validationTarget={feedback.validationTarget}
+                onEdit={() => feedback.setError("")}
+                className="contact-inline-form"
+                onSubmit={merge}
+              >
                 <ValidatedSelect
                   aria-label="Merge a duplicate into this contact"
                   value={mergeSource}
@@ -664,7 +748,7 @@ export function ContactPanel({
                     <option key={item.id} value={item.id}>
                       {item.name || "Unknown"}
                       {item.handle ? ` (${item.handle})` : ""}
-                      {item.channels.length ? "" : " · added by hand"}
+                      {` · ${contactSourceLabel(item)}`}
                     </option>
                   ))}
                 </ValidatedSelect>
@@ -678,7 +762,7 @@ export function ContactPanel({
             )}
           </section>
         )}
-      </aside>
+      </dialog>
     </>
   );
 }

@@ -437,10 +437,10 @@ const catalog = [
     "Planned",
   ],
   [
-    "Roadmap",
+    "Sales & growth",
     "Creator media kits",
-    "Public creator profiles with synced audience statistics.",
-    "Planned",
+    "Publish a profile, manual audience figures, work links and collaboration offers. Live follower statistics require an eligible plan and an active, non-test Instagram account with provider permissions.",
+    "Available",
   ],
   [
     "Roadmap",
@@ -1333,7 +1333,13 @@ export function ProductDepth() {
               <div>
                 <span>{group}</span>
                 {status ? (
-                  <span className="nm-planned">{status}</span>
+                  <span
+                    className={
+                      status === "Available" ? "nm-available" : "nm-planned"
+                    }
+                  >
+                    {status}
+                  </span>
                 ) : (
                   <Check size={14} />
                 )}

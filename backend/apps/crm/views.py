@@ -518,7 +518,11 @@ class LeadList(generics.ListCreateAPIView):
         elif params.get("source") == "channel":
             query = query.filter(channelidentity__isnull=False).distinct()
         elif params.get("source") == "manual":
-            query = query.filter(channelidentity__isnull=True)
+            query = query.filter(channelidentity__isnull=True).filter(
+                Q(fields__source__isnull=True) | ~Q(fields__source="form")
+            )
+        elif params.get("source") == "form":
+            query = query.filter(fields__source="form")
         return lead_rows(query, workspace_id)
 
 

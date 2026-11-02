@@ -42,6 +42,7 @@ export default function CreatorKitPage() {
     services: [],
   });
   const [loaded, setLoaded] = useState(false);
+  const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
   const [connections, setConnections] = useState<Connection[]>([]);
   const feedback = useFeedback();
   useEffect(() => {
@@ -59,6 +60,7 @@ export default function CreatorKitPage() {
     )
       .then((value) => {
         if (value) setKit((current) => normalizeKit({ ...current, ...value }));
+        setPublishedSlug(value?.published ? value.slug : null);
       })
       .catch((e) => {
         if (!controller.signal.aborted) feedback.setError(message(e));
@@ -103,10 +105,10 @@ export default function CreatorKitPage() {
         title="Your next collaboration starts here"
         text="Publish a concise media kit with your work, audience figures and collaboration offers."
         action={
-          kit.published ? (
+          publishedSlug ? (
             <a
               className="button secondary"
-              href={`/c/${kit.slug}`}
+              href={`/c/${publishedSlug}`}
               target="_blank"
               rel="noreferrer"
             >
@@ -129,11 +131,11 @@ export default function CreatorKitPage() {
           onSubmit={(e) => {
             e.preventDefault();
             void feedback.run(async () => {
-              setKit(
-                normalizeKit(
-                  await api<CreatorKit>(`${prefix}/creator-kit/`, "PUT", kit),
-                ),
+              const saved = normalizeKit(
+                await api<CreatorKit>(`${prefix}/creator-kit/`, "PUT", kit),
               );
+              setKit(saved);
+              setPublishedSlug(saved.published ? saved.slug : null);
             }, "Creator kit saved.");
           }}
         >

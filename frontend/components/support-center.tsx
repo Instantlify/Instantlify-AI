@@ -160,7 +160,9 @@ export function SupportWidget({
   }, [open]);
   if (!workspaceId && pathname.startsWith("/w/")) return null;
   return (
-    <div className="support-widget">
+    <div
+      className={`support-widget${pathname.match(/\/w\/[^/]+\/inbox\/?$/) ? " inbox-support" : ""}`}
+    >
       <aside
         hidden={!open}
         className="support-widget-panel"

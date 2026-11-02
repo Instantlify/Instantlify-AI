@@ -1,4 +1,5 @@
 "use client";
+import { contactSourceLabel } from "@/lib/contact-source";
 
 import {
   ValidatedForm,
@@ -116,7 +117,8 @@ export default function CrmPage() {
       try {
         const params = new URLSearchParams({ page_size: String(pageSize) });
         if (query) params.set("search", query);
-        if (channelFilter === "manual") params.set("source", "manual");
+        if (channelFilter === "manual" || channelFilter === "form")
+          params.set("source", channelFilter);
         else if (channelFilter) params.set("provider", channelFilter);
         const result = await api<Page<LeadRow>>(
           `${prefix}/leads/?${params.toString()}`,
@@ -352,8 +354,11 @@ export default function CrmPage() {
         ))}
       </div>
     ) : (
-      <span className="subtle" title="Added by hand; not on a channel yet">
-        —
+      <span
+        className="subtle"
+        title={`${contactSourceLabel(lead)}; not on a channel yet`}
+      >
+        {contactSourceLabel(lead)}
       </span>
     );
 
@@ -438,7 +443,10 @@ export default function CrmPage() {
                     Move to {stage.label}
                   </button>
                 ))}
-                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
+                <ValidatedForm
+                  fieldErrors={feedback.fieldErrors}
+                  validationTarget={feedback.validationTarget}
+                  onEdit={() => feedback.setError("")}
                   className="crm-menu-form"
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -536,7 +544,9 @@ export default function CrmPage() {
                 <span className="crm-filter-chip">
                   {channelFilter === "manual"
                     ? "Added by hand"
-                    : channelLabel(channelFilter)}
+                    : channelFilter === "form"
+                      ? "Added via form"
+                      : channelLabel(channelFilter)}
                 </span>
               )}
             </button>
@@ -547,6 +557,7 @@ export default function CrmPage() {
                   { id: "", label: "All contacts" },
                   ...filterOptions,
                   { id: "manual", label: "Added by hand" },
+                  { id: "form", label: "Added via form" },
                 ].map((option) => (
                   <button
                     key={option.id}
@@ -919,7 +930,12 @@ export default function CrmPage() {
 
       {addContactModal && (
         <Modal title="Create contact" onClose={() => setAddContactModal(false)}>
-          <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} onSubmit={createContact}>
+          <ValidatedForm
+            fieldErrors={feedback.fieldErrors}
+            validationTarget={feedback.validationTarget}
+            onEdit={() => feedback.setError("")}
+            onSubmit={createContact}
+          >
             <p className="modal-copy">
               Contacts normally arrive on their own when someone messages a
               connected account. Add one by hand to keep notes on a person

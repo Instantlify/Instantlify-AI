@@ -1208,9 +1208,9 @@ export function LandingPage({
                   {
                     icon: BarChart3,
                     title: "Creator media kits",
-                    copy: "A public media kit with synced audience statistics is a future addition.",
-                    status: "Planned",
-                    link: false,
+                    copy: "Publish your profile, manual audience figures, work links and collaboration offers. Live follower statistics require an eligible plan and an active, non-test Instagram account with provider permissions.",
+                    status: "Available",
+                    link: true,
                   },
                   {
                     icon: LayoutTemplate,

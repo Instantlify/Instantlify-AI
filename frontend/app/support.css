@@ -4,6 +4,20 @@
   bottom: 24px;
   z-index: 90;
 }
+/* On conversation pages, help occupies its own row instead of covering controls. */
+.support-widget.inbox-support {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  align-self: flex-end;
+  margin: 8px 16px;
+}
+.inbox-support .support-widget-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  max-height: calc(100dvh - 160px);
+}
 .support-launcher {
   display: flex;
   align-items: center;
