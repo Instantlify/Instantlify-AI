@@ -240,7 +240,9 @@ function Auth({
               <span className="mini-brand">
                 <Sparkles size={20} />
               </span>
-              <span>Make it a meaningful one.</span>
+              <span style={{ color: "#ffffff" }}>
+                Make it a meaningful one.
+              </span>
               <Check size={18} />
             </div>
             <div className="art-chip">
@@ -256,10 +258,11 @@ function Auth({
         </div>
       </section>
       <section className="auth-form-wrap">
-        <div className="auth-top">
+        <div className="auth-top" style={{ color: "#ffffff" }}>
           {signup ? "Already have an account?" : `New to ${name}?`}
           <button
             className="text-button"
+            style={{ color: "#ffffff" }}
             onClick={() => {
               setSignup(!signup);
               setError("");
@@ -271,7 +274,7 @@ function Auth({
         </div>
         <div className="auth-form">
           <span className="section-icon">
-            <ArrowDownLeft size={23} />
+            <ArrowDownLeft size={23} style={{ color: "#c3ff5c" }} />
           </span>
           <h2>{signup ? "Make room for what’s next." : "Welcome back."}</h2>
           <p>

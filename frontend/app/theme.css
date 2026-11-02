@@ -300,3 +300,46 @@ select:focus-visible {
 .art-bubble.second > svg {
   color: var(--brand-neon);
 }
+
+/* Text on account screens follows the surface, rather than the action color. */
+.auth-layout .auth-top {
+  color: #ffffff;
+}
+.auth-layout .auth-top .text-button {
+  color: #ffffff;
+}
+.auth-layout .auth-form > .section-icon {
+  color: #c3ff5c;
+  background: #18252b;
+}
+.auth-layout .text-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.auth-layout .art-bubble.second,
+.auth-layout .mini-brand {
+  background: #10244a;
+  color: #ffffff;
+}
+.auth-layout .art-chip {
+  color: var(--text-primary);
+}
+.auth-layout .button.primary:hover {
+  color: var(--brand-on-primary, #ffffff) !important;
+}
+.auth-layout {
+  color-scheme: dark;
+  --bg-canvas: #10181c;
+  --bg-surface: #10181c;
+  --bg-subtle: #18252b;
+  --border-light: #34464f;
+  --border-subtle: #52656e;
+  --text-primary: #edf3f5;
+  --text-secondary: #c6d4da;
+  --text-muted: #b1c3cc;
+  --text-light: #b1c3cc;
+  --brand-action: #c3ff5c;
+  --brand-action-hover: #d1ff85;
+  --brand-on-primary: #102018;
+  color: var(--text-primary);
+}
