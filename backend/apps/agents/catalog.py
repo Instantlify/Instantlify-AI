@@ -2,7 +2,9 @@
 
 from decimal import Decimal
 
-from apps.billing.models import ModelPricingRate
+from django.conf import settings
+
+from apps.billing.credits import resolve_rate
 
 PLATFORM_MODELS = [
     {
@@ -47,17 +49,16 @@ PLATFORM_MODELS = [
 def get_platform_models():
     """Returns curated models with live rates matched against the platform rate card."""
     results = []
-    for entry in PLATFORM_MODELS:
-        rate = ModelPricingRate.objects.filter(model_pattern=entry["id"]).first()
-        if not rate:
-            # Fallback search by provider prefix or fallback rate
-            rate = (
-                ModelPricingRate.objects.filter(is_fallback_default=False)
-                .filter(model_pattern__startswith=entry["id"].split("-")[0])
-                .first()
-            )
-        our_input = rate.our_input if rate else entry["default_our_input"]
-        our_output = rate.our_output if rate else entry["default_our_output"]
+    entries = list(PLATFORM_MODELS)
+    for provider, model in [("openai", settings.PLATFORM_AI_MODEL), ("gemini", settings.PLATFORM_GEMINI_MODEL)]:
+        if not any(entry["id"] == model for entry in entries):
+            entries.append({"id": model, "provider": provider, "label": model,
+                            "badge": "Platform configured", "description": "The model configured for this provider on your Nemio server."})
+    for entry in entries:
+        # Display the same rate resolver used by the real credit debit, including fallbacks.
+        rate = resolve_rate(entry["id"])
+        our_input = rate.our_input
+        our_output = rate.our_output
 
         input_dollars = f"${(Decimal(our_input) / Decimal(100)):.2f}"
         output_dollars = f"${(Decimal(our_output) / Decimal(100)):.2f}"

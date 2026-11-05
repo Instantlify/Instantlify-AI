@@ -82,6 +82,12 @@ def _request(method, url, *, side_effect=False, empty_success=False, **kwargs):
             raise AmbiguousDelivery() from None
         raise ProviderError("invalid_provider_response") from None
     if not response.is_success:
+        error = body.get("error")
+        if isinstance(error, dict) and any(
+            isinstance(detail, dict) and detail.get("reason") == "API_KEY_INVALID"
+            for detail in (error.get("details") or [])
+        ):
+            raise ProviderError("invalid_api_key")
         code = body.get("error", {}).get("code") if isinstance(body.get("error"), dict) else None
         if code in {4, 17, 32, 613, 80004}:
             raise RetryableError(60)

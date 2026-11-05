@@ -8,6 +8,26 @@ from apps.platform_ops.models import PlatformKnowledgeDocument, PlatformKnowledg
 pytestmark = pytest.mark.django_db
 
 
+def test_openai_health_check_uses_configured_platform_model(settings):
+    settings.CHANNEL_ADAPTER_MODE = "live"
+    settings.PLATFORM_OPENAI_API_KEY = "test-only-key"
+    settings.PLATFORM_AI_MODEL = "gpt-4.1-mini"
+    with patch("apps.platform_ops.intelligence.request", return_value={}) as request:
+        result = intelligence.ping("PLATFORM_OPENAI_API_KEY")
+    assert result["ok"] is True
+    assert request.call_args.kwargs["json"]["model"] == "gpt-4.1-mini"
+
+
+def test_gemini_health_check_uses_configured_model(settings, monkeypatch):
+    settings.CHANNEL_ADAPTER_MODE = "live"
+    settings.PLATFORM_GEMINI_MODEL = "gemini-current-model"
+    monkeypatch.setenv("PLATFORM_GEMINI_API_KEY", "test-only-key")
+    with patch("apps.platform_ops.intelligence.request", return_value={}) as request:
+        result = intelligence.ping("PLATFORM_GEMINI_API_KEY")
+    assert result["ok"] is True
+    assert request.call_args.args[1].endswith("/gemini-current-model:generateContent")
+
+
 def test_empty_knowledge_base_does_not_require_embeddings():
     with patch("apps.platform_ops.intelligence.embed") as embed:
         assert intelligence.retrieve_sections("Hi") == []

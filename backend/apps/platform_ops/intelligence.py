@@ -228,7 +228,7 @@ def ping(env):
         "OPENAI": (
             "https://api.openai.com/v1/responses",
             {"Authorization": f"Bearer {key}"},
-            {"model": "gpt-4o-mini", "input": "ok", "max_output_tokens": 16, "store": False},
+            {"model": settings.PLATFORM_AI_MODEL, "input": "ok", "max_output_tokens": 16, "store": False},
         ),
         "ANTHROPIC": (
             "https://api.anthropic.com/v1/messages",
@@ -241,7 +241,7 @@ def ping(env):
         ),
         "GEMINI": (
             "https://generativelanguage.googleapis.com/v1beta/models/"
-            "gemini-2.0-flash:generateContent",
+            f"{settings.PLATFORM_GEMINI_MODEL}:generateContent",
             {"x-goog-api-key": key},
             {
                 "contents": [{"parts": [{"text": "ok"}]}],

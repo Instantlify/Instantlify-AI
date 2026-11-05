@@ -61,6 +61,7 @@ import {
   when,
 } from "@/lib/api";
 import { BrandIcon } from "@/lib/brand-icons";
+import { creditMoney } from "@/lib/credit-money";
 import { loadWorkspaces, useWorkspace } from "@/lib/workspace";
 import {
   ErrorNotice,
@@ -565,7 +566,7 @@ export default function SettingsPage() {
 
   // Calculated credits balance in dollars
   const creditBalanceDisplay = credits
-    ? `$${(parseInt(credits.balance_cents || "0", 10) / 100).toFixed(2)}`
+    ? creditMoney(credits.balance_cents)
     : "$0.00";
 
   const userInitial = (currentUser?.name || currentUser?.email || "M").charAt(0).toUpperCase();
@@ -1314,14 +1315,9 @@ export default function SettingsPage() {
                             : row.description}
                         </td>
                         <td>
-                          {(Number(row.amount_cents) / 100).toLocaleString(undefined, {
-                            style: "currency",
-                            currency: "USD",
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 4,
-                          })}
+                          {creditMoney(row.amount_cents)}
                         </td>
-                        <td>{money(Math.round(Number(row.remaining_balance_cents)))}</td>
+                        <td>{creditMoney(row.remaining_balance_cents)}</td>
                       </tr>
                     ))}
                   </Table>
