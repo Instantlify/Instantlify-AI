@@ -175,13 +175,7 @@ export function ContactPanel({
   };
 
   const assign = async (userId: number | null) => {
-    if (!conversationId) return;
-    await feedback.run(async () => {
-      await api(`${prefix}/conversations/${conversationId}/`, "PATCH", {
-        assigned_to: userId,
-      });
-      onChange({ ...lead, assigned_to: userId });
-    });
+    await patch({ assigned_to: userId }, userId ? "Contact assigned." : "Contact unassigned.");
   };
 
   const addNote = async (event: FormEvent) => {
@@ -467,12 +461,7 @@ export function ContactPanel({
             Assigned to
             <ValidatedSelect
               value={lead.assigned_to ?? ""}
-              disabled={!conversationId}
-              title={
-                conversationId
-                  ? undefined
-                  : "Assign once there is a conversation"
-              }
+              disabled={!manager || feedback.busy}
               onChange={(event) =>
                 assign(event.target.value ? Number(event.target.value) : null)
               }

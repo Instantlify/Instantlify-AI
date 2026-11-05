@@ -160,6 +160,7 @@ export default function InboxPage() {
   // The CRM links here with ?conversation=<id>.
   const linked = useSearchParams().get("conversation");
   const [selected, setSelected] = useState<string | null>(linked);
+  const [mobileThread, setMobileThread] = useState(Boolean(linked));
   const [messages, setMessages] = useState<Message[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [events, setEvents] = useState<ConversationEvent[]>([]);
@@ -202,10 +203,17 @@ export default function InboxPage() {
         undefined,
         signal,
       );
-      setConversations(page.results);
-      return page.results;
+      const list = page.results;
+      if (linked && !activeAccount && !search && !channel && !list.some((item) => item.id === linked)) {
+        const conversation = await api<Conversation>(
+          `${prefix}/conversations/${encodeURIComponent(linked)}/`, "GET", undefined, signal,
+        );
+        list.push(conversation);
+      }
+      setConversations(list);
+      return list;
     },
-    [prefix, search, channel, activeAccount],
+    [prefix, search, channel, activeAccount, linked],
   );
   const loadThread = useCallback(
     async (id: string, signal?: AbortSignal) => {
@@ -475,7 +483,7 @@ export default function InboxPage() {
     : "No customer messages yet";
 
   return (
-    <div className="boosend-inbox-layout">
+    <div className={`boosend-inbox-layout${mobileThread && current ? " mobile-thread-open" : ""}`}>
       <TourMarker workspaceId={workspace.id} step="crm" />
       {/* Left Column: Conversations Sidebar (Screenshot 9) */}
       <aside className="boosend-inbox-sidebar">
@@ -597,7 +605,10 @@ export default function InboxPage() {
                   key={item.id}
                   type="button"
                   className={`boosend-conv-item ${isActive ? "active" : ""}`}
-                  onClick={() => setSelected(item.id)}
+                  onClick={() => {
+                    setSelected(item.id);
+                    setMobileThread(true);
+                  }}
                 >
                   <ContactAvatar
                     name={item.lead.name || "?"}
@@ -664,6 +675,10 @@ export default function InboxPage() {
           <>
             {/* Header bar */}
             <div className="boosend-chat-header">
+              <button type="button" className="button secondary small inbox-back"
+                onClick={() => setMobileThread(false)}>
+                Back to conversations
+              </button>
               <div className="boosend-chat-user-head">
                 <ContactAvatar
                   name={current.lead.name || "?"}
@@ -840,7 +855,7 @@ export default function InboxPage() {
                         patch({ ai_enabled: true, status: "open" })
                       }
                     >
-                      <Bot size={14} /> AI active
+                      <Bot size={14} /> {current.ai_enabled ? "AI active" : "Return to AI"}
                     </button>
                     <button
                       type="button"
@@ -848,20 +863,33 @@ export default function InboxPage() {
                       aria-pressed={!current.ai_enabled}
                       disabled={feedback.busy}
                       onClick={() =>
-                        current.ai_enabled &&
-                        patch({ ai_enabled: false, assigned_to: user.id })
+                        (current.ai_enabled || current.assigned_to !== user.id) &&
+                        patch({ ai_enabled: false, assigned_to: user.id, status: "open" })
                       }
                     >
-                      <Hand size={14} /> Human takeover
+                      <Hand size={14} /> {current.assigned_to === user.id && !current.ai_enabled ? "Handling" : "Take over"}
                     </button>
                     <span className="muted-text">
                       {current.ai_enabled
-                        ? "The AI agent answers new messages."
+                        ? "AI replying"
                         : assignee
-                          ? `${assignee.name || assignee.email} is handling this conversation.`
-                          : "Your team answers this conversation."}
+                          ? `Handled by ${assignee.name || assignee.email}`
+                          : "Waiting for a teammate"}
                     </span>
                   </div>
+                  {current.status === "needs_human" && (
+                    <p className="inbox-window-note">
+                      {current.handoff_reason === "wants_human"
+                        ? "The customer asked for a teammate."
+                        : current.handoff_reason === "keyword_rule"
+                          ? "A workspace handoff rule matched this conversation."
+                          : current.handoff_reason === "urgent_or_angry"
+                            ? "The agent detected urgency or frustration."
+                            : current.handoff_reason === "agent_escalated"
+                              ? "The AI agent escalated this conversation."
+                              : "This conversation needs a teammate."}
+                    </p>
+                  )}
                   {windowClosed && (
                     <p className="inbox-window-note">
                       {current.provider === "whatsapp"

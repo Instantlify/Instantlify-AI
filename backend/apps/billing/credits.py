@@ -300,7 +300,7 @@ def create_topup_session(job, account):
         metadata={"nemio_credit_topup": str(pending.pk), "workspace": str(job.workspace_id)},
         # job.workspace_id, not the account's: a reseller's client pays from their own
         # workspace and must come back to it, not to the agency parent.
-        success_url=payments_url(job.workspace_id, "?credits=success"),
+        success_url=payments_url(job.workspace_id, f"?credits=success&topup={pending.pk}"),
         cancel_url=payments_url(job.workspace_id, "?credits=cancelled"),
         idempotency_key=str(job.id),
     )

@@ -20,8 +20,13 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
     ])
       .then(([me, all]) => {
         if (controller.signal.aborted) return;
-        if (!all.some((item) => item.id === workspaceId)) {
+        const workspace = all.find((item) => item.id === workspaceId);
+        if (!workspace) {
           router.replace("/auth");
+          return;
+        }
+        if (workspace.checkout_pending) {
+          router.replace(`/onboarding?workspace=${workspaceId}`);
           return;
         }
         setUser(me);
@@ -37,7 +42,11 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
       });
     return () => controller.abort();
   }, [workspaceId, router]);
-  if (!user || !workspaces)
+  if (
+    !user ||
+    !workspaces ||
+    !workspaces.some((item) => item.id === workspaceId && !item.checkout_pending)
+  )
     return (
       <div className="loading-screen">
         <Brand />

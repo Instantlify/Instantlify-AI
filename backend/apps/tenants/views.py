@@ -202,7 +202,9 @@ class WorkspaceListView(generics.ListCreateAPIView):
         return Workspace.objects.filter(membership__user=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.instance = create_workspace(self.request.user, serializer.validated_data["name"])
+        serializer.instance = create_workspace(
+            self.request.user, serializer.validated_data["name"], checkout_pending=True
+        )
 
 
 class WorkspaceDetailView(generics.RetrieveUpdateAPIView):
@@ -211,7 +213,10 @@ class WorkspaceDetailView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         roles = ["owner", "admin"] if self.request.method == "PATCH" else None
-        return workspace_membership(self.request, self.kwargs["workspace_id"], roles).workspace
+        member = workspace_membership(
+            self.request, self.kwargs["workspace_id"], roles, allow_pending=True
+        )
+        return member.workspace
 
     @transaction.atomic
     def perform_update(self, serializer):
@@ -244,7 +249,7 @@ class MembershipDetailView(APIView):
 
     @transaction.atomic
     def delete(self, request, workspace_id, membership_id):
-        from apps.crm.models import Conversation
+        from apps.crm.models import Conversation, Lead
 
         actor = workspace_membership(request, workspace_id)
         member = get_object_or_404(
@@ -259,6 +264,9 @@ class MembershipDetailView(APIView):
             raise PermissionDenied("Your role cannot remove this member.")
         # Removed members lose access; their conversations return to the shared queue.
         Conversation.objects.for_workspace(actor.workspace).filter(
+            assigned_to_id=member.user_id
+        ).update(assigned_to=None)
+        Lead.objects.for_workspace(actor.workspace).filter(
             assigned_to_id=member.user_id
         ).update(assigned_to=None)
         member.delete()

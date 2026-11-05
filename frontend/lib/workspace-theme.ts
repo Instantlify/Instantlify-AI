@@ -51,11 +51,10 @@ export function workspaceTheme(branding: Branding): CSSProperties {
     legacyDefault ? undefined : branding.sidebar_text_color,
     DEFAULT_SIDEBAR_TEXT,
   );
-  let foreground =
-    colorContrast(primary, "#ffffff") >= colorContrast(primary, "#0c1b3a")
+  const foreground =
+    colorContrast(primary, "#ffffff") >= colorContrast(primary, "#000000")
       ? "#ffffff"
-      : "#0c1b3a";
-  if (colorContrast(primary, foreground) < 4.5) foreground = "#000000";
+      : "#000000";
   // Move hover away from its label color so contrast cannot drop on hover.
   const hover = mix(
     primary,

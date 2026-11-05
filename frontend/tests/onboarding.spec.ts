@@ -1,4 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
+import { execFileSync } from "node:child_process";
+import path from "node:path";
 
 /**
  * End-to-end pass over the product against the local Compose stack: account →
@@ -7,6 +9,7 @@ import { test, expect, type Page } from "@playwright/test";
  * local test channel, so no provider is ever contacted whatever the adapter mode.
  */
 test.describe.configure({ mode: "serial" });
+test.skip(!!process.env.E2E_BASE_URL, "Requires the local Compose backend to provision the test workspace.");
 
 const email = `e2e-${Date.now()}@example.com`;
 const password = "River!Saffron42Cloud";
@@ -82,7 +85,21 @@ test("sign up, create a workspace and connect a test channel", async ({
   await expect(
     page.getByRole("heading", { name: "Choose a plan" }),
   ).toBeVisible({ timeout: 30000 });
-  await page.getByRole("button", { name: "Continue with Free" }).click();
+  const workspaceId = await page.evaluate(async () => {
+    const response = await fetch("/api/workspaces/");
+    const { results } = await response.json();
+    return results[0].id as string;
+  });
+  expect(workspaceId).toMatch(/^[a-f0-9-]{36}$/);
+  await page.goto(`/w/${workspaceId}/overview`);
+  await expect(page).toHaveURL(new RegExp(`/onboarding/?\\?workspace=${workspaceId}`));
+  // The billing tests cover Stripe activation. Provision this workspace for
+  // the rest of the local product smoke test.
+  execFileSync("docker", [
+    "compose", "exec", "-T", "backend", "python", "manage.py", "shell", "-c",
+    `from apps.tenants.models import Workspace; Workspace.objects.filter(pk='${workspaceId}').update(checkout_pending=False)`,
+  ], { cwd: path.resolve(__dirname, "..", "..") });
+  await page.goto(`/onboarding?workspace=${workspaceId}&billing=success`);
   await expect(page).toHaveURL(/\/w\/[0-9a-f-]+\/overview/, { timeout: 30000 });
   workspaceUrl = page.url().replace(/\/overview.*$/, "");
   await expect(
@@ -223,7 +240,7 @@ test("the AI agent answers with the local test provider", async ({ page }) => {
   await page.getByRole("button", { name: /lead-one/ }).click();
   const aiActive = page
     .getByRole("group", { name: "Who replies" })
-    .getByRole("button", { name: "AI active" });
+    .getByRole("button", { name: /^(AI active|Return to AI)$/ });
   if ((await aiActive.getAttribute("aria-pressed")) !== "true") {
     // The toggle is optimistic; wait for the save itself so the reload cannot abort it.
     const saved = page.waitForResponse(

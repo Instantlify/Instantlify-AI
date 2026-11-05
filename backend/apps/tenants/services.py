@@ -12,8 +12,8 @@ def audit(workspace, actor, action, target_id="", **metadata):
 
 
 @transaction.atomic
-def create_workspace(user, name):
-    workspace = Workspace.objects.create(name=name)
+def create_workspace(user, name, *, checkout_pending=False):
+    workspace = Workspace.objects.create(name=name, checkout_pending=checkout_pending)
     Membership.objects.for_workspace(workspace).create(
         workspace=workspace, user=user, role=Membership.Role.OWNER
     )

@@ -157,7 +157,7 @@
 .boosend-sidebar
   :is(.workspace-avatar-sq, .account-avatar-circle, .user-avatar-circle) {
   background: var(--brand-action);
-  color: white;
+  color: var(--brand-on-primary);
 }
 .boosend-sidebar::-webkit-scrollbar-thumb {
   background: var(--border-subtle);
@@ -194,12 +194,12 @@ select:focus-visible {
 }
 .boosend-sidebar .boosend-nav-link.active {
   background: var(--brand-action) !important;
-  color: #fff !important;
+  color: var(--brand-on-primary) !important;
   box-shadow: inset 3px 0 var(--brand-neon);
 }
 .boosend-sidebar .boosend-nav-link.active .nav-icon-wrap {
   background: transparent !important;
-  color: var(--brand-neon) !important;
+  color: inherit !important;
 }
 .mcp-dark-card {
   background-image: radial-gradient(rgb(195 255 92 / 16%) 1px, transparent 1px);
@@ -251,7 +251,7 @@ select:focus-visible {
 .nm-home .nm-preview-tabs button[aria-pressed="true"] {
   background: var(--brand-action);
   border-color: var(--brand-action);
-  color: #fff;
+  color: var(--brand-on-primary);
 }
 .nm-home-benefit-icon,
 .nm-mini-ai,
@@ -278,14 +278,14 @@ select:focus-visible {
 }
 .nm-home .nm-closing .nm-button {
   background: var(--brand-neon);
-  color: var(--text-primary);
+  color: var(--brand-on-primary);
   box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
 }
 .nm-home .nm-closing .nm-button:hover {
   background: #d1ff85;
 }
 .nm-home .nm-closing .nm-button > svg {
-  color: var(--text-primary);
+  color: inherit;
 }
 
 /* Onboarding keeps its light canvas, with navy artwork and a small neon signal. */
@@ -340,6 +340,6 @@ select:focus-visible {
   --text-light: #b1c3cc;
   --brand-action: #c3ff5c;
   --brand-action-hover: #d1ff85;
-  --brand-on-primary: #102018;
+  --brand-on-primary: #000;
   color: var(--text-primary);
 }

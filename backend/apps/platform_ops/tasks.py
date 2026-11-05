@@ -109,7 +109,37 @@ def classify_connection(connection_id):
 
 
 @shared_task(ignore_result=True, soft_time_limit=280, time_limit=300)
-def embed_platform_knowledge():
+def embed_platform_knowledge(run_token=None):
+    from apps.channels.transport import ProviderError
+
+    from .knowledge_indexing import LOCK_KEY, set_status
+
+    if run_token and cache.get(LOCK_KEY) != run_token:
+        return
+    set_status("running", "Re-embedding support knowledge…")
+    try:
+        count = _embed_platform_knowledge()
+    except ProviderError as exc:
+        messages = {
+            "provider_rejected": "OpenAI rejected the embedding request. Check that this key's project allows text-embedding-3-small and has available API quota. Enable model access or use a key from a project with access, then retry.",
+            "credentials_expired": "OpenAI rejected the API key. Update PLATFORM_OPENAI_API_KEY in .env, recreate the backend and worker services, then retry.",
+            "rate_limited": "The embedding request was rate limited or could not connect. Check provider availability and API quota, then retry.",
+            "platform_llm_key_missing": "The worker has no OpenAI key. Set PLATFORM_OPENAI_API_KEY and recreate the worker service.",
+        }
+        set_status("failed", messages.get(exc.code, "Embedding failed. Check the worker configuration and provider access, then retry."))
+        raise
+    except Exception:
+        set_status("failed", "Re-embedding failed. Check the worker logs and retry. Sections remain saved.")
+        raise
+    else:
+        set_status("succeeded", f"Re-embedding completed: {count} sections indexed. Refresh this page to see updated section badges.")
+        return count
+    finally:
+        if run_token and cache.get(LOCK_KEY) == run_token:
+            cache.delete(LOCK_KEY)
+
+
+def _embed_platform_knowledge():
     """Re-embed the platform support bot's knowledge base. Explicitly manual: batching
     this behind an operator action beats re-embedding on every keystroke."""
     from .intelligence import embed
@@ -120,6 +150,10 @@ def embed_platform_knowledge():
         return 0
     texts = [f"{section.title}\n{section.body_markdown}" for section in sections]
     vectors, _ = embed(texts)
+    from apps.channels.transport import ProviderError
+
+    if len(vectors) != len(sections) or any(len(vector) != 1536 for vector in vectors):
+        raise ProviderError("invalid_provider_response")
     now = timezone.now()
     for section, vector in zip(sections, vectors, strict=False):
         section.embedding = vector

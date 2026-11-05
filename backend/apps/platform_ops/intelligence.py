@@ -67,7 +67,7 @@ def complete(system, user, *, max_tokens=500):
         "https://api.openai.com/v1/responses",
         headers={"Authorization": f"Bearer {platform_key()}"},
         json={
-            "model": "gpt-5",
+            "model": settings.PLATFORM_AI_MODEL,
             "input": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
@@ -148,12 +148,14 @@ def retrieve_sections(question, *, limit=6):
 
     from .models import PlatformKnowledgeSection
 
+    sections = PlatformKnowledgeSection.objects.filter(embedding__isnull=False)
+    if not sections.exists():
+        return []
     vectors, _ = embed([question])
     if not vectors:
         return []
     return list(
-        PlatformKnowledgeSection.objects.filter(embedding__isnull=False)
-        .select_related("document")
+        sections.select_related("document")
         .annotate(distance=CosineDistance("embedding", vectors[0]))
         .order_by("distance")[:limit]
     )

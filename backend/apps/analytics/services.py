@@ -65,13 +65,20 @@ PERIODS = {"7d": 7, "30d": 30, "90d": 90}
 STEPS = ["comment", "dm", "triggered", "replied", "booked", "paid"]
 
 
-def funnel(workspace_id, *, period="30d", automation_id=None, provider=""):
+def funnel_events(workspace_id, *, period, automation_id, provider):
     since = timezone.now() - timedelta(days=PERIODS.get(period, 30))
     events = FunnelEvent.objects.for_workspace(workspace_id).filter(created_at__gte=since)
     if automation_id:
         events = events.filter(automation_id=automation_id)
     if provider:
         events = events.filter(provider=provider)
+    return since, events
+
+
+def funnel(workspace_id, *, period="30d", automation_id=None, provider=""):
+    since, events = funnel_events(
+        workspace_id, period=period, automation_id=automation_id, provider=provider
+    )
     counts = {
         row["kind"]: row["leads"]
         for row in events.exclude(lead_id=None)

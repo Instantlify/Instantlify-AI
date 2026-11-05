@@ -22,7 +22,7 @@ class InboxConsumer(AsyncJsonWebsocketConsumer):
             return False
         return (
             Membership.objects.for_workspace(self.workspace_id)
-            .filter(user_id=self.scope["user"].id)
+            .filter(user_id=self.scope["user"].id, workspace__checkout_pending=False)
             .exists()
         )
 

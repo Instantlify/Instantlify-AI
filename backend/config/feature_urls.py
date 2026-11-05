@@ -44,8 +44,10 @@ from apps.channels.api import (
     ConnectView,
     DeliveryList,
     DisconnectView,
+    RemoveChannelView,
     SimulateView,
 )
+from apps.channels.telegram_connect import TelegramConnectView
 from apps.channels.whatsapp import WhatsAppActivateView, WhatsAppCompleteView, WhatsAppConnectView
 from apps.channels.whatsapp_templates import ConversationTemplatesView
 from apps.content.views import BioView, PostDetail, PostList, PublicBioView
@@ -58,6 +60,7 @@ from apps.crm.campaigns import (
     LaunchCampaignView,
 )
 from apps.crm.form_imports import ImportFormContactsView
+from apps.crm.notifications import AssignmentNotificationsView
 from apps.crm.oauth import IntegrationOAuthCallbackView, IntegrationOAuthStartView
 from apps.crm.segments import SegmentDetail, SegmentList
 from apps.crm.views import (
@@ -158,6 +161,8 @@ urlpatterns = [
     path(P + "campaigns/<uuid:pk>/cancel/", CancelCampaignView.as_view()),
     path(P + "campaigns/<uuid:pk>/recipients/", CampaignRecipientsView.as_view()),
     path(P + "leads/<uuid:pk>/", LeadDetail.as_view()),
+    path(P + "telegram/connect/", TelegramConnectView.as_view()),
+    path(P + "assignment-notifications/", AssignmentNotificationsView.as_view()),
     path(P + "leads/<uuid:pk>/merge/", MergeLeadView.as_view()),
     path(P + "leads/<uuid:pk>/refresh/", RefreshLeadView.as_view()),
     path(P + "leads/<uuid:pk>/sync/", SyncLeadView.as_view()),
@@ -190,6 +195,7 @@ urlpatterns = [
     path(P + "connections/<uuid:pk>/posts/", AccountPostsView.as_view()),
     path(P + "channels/<uuid:pk>/simulate/", SimulateView.as_view()),
     path(P + "channels/<uuid:pk>/disconnect/", DisconnectView.as_view()),
+    path(P + "channels/<uuid:pk>/", RemoveChannelView.as_view()),
     path(P + "deliveries/", DeliveryList.as_view()),
     path(P + "analytics/funnel/", FunnelView.as_view()),
     path(P + "experiments/", ExperimentList.as_view()),

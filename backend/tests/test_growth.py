@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 
 from apps.analytics.models import Experiment, FunnelEvent
 from apps.analytics.services import assign_arm, maybe_auto_promote, record
-from apps.automations.models import Automation, ConversationState
+from apps.automations.models import Automation, AutomationExecution, ConversationState
 from apps.automations.services import publish
 from apps.automations.tasks import step
 from apps.channels.models import ChannelConnection, WebhookEvent
@@ -122,6 +122,29 @@ def test_funnel_is_tenant_scoped_and_admin_only(client, workspace, user):
     assert outsider.get(f"/api/workspaces/{workspace.pk}/analytics/funnel/").status_code == 404
     data = outsider.get(f"/api/workspaces/{other.pk}/analytics/funnel/").json()
     assert all(step["leads"] == 0 for step in data["steps"])
+
+
+def test_funnel_details_follow_report_filters_and_link_to_conversations(
+    client, workspace, user, channel
+):
+    item = automation(workspace, user, "Prices!")
+    message = comment(channel, "lead-1")
+    run = AutomationExecution.objects.for_workspace(workspace).get()
+    run.status = "failed"
+    run.finished_at = timezone.now()
+    run.error_code = "test_failure"
+    run.save(update_fields=["status", "finished_at", "error_code"])
+    url = f"/api/workspaces/{workspace.pk}/analytics/funnel/"
+    filters = {"provider": "instagram", "automation": str(item.pk), "period": "7d"}
+    triggered = client.get(url, {**filters, "stage": "triggered"}).json()
+    assert [row["conversation_id"] for row in triggered] == [str(message.conversation_id)]
+    failed = client.get(url, {**filters, "stage": "failed"}).json()
+    assert [row["error_code"] for row in failed] == ["test_failure"]
+    assert client.get(url, {**filters, "provider": "telegram", "stage": "failed"}).json() == []
+    conversation = client.get(
+        f"/api/workspaces/{workspace.pk}/conversations/{message.conversation_id}/"
+    )
+    assert conversation.json()["id"] == str(message.conversation_id)
 
 
 def test_experiment_assignment_is_deterministic_and_respects_split(workspace, user):

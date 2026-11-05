@@ -26,6 +26,7 @@ export type Branding = {
   tls_status?: "inactive" | "issuing" | "active" | "error";
 };
 export type Workspace = {
+  checkout_pending?: boolean;
   id: string;
   name: string;
   role: "owner" | "admin" | "agent";
@@ -48,6 +49,7 @@ export type Invitation = {
   role: "admin" | "agent";
   expires_at: string;
   accept_url?: string;
+  email_sent?: boolean;
 };
 export type Audit = {
   id: string;
@@ -124,6 +126,7 @@ export type Conversation = {
   assigned_to: number | null;
   status: "open" | "closed" | "needs_human";
   ai_enabled: boolean;
+  handoff_reason?: string;
   last_inbound_at: string | null;
   last_outbound_at: string | null;
   updated_at: string;

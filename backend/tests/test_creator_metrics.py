@@ -12,6 +12,15 @@ from tests.conftest import set_limits
 pytestmark = pytest.mark.django_db
 
 
+@pytest.fixture(autouse=True)
+def analytics_approval(workspace):
+    from apps.platform_ops.models import WorkspaceCapability
+
+    return WorkspaceCapability.objects.create(
+        workspace=workspace, key="meta_analytics", enabled=True, reason="Test approval"
+    )
+
+
 def connection(workspace):
     return ChannelConnection.objects.for_workspace(workspace).create(
         workspace=workspace,

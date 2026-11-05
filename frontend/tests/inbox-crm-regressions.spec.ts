@@ -1,6 +1,20 @@
 import { test, expect } from "@playwright/test";
 import { id, mockApi, manualLead } from "./support/meta-mock";
 
+test("mobile conversations open and return to the list with a short viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 580 });
+  await mockApi(page);
+  await page.goto(`/w/${id}/inbox?conversation=v-0`);
+  const list = page.locator(".boosend-inbox-sidebar");
+  await expect(list).toBeHidden();
+  await expect(page.getByLabel("Reply", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Back to conversations" }).click();
+  await expect(list).toBeVisible();
+  await expect(page.getByLabel("Reply", { exact: true })).toBeHidden();
+  await list.locator(".boosend-conv-item").first().click();
+  await expect(page.getByLabel("Reply", { exact: true })).toBeVisible();
+});
+
 for (const width of [390, 1440]) {
   test(`incoming messages and note actions remain readable and reachable at ${width}px`, async ({
     page,

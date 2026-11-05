@@ -41,6 +41,18 @@ export const EMAIL_CARD = "[[REQUEST_EMAIL_CARD]]";
 
 export type TourStep = "editor" | "crm" | "apps" | "claude-mcp";
 
+type FirstReplyStep = "tested" | "published" | "replied";
+
+export function firstReplyStep(workspaceId: string, step: FirstReplyStep, complete = false) {
+  try {
+    const key = `nemio:first-reply:${workspaceId}:${step}`;
+    if (complete) window.localStorage.setItem(key, "done");
+    return window.localStorage.getItem(key) === "done";
+  } catch {
+    return complete;
+  }
+}
+
 export function announcements(page: string, workspaceId: string) {
   const query = new URLSearchParams({ page, workspace_id: workspaceId });
   return api<Announcement[]>(`/api/growth/announcements/?${query}`);

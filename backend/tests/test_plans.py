@@ -178,7 +178,7 @@ def test_checkout_uses_the_plan_price_for_the_chosen_interval(client, workspace,
     account.save()
     billing_tasks.process_job(str(workspace.pk), str(job.id))
     job.refresh_from_db()
-    assert json.loads(job.result) == {"error": "billing_provider_error"}  # no Stripe price yet
+    assert json.loads(job.result) == {"error": "price_not_configured"}
     job.status = "pending"
     job.save()
     price = price_for("pro", "annual", stripe_price_id="price_pro_year")
@@ -213,8 +213,12 @@ def test_a_plan_chosen_during_onboarding_returns_to_the_wizard(client, workspace
         create.return_value.url = "https://checkout.stripe.com/x"
         billing_tasks.process_job(str(workspace.pk), str(job.id))
     kwargs = create.call_args.kwargs
-    assert kwargs["success_url"] == "https://app.example.com/onboarding/?billing=success"
-    assert kwargs["cancel_url"] == "https://app.example.com/onboarding/?billing=cancelled"
+    base = f"https://app.example.com/onboarding/?workspace={workspace.pk}"
+    assert kwargs["payment_method_types"] == ["card"]
+    assert kwargs["payment_method_collection"] == "always"
+    assert kwargs["subscription_data"]["trial_period_days"] == 3
+    assert kwargs["success_url"] == f"{base}&billing=success"
+    assert kwargs["cancel_url"] == f"{base}&billing=cancelled"
 
 
 def test_upgrading_a_live_subscription_opens_the_stripe_plan_change(client, workspace, settings):
@@ -265,6 +269,8 @@ def test_upgrading_a_live_subscription_opens_the_stripe_plan_change(client, work
 
 
 def test_subscription_webhook_maps_price_to_plan_and_interval(workspace):
+    workspace.checkout_pending = True
+    workspace.save(update_fields=["checkout_pending"])
     price_for("scale", "annual", stripe_price_id="price_scale_year")
     account = account_for(workspace.pk)
     account.customer_id = "cus_1"
@@ -293,6 +299,8 @@ def test_subscription_webhook_maps_price_to_plan_and_interval(workspace):
         workspace=workspace, event_id="evt_1", payload=json.dumps(payload)
     )
     billing_tasks.process_event(str(workspace.pk), str(event.id))
+    workspace.refresh_from_db()
+    assert workspace.checkout_pending is False
     account = account_for(workspace.pk)
     assert account.plan_price.plan.slug == "scale"
     assert (account.plan, account.billing_interval, account.seat_limit) == ("scale", "annual", 50)

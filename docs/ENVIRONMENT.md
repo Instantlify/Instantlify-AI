@@ -30,12 +30,14 @@ All settings load from process environment. Docker Compose injects the ignored r
 | `META_WEBHOOK_VERIFY_TOKEN` | Phase 1 | Yes | Meta webhook subscription challenge token |
 | `META_API_VERSION` | No | No | Graph API version, default `v23.0` |
 | `PUBLIC_APP_URL` | Deployment | No | Public HTTPS origin used in invite links, voice media, checkout return URLs and Telegram webhooks |
+| `ALLOW_TEST_CHANNELS` | Local testing | No | Default `false`. Set `true` alongside `CHANNEL_ADAPTER_MODE=live` to create explicit simulated channels and simulate inbound messages without platform credentials. Test connections always use fake delivery; non-test connections still require real credentials. Platform support AI stays live. Disabled channel mode continues to block test connections. |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Calendar | Yes | Google Calendar hosted sign-in and token refresh |
 | `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` | Slack | Yes | Slack app for the hosted "Add to Slack" install (`chat:write`, `incoming-webhook`) |
 | `INTEGRATION_REDIRECT_BASE` | Hosted sign-in | No | Default `PUBLIC_APP_URL/api/integrations/callback/`; register `<base>google_calendar/` and `<base>slack/` with each provider |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Platform billing | Yes | Nemio's own subscriptions and metered AI usage |
 | `STRIPE_PRICES` | Bootstrap only | No | Legacy JSON `{plan: {base, meter}}`; copied onto the monthly `PlanPrice` rows by the plans data migration. Prices now live in the database |
 | `PLATFORM_OPENAI_API_KEY` | Prepaid credits | Yes | Nemio's own OpenAI key, used for every workspace on `platform_credits` billing |
+| `PLATFORM_AI_MODEL` | Platform AI | No | OpenAI model used by Nemio support chat and business classification; defaults to `gpt-5`. Must be available to the key's project. Independent of workspace agents' model settings. Support knowledge search/indexing also needs `text-embedding-3-small` access; an empty or unindexed support knowledge base skips search. |
 | `PLATFORM_ANTHROPIC_API_KEY` / `PLATFORM_GEMINI_API_KEY` / `PLATFORM_XAI_API_KEY` | For those providers | Yes | Nemio's key for agents on `platform_credits` whose provider (or fallback provider) is Anthropic, Gemini or xAI. Knowledge-base embeddings always use `PLATFORM_OPENAI_API_KEY` |
 | `PLATFORM_<PROVIDER>_API_KEY_<LABEL>` | No | Yes | Extra named keys; each gets its own on-demand health card in the console. Not used by the agent runtime |
 | `UPTIME_PROBE_URL` | No | No | Public readiness URL (e.g. `https://app.nemio.ai/health/ready/`) probed every minute through DNS, TLS and the proxy. Unset: the ingress check is skipped |
@@ -46,7 +48,7 @@ All settings load from process environment. Docker Compose injects the ignored r
 | `EMAIL_PORT` / `EMAIL_USE_TLS` | No | No | Default `587` / `true` |
 | `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | With SMTP auth | Yes | SMTP credentials |
 | `DEFAULT_FROM_EMAIL` | Production | No | Sender, e.g. `Nemio <no-reply@nemio.app>` |
-| `STRIPE_TRIAL_DAYS` | No | No | Trial days on a workspace's first subscription (default 7; 0 disables) |
+| `STRIPE_TRIAL_DAYS` | No | No | Trial days on a workspace's first subscription (default 3; 0 disables) |
 | `DEFAULT_PLAN_SLUG` | No | No | Plan a workspace is on before subscribing. `free` in base settings, `dev` (unlimited) in local settings |
 | `STRIPE_METER_EVENT_NAME` | No | No | Meter event name, default `ai_messages` |
 | `MARKETPLACE_FEE_PERCENT` | Marketplace | No | Platform share of paid template sales (default 15); needs `STRIPE_SECRET_KEY` and the platform webhook to receive `checkout.session.*` events |

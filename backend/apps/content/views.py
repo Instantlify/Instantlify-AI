@@ -89,7 +89,9 @@ class PostList(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         member = workspace_membership(self.request, self.kwargs["workspace_id"], ["owner", "admin"])
         from apps.billing.gating import check_connection_unlocked, check_feature
+        from apps.platform_ops.capabilities import check_capability
 
+        check_capability(member.workspace_id, "meta_publishing")
         check_feature(member.workspace_id, "content_scheduling_enabled")
         check_connection_unlocked(serializer.validated_data["connection"])
         item = serializer.save(workspace=member.workspace)
@@ -109,6 +111,9 @@ class PostDetail(generics.RetrieveUpdateDestroyAPIView):
         return ScheduledPost.objects.for_workspace(self.kwargs["workspace_id"])
 
     def perform_update(self, serializer):
+        from apps.platform_ops.capabilities import check_capability
+
+        check_capability(serializer.instance.workspace_id, "meta_publishing")
         if serializer.instance.status != "scheduled":
             raise serializers.ValidationError("Only scheduled posts can be edited.")
         item = serializer.save()

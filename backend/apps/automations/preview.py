@@ -9,10 +9,10 @@ from rest_framework.views import APIView
 
 from apps.tenants.permissions import workspace_membership
 
-from .services import validate_graph
+from .services import ANY_KEYWORD, keyword_matches, validate_graph
 
 
-def preview(graph, replies, samples):
+def preview(graph, replies, samples, trigger_event=None):
     graph = validate_graph(graph)
     if (
         not isinstance(replies, list)
@@ -23,6 +23,23 @@ def preview(graph, replies, samples):
     if not isinstance(samples, dict) or len(json.dumps(samples)) > 20000:
         raise ValidationError("Sample results must be a JSON object under 20 KB.")
     variables = {"last_text": replies[0] if replies else ""}
+    if trigger_event is not None:
+        if not isinstance(trigger_event, dict):
+            raise ValidationError("Supply a sample event with a kind, channel and text.")
+        kind, channel, text = (trigger_event.get(key) for key in ("kind", "channel", "text"))
+        if not all(
+            isinstance(value, str) and len(value) <= 2000 for value in (kind, channel, text)
+        ):
+            raise ValidationError("Supply a sample event with a kind, channel and text.")
+        matched = any(
+            trigger["kind"] == kind
+            and (not trigger.get("channel") or trigger["channel"] == channel)
+            and (trigger["keyword"] == ANY_KEYWORD or keyword_matches(trigger["keyword"], text))
+            for trigger in graph["triggers"]
+        )
+        if not matched:
+            return {"trace": [], "side_effects": False, "trigger_matched": False}
+        variables["last_text"] = text
     remaining = iter(replies)
     nodes = {n["id"]: n["data"] for n in graph["nodes"]}
     node_id = graph["start"]
@@ -160,7 +177,10 @@ def preview(graph, replies, samples):
             for e in graph["edges"]
             if e["source"] == node_id and e.get("sourceHandle", "") == branch
         )
-    return {"trace": trace, "side_effects": False}
+    result = {"trace": trace, "side_effects": False}
+    if trigger_event is not None:
+        result["trigger_matched"] = True
+    return result
 
 
 class PreviewView(APIView):
@@ -171,5 +191,6 @@ class PreviewView(APIView):
                 request.data.get("graph"),
                 request.data.get("replies", []),
                 request.data.get("samples", {}),
+                request.data.get("trigger_event"),
             )
         )

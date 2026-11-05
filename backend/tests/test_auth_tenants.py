@@ -23,6 +23,9 @@ def test_signup_create_workspace_logout_login():
     assert response.status_code == 201
     workspace_id = response.json()["id"]
     assert response.json()["role"] == "owner"
+    assert response.json()["checkout_pending"] is True
+    assert client.get(f"/api/workspaces/{workspace_id}/status/").status_code == 403
+    assert client.get(f"/api/workspaces/{workspace_id}/billing/").status_code == 200
     assert OutboxEvent.objects.for_workspace(workspace_id).count() == 1
     assert AuditEvent.objects.for_workspace(workspace_id).count() == 1
     assert client.post("/api/auth/logout/", HTTP_X_CSRFTOKEN=token).status_code == 204

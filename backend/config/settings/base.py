@@ -289,6 +289,7 @@ LINKEDIN_SCOPES = os.environ.get(
 )
 SNAPCHAT_WEBHOOK_SECRET = os.environ.get("SNAPCHAT_WEBHOOK_SECRET", "")
 CHANNEL_ADAPTER_MODE = os.environ.get("CHANNEL_ADAPTER_MODE", "disabled")
+ALLOW_TEST_CHANNELS = os.environ.get("ALLOW_TEST_CHANNELS", "false").lower() == "true"
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -315,9 +316,10 @@ STRIPE_PRICES = json.loads(os.environ.get("STRIPE_PRICES", "{}"))
 # Plan a workspace is on until it subscribes. "dev" is the unlimited local plan.
 DEFAULT_PLAN_SLUG = os.environ.get("DEFAULT_PLAN_SLUG", "free")
 # Free trial on a workspace's first subscription, any interval. 0 disables.
-STRIPE_TRIAL_DAYS = int(os.environ.get("STRIPE_TRIAL_DAYS", "7"))
+STRIPE_TRIAL_DAYS = int(os.environ.get("STRIPE_TRIAL_DAYS", "3"))
 # Nemio's own provider key for workspaces on prepaid credits (2.10).
 PLATFORM_OPENAI_API_KEY = os.environ.get("PLATFORM_OPENAI_API_KEY", "")
+PLATFORM_AI_MODEL = os.environ.get("PLATFORM_AI_MODEL", "gpt-5")
 PLATFORM_ANTHROPIC_API_KEY = os.environ.get("PLATFORM_ANTHROPIC_API_KEY", "")
 PLATFORM_GEMINI_API_KEY = os.environ.get("PLATFORM_GEMINI_API_KEY", "")
 PLATFORM_XAI_API_KEY = os.environ.get("PLATFORM_XAI_API_KEY", "")

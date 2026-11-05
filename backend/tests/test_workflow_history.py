@@ -57,6 +57,36 @@ def test_walkthrough_does_not_create_a_run_or_send_messages(client, workspace):
     assert not Delivery.objects.for_workspace(workspace).exists()
 
 
+@pytest.mark.parametrize(
+    ("kind", "channel_name", "text", "matched"),
+    [
+        ("comment", "instagram", "Send the GUIDE, please", True),
+        ("comment", "instagram", "guidelines", False),
+        ("dm", "instagram", "guide", False),
+        ("comment", "facebook", "guide", False),
+    ],
+)
+def test_walkthrough_checks_the_sample_trigger(
+    client, workspace, kind, channel_name, text, matched
+):
+    graph = flow()
+    graph["nodes"][0]["data"]["text"] = "Incoming: {{last_text}}"
+    response = client.post(
+        f"/api/workspaces/{workspace.pk}/automations/preview/",
+        {"graph": graph, "trigger_event": {"kind": kind, "channel": channel_name, "text": text}},
+        format="json",
+    )
+    assert response.status_code == 200, response.content
+    result = response.json()
+    assert result["trigger_matched"] is matched
+    if matched:
+        assert result["trace"][0]["detail"] == f"Incoming: {text}"
+    else:
+        assert result["trace"] == []
+    assert not AutomationExecution.objects.for_workspace(workspace).exists()
+    assert not Delivery.objects.for_workspace(workspace).exists()
+
+
 def test_legacy_backfill_gives_distinct_runs_to_existing_conversations(client, workspace, channel):
     assert publish(client, workspace, flow()).status_code == 200
     inbound(channel, "guide", kind="comment", sender_id="first")

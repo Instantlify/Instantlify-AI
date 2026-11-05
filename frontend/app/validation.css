@@ -1,18 +1,20 @@
 .field-required {
-  justify-self: start;
-  align-self: flex-start;
-  width: fit-content;
-  font-size: 10px;
-  line-height: 1.3;
-  font-weight: 600;
-  color: #7f3b30;
-  background: #fff2ee;
-  padding: 2px 6px;
-  border-radius: 4px;
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .field-required::after {
-  content: "Required";
+  content: "*";
+}
+
+.field-label-inline + .field-required {
+  display: none;
+}
+
+.field-label-inline .field-required {
+  margin-inline-start: 0.25em;
 }
 
 input[aria-invalid="true"],

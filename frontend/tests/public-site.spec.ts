@@ -429,7 +429,7 @@ test("signup preserves the selected plan through onboarding", async ({
       json: {
         plan: "free",
         stripe_configured: true,
-        trial_days: 7,
+        trial_days: 3,
         catalog: [
           {
             slug: "free",
@@ -484,6 +484,8 @@ test("signup preserves the selected plan through onboarding", async ({
     "aria-pressed",
     "true",
   );
+  await expect(page.getByText("3-day free trial")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue with Free" })).toHaveCount(0);
   await page.getByRole("button", { name: "Choose plan" }).click();
   await expect(page).toHaveURL("https://checkout.stripe.com/c/onboarding");
   expect(checkout).toEqual({

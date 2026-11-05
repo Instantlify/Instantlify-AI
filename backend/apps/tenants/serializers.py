@@ -56,8 +56,17 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Workspace
-        fields = ["id", "name", "created_at", "role", "parent", "branding", "pinned_apps"]
-        read_only_fields = ["id", "created_at", "role", "parent", "branding"]
+        fields = [
+            "id",
+            "name",
+            "created_at",
+            "role",
+            "parent",
+            "branding",
+            "pinned_apps",
+            "checkout_pending",
+        ]
+        read_only_fields = ["id", "created_at", "role", "parent", "branding", "checkout_pending"]
 
 
 class MembershipSerializer(serializers.ModelSerializer):

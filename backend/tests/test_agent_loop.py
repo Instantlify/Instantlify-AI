@@ -243,6 +243,7 @@ def test_keyword_handoff_is_deterministic_and_pauses_everything(channel, config,
     assert not AgentRun.objects.for_workspace(workspace).filter(message=message).exists()
     conversation = Conversation.objects.for_workspace(workspace).get()
     assert (conversation.status, conversation.ai_enabled) == ("needs_human", False)
+    assert conversation.handoff_reason == "keyword_rule"
     assert replies(channel)[-1].startswith("I'm bringing a team member")
     assert IntegrationJob.objects.for_workspace(workspace).filter(operation="notify").count() == 1
     assert OutboundWebhook.objects.for_workspace(workspace).filter(subscription=sub).count() == 1

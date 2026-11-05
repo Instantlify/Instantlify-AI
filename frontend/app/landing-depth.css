@@ -174,7 +174,7 @@
 .nd-offer-art {
   min-height: 160px;
   background: var(--brand-action);
-  color: var(--bg-subtle);
+  color: var(--brand-on-primary);
   border-radius: 6px;
   padding: 25px;
   position: relative;
@@ -427,7 +427,7 @@
 }
 .nd-agent-tabs button.active {
   background: var(--brand-action);
-  color: var(--bg-subtle);
+  color: var(--brand-on-primary);
 }
 .nd-console-content {
   padding: 23px;

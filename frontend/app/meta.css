@@ -1203,7 +1203,7 @@
   height: 36px;
   border-radius: 9px;
   background: var(--brand-action-hover);
-  color: var(--text-primary);
+  color: var(--brand-on-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3997,10 +3997,12 @@
 
 .builder-option-icon.simple {
   background: var(--brand-action);
+  color: var(--brand-on-primary);
 }
 
 .builder-option-icon.advanced {
   background: var(--text-primary);
+  color: var(--bg-canvas);
 }
 
 .builder-option-text {
@@ -4026,8 +4028,8 @@
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 9999px;
-  background: #dbeafe;
-  color: var(--brand-action-hover);
+  background: var(--brand-action);
+  color: var(--brand-on-primary);
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
@@ -6328,13 +6330,13 @@
 .plan-banner-title {
   font-size: 22px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: inherit;
   margin: 0;
 }
 
 .plan-banner-billed {
   font-size: 12px;
-  color: var(--text-light);
+  color: inherit;
 }
 
 .plan-stats-four-col {
@@ -6359,7 +6361,7 @@
 
 .stat-label {
   font-size: 11px;
-  color: var(--text-light);
+  color: inherit;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -6367,7 +6369,7 @@
 .stat-val {
   font-size: 14.5px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: inherit;
 }
 
 /* AI Credits Section */
@@ -7878,7 +7880,27 @@ button.boosend-checkbox-round:focus-visible {
   flex-wrap: wrap;
   max-width: 100%;
 }
+.boosend-inbox-layout .inbox-back {
+  display: none;
+}
+
+@media (min-width: 761px) {
+  .workflow-heading {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--bg-canvas);
+  }
+}
+
 @media (max-width: 760px) {
+  .boosend-inbox-layout:not(.mobile-thread-open) .boosend-chat-main,
+  .boosend-inbox-layout.mobile-thread-open .boosend-inbox-sidebar {
+    display: none;
+  }
+  .boosend-inbox-layout .inbox-back {
+    display: inline-flex;
+  }
   .boosend-crm-actions-right {
     flex-wrap: wrap;
   }
@@ -7892,7 +7914,7 @@ button.boosend-checkbox-round:focus-visible {
     width: 100%;
     min-width: 0;
     height: auto;
-    max-height: 45vh;
+    max-height: none;
     border-right: 0;
     border-bottom: 1px solid #edf2f7;
   }
@@ -7908,6 +7930,18 @@ button.boosend-checkbox-round:focus-visible {
   .boosend-inbox-layout .boosend-chat-input-bar {
     padding-left: 16px;
     padding-right: 16px;
+  }
+  .boosend-inbox-layout.mobile-thread-open {
+    height: calc(100dvh - 64px);
+    min-height: 0;
+    overflow: hidden;
+  }
+  .boosend-inbox-layout.mobile-thread-open .boosend-chat-main {
+    min-height: 0;
+  }
+  .boosend-inbox-layout .boosend-chat-input-bar {
+    flex-shrink: 0;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
   .boosend-inbox-layout .bubble {
     max-width: 85%;

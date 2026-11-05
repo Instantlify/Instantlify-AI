@@ -76,6 +76,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             "assigned_to",
             "status",
             "ai_enabled",
+            "handoff_reason",
             "last_inbound_at",
             "last_outbound_at",
             "updated_at",
@@ -135,6 +136,10 @@ class ConversationList(generics.ListAPIView):
 
 
 class ConversationDetail(APIView):
+    def get(self, request, workspace_id, pk):
+        conversation = get_object_or_404(conversations_for(request, workspace_id), pk=pk)
+        return Response(ConversationSerializer(conversation).data)
+
     @transaction.atomic
     def patch(self, request, workspace_id, pk):
         conversation = get_object_or_404(
@@ -142,6 +147,7 @@ class ConversationDetail(APIView):
         )
         member = workspace_membership(request, workspace_id)
         if "assigned_to" in request.data:
+            previous_assignee = conversation.assigned_to_id
             user_id = request.data["assigned_to"]
             if member.role == "agent" and user_id != request.user.id:
                 raise serializers.ValidationError(
@@ -155,10 +161,15 @@ class ConversationDetail(APIView):
             ):
                 raise serializers.ValidationError("Assignee must be a workspace member.")
             conversation.assigned_to_id = user_id
+            from .notifications import assignment_changed
+
+            assignment_changed(conversation.identity.lead, user_id, previous_assignee, request.user)
         if "status" in request.data:
             if request.data["status"] not in {"open", "closed", "needs_human"}:
                 raise serializers.ValidationError("Invalid conversation status.")
             conversation.status = request.data["status"]
+            if conversation.status != "needs_human":
+                conversation.handoff_reason = ""
         if "ai_enabled" in request.data:
             if not isinstance(request.data["ai_enabled"], bool):
                 raise serializers.ValidationError("ai_enabled must be boolean.")
@@ -314,6 +325,8 @@ class ConversationEventsView(APIView):
 
 
 class LeadSerializer(serializers.ModelSerializer):
+    assigned_to = serializers.IntegerField(source="assigned_to_id", required=False, allow_null=True, min_value=1)
+
     class Meta:
         model = Lead
         fields = [
@@ -322,6 +335,7 @@ class LeadSerializer(serializers.ModelSerializer):
             "handle",
             "avatar_url",
             "email",
+            "assigned_to",
             "stage",
             "tags",
             "fields",
@@ -330,6 +344,19 @@ class LeadSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "avatar_url", "profile_synced_at", "created_at"]
+
+    def validate_assigned_to(self, value):
+        request = self.context.get("request")
+        view = self.context.get("view")
+        if not request or not view:
+            raise serializers.ValidationError("Assign contacts through the workspace contact API.")
+        workspace_id = view.kwargs["workspace_id"]
+        workspace_membership(request, workspace_id, ["owner", "admin"])
+        if value is not None and not Membership.objects.for_workspace(workspace_id).filter(
+            user_id=value, user__is_active=True, user__is_banned=False
+        ).exists():
+            raise serializers.ValidationError("Assignee must be an active workspace member.")
+        return value
 
     def validate_stage(self, value):
         if value not in {"new", "qualified", "interested", "booked", "won", "lost"}:
@@ -408,6 +435,8 @@ class LeadRowSerializer(LeadSerializer):
         return max(conversations, key=lambda item: item.updated_at).pk if conversations else None
 
     def get_assigned_to(self, obj):
+        if obj.assigned_to_id is not None:
+            return obj.assigned_to_id
         conversations = self._conversations(obj)
         if not conversations:
             return None
@@ -418,7 +447,6 @@ class LeadRowSerializer(LeadSerializer):
             "channels",
             "identities",
             "conversation_id",
-            "assigned_to",
             "message_count",
             "last_activity_at",
         ]
@@ -433,12 +461,12 @@ class LeadPagination(PageNumberPagination):
 
 def visible_leads(request, workspace_id):
     """Leads the caller may edit. Managers see every contact, including ones added by
-    hand; agents only those behind a conversation they can see."""
+    hand; agents see their assigned contacts and contacts behind visible conversations."""
     member = workspace_membership(request, workspace_id)
     query = Lead.objects.for_workspace(workspace_id)
     if member.role == "agent":
         ids = conversations_for(request, workspace_id).values_list("identity__lead_id", flat=True)
-        query = query.filter(pk__in=ids)
+        query = query.filter(Q(assigned_to=request.user) | Q(pk__in=ids))
     return query
 
 
@@ -622,6 +650,7 @@ class LeadDetail(generics.RetrieveUpdateDestroyAPIView):
     def retrieve(self, request, *args, **kwargs):
         return Response(LeadRowSerializer(self.get_object()).data)
 
+    @transaction.atomic
     def update(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.get_object(), data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -631,7 +660,16 @@ class LeadDetail(generics.RetrieveUpdateDestroyAPIView):
     def perform_update(self, serializer):
         from apps.public_api.services import emit, lead_payload
 
+        previous_assignee = serializer.instance.assigned_to_id
         lead = serializer.save()
+        if "assigned_to_id" in serializer.validated_data:
+            from .notifications import assignment_changed
+
+            assignment_changed(lead, lead.assigned_to_id, previous_assignee, self.request.user)
+            Conversation.objects.for_workspace(lead.workspace_id).filter(identity__lead=lead).update(
+                assigned_to_id=lead.assigned_to_id
+            )
+            transaction.on_commit(lambda: notify(lead.workspace_id))
         audit(lead.workspace, self.request.user, "lead.updated", lead.id)
         emit(lead.workspace_id, "lead.updated", lead_payload(lead))
 
@@ -685,6 +723,11 @@ class MergeLeadView(APIView):
         target.email = target.email or source.email
         target.handle = target.handle or source.handle
         target.avatar_url = target.avatar_url or source.avatar_url
+        target.assigned_to_id = target.assigned_to_id or source.assigned_to_id
+        if target.assigned_to_id:
+            Conversation.objects.for_workspace(workspace_id).filter(identity__lead=target).update(
+                assigned_to_id=target.assigned_to_id
+            )
         # A typed name beats a raw channel ID left by a contact that was never enriched.
         if (
             target.name
@@ -698,7 +741,7 @@ class MergeLeadView(APIView):
         ):
             target.name = source.name
         target.save(
-            update_fields=["tags", "opted_out", "fields", "email", "handle", "avatar_url", "name"]
+            update_fields=["tags", "opted_out", "fields", "email", "handle", "avatar_url", "name", "assigned_to"]
         )
         source.delete()
         audit(member.workspace, request.user, "leads.merged", target.id)

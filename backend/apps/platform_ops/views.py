@@ -721,6 +721,7 @@ def agent_config_context(selected=""):
     leads about a tenant's business; this one answers our prospects about Nemio, and
     the two knowledge bases must never retrieve into each other's context.
     """
+    from .knowledge_indexing import status
     from .models import PlatformKnowledgeDocument, PlatformKnowledgeSection
     from .support_agent import DEFAULT_PROMPT, system_prompt
 
@@ -731,6 +732,7 @@ def agent_config_context(selected=""):
     current = current or (documents[0] if documents else None)
     total = PlatformKnowledgeSection.objects.count()
     return {
+        "indexing": status(),
         "documents": documents,
         "document": current,
         "sections": list(current.sections.all()) if current else [],
@@ -917,6 +919,13 @@ def dashboard(request):
         .values_list("name", "total")
     )
     rows = []
+    from .capabilities import CAPABILITIES
+    from .models import WorkspaceCapability
+
+    grants = {
+        (item.workspace_id, item.key): item
+        for item in WorkspaceCapability.objects.filter(workspace_id__in=workspace_page.object_list)
+    }
     for workspace in workspace_page:
         account = BillingAccount.objects.for_workspace(workspace).first()
         usage = (
@@ -927,6 +936,14 @@ def dashboard(request):
         rows.append(
             {
                 "workspace": workspace,
+                "capabilities": [
+                    {
+                        "key": key,
+                        "label": label,
+                        "enabled": bool(grants.get((workspace.pk, key)) and grants[(workspace.pk, key)].enabled),
+                    }
+                    for key, label in CAPABILITIES.items()
+                ],
                 "meta_calls": metric_calls.get("meta.calls:" + str(workspace.pk), 0),
                 "account": account,
                 "usage": usage,
@@ -1113,6 +1130,43 @@ def settings_save(request):
     PlatformSetting.objects.update_or_create(key="email_automation_url", defaults={"value": url})
     record(request.user, "settings.changed", key="email_automation_url")
     return redirect("/ops/?tab=settings&saved=1")
+
+
+@protected()
+def knowledge_indexing_status(request):
+    from django.http import JsonResponse
+
+    from .knowledge_indexing import status
+
+    response = JsonResponse(status())
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@require_POST
+@protected("owner")
+@transaction.atomic
+def capability_change(request):
+    from .capabilities import CAPABILITIES
+    from .models import WorkspaceCapability
+
+    workspace = get_object_or_404(
+        Workspace.objects.select_for_update(), pk=valid_uuid(request.POST.get("workspace", ""))
+    )
+    key = request.POST.get("key", "")
+    reason = request.POST.get("reason", "").strip()
+    enabled = request.POST.get("enabled")
+    if key not in CAPABILITIES or enabled not in {"true", "false"}:
+        return HttpResponseForbidden("Choose a known feature and an explicit grant or revoke action.")
+    if not reason or len(reason) > 300:
+        return HttpResponseForbidden("Provide a reason of up to 300 characters.")
+    WorkspaceCapability.objects.update_or_create(
+        workspace=workspace, key=key,
+        defaults={"enabled": enabled == "true", "reason": reason},
+    )
+    record(request.user, "capability.changed", workspace.pk,
+           key=key, enabled=enabled == "true", reason=reason)
+    return redirect("/ops/?tab=operations&q=" + str(workspace.pk))
 
 
 @require_POST

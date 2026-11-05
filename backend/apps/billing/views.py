@@ -119,7 +119,7 @@ class PublicPlansView(APIView):
 
 class BillingView(APIView):
     def get(self, request, workspace_id):
-        workspace_membership(request, workspace_id, ["owner", "admin"])
+        workspace_membership(request, workspace_id, ["owner", "admin"], allow_pending=True)
         account = account_for(workspace_id)
         usage = UsageRecord.objects.for_workspace(workspace_id).filter(
             created_at__gte=account.period_start, kind="generation"
@@ -155,8 +155,10 @@ class BillingView(APIView):
         )
 
     def post(self, request, workspace_id):
-        workspace_membership(request, workspace_id, ["owner"])
         kind = request.data.get("kind", "checkout")
+        member = workspace_membership(
+            request, workspace_id, ["owner"], allow_pending=kind == "checkout"
+        )
         plan = request.data.get("plan", "")
         interval = request.data.get("interval", "monthly")
         key = request.headers.get("Idempotency-Key", "")
@@ -174,6 +176,7 @@ class BillingView(APIView):
             kind not in {"checkout", "portal", "credits"}
             or interval not in {"monthly", "annual"}
             or (kind == "checkout" and not sellable)
+            or (member.workspace.checkout_pending and plan == "free")
             or (kind == "credits" and not valid_topup)
             or not 1 <= len(key) <= 100
         ):
@@ -381,6 +384,6 @@ class BillingJobView(APIView):
     def get(self, request, workspace_id, job_id):
         from django.shortcuts import get_object_or_404
 
-        workspace_membership(request, workspace_id, ["owner"])
+        workspace_membership(request, workspace_id, ["owner"], allow_pending=True)
         job = get_object_or_404(BillingJob.objects.for_workspace(workspace_id), pk=job_id)
         return Response({"id": job.id, "status": job.status, "result": json.loads(job.result)})

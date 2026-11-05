@@ -27,6 +27,8 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [invitationError, setInvitationError] = useState(false);
+  const [inviteAttempt, setInviteAttempt] = useState(0);
   const [branding, setBranding] = useState<Branding | null>(null);
   const inviteHandled = useRef(false);
 
@@ -60,9 +62,6 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
         let target: string | null = null;
         if (token && !inviteHandled.current) {
           inviteHandled.current = true;
-          const url = new URL(window.location.href);
-          url.searchParams.delete("invite");
-          window.history.replaceState(null, "", url.toString());
           try {
             const joined = await api<{ workspace_id: string }>(
               "/api/invitations/accept/",
@@ -70,8 +69,14 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
               { token },
             );
             target = joined.workspace_id;
+            const url = new URL(window.location.href);
+            url.searchParams.delete("invite");
+            window.history.replaceState(null, "", url.toString());
           } catch (err) {
             setError(message(err));
+            setInvitationError(true);
+            setLoading(false);
+            return;
           }
         }
         const all = await loadWorkspaces(controller.signal);
@@ -104,7 +109,23 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
       }
     })();
     return () => controller.abort();
-  }, [user, router]);
+  }, [user, router, inviteAttempt]);
+
+  async function switchInvitationAccount() {
+    setBusy(true);
+    try {
+      await api("/api/auth/logout/", "POST");
+      inviteHandled.current = false;
+      setInvitationError(false);
+      setError("");
+      setUser(null);
+      setLoading(false);
+    } catch (err) {
+      setError(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -128,6 +149,49 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
       <div className="loading-screen">
         <Brand name={branding?.brand_name} logo={branding?.logo_url} />
         <p>Opening your workspace…</p>
+      </div>
+    );
+  if (user && invitationError)
+    return (
+      <div className="setup-screen">
+        <Brand name={branding?.brand_name} logo={branding?.logo_url} />
+        <section className="setup-card">
+          <span className="section-icon">
+            <GitBranch size={26} />
+          </span>
+          <span className="eyebrow">WORKSPACE INVITATION</span>
+          <h1>Join your team.</h1>
+          <ErrorNotice error={error} />
+          <p>
+            You are signed into Nemio as <strong>{user.email}</strong>.
+          </p>
+          <p>
+            Opening an email does not change your Nemio account. Sign in or
+            create an account using the email address that received this
+            invitation. Your invitation link will be kept while you switch
+            accounts.
+          </p>
+          <button
+            className="button primary"
+            onClick={switchInvitationAccount}
+            disabled={busy}
+          >
+            Sign in with another account
+          </button>
+          <button
+            className="text-button"
+            disabled={busy}
+            onClick={() => {
+              inviteHandled.current = false;
+              setInvitationError(false);
+              setError("");
+              setLoading(true);
+              setInviteAttempt((attempt) => attempt + 1);
+            }}
+          >
+            Try invitation again
+          </button>
+        </section>
       </div>
     );
   if (user)

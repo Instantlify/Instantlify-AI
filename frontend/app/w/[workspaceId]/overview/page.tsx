@@ -30,6 +30,7 @@ import {
 } from "@/lib/channels";
 import { Sparkline } from "@/components/sparkline";
 import { ConnectPrompt } from "@/components/growth";
+import { firstReplyStep } from "@/lib/growth";
 import {
   ErrorNotice,
   Panel,
@@ -62,6 +63,7 @@ export default function OverviewPage() {
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
   const [checkedAt, setCheckedAt] = useState(() => Date.now());
   const [refreshing, setRefreshing] = useState(false);
+  const [setup, setSetup] = useState({ tested: false, published: false, replied: false });
   const feedback = useFeedback();
 
   const load = useCallback(
@@ -82,9 +84,14 @@ export default function OverviewPage() {
         ]);
         setFunnel(report);
         setTelemetry(metrics);
+        const tested = firstReplyStep(workspace.id, "tested");
+        const published = firstReplyStep(workspace.id, "published");
+        const hasReply = Boolean(report.steps?.some((step) => step.kind === "replied" && step.leads > 0));
+        const replied = firstReplyStep(workspace.id, "replied", published && hasReply);
+        setSetup({ tested, published, replied });
       }
     },
-    [prefix, manager],
+    [prefix, manager, workspace.id],
   );
 
   useEffect(() => {
@@ -109,6 +116,14 @@ export default function OverviewPage() {
   }
 
   const live = connections.filter((item) => item.status !== "disconnected");
+  const channelReady = live.some((item) => !item.locked && tokenHealth(item, checkedAt) !== "reconnect");
+  const setupSteps = [
+    { label: "Connect a channel", done: channelReady, path: "integrations?tab=channels" },
+    { label: "Preview a reply", done: setup.tested, path: "automations" },
+    { label: "Publish an automation", done: setup.published, path: "automations" },
+    { label: "Check for a reply in Conversations", done: setup.replied, path: "inbox" },
+  ];
+  const nextStep = setupSteps.find((step) => !step.done);
   const reconnect = live.filter((item) => tokenHealth(item, checkedAt) === "reconnect").length;
   const expiring = live.filter((item) => tokenHealth(item, checkedAt) === "expiring").length;
   const inbound = (telemetry?.days || []).map((day) => ({
@@ -125,6 +140,23 @@ export default function OverviewPage() {
       <ConnectPrompt workspaceId={workspace.id} />
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
+      {manager && funnel && nextStep && (
+        <section className="connect-prompt" aria-label="First reply checklist">
+          <div>
+            <strong>Your first automated reply</strong>
+            <ol>
+              {setupSteps.map((step) => (
+                <li key={step.label}>{step.label} <span className="muted-text">· {step.done ? "Done" : "To do"}</span></li>
+              ))}
+            </ol>
+          </div>
+          {live.length > 0 && (
+            <Link className="button primary" href={`/w/${workspace.id}/${nextStep.path}`}>
+              {nextStep.label}
+            </Link>
+          )}
+        </section>
+      )}
 
       {/* 1. Channel status: which accounts are connected and which need attention */}
       <section className="boosend-leaderboard-bar overview-channel-bar" aria-label="Channel status">

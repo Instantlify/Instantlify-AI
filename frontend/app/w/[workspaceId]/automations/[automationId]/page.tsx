@@ -59,6 +59,7 @@ import { channelLabel } from "@/lib/channels";
 import { KIND_CHANNELS, TRIGGER_LABELS } from "@/lib/meta-templates";
 import { ErrorNotice, Pill, SuccessNotice, useFeedback } from "@/components/ui";
 import { TourMarker } from "@/components/growth";
+import { firstReplyStep } from "@/lib/growth";
 import { useGraphHistory } from "@/lib/use-graph-history";
 import { FlowTools } from "@/components/flow-tools";
 
@@ -808,8 +809,21 @@ export default function BuilderPage() {
       );
       setAutomation(updated);
       setDirty(false);
+      firstReplyStep(workspace.id, "published", true);
     }, "Published. The flow is live on matching triggers.");
   }
+  async function pause() {
+    await feedback.run(async () => {
+      const updated = await api<Automation>(
+        `${prefix}/automations/${automationId}/`,
+        "PATCH",
+        { enabled: false },
+      );
+      setAutomation(updated);
+    }, "Automation paused.");
+  }
+  const boundConnection = connections.find((item) => item.id === graph.connection_id);
+  const startStep = graph.nodes.find((node) => node.id === graph.start)?.data;
   const buttons = selected?.data.buttons || [];
   function setButtons(next: FlowButton[]) {
     updateSelected({ buttons: next });
@@ -818,7 +832,7 @@ export default function BuilderPage() {
   return (
     <>
       <TourMarker workspaceId={workspace.id} step="editor" />
-      <div className="page-heading">
+      <div className="page-heading workflow-heading">
         <div>
           <span className="eyebrow">
             <Link
@@ -830,8 +844,9 @@ export default function BuilderPage() {
           </span>
           <h1>{automation?.name || "Flow builder"}</h1>
           <p>
-            Drag nodes, connect them top-to-bottom, set the start node and
-            keyword triggers, then publish.
+            {graph.triggers.length
+              ? `When ${TRIGGER_LABELS[graph.triggers[0].kind]?.toLowerCase() ?? graph.triggers[0].kind} matches ${graph.triggers[0].keyword === "*" ? "any text" : `“${graph.triggers[0].keyword}”`}, start with ${startStep?.kind.replaceAll("_", " ") || "the selected start step"}.`
+              : "Add a trigger and choose the step that runs first."}
           </p>
         </div>
         <div className="row">
@@ -846,12 +861,17 @@ export default function BuilderPage() {
               }
             >
               {automation.enabled
-                ? "live"
+                ? "Live"
                 : automation.published?.start
-                  ? "paused"
-                  : "draft"}
+                  ? "Paused"
+                  : "Draft"}
               {dirty ? " · unsaved" : ""}
             </Pill>
+          )}
+          {automation?.enabled && (
+            <button className="button secondary small" onClick={pause} disabled={feedback.busy}>
+              Pause automation
+            </button>
           )}
           <button
             className="button secondary small"
@@ -871,6 +891,30 @@ export default function BuilderPage() {
       </div>
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
+      <details className="card" open style={{ padding: 14, marginBottom: 12 }}>
+        <summary>Review before publishing</summary>
+        <p>
+          <strong>Account:</strong>{" "}
+          {boundConnection
+            ? `${boundConnection.display_name} · ${boundConnection.is_test ? "Test" : "Live"} · ${boundConnection.status.replaceAll("_", " ")}`
+            : graph.connection_id
+              ? "Selected account unavailable"
+              : "Any connected account that matches a trigger"}
+        </p>
+        <ul>
+          {graph.triggers.map((trigger, index) => (
+            <li key={index}>
+              {TRIGGER_LABELS[trigger.kind] ?? trigger.kind} ·{" "}
+              {trigger.channel ? channelLabel(trigger.channel) : "Any supported channel"} ·{" "}
+              {trigger.keyword === "*" ? "Any text" : `Keyword “${trigger.keyword}”`}
+            </li>
+          ))}
+        </ul>
+        <p>
+          <strong>First step:</strong>{" "}
+          {startStep?.text || startStep?.kind.replaceAll("_", " ") || "Choose a start step"}
+        </p>
+      </details>
       <div
         className="row"
         role="toolbar"
@@ -883,6 +927,7 @@ export default function BuilderPage() {
           automationId={automationId}
           graph={graph}
           name={automation?.name || "Automation"}
+          boundProvider={boundConnection?.provider}
         />
         <button
           className="button secondary small"
@@ -2071,10 +2116,11 @@ export default function BuilderPage() {
                       </option>
                     )}
                   {connections
-                    .filter((c) => c.status === "active" && !c.locked)
+                    .filter((c) => c.id === connectionId || (c.status === "active" && !c.locked))
                     .map((c) => (
                       <option value={c.id} key={c.id}>
-                        {c.display_name}
+                        {c.display_name} · {c.is_test ? "Test" : "Live"} ·{" "}
+                        {c.locked ? "Locked" : c.status === "active" ? "Connected" : c.status.replaceAll("_", " ")}
                       </option>
                     ))}
                 </select>

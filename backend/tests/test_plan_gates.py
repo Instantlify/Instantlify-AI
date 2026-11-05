@@ -132,6 +132,11 @@ def test_integration_connect_and_jobs_are_gated(client, workspace):
 
 
 def test_content_scheduling_is_gated(client, workspace):
+    from apps.platform_ops.models import WorkspaceCapability
+
+    WorkspaceCapability.objects.create(
+        workspace=workspace, key="meta_publishing", enabled=True, reason="Test approval"
+    )
     channel = connection(workspace)
     set_limits(workspace, content_scheduling_enabled=False)
     response = client.post(
@@ -148,6 +153,11 @@ def test_content_scheduling_is_gated(client, workspace):
 
 
 def test_downgrade_soft_locks_the_newest_connections(client, workspace):
+    from apps.platform_ops.models import WorkspaceCapability
+
+    WorkspaceCapability.objects.create(
+        workspace=workspace, key="meta_publishing", enabled=True, reason="Test approval"
+    )
     set_limits(workspace, max_instagram_accounts=3)
     older, newer = connection(workspace, "ig-old"), connection(workspace, "ig-new")
     # Same-instant inserts would tie on created_at; the older one is unambiguous here.
@@ -234,7 +244,7 @@ def test_first_checkout_carries_the_trial(workspace, settings):
             billing_tasks.process_job(str(workspace.pk), str(job.id))
         return create.call_args.kwargs["subscription_data"]
 
-    assert run_job("first")["trial_period_days"] == 7
+    assert run_job("first")["trial_period_days"] == 3
     account.subscription_id, account.status = "sub_old", "canceled"  # a re-subscribe
     account.save()
     assert "trial_period_days" not in run_job("again")
@@ -243,7 +253,7 @@ def test_first_checkout_carries_the_trial(workspace, settings):
 def test_public_catalog_is_anonymous_and_excludes_custom_tiers():
     body = APIClient().get("/api/public/plans/").json()
     assert [plan["slug"] for plan in body["plans"]] == ["free", "starter", "pro", "scale"]
-    assert body["trial_days"] == 7
+    assert body["trial_days"] == 3
     pro = next(plan for plan in body["plans"] if plan["slug"] == "pro")
     assert pro["is_featured"] and {p["interval"] for p in pro["prices"]} == {"monthly", "annual"}
 

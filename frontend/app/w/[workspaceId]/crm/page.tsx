@@ -726,14 +726,7 @@ export default function CrmPage() {
                         )}
                       </td>
                       <td>
-                        {!lead.conversation_id ? (
-                          <span
-                            className="subtle"
-                            title="Assign once the contact has a conversation"
-                          >
-                            —
-                          </span>
-                        ) : lead.assigned_to ? (
+                        {lead.assigned_to ? (
                           <span className="crm-assignee">
                             {memberName(lead.assigned_to)}
                           </span>

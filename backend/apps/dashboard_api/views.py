@@ -47,10 +47,15 @@ class TelemetryView(APIView):
 
 class WorkspaceStatusView(APIView):
     def get(self, request, workspace_id):
+        from apps.channels.adapters import test_channels_enabled
+        from apps.platform_ops.capabilities import capabilities_for
+
         member = workspace_membership(request, workspace_id)
         return Response(
             {
                 "checks": dependency_status(),
+                "capabilities": capabilities_for(member.workspace_id),
+                "test_channels_enabled": test_channels_enabled(),
                 "pending_jobs": OutboxEvent.objects.for_workspace(member.workspace)
                 .filter(processed_at__isnull=True)
                 .count(),

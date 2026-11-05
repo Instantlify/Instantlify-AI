@@ -94,7 +94,7 @@ summary:focus-visible {
 .sidebar .workspace-avatar,
 .sidebar .user-avatar {
   background: var(--brand-action);
-  color: var(--border-subtle);
+  color: var(--brand-on-primary);
   border-color: var(--brand-action);
 }
 .sidebar .nav-item {

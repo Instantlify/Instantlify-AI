@@ -66,7 +66,7 @@ test("contacts show their Meta profile and open a panel that leads to the chat",
   await expect
     .poll(
       () =>
-        calls.find((call) => call.path.endsWith("/conversations/v-0/"))?.body,
+        calls.filter((call) => call.path.endsWith("/leads/l-0/")).at(-1)?.body,
     )
     .toEqual({ assigned_to: 1 });
   await expect(page.getByRole("row", { name: /Maya Chen/ })).toContainText(
@@ -116,7 +116,7 @@ test("a contact added by hand explains what comes next and can be merged or dele
   await expect(
     panel.getByRole("button", { name: "Refresh profile" }),
   ).toHaveCount(0);
-  await expect(panel.getByLabel("Assigned to")).toBeDisabled();
+  await expect(panel.getByLabel("Assigned to")).toBeEnabled();
 
   await panel.getByRole("button", { name: "Delete", exact: true }).click();
   await panel.getByRole("button", { name: "Delete contact" }).click();

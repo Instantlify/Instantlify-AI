@@ -24,6 +24,11 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def channel(workspace):
+    from apps.platform_ops.models import WorkspaceCapability
+
+    WorkspaceCapability.objects.create(
+        workspace=workspace, key="meta_publishing", enabled=True, reason="Test approval"
+    )
     return ChannelConnection.objects.for_workspace(workspace).create(
         workspace=workspace,
         external_account_id="ig-account",

@@ -1,8 +1,10 @@
 import hashlib
 import secrets
 from datetime import timedelta
+from smtplib import SMTPException
 
 from django.conf import settings
+from django.core.mail import BadHeaderError
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -77,8 +79,30 @@ class InvitationListView(generics.ListCreateAPIView):
             )
             audit(member.workspace, request.user, "invitation.created", invitation.id, role=role)
         data = InvitationSerializer(invitation).data
-        # No email delivery exists yet: the raw token is returned once, to the inviter only.
+        # Only the creation response and recipient email receive the raw token.
         data["accept_url"] = f"{settings.PUBLIC_APP_URL}/?invite={token}"
+        from apps.platform_ops.growth import TemplateMissing, send_transactional_email
+
+        try:
+            send_transactional_email(
+                "workspace-invitation",
+                email,
+                {
+                    "workspace": " ".join(member.workspace.name.splitlines()),
+                    "inviter": " ".join(
+                        (request.user.get_full_name() or request.user.email).splitlines()
+                    ),
+                    "role": role,
+                    "email": email,
+                    "link": data["accept_url"],
+                },
+            )
+        except (SMTPException, OSError, BadHeaderError, TemplateMissing):
+            data["email_sent"] = False
+            audit(member.workspace, request.user, "invitation.email_failed", invitation.id)
+        else:
+            data["email_sent"] = True
+            audit(member.workspace, request.user, "invitation.email_sent", invitation.id)
         return Response(data, status=status.HTTP_201_CREATED)
 
 

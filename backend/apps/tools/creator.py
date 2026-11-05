@@ -20,7 +20,10 @@ class CreatorSerializer(serializers.ModelSerializer):
 
     def get_live_statistics(self, obj):
         from apps.channels.models import ChannelConnection
+        from apps.platform_ops.capabilities import has_capability
 
+        if not has_capability(obj.workspace_id, "meta_analytics"):
+            return []
         rows = []
         for connection in ChannelConnection.objects.for_workspace(obj.workspace_id).filter(
             pk__in=obj.live_connection_ids,
@@ -82,6 +85,9 @@ class CreatorSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Choose valid connected accounts.") from None
         workspace_id = self.context["workspace_id"]
         if ids:
+            from apps.platform_ops.capabilities import check_capability
+
+            check_capability(workspace_id, "meta_analytics")
             check_feature(workspace_id, "integrations_unlocked")
         connections = list(
             ChannelConnection.objects.for_workspace(workspace_id).filter(

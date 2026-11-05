@@ -124,7 +124,9 @@ def run_agent(run, config):
 
     def handoff(state):
         if "reply" not in checkpoint:
-            hand_off(conversation, reason=checkpoint["triage"].get("intent", "triage"))
+            triage = checkpoint["triage"]
+            reason = "wants_human" if triage.get("intent") == "wants_human" else "urgent_or_angry"
+            hand_off(conversation, reason=reason)
             save(reply=HANDOFF_REPLY)
         return {"reply": checkpoint["reply"]}
 
@@ -360,7 +362,14 @@ def hand_off(conversation, *, reason):
         return conversation
     conversation.status = "needs_human"
     conversation.ai_enabled = False
-    conversation.save(update_fields=["status", "ai_enabled", "updated_at"])
+    conversation.handoff_reason = (
+        reason
+        if reason in {"wants_human", "urgent_or_angry"}
+        else "keyword_rule"
+        if reason.startswith("triage:")
+        else "agent_escalated"
+    )
+    conversation.save(update_fields=["status", "ai_enabled", "handoff_reason", "updated_at"])
     ConversationState.objects.for_workspace(conversation.workspace_id).filter(
         conversation=conversation, status__in=["running", "waiting"]
     ).update(status="stopped", error_code="handoff")

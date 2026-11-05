@@ -3,12 +3,13 @@ from rest_framework import generics, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.automations.models import Automation
+from apps.automations.models import Automation, AutomationExecution
+from apps.crm.models import Conversation
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
 
 from .models import Experiment
-from .services import experiment_results, funnel, promote
+from .services import STEPS, experiment_results, funnel, funnel_events, promote
 
 
 class FunnelView(APIView):
@@ -16,15 +17,49 @@ class FunnelView(APIView):
         workspace_membership(request, workspace_id, ["owner", "admin"])
         automation_id = request.query_params.get("automation") or None
         if automation_id:
+            automation_id = serializers.UUIDField().run_validation(automation_id)
             get_object_or_404(Automation.objects.for_workspace(workspace_id), pk=automation_id)
-        return Response(
-            funnel(
-                workspace_id,
-                period=request.query_params.get("period", "30d"),
-                automation_id=automation_id,
-                provider=request.query_params.get("provider", "")[:30],
+        provider = request.query_params.get("provider", "")[:30]
+        filters = {
+            "period": request.query_params.get("period", "30d"),
+            "automation_id": automation_id,
+            "provider": provider,
+        }
+        stage = request.query_params.get("stage")
+        if stage:
+            since, events = funnel_events(workspace_id, **filters)
+            if stage == "failed":
+                runs = AutomationExecution.objects.for_workspace(workspace_id).filter(
+                    status="failed", finished_at__gte=since
+                )
+                if automation_id:
+                    runs = runs.filter(automation_id=automation_id)
+                if provider:
+                    runs = runs.filter(conversation__identity__connection__provider=provider)
+                rows = runs.order_by("-finished_at", "-id").values(
+                    "id",
+                    "conversation_id",
+                    "created_at",
+                    "finished_at",
+                    "automation_name",
+                    "node_id",
+                    "error_code",
+                )
+                return Response(list(rows[:100]))
+            if stage not in STEPS:
+                raise serializers.ValidationError({"stage": "Choose a valid funnel stage."})
+            conversations = Conversation.objects.for_workspace(workspace_id)
+            rows = (
+                events.filter(
+                    kind=stage,
+                    lead_id__isnull=False,
+                    conversation_id__in=conversations.values("id"),
+                )
+                .order_by("-created_at", "-id")
+                .values("id", "conversation_id", "created_at")
             )
-        )
+            return Response(list(rows[:100]))
+        return Response(funnel(workspace_id, **filters))
 
 
 class ExperimentSerializer(serializers.ModelSerializer):

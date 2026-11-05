@@ -1,4 +1,5 @@
 import ipaddress
+import secrets
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -28,6 +29,8 @@ class ConsoleBoundary:
                 allowed = False
             if not allowed:
                 return HttpResponse(status=403)
+        if console:
+            request.console_script_nonce = secrets.token_urlsafe(24)
         response = self.get_response(request)
         if (
             request.path in {"/webhooks/instagram/", "/webhooks/whatsapp/", "/webhooks/messenger/"}
@@ -50,6 +53,8 @@ class ConsoleBoundary:
             # cross-site while letting the console's own forms submit.
             response["Referrer-Policy"] = "same-origin"
             response["Content-Security-Policy"] = (
-                "default-src 'self'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; form-action 'self'"
+                "default-src 'self'; "
+                f"script-src 'self' 'nonce-{request.console_script_nonce}'; "
+                "style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; form-action 'self'"
             )
         return response

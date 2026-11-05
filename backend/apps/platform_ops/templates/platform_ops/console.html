@@ -2829,6 +2829,41 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
         </div>
       </div>
 
+      <section class="funnel-visual-card" style="margin-bottom:20px;">
+        <h3>Advanced Meta access by workspace</h3>
+        <p>Advanced features are restricted until approved here. Approval covers every member of the workspace. Account connection and comment/DM auto-replies keep their existing access.</p>
+        <p>Analytics currently covers live follower statistics. Post reach, Ads and other business reporting APIs are not yet implemented. Approval does not replace Meta permissions or plan requirements.</p>
+        <form method="get" action="/ops/" style="display:flex; gap:10px; margin:12px 0;">
+          <input type="hidden" name="tab" value="operations">
+          <input class="input-control" name="q" value="{{ request.GET.q }}" placeholder="Search workspace name or UUID" aria-label="Search workspaces">
+          <button class="btn-primary" type="submit">Search</button>
+        </form>
+        {% for row in rows %}
+        <div style="padding:12px 0; border-bottom:1px solid var(--soft);">
+          <strong>{{ row.workspace.name }}</strong> <small>{{ row.workspace.pk }}</small>
+          {% for feature in row.capabilities %}
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px;">
+            <span>{{ feature.label }}</span>
+            <span class="badge-tag {% if feature.enabled %}badge-tag-green{% else %}badge-tag-red{% endif %}">{% if feature.enabled %}Approved{% else %}Restricted{% endif %}</span>
+            {% if role == 'owner' %}
+            <form method="post" action="/ops/capabilities/" style="display:flex; gap:8px; flex-wrap:wrap;">{% csrf_token %}
+              <input type="hidden" name="workspace" value="{{ row.workspace.pk }}">
+              <input type="hidden" name="key" value="{{ feature.key }}">
+              <input type="hidden" name="enabled" value="{% if feature.enabled %}false{% else %}true{% endif %}">
+              <input class="input-control" name="reason" required maxlength="300" placeholder="Reason for access change" aria-label="Reason for {{ feature.label }} access change">
+              <button class="btn-primary" type="submit">{% if feature.enabled %}Revoke{% else %}Grant access{% endif %}</button>
+            </form>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% empty %}<p>No matching workspaces.</p>{% endfor %}
+        <div style="margin-top:12px;">Page {{ workspace_page.number }} of {{ workspace_page.paginator.num_pages }}.
+          {% if workspace_page.has_previous %}<a href="?tab=operations&amp;q={{ request.GET.q|urlencode }}&amp;page={{ workspace_page.previous_page_number }}">Previous</a>{% endif %}
+          {% if workspace_page.has_next %}<a href="?tab=operations&amp;q={{ request.GET.q|urlencode }}&amp;page={{ workspace_page.next_page_number }}">Next</a>{% endif %}
+        </div>
+      </section>
+
       <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; margin-bottom:20px;">
         <section class="funnel-visual-card">
           <h3 style="margin-bottom:12px;">Queue Backlog</h3>
@@ -4077,10 +4112,46 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
         <div class="banner-controls">
           <span class="dropdown-pill">{{ agent.document_count }} docs · {{ agent.section_count }} sections</span>
           <form method="post" action="/ops/knowledge/">{% csrf_token %}
-            <button class="btn-secondary" name="action" value="reembed" type="submit">Re-embed all</button>
+            <button id="knowledge-reembed-button" class="btn-secondary" name="action" value="reembed" type="submit" {% if agent.indexing.state == 'queued' or agent.indexing.state == 'running' %}disabled{% endif %}>Re-embed all</button>
           </form>
         </div>
       </div>
+
+      <style>
+        #knowledge-indexing-status[data-state="succeeded"] {
+          background: #ecfdf5;
+          border-color: #a7f3d0;
+          color: #166534;
+        }
+      </style>
+      <div id="knowledge-indexing-status" role="status" aria-live="polite" class="alert-banner" data-state="{{ agent.indexing.state }}" {% if not agent.indexing.message %}hidden{% endif %}>{{ agent.indexing.message }}</div>
+      <script nonce="{{ request.console_script_nonce }}">
+        (() => {
+          const output = document.getElementById('knowledge-indexing-status');
+          const button = document.getElementById('knowledge-reembed-button');
+          async function poll() {
+            try {
+              const response = await fetch('/ops/knowledge/status/', {headers: {'Accept': 'application/json'}, cache: 'no-store'});
+              if (!response.ok || response.redirected) {
+                output.textContent = 'Could not read indexing status. Your admin session may have expired; refresh this page and sign in again if needed.';
+                output.hidden = false;
+                return;
+              }
+              const result = await response.json();
+              output.dataset.state = result.state;
+              output.textContent = result.message;
+              output.hidden = !result.message;
+              const busy = result.state === 'queued' || result.state === 'running';
+              button.disabled = busy;
+              if (busy) setTimeout(poll, 3000);
+            } catch (_) {
+              output.textContent = 'Could not refresh indexing status. Refresh this page to check the result.';
+              output.hidden = false;
+            }
+          }
+          poll();
+        })();
+      </script>
 
       {% if agent.stale %}
       <div class="alert-banner">

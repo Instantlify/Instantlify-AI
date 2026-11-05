@@ -134,7 +134,7 @@ p {
 .button.primary:hover {
   background: var(--brand-action-hover) !important;
   border-color: var(--brand-action-hover) !important;
-  color: var(--text-primary) !important;
+  color: var(--brand-on-primary) !important;
 }
 .secondary,
 .button.secondary {

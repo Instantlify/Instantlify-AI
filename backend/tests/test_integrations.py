@@ -154,6 +154,8 @@ def test_api_credentials_are_not_cacheable(client):
 
 
 def test_onboarding_instagram_returns_to_wizard_with_plan(client, workspace):
+    workspace.checkout_pending = True
+    workspace.save(update_fields=["checkout_pending"])
     url = client.post(
         f"/api/workspaces/{workspace.pk}/meta/connect/",
         {"onboarding": True, "plan": "pro", "interval": "annual"},

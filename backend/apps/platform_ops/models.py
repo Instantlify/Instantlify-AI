@@ -36,6 +36,21 @@ class Control(models.Model):
         ]
 
 
+class WorkspaceCapability(models.Model):
+    workspace = models.ForeignKey("tenants.Workspace", on_delete=models.CASCADE)
+    key = models.CharField(max_length=100)
+    enabled = models.BooleanField(default=False)
+    reason = models.CharField(max_length=300)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["workspace", "key"], name="unique_workspace_capability"
+            )
+        ]
+
+
 class PlatformAudit(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     actor_id = models.CharField(max_length=36)

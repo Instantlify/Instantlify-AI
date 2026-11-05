@@ -537,7 +537,9 @@ class FakeLLMProvider:
 
 
 def _test_provider():
-    if settings.CHANNEL_ADAPTER_MODE != "fake":
+    from apps.channels.adapters import test_channels_enabled
+
+    if not test_channels_enabled():
         raise ProviderError("test_provider_disabled")
     return FakeLLMProvider()
 

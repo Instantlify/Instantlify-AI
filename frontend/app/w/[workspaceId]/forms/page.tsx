@@ -469,7 +469,10 @@ export default function FormsPage() {
               }
             />
             <label>
-              Consent statement
+              <span className="field-label-inline">
+                Consent statement
+                <span className="field-required" aria-hidden="true" />
+              </span>
               <ValidatedTextarea
                 name="consent_text"
                 required
@@ -481,7 +484,10 @@ export default function FormsPage() {
               />
             </label>
             <label>
-              Thank-you message
+              <span className="field-label-inline">
+                Thank-you message
+                <span className="field-required" aria-hidden="true" />
+              </span>
               <ValidatedTextarea
                 name="success_text"
                 required

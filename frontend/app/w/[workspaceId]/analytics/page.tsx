@@ -7,6 +7,7 @@ import {
 } from "@/components/validated-form";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import {
   FlaskConical,
   Trophy,
@@ -28,6 +29,7 @@ import {
 import { useWorkspace } from "@/lib/workspace";
 import {
   Empty,
+  Modal,
   ErrorNotice,
   PageHeading,
   Panel,
@@ -49,9 +51,18 @@ const STEP_LABELS: Record<string, string> = {
 };
 const PROVIDERS = ["instagram", "whatsapp", "messenger", "telegram"];
 const percent = (value: number) => `${Math.round(value * 100)}%`;
+type DetailRow = {
+  id: string;
+  conversation_id: string;
+  created_at: string;
+  finished_at?: string;
+  automation_name?: string;
+  node_id?: string;
+  error_code?: string;
+};
 
 export default function AnalyticsPage() {
-  const { prefix, manager } = useWorkspace();
+  const { prefix, manager, workspace } = useWorkspace();
   const [period, setPeriod] = useState("30d");
   // "View analytics" on an automation links here with ?automation=<id>. The workspace
   // layout renders pages only in the browser, so the URL is readable on first render.
@@ -64,6 +75,20 @@ export default function AnalyticsPage() {
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [funnel, setFunnel] = useState<Funnel | null>(null);
   const [error, setError] = useState("");
+  const [detail, setDetail] = useState("");
+  const [rows, setRows] = useState<DetailRow[]>([]);
+  const details = useFeedback();
+
+  async function openDetails(stage: string, automationId = automation) {
+    setDetail(stage);
+    setRows([]);
+    const params = new URLSearchParams({ period, stage });
+    if (automationId) params.set("automation", automationId);
+    if (provider) params.set("provider", provider);
+    await details.run(async () =>
+      setRows(await api<DetailRow[]>(`${prefix}/analytics/funnel/?${params}`)),
+    );
+  }
 
   useEffect(() => {
     if (!manager) return;
@@ -217,7 +242,11 @@ export default function AnalyticsPage() {
                     <i style={{ width: `${(item.leads / maxLeads) * 100}%` }} />
                   </div>
                   <strong>
-                    {item.leads}
+                    <button className="text-button" disabled={!item.leads || details.busy}
+                      aria-label={`View ${STEP_LABELS[item.kind] || item.kind} conversations`}
+                      onClick={() => void openDetails(item.kind)}>
+                      {item.leads}
+                    </button>
                     <span className="muted-text">
                       {" "}
                       {item.conversion == null
@@ -228,6 +257,10 @@ export default function AnalyticsPage() {
                 </div>
               ))}
             </div>
+            <button className="button secondary small" disabled={details.busy}
+              onClick={() => void openDetails("failed")}>
+              View failed runs
+            </button>
           </Panel>
           <div className="two-col">
             <Panel title="By automation">
@@ -240,7 +273,11 @@ export default function AnalyticsPage() {
                   {funnel.automations.map((row) => (
                     <tr key={row.automation_id}>
                       <td>{row.name}</td>
-                      <td>{row.triggered}</td>
+                      <td><button className="text-button" disabled={!row.triggered || details.busy}
+                        aria-label={`View triggered conversations for ${row.name}`}
+                        onClick={() => void openDetails("triggered", row.automation_id)}>
+                        {row.triggered}
+                      </button></td>
                       <td>{row.booked}</td>
                       <td>{row.paid}</td>
                       <td>{money(row.revenue_cents)}</td>
@@ -249,6 +286,27 @@ export default function AnalyticsPage() {
                 </Table>
               )}
             </Panel>
+            {detail && (
+              <Modal title={detail === "failed" ? "Failed runs" : `${STEP_LABELS[detail]} conversations`}
+                onClose={() => setDetail("")}>
+                <ErrorNotice error={details.error} />
+                {details.busy ? <p role="status">Loading activity…</p> : rows.length ? (
+                  <>
+                    <p className="muted-text">Showing up to 100 recent records for the selected filters.</p>
+                    <ul className="stack">
+                      {rows.map((row) => (
+                        <li key={row.id}>
+                          <Link href={`/w/${workspace.id}/inbox?conversation=${row.conversation_id}`}>
+                            Open conversation
+                          </Link>{" · "}{when(row.finished_at || row.created_at)}
+                          {row.automation_name && <p>{row.automation_name} · {row.error_code || row.node_id}</p>}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : !details.error && <Empty>No matching records.</Empty>}
+              </Modal>
+            )}
             <Panel title="By channel">
               {funnel.channels.length === 0 ? (
                 <Empty>No channel activity in this period.</Empty>

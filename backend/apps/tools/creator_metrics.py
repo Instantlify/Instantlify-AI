@@ -12,6 +12,7 @@ from django.utils import timezone
 from apps.billing.gating import PlanLimitExceeded, check_feature
 from apps.channels.models import ChannelConnection
 from apps.channels.transport import ProviderError, request
+from apps.platform_ops.capabilities import has_capability
 from apps.platform_ops.security import assert_enabled, pause_guard
 from apps.tenants.dispatch import enqueue_once
 
@@ -50,6 +51,8 @@ def refresh_creator_metrics(workspace_id, kit_id):
         ids = kit.live_connection_ids
     error, results = "", []
     try:
+        if not has_capability(workspace_id, "meta_analytics"):
+            raise ProviderError("capability_approval_required")
         check_feature(workspace_id, "integrations_unlocked")
         connections = list(
             ChannelConnection.objects.for_workspace(workspace_id).filter(
@@ -63,6 +66,8 @@ def refresh_creator_metrics(workspace_id, kit_id):
         if len(connections) != len(ids):
             raise ProviderError("connection_unavailable")
         for connection in connections:
+            if not has_capability(workspace_id, "meta_analytics"):
+                raise ProviderError("capability_approval_required")
             body = request(
                 "GET",
                 f"https://graph.instagram.com/{settings.META_API_VERSION}/{quote(connection.external_account_id, safe='')}",
@@ -75,6 +80,8 @@ def refresh_creator_metrics(workspace_id, kit_id):
             results.append((connection.pk, count))
     except PlanLimitExceeded:
         error = "plan_limit"
+    except ProviderError as exc:
+        error = exc.code if exc.code == "capability_approval_required" else "statistics_unavailable"
     except Exception:
         error = "statistics_unavailable"
     with transaction.atomic():
@@ -89,6 +96,8 @@ def refresh_creator_metrics(workspace_id, kit_id):
         now = timezone.now()
         if not error:
             try:
+                if not has_capability(workspace_id, "meta_analytics"):
+                    raise ProviderError("capability_approval_required")
                 check_feature(workspace_id, "integrations_unlocked")
                 assert_enabled(workspace_id, "integration:instagram")
                 with transaction.atomic():
@@ -106,6 +115,8 @@ def refresh_creator_metrics(workspace_id, kit_id):
                             "creator_stats_checked_at": now.isoformat(),
                         }
                         connection.save(update_fields=["profile"])
+            except ProviderError as exc:
+                error = exc.code
             except Exception:
                 error = "connection_or_plan_changed"
         kit.live_stats_token, kit.live_stats_error, kit.live_stats_checked_at = None, error, now

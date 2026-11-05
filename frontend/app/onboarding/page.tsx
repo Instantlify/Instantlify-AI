@@ -26,7 +26,7 @@ import {
   type Workspace,
 } from "@/lib/api";
 import { startCheckout } from "@/lib/billing";
-import { FEATURE_ROWS, PlanCards, type Interval } from "@/components/plans";
+import { PlanCards, type Interval } from "@/components/plans";
 import { Brand } from "@/components/shell";
 import { ErrorNotice } from "@/components/ui";
 
@@ -108,7 +108,12 @@ export default function Onboarding() {
             controller.signal,
           ),
         ]);
-        let current = spaces.results[0] ?? null;
+        const query = new URLSearchParams(window.location.search);
+        const requested = query.get("workspace");
+        let current =
+          spaces.results.find((space) => space.id === requested) ??
+          spaces.results[0] ??
+          null;
         if (!current) {
           current = await api<Workspace>("/api/workspaces/", "POST", {
             name: "My workspace",
@@ -126,16 +131,33 @@ export default function Onboarding() {
           setError(
             "Your plan's connected-account limit has been reached. You can connect later.",
           );
-        if (progress.finished) {
-          router.replace(`/w/${current.id}/overview`);
+        const billing = query.get("billing");
+        if (billing === "success") {
+          for (
+            let attempt = 0;
+            current.checkout_pending && attempt < 10;
+            attempt += 1
+          ) {
+            await new Promise((resolve) => window.setTimeout(resolve, 1000));
+            if (controller.signal.aborted) return;
+            current = await api<Workspace>(
+              `/api/workspaces/${current.id}/`,
+              "GET",
+              undefined,
+              controller.signal,
+            );
+          }
+          if (!current.checkout_pending) {
+            await recordStep("payment", "completed", current.id);
+            router.replace(`/w/${current.id}/overview`);
+            return;
+          }
+          setError(
+            "Stripe is still confirming your subscription. Refresh this page to check again.",
+          );
           return;
         }
-        // Back from Stripe: a paid plan is chosen, so the wizard is done.
-        const billing = new URLSearchParams(window.location.search).get(
-          "billing",
-        );
-        if (billing === "success") {
-          await recordStep("payment", "completed", current.id);
+        if (progress.finished && !current.checkout_pending) {
           router.replace(`/w/${current.id}/overview`);
           return;
         }
@@ -204,7 +226,7 @@ export default function Onboarding() {
     return (
       <div className="loading-screen">
         <Brand />
-        <p>Setting things up…</p>
+        <p>{error || "Setting things up…"}</p>
       </div>
     );
 
@@ -259,13 +281,7 @@ export default function Onboarding() {
         {step === "payment" && (
           <PlanStep
             workspaceId={workspace.id}
-            busy={busy}
-            setBusy={setBusy}
             setError={setError}
-            onFree={async () => {
-              await recordStep("payment", "completed", workspace.id);
-              router.replace(`/w/${workspace.id}/overview`);
-            }}
           />
         )}
       </section>
@@ -439,18 +455,10 @@ function WorkspaceStep({
   );
 }
 
-/** Everyone leaves the wizard on a plan: Free continues straight in, a paid plan
- * goes through Stripe Checkout and comes back here to finish. */
 function PlanStep({
   workspaceId,
-  busy,
-  setBusy,
   setError,
-  onFree,
-}: StepProps & {
-  workspaceId: string;
-  onFree: () => Promise<void>;
-}) {
+}: Pick<StepProps, "setError"> & { workspaceId: string }) {
   const [billing, setBilling] = useState<Billing | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [pending, setPending] = useState("");
@@ -480,19 +488,7 @@ function PlanStep({
     return () => controller.abort();
   }, [workspaceId, setError]);
 
-  async function chooseFree() {
-    setBusy(true);
-    setError("");
-    try {
-      await onFree();
-    } catch (err) {
-      setError(message(err));
-      setBusy(false);
-    }
-  }
-
   async function choosePaid(slug: string, chosen: Interval) {
-    setBusy(true);
     setPending(slug);
     setError("");
     try {
@@ -506,25 +502,13 @@ function PlanStep({
       );
     } catch (err) {
       setError(message(err));
-      setBusy(false);
       setPending("");
     }
   }
 
   const catalog = billing?.catalog ?? [];
-  const free = catalog.find((plan) => plan.slug === "free");
   const paid = catalog.filter((plan) => plan.slug !== "free");
   const preferredName = paid.find((plan) => plan.slug === preferred)?.name;
-  const freeSummary = free
-    ? FEATURE_ROWS.filter(
-        (row) => row.kind === "count" && free.limits[row.key] !== null,
-      )
-        .map(
-          (row) =>
-            `${(free.limits[row.key] as number).toLocaleString()} ${row.label.toLowerCase()}`,
-        )
-        .join(" · ")
-    : "Start free and upgrade when you need more.";
 
   return (
     <>
@@ -533,7 +517,7 @@ function PlanStep({
       </span>
       <h1>{TITLES.payment}</h1>
       <p>
-        Pick the plan this workspace starts on. Paid plans check out securely
+        Choose a subscription for your workspace. Checkout is handled securely
         with Stripe, and you can change plans any time in Settings.
       </p>
       {!loaded ? (
@@ -545,47 +529,29 @@ function PlanStep({
               You picked <strong>{preferredName}</strong> on the pricing page.
             </p>
           )}
-          {(free || !billing) && (
-            <div className="onboarding-free-plan">
-              <div>
-                <strong>{free?.name || "Free"}</strong>
-                <span>{freeSummary}</span>
-              </div>
-              <button
-                type="button"
-                className="button secondary"
-                disabled={busy}
-                onClick={chooseFree}
-              >
-                {busy && !pending ? "Opening…" : "Continue with Free"}
-              </button>
-            </div>
-          )}
           {billing && paid.length > 0 && billing.stripe_configured && (
-            <PlanCards
-              plans={paid}
-              interval={interval}
-              onInterval={setInterval}
-              busySlug={pending}
-              trialDays={billing.trial_days}
-              onChoose={choosePaid}
-            />
+            <>
+              {billing.trial_days > 0 && (
+                <p>
+                  A card is required. Stripe will automatically charge your
+                  selected plan when your {billing.trial_days}-day trial ends
+                  unless you cancel before then.
+                </p>
+              )}
+              <PlanCards
+                plans={paid}
+                interval={interval}
+                onInterval={setInterval}
+                busySlug={pending}
+                trialDays={billing.trial_days}
+                onChoose={choosePaid}
+              />
+            </>
           )}
-          {billing && paid.length > 0 && !billing.stripe_configured && (
+          {billing && (paid.length === 0 || !billing.stripe_configured) && (
             <p className="muted-text">
-              Paid plans open once Stripe is configured for this deployment.
+              Checkout is currently unavailable. Please try again later.
             </p>
-          )}
-          {billing && !free && !billing.stripe_configured && (
-            <button
-              type="button"
-              className="button primary"
-              disabled={busy}
-              onClick={chooseFree}
-            >
-              Continue
-              <ArrowRight size={15} />
-            </button>
           )}
         </div>
       )}

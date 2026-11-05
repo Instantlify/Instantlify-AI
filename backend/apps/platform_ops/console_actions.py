@@ -187,9 +187,9 @@ def knowledge_save(request, pk=None):
     data = request.POST
     action = data.get("action")
     if action == "reembed":
-        from .tasks import embed_platform_knowledge
+        from .knowledge_indexing import enqueue
 
-        embed_platform_knowledge.delay()
+        transaction.on_commit(enqueue)
         record(request.user, "knowledge.reembed_requested")
         return redirect("/ops/?tab=agent_config")
     if action == "delete_section":

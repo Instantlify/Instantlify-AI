@@ -91,7 +91,12 @@ class ConnectionListView(generics.ListAPIView):
 
 class MetaOAuthStartView(APIView):
     def post(self, request, workspace_id):
-        member = workspace_membership(request, workspace_id, ["owner", "admin"])
+        member = workspace_membership(
+            request,
+            workspace_id,
+            ["owner", "admin"],
+            allow_pending=request.data.get("onboarding") is True,
+        )
         # Gate before the OAuth dance, not after it.
         check_within_limit(workspace_id, "max_instagram_accounts")
         if settings.CHANNEL_ADAPTER_MODE == "disabled" or (
@@ -149,6 +154,7 @@ class MetaOAuthCallbackView(APIView):
         state = request.query_params.get("state", "")
         if not state or len(state) > 200:
             return Response({"detail": "Invalid OAuth state."}, status=400)
+        returns = request.session.get("instagram_onboarding", {})
         with transaction.atomic():
             # State lookup is global only to locate its tenant, then membership is rechecked.
             pending = (
@@ -163,16 +169,22 @@ class MetaOAuthCallbackView(APIView):
             )
             if pending is None:
                 return Response({"detail": "OAuth state expired or already used."}, status=400)
-            member = workspace_membership(request, pending.workspace_id, ["owner", "admin"])
+            member = workspace_membership(
+                request,
+                pending.workspace_id,
+                ["owner", "admin"],
+                allow_pending=pending.state_hash in returns,
+            )
             pending.consumed_at = timezone.now()
             pending.save(update_fields=["consumed_at"])
-        returns = request.session.get("instagram_onboarding", {})
         onboarding = returns.pop(pending.state_hash, None)
         request.session["instagram_onboarding"] = returns
 
         def destination(status):
             if onboarding is not None:
-                return "/onboarding/?" + urlencode({**onboarding, "connection": status})
+                return "/onboarding/?" + urlencode(
+                    {**onboarding, "connection": status, "workspace": pending.workspace_id}
+                )
             return f"/w/{pending.workspace_id}/integrations/?connection={status}"
 
         if request.query_params.get("error"):

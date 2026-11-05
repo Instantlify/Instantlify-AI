@@ -13,6 +13,7 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 CHANNEL_ADAPTER_MODE = "fake"
+ALLOW_TEST_CHANNELS = False
 CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 # Compose supplies deployment env vars to the test container. Tests opt into mocked

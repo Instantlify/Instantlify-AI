@@ -265,7 +265,15 @@ export function SupportChat({
   const [pending, setPending] = useState("");
   const [busy, setBusy] = useState(false);
   const [ticket, setTicket] = useState("");
+  const messageInput = useRef<HTMLInputElement>(null);
+  const restoreMessageFocus = useRef(false);
   const chatLog = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    if (busy || card || !restoreMessageFocus.current) return;
+    restoreMessageFocus.current = false;
+    const input = messageInput.current;
+    if (input?.getClientRects().length) input.focus({ preventScroll: true });
+  }, [busy, card]);
   useEffect(() => {
     const log = chatLog.current;
     if (log) log.scrollTop = log.scrollHeight;
@@ -288,6 +296,7 @@ export function SupportChat({
     who = name,
     address = email,
   ) {
+    restoreMessageFocus.current = true;
     setBusy(true);
     try {
       if (wantsTicket && who && address) {
@@ -400,11 +409,12 @@ export function SupportChat({
       ) : (
         <ValidatedForm className="chat-input" onSubmit={send}>
           <ValidatedInput
+            ref={messageInput}
             name="message"
             placeholder={ticket ? "Anything else?" : "Type your question…"}
             aria-label="Message"
             maxLength={2000}
-            disabled={busy}
+            readOnly={busy}
           />
           <button
             className="icon-button"

@@ -141,6 +141,7 @@ export default function SettingsPage() {
   // Team state (real members and invitations)
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [latestInviteLink, setLatestInviteLink] = useState("");
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"admin" | "agent">("admin");
@@ -273,11 +274,43 @@ export default function SettingsPage() {
       if (query.get("plan")) setPreferredPlan(query.get("plan") || "");
       if (query.get("billing") === "success")
         feedback.setNotice("Your plan is updated. It can take a moment to show here.");
-      if (query.get("credits") === "success")
-        feedback.setNotice("Credits added. Your balance updates in a moment.");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    if (query.get("credits") !== "success") return;
+    const topup = query.get("topup");
+    const controller = new AbortController();
+    async function confirmTopup() {
+      feedback.setNotice("Waiting for Stripe to confirm your credit top-up…");
+      for (let attempt = 0; attempt < 15; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 2000));
+        if (controller.signal.aborted) return;
+        const updated = await api<Credits>(
+          `${prefix}/billing/credits/`,
+          "GET",
+          undefined,
+          controller.signal,
+        ).catch(() => null);
+        if (controller.signal.aborted) return;
+        if (!updated) continue;
+        setCredits(updated);
+        const transaction = updated.transactions.find(
+          (row) => row.type === "topup" && (!topup || row.id === topup),
+        );
+        if (transaction?.status === "complete") {
+          feedback.setNotice("Credits added to your balance.");
+          return;
+        }
+      }
+      feedback.setNotice("Your top-up is still awaiting confirmation. Refresh to check your balance.");
+    }
+    void confirmTopup();
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefix]);
 
   useEffect(() => {
     if (preferredPlan && billing && activeTab === "subscription")
@@ -391,15 +424,22 @@ export default function SettingsPage() {
   const handleInviteMember = async (e: FormEvent) => {
     e.preventDefault();
     if (!inviteEmail) return;
+    setLatestInviteLink("");
     await feedback.run(async () => {
-      await api(`${prefix}/invitations/`, "POST", {
+      const created = await api<Invitation>(`${prefix}/invitations/`, "POST", {
         email: inviteEmail,
         role: inviteRole,
       });
+      setLatestInviteLink(created.accept_url || "");
+      feedback.setNotice(
+        created.email_sent
+          ? `Invitation emailed to ${created.email}.`
+          : `Invitation created for ${created.email}, but the email could not be sent. Copy the invitation link below and share it with them.`,
+      );
       setShowAddMemberModal(false);
       setInviteEmail("");
       await loadTeam();
-    }, `Invitation sent to ${inviteEmail}!`);
+    });
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
@@ -958,6 +998,14 @@ export default function SettingsPage() {
           ========================================================================= */}
       {activeTab === "team" && (
         <div className="settings-tab-content">
+          {latestInviteLink && (
+            <div className="notice-card">
+              <label>
+                Invitation link
+                <input aria-label="Invitation link" readOnly value={latestInviteLink} onFocus={(event) => event.currentTarget.select()} />
+              </label>
+            </div>
+          )}
           <div className="settings-card">
             <div className="settings-card-header">
               <div className="card-header-icon-title">

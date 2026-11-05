@@ -235,7 +235,7 @@ test("mobile drawer opens, navigates and closes", async ({ page }) => {
   await expect(sidebar).toHaveClass(/drawer-open/);
   await expect(sidebar).toBeInViewport({ ratio: 0.9 });
   await page.screenshot({ path: "test-results/meta-mobile-drawer.png" });
-  await nav(page).getByRole("link", { name: "CRM", exact: true }).click();
+  await nav(page).getByRole("link", { name: "Contacts", exact: true }).click();
   await expect(page).toHaveURL(/\/crm\/$/);
   await expect(sidebar).not.toHaveClass(/drawer-open/);
   expect(

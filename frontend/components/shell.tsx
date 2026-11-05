@@ -1,11 +1,12 @@
 "use client";
 
 import { SupportWidget } from "@/components/support-center";
+import { AssignmentNotifications } from "@/components/assignment-notifications";
 import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
 
 import Link from "next/link";
 import { workspaceTheme } from "@/lib/workspace-theme";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   useEffect,
   useId,
@@ -25,6 +26,7 @@ import {
   Layers,
   LayoutDashboard,
   LayoutGrid,
+  Plug,
   LogOut,
   Menu,
   MessageCircle,
@@ -186,10 +188,11 @@ type NavItem = {
 /* Primary Navigation matching BooSend IA */
 const PRIMARY_NAV: NavItem[] = [
   { id: "overview", label: "Home", icon: LayoutDashboard },
-  { id: "automations", label: "Automation", icon: GitBranch },
-  { id: "integrations", label: "Integrations", icon: LayoutGrid },
   { id: "inbox", label: "Conversations", icon: MessageCircle },
-  { id: "crm", label: "CRM", icon: Contact },
+  { id: "crm", label: "Contacts", icon: Contact },
+  { id: "automations", label: "Automation", icon: GitBranch },
+  { id: "channels", label: "Channels", icon: Plug },
+  { id: "integrations", label: "Integrations", icon: LayoutGrid },
 ];
 
 /* Every other workspace section, grouped so the main list stays short. */
@@ -220,7 +223,9 @@ export function Shell({ children }: { children: ReactNode }) {
     useWorkspace();
   const router = useRouter();
   const pathname = usePathname();
-  const section = pathname.split("/")[3] || "overview";
+  const tab = useSearchParams().get("tab");
+  const routeSection = pathname.split("/")[3] || "overview";
+  const section = routeSection === "integrations" && tab === "channels" ? "channels" : routeSection;
   const [creating, setCreating] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [workspaceMenu, setWorkspaceMenu] = useState(false);
@@ -317,7 +322,7 @@ export function Shell({ children }: { children: ReactNode }) {
     return (
       <Link
         key={item.id}
-        href={`/w/${workspace.id}/${item.id}`}
+        href={`/w/${workspace.id}/${item.id === "channels" ? "integrations?tab=channels" : item.id}`}
         className={`boosend-nav-link ${active ? "active" : ""} ${isSub ? "sub-item" : ""}`}
         aria-current={active ? "page" : undefined}
         aria-label={item.label}
@@ -576,10 +581,12 @@ export function Shell({ children }: { children: ReactNode }) {
             <span className="workspace-crumb">{workspace.name}</span>
             <ChevronRight size={14} className="crumb-separator" />
             <span className="section-crumb">
-              {section.charAt(0).toUpperCase() + section.slice(1)}
+              {PRIMARY_NAV.find((item) => item.id === section)?.label
+                ?? section.charAt(0).toUpperCase() + section.slice(1)}
             </span>
           </div>
           <div className="topbar-actions">
+            <AssignmentNotifications key={workspace.id} workspaceId={workspace.id} />
             {workspace.parent && (
               <span className="badge-agency">Agency Managed</span>
             )}

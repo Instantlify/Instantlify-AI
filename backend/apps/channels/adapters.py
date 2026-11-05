@@ -226,6 +226,12 @@ class WebChatAdapter(ChannelAdapter):
         return credentials
 
 
+def test_channels_enabled():
+    return settings.CHANNEL_ADAPTER_MODE == "fake" or (
+        settings.CHANNEL_ADAPTER_MODE == "live" and settings.ALLOW_TEST_CHANNELS
+    )
+
+
 def adapter_for(connection):
     from apps.platform_ops.security import assert_enabled
 
@@ -233,7 +239,7 @@ def adapter_for(connection):
     if connection.provider == "webchat":
         return WebChatAdapter()
     if connection.is_test:
-        if settings.CHANNEL_ADAPTER_MODE != "fake":
+        if not test_channels_enabled():
             raise IntegrationUnavailable("Test connections are disabled")
         return FakeChannelAdapter()
     if settings.CHANNEL_ADAPTER_MODE != "live":

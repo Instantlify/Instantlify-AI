@@ -25,8 +25,8 @@ def return_url(job, query=""):
     """Stripe return for a billing job: the signup wizard while someone is still
     choosing their first plan, otherwise the Subscription tab."""
     if job.return_to == "onboarding":
-        extra = f"?{query.lstrip('?')}" if query else ""
-        return f"{settings.PUBLIC_APP_URL}/onboarding/{extra}"
+        extra = f"&{query.lstrip('?')}" if query else ""
+        return f"{settings.PUBLIC_APP_URL}/onboarding/?workspace={job.workspace_id}{extra}"
     return payments_url(job.workspace_id, query)
 
 

@@ -1,4 +1,55 @@
 /* Workspace-only overrides: saved appearance never changes public pages or another workspace. */
+/* Keep contact selectors and their browser popups on the same workspace palette. */
+[data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select {
+  color-scheme: dark;
+  color: var(--text-primary, #e6eef0);
+}
+[data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select option {
+  background: var(--bg-canvas, #101b20);
+  color: var(--text-primary, #e6eef0);
+}
+[data-workspace-theme] .boosend-crm-page :is(.crm-stage-select, .kanban-stage-select) {
+  min-width: 132px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-light, #30434b);
+  border-radius: 10px;
+  background: var(--bg-subtle, #18272e);
+  font-size: 12px;
+  line-height: 1.4;
+}
+@supports (appearance: base-select) {
+  [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select,
+  [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select::picker(select) {
+    appearance: base-select;
+  }
+  [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select::picker(select) {
+    margin-top: 6px;
+    padding: 6px;
+    border: 1px solid var(--border-light, #30434b);
+    border-radius: 12px;
+    background: var(--bg-canvas, #101b20);
+    color: var(--text-primary, #e6eef0);
+    box-shadow: 0 12px 32px #0006;
+  }
+  [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select::picker-icon {
+    margin-inline-start: 12px;
+    color: var(--text-muted, #9aadb4);
+  }
+  [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select option {
+    min-height: 36px;
+    padding: 8px 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select option:is(:hover, :focus, :checked) {
+    background: var(--bg-subtle, #18272e);
+    color: var(--brand-link, #b4f46d);
+  }
+  [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select option::checkmark {
+    color: var(--brand-link, #b4f46d);
+  }
+}
 [data-workspace-theme]
   :is(
     .primary,
@@ -54,7 +105,7 @@
   .boosend-sidebar
   .boosend-nav-link.active
   .nav-icon-wrap {
-  color: var(--workspace-indicator) !important;
+  color: inherit !important;
 }
 [data-workspace-theme]
   .boosend-sidebar

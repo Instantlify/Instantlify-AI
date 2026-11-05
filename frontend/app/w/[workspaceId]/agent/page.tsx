@@ -192,6 +192,7 @@ export default function AgentPage() {
     DEFAULT_PLATFORM_MODELS,
   );
   const [configured, setConfigured] = useState(false);
+  const [savedConfig, setSavedConfig] = useState<AgentConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const settings = useFeedback();
 
@@ -211,6 +212,7 @@ export default function AgentPage() {
         }
         if (config.id) {
           setForm(toForm(config as AgentConfig));
+          setSavedConfig(config as AgentConfig);
           setConfigured(true);
         }
       })
@@ -246,6 +248,7 @@ export default function AgentPage() {
       if (!form.embedding_api_key) delete payload.embedding_api_key;
       const saved = await api<AgentConfig>(`${prefix}/agent/`, "PUT", payload);
       setForm(toForm(saved));
+      setSavedConfig(saved);
       setConfigured(true);
     }, "Agent settings saved.");
   }
@@ -595,7 +598,7 @@ export default function AgentPage() {
               )}
             </ValidatedForm>
           </Panel>
-          <Knowledge />
+          <Knowledge config={savedConfig} />
           {manager && <AgentPreview prefix={prefix} />}
           <AuditPanel />
         </div>
@@ -604,7 +607,7 @@ export default function AgentPage() {
   );
 }
 
-function Knowledge() {
+function Knowledge({ config }: { config: AgentConfig | null }) {
   const { prefix, manager } = useWorkspace();
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [title, setTitle] = useState("");
@@ -691,7 +694,24 @@ function Knowledge() {
   }
 
   return (
-    <Panel title="Knowledge base" aside={`${documents.length} document(s)`}>
+    <>
+      <Panel title="Agent readiness">
+        <ul>
+          <li>{config?.enabled ? "Agent enabled" : "Enable the agent and save settings"}</li>
+          <li>{config?.is_test
+            ? "Local test provider selected"
+            : config?.billing_mode === "platform_credits"
+              ? "Platform credits selected"
+              : config?.has_key
+                ? "Provider key saved"
+                : "Save a provider key or select platform credits"}</li>
+          <li>{documents.some((doc) => doc.status === "ready" && doc.embedding_model === config?.embedding_model)
+            ? "Knowledge is indexed"
+            : busyDocs ? "Knowledge indexing is in progress" : "Add a knowledge document for grounded replies"}</li>
+          <li>Use Agent preview to check a sample response, then enable AI in a conversation.</li>
+        </ul>
+      </Panel>
+      <Panel title="Knowledge base" aside={`${documents.length} document(s)`}>
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
       <p className="muted-text" style={{ marginBottom: 14 }}>
@@ -765,7 +785,8 @@ function Knowledge() {
           ))
         )}
       </div>
-    </Panel>
+      </Panel>
+    </>
   );
 }
 

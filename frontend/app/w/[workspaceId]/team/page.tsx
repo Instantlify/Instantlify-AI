@@ -94,7 +94,9 @@ export default function TeamPage() {
       setInviteLink(created.accept_url || "");
       form.reset();
       feedback.setNotice(
-        `Invitation created for ${created.email}. Share the link below with them.`,
+        created.email_sent
+          ? `Invitation emailed to ${created.email}.`
+          : `Invitation created for ${created.email}, but the email could not be sent. Share the link below with them.`,
       );
     });
   }

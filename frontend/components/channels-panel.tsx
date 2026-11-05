@@ -7,10 +7,13 @@ import {
 } from "@/components/validated-form";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { Plug, Plus, Send } from "lucide-react";
 import { api, message, when, type Connection, type Delivery, type Page } from "@/lib/api";
 import { ChannelIcon, channelLabel } from "@/lib/channels";
 import { WhatsAppConnect } from "@/components/whatsapp-connect";
+import { TelegramConnect } from "@/components/telegram-connect";
+import { useWorkspace } from "@/lib/workspace";
 import {
   CopyField,
   Empty,
@@ -36,11 +39,14 @@ const CHANNEL_PROVIDERS = [
 /** Connected channels: one-click Meta and LinkedIn, manual and local test channels, a
  * test-message simulator, and the latest outbound deliveries. */
 export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: boolean }) {
+  const { workspace } = useWorkspace();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [manualProvider, setManualProvider] = useState("whatsapp");
+  const [queuedTest, setQueuedTest] = useState(false);
   const feedback = useFeedback();
   const origin = typeof window === "undefined" ? "" : window.location.origin;
+  const [testChannelsEnabled, setTestChannelsEnabled] = useState(false);
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
@@ -52,6 +58,8 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
       ]);
       setConnections(channels.results);
       setDeliveries(sent);
+      const status = await api<{ test_channels_enabled?: boolean }>(`${prefix}/status/`, "GET", undefined, signal);
+      setTestChannelsEnabled(status.test_channels_enabled === true);
     },
     [prefix, manager],
   );
@@ -95,6 +103,18 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
     }, "Connection requested. Verification runs in the background.");
   }
 
+  async function addTestChannel(provider: string) {
+    await feedback.run(async () => {
+      await api(`${prefix}/channels/connect/`, "POST", {
+        provider,
+        external_account_id: `test-${provider}-${crypto.randomUUID()}`,
+        display_name: `${channelLabel(provider)} test account`,
+        is_test: true,
+      });
+      await load();
+    }, "Test account ready. Use its simulation form to send a message or comment.");
+  }
+
   async function disconnect(connection: Connection) {
     if (!window.confirm(`Disconnect ${connection.display_name}?`)) return;
     await feedback.run(async () => {
@@ -114,13 +134,27 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
         sender_id: data.sender_id || "test-lead",
       });
       form.reset();
+      setQueuedTest(true);
     }, "Test message queued. It appears in the inbox within seconds.");
+  }
+
+  async function removeChannel(connection: Connection) {
+    if (!window.confirm(`Permanently remove ${connection.display_name}? This deletes its linked conversations, messages, delivery history, scheduled posts, and channel-specific records from Nemio. Contacts remain. This cannot be undone.`)) return;
+    await feedback.run(async () => {
+      await api(`${prefix}/channels/${connection.id}/`, "DELETE", { confirm_delete: true });
+      await load();
+    }, "Channel permanently removed.");
   }
 
   return (
     <div className="channels-panel">
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
+      {queuedTest && (
+        <Link className="text-button" href={`/w/${workspace.id}/inbox`}>
+          Open Conversations to check the test reply
+        </Link>
+      )}
       <div className="channels-panel-grid">
         <Panel title="Connected channels" aside={`${connections.length} connected`}>
           {connections.length ? (
@@ -144,11 +178,27 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                         </div>
                       </div>
                     </div>
-                    <Pill tone={connection.is_test ? "neutral" : statusTone(connection.status)}>
-                      {connection.is_test ? "test" : connection.status === "setup_required" ? "Finish setup" : connection.status}
+                    <Pill tone={statusTone(connection.status)}>
+                      {connection.is_test ? "Test" : "Live"} ·{" "}
+                      {connection.locked
+                        ? "Locked"
+                        : connection.status === "active"
+                          ? "Connected"
+                          : connection.status === "setup_required"
+                            ? "Finish setup"
+                            : connection.status.replaceAll("_", " ")}
                     </Pill>
                   </div>
-                  {manager && connection.is_test && connection.status === "active" && (
+                  {!connection.is_test && !connection.locked && connection.status !== "active" && (
+                    <p className="muted-text">
+                      {connection.status === "pending"
+                        ? "Verification is pending. Refresh this page to check again."
+                        : connection.provider === "whatsapp"
+                          ? "Use WhatsApp setup below to finish or reconnect this account."
+                          : "Reconnect this account from Connect a channel using the same account details."}
+                    </p>
+                  )}
+                  {manager && connection.is_test && connection.status === "active" && !connection.locked && (
                     <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
                       className="channel-simulate"
                       onSubmit={(event) => simulate(event, connection)}
@@ -181,19 +231,25 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                       </div>
                     </ValidatedForm>
                   )}
-                  {manager && connection.status !== "disconnected" && (
+                  {workspace.role === "owner" && connection.status === "disconnected" && (
+                    <div className="stack">
+                      <p className="muted-text">You can permanently remove this channel and its linked conversation history.</p>
+                      <button type="button" className="button small danger" disabled={feedback.busy} onClick={() => removeChannel(connection)}>Remove channel</button>
+                    </div>
+                  )}
+                  {manager && (connection.status !== "disconnected" || connection.provider === "whatsapp") && (
                     <div className="form-actions">
                       {connection.provider === "whatsapp" && !connection.is_test && (
                         <WhatsAppConnect prefix={prefix} connection={connection} onConnected={load} />
                       )}
-                      <button
+                      {connection.status !== "disconnected" && <button
                         type="button"
                         className="button small danger"
                         disabled={feedback.busy}
                         onClick={() => disconnect(connection)}
                       >
                         Disconnect
-                      </button>
+                      </button>}
                     </div>
                   )}
                 </div>
@@ -206,12 +262,21 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
 
         {manager && (
           <div className="stack">
+            {testChannelsEnabled && <Panel title="Test without platform credentials">
+              <p className="muted-text">Create a simulated account, send a test DM or comment, then open Conversations to test replies and assignment. Messages stay inside Nemio and are not delivered to a real platform.</p>
+              <div className="row wrap channel-connect-buttons">
+                {CHANNEL_PROVIDERS.map((provider) => <button key={provider.id} type="button" className="button secondary" disabled={feedback.busy} onClick={() => addTestChannel(provider.id)}>
+                  <Plus size={16} /> Test {provider.label}
+                </button>)}
+              </div>
+            </Panel>}
             <Panel title="Connect a channel">
               <p className="muted-text">
-                Connect your business accounts with one click. No developer tokens needed.
+                Connect your business accounts. Telegram only needs your bot token from BotFather.
               </p>
               <div className="row wrap channel-connect-buttons">
                 <WhatsAppConnect key={prefix} prefix={prefix} onConnected={load} />
+                <TelegramConnect key={`telegram-${prefix}`} prefix={prefix} onConnected={load} />
                 <button
                   type="button"
                   className="button primary"
@@ -289,8 +354,8 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                 </ValidatedForm>
                 <div className="channel-webhooks">
                   <p className="muted-text">
-                    Webhook URLs for custom apps. Telegram and LinkedIn register theirs
-                    automatically.
+                    Webhook URLs for custom apps. Telegram registers its webhook
+                    automatically. LinkedIn webhook registration is not automatic.
                   </p>
                   {["instagram", "whatsapp", "messenger", "linkedin", "snapchat"].map(
                     (provider) => (

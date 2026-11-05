@@ -36,11 +36,14 @@ test("the builder tests a draft, shows retained executions and exports the same 
       }),
   );
   let tested: FlowGraph | undefined;
+  let sampleEvent: unknown;
   await page.route(`**/api/workspaces/${id}/automations/preview/`, (route) => {
     tested = route.request().postDataJSON().graph;
+    sampleEvent = route.request().postDataJSON().trigger_event;
     return route.fulfill({
       json: {
         side_effects: false,
+        trigger_matched: true,
         trace: [
           {
             node_id: "hello",
@@ -98,6 +101,7 @@ test("the builder tests a draft, shows retained executions and exports the same 
   ).toBeFocused();
   await page.getByRole("button", { name: "Test flow", exact: true }).click();
 
+  await testDialog.getByLabel("Sample incoming text (optional)").fill("hello");
   await page
     .getByRole("button", { name: "Run walkthrough", exact: true })
     .click();
@@ -105,6 +109,14 @@ test("the builder tests a draft, shows retained executions and exports the same 
     page.getByRole("dialog").getByText("End of this graph", { exact: true }),
   ).toBeVisible();
   expect(tested?.nodes[0].data.text).toBe("Hello from this draft");
+  expect(sampleEvent).toEqual({
+    kind: "dm",
+    channel: "instagram",
+    text: "hello",
+  });
+  await expect(testDialog.getByRole("status")).toContainText(
+    "matches a draft trigger",
+  );
   await page.getByRole("button", { name: "Close dialog", exact: true }).click();
   await page
     .getByRole("button", { name: "Execution history", exact: true })

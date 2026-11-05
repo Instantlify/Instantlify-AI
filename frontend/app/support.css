@@ -4,19 +4,18 @@
   bottom: 24px;
   z-index: 90;
 }
-/* On conversation pages, help occupies its own row instead of covering controls. */
-.support-widget.inbox-support {
-  position: relative;
-  right: auto;
-  bottom: auto;
-  align-self: flex-end;
-  margin: 8px 16px;
+/* Keep help anchored at the bottom without taking a row from the inbox. */
+.inbox-support .support-launcher {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  justify-content: center;
+  gap: 0;
+  border-radius: 50%;
 }
-.inbox-support .support-widget-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  max-height: calc(100dvh - 160px);
+.inbox-support .support-launcher span {
+  display: none;
 }
 .support-launcher {
   display: flex;

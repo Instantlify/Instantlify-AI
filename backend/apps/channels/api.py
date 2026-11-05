@@ -15,7 +15,7 @@ from apps.tenants.models import Workspace
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
 
-from .adapters import PROVIDERS, IntegrationUnavailable, adapter_for
+from .adapters import PROVIDERS, IntegrationUnavailable, adapter_for, test_channels_enabled
 from .models import ChannelConnection, Delivery, WebhookEvent
 from .transport import ProviderError
 
@@ -65,7 +65,7 @@ class ConnectView(APIView):
             raise serializers.ValidationError(
                 {"business_account_id": "This value is only needed for WhatsApp."}
             )
-        if data["is_test"] and settings.CHANNEL_ADAPTER_MODE != "fake":
+        if data["is_test"] and not test_channels_enabled():
             raise serializers.ValidationError("Test connections are disabled.")
         if not data["is_test"] and (
             settings.CHANNEL_ADAPTER_MODE != "live" or not data.get("access_token")
@@ -128,7 +128,7 @@ class SimulateView(APIView):
             is_test=True,
             status="active",
         )
-        if settings.CHANNEL_ADAPTER_MODE != "fake":
+        if not test_channels_enabled():
             raise serializers.ValidationError("Local simulation is disabled.")
         from apps.billing.gating import check_connection_unlocked
 
@@ -184,3 +184,25 @@ class DisconnectView(APIView):
         connection.save()
         audit(member.workspace, request.user, "channel.disconnected", connection.id)
         return Response({"status": "disconnected"})
+
+
+class RemoveChannelView(APIView):
+    @transaction.atomic
+    def delete(self, request, workspace_id, pk):
+        from apps.content.models import ScheduledPost
+        from apps.crm.services import notify
+
+        member = workspace_membership(request, workspace_id, ["owner"])
+        connection = get_object_or_404(
+            ChannelConnection.objects.for_workspace(workspace_id).select_for_update(), pk=pk
+        )
+        if connection.status != "disconnected":
+            raise serializers.ValidationError("Disconnect this channel before removing it.")
+        if request.data.get("confirm_delete") is not True:
+            raise serializers.ValidationError("Confirm permanent removal of this channel and its linked conversation history.")
+        if Delivery.objects.for_workspace(workspace_id).filter(connection=connection, status="sending").exists() or ScheduledPost.objects.for_workspace(workspace_id).filter(connection=connection, status="publishing").exists():
+            raise serializers.ValidationError("This channel still has work in progress. Wait for sending or publishing to finish, then retry.")
+        audit(member.workspace, request.user, "channel.removed", connection.pk, provider=connection.provider)
+        connection.delete()
+        transaction.on_commit(lambda: notify(workspace_id))
+        return Response(status=204)

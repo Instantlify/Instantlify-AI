@@ -57,6 +57,14 @@ def publish_post(workspace_id, post_id):
         )
         if not post:
             return
+        from apps.platform_ops.capabilities import has_capability
+
+        if not has_capability(workspace_id, "meta_publishing"):
+            post.status = "failed"
+            post.error_code = "capability_approval_required"
+            post.save()
+            audit(post.workspace, None, "post.failed", post.id)
+            return
         connection = post.connection
         if connection.status != "active" or connection.expires_at <= timezone.now():
             post.status = "failed"

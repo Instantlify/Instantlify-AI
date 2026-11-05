@@ -6,6 +6,10 @@ from apps.tenants.models import TenantModel
 
 
 class Lead(TenantModel):
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="assigned_contacts",
+    )
     name = models.CharField(max_length=150, blank=True)
     email = models.EmailField(blank=True)
     stage = models.CharField(max_length=20, default="new")
@@ -29,6 +33,17 @@ class Lead(TenantModel):
         ]
 
 
+class AssignmentNotification(TenantModel):
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="assignment_notifications")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="sent_assignment_notifications")
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [models.Index(fields=["workspace", "recipient", "read_at"], name="assignment_unread_idx")]
+
+
 class ChannelIdentity(TenantModel):
     lead = models.ForeignKey(Lead, on_delete=models.CASCADE)
     connection = models.ForeignKey("channels.ChannelConnection", on_delete=models.CASCADE)
@@ -49,6 +64,7 @@ class Conversation(TenantModel):
     )
     status = models.CharField(max_length=20, default="open")
     ai_enabled = models.BooleanField(default=False)
+    handoff_reason = models.CharField(max_length=30, blank=True)
     last_inbound_at = models.DateTimeField(null=True)
     last_outbound_at = models.DateTimeField(null=True)
     updated_at = models.DateTimeField(auto_now=True)

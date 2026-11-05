@@ -173,6 +173,7 @@ class LiveInstagramAdapter(InstagramAdapter):
         )
 
     def create_media_container(self, *, caption, media_url, media_type):
+        self.check_publishing_access()
         payload = {"caption": caption[:2200]}
         if media_type == "video":
             payload.update(media_type="REELS", video_url=media_url)
@@ -184,6 +185,7 @@ class LiveInstagramAdapter(InstagramAdapter):
         return str(container["id"])
 
     def container_status(self, container_id):
+        self.check_publishing_access()
         body = request(
             "GET",
             f"https://graph.instagram.com/{settings.META_API_VERSION}/{container_id}",
@@ -193,6 +195,7 @@ class LiveInstagramAdapter(InstagramAdapter):
         return str(body.get("status_code") or "IN_PROGRESS").upper()
 
     def publish_container(self, container_id):
+        self.check_publishing_access()
         published = request(
             "POST",
             self.url("media_publish"),
@@ -201,6 +204,12 @@ class LiveInstagramAdapter(InstagramAdapter):
             data={"creation_id": container_id},
         )
         return published.get("id", "")
+
+    def check_publishing_access(self):
+        from apps.platform_ops.capabilities import has_capability
+
+        if not has_capability(self.connection.workspace_id, "meta_publishing"):
+            raise ProviderError("capability_approval_required")
 
     def refresh_token(self, credentials):
         body = request(

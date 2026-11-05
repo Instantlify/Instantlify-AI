@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from apps.agents.models import UsageRecord
 from apps.tenants.dispatch import enqueue_once
+from apps.tenants.models import Workspace
 from apps.tenants.services import audit
 
 from .models import BillingAccount, BillingEvent, BillingJob, PlanPrice
@@ -130,6 +131,8 @@ def process_job(workspace_id, job_id):
                     api_key=settings.STRIPE_SECRET_KEY,
                     customer=account.customer_id,
                     mode="subscription",
+                    payment_method_types=["card"],
+                    payment_method_collection="always",
                     line_items=line_items,
                     success_url=return_url(job, "?billing=success"),
                     cancel_url=return_url(job, "?billing=cancelled"),
@@ -141,7 +144,17 @@ def process_job(workspace_id, job_id):
             job.status = "complete"
         except (stripe.StripeError, ValueError) as exc:
             job.status = "failed"
-            code = "already_on_plan" if str(exc) == "already_on_plan" else "billing_provider_error"
+            code = "billing_provider_error"
+            if isinstance(exc, stripe.StripeError):
+                logging.getLogger(__name__).warning(
+                    "Stripe billing job %s (%s) failed: code=%s request_id=%s",
+                    job.id,
+                    job.kind,
+                    exc.code,
+                    exc.request_id,
+                )
+            elif str(exc) in {"already_on_plan", "price_not_configured"}:
+                code = str(exc)
             job.result = json.dumps({"error": code})
         job.save()
 
@@ -323,6 +336,7 @@ def apply_event(workspace_id, payload, event_id):
         account.status = "active" if event_type == "invoice.paid" else "past_due"
     account.last_event_created = payload["created"]
     account.save()
+    unlock_checkout(account)
     audit(account.workspace, None, "billing.updated", event_id)
     for note in notes:
         audit(account.workspace, None, note, account.id)
@@ -343,6 +357,19 @@ RECONCILED_FIELDS = [
 ]
 
 
+def unlock_checkout(account):
+    if (
+        account.subscription_id
+        and account.status in {"trialing", "active"}
+        and not account.price_unmapped
+        and account.plan_price_id
+        and account.plan != "free"
+    ):
+        Workspace.objects.filter(pk=account.workspace_id, checkout_pending=True).update(
+            checkout_pending=False
+        )
+
+
 def reconcile_account(workspace_id, subscription):
     """Correct drift between the webhook-fed account and Stripe's current subscription
     (missed or out-of-order events). Only the tracked subscription is authoritative."""
@@ -355,8 +382,10 @@ def reconcile_account(workspace_id, subscription):
         notes = apply_subscription(account, subscription)
         changed = [field for field in RECONCILED_FIELDS if before[field] != getattr(account, field)]
         if not changed:
+            unlock_checkout(account)
             return False
         account.save()
+        unlock_checkout(account)
         audit(account.workspace, None, "billing.reconciled", account.id)
         for note in notes:
             audit(account.workspace, None, note, account.id)

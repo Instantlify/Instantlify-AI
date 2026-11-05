@@ -55,6 +55,7 @@ def export_tables():
     from apps.channels.models import ChannelConnection
     from apps.content.models import BioPage, ScheduledPost
     from apps.crm.models import (
+        AssignmentNotification,
         Campaign,
         CampaignRecipient,
         ChannelIdentity,
@@ -223,6 +224,7 @@ def export_tables():
             ["id", "conversation_id", "direction", "text", "kind", "created_at"],
         ),
         "notes": (InternalNote, ["id", "conversation_id", "author_id", "text", "created_at"]),
+        "assignment_notifications": (AssignmentNotification, ["id", "recipient_id", "actor_id", "lead_id", "read_at", "created_at"]),
         "automations": (
             Automation,
             ["id", "name", "draft", "published", "revision", "enabled"],

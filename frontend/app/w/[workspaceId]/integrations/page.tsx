@@ -119,13 +119,15 @@ export default function IntegrationsPage() {
 
   // Other pages link straight to a tab with ?tab=channels or ?tab=developer.
   const requestedTab = useSearchParams().get("tab");
-  const [activeTab, setActiveTab] = useState<
-    "gallery" | "channels" | "developer"
-  >(
-    requestedTab === "channels" || requestedTab === "developer"
-      ? requestedTab
-      : "gallery",
-  );
+  const activeTab = requestedTab === "channels" || requestedTab === "developer"
+    ? requestedTab
+    : "gallery";
+  function setActiveTab(tab: "gallery" | "channels" | "developer") {
+    const url = new URL(window.location.href);
+    if (tab === "gallery") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", tab);
+    window.history.pushState(null, "", url);
+  }
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
   const [explainingApp, setExplainingApp] = useState<AppItem | null>(null);
 
