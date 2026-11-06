@@ -148,7 +148,7 @@ def test_setup_reports_missing_configuration_without_secrets(client, workspace, 
     assert response.status_code == 200 and not response.data["ready"]
     assert len(response.data["steps"]) == 3
     assert "app-secret" not in json.dumps(response.data)
-    assert client.post(f"/api/workspaces/{workspace.id}/whatsapp/connect/").status_code == 503
+    assert client.post(f"/api/workspaces/{workspace.id}/whatsapp/connect/").status_code == 409
     assert not OAuthState.objects.for_workspace(workspace).exists()
 
 

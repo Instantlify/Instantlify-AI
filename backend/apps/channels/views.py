@@ -105,7 +105,7 @@ class MetaOAuthStartView(APIView):
         ):
             return Response(
                 {"detail": "Configure the Meta app credentials and live channel mode first."},
-                status=503,
+                status=409,
             )
         state = secrets.token_urlsafe(32)
         if request.data.get("onboarding") is True:
@@ -266,7 +266,7 @@ class LinkedInOAuthStartView(APIView):
         ):
             return Response(
                 {"detail": "Configure LinkedIn credentials and live channel mode first."},
-                status=503,
+                status=409,
             )
         if settings.CHANNEL_ADAPTER_MODE == "live" and not settings.LINKEDIN_MESSAGING_APPROVED:
             # Refuse the connection rather than take it and fail every send afterwards.
@@ -275,7 +275,7 @@ class LinkedInOAuthStartView(APIView):
                     "detail": "LinkedIn messaging is not available yet. It needs granted "
                     "messaging access on the LinkedIn app, confirmed against a real account."
                 },
-                status=503,
+                status=409,
             )
         state = secrets.token_urlsafe(32)
         OAuthState.objects.for_workspace(member.workspace).create(

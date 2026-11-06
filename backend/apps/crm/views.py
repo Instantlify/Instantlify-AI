@@ -795,6 +795,8 @@ class IntegrationSerializer(serializers.ModelSerializer):
     def validate_credentials(self, value):
         if not isinstance(value, dict) or len(json.dumps(value)) > 10000:
             raise serializers.ValidationError("Credentials must be a small JSON object.")
+        if any(not isinstance(item, str) for item in value.values()):
+            raise serializers.ValidationError("Credential values must be text.")
         if "authorization" in value and (
             not isinstance(value["authorization"], str)
             or "\r" in value["authorization"]
@@ -880,6 +882,14 @@ class IntegrationList(generics.ListCreateAPIView):
             )
         if existing and "options" in defaults:
             defaults["options"] = {**existing.options, **defaults["options"]}
+        if not data.get("is_test", existing.is_test if existing else False):
+            from .configuration import validate_live_configuration
+
+            validate_live_configuration(
+                data["provider"],
+                json.loads(defaults.get("credentials", existing.credentials if existing else "{}")),
+                defaults.get("options", existing.options if existing else {}),
+            )
         if not existing and "credentials" not in defaults and not data.get("is_test"):
             raise serializers.ValidationError("Enter the provider credentials.")
         if "credentials" in defaults or data.get("is_test"):

@@ -84,7 +84,7 @@ class WhatsAppConnectView(APIView):
         if not info["ready"]:
             return Response(
                 {**info, "detail": "WhatsApp needs a little setup by your administrator."},
-                status=503,
+                status=409,
             )
         state = secrets.token_urlsafe(32)
         OAuthState.objects.for_workspace(workspace_id).create(

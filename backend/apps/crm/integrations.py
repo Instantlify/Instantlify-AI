@@ -35,6 +35,10 @@ def credentials_for(config):
         and expiry
         and expiry <= timezone.now() + timedelta(minutes=5)
     ):
+        if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+            raise ProviderError("integration_oauth_not_configured")
+        if not credentials.get("refresh_token"):
+            raise ProviderError("integration_reconnect_required")
         refreshed = request(
             "POST",
             "https://oauth2.googleapis.com/token",

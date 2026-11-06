@@ -12,22 +12,59 @@ from tests.conftest import set_limits
 pytestmark = pytest.mark.django_db
 
 
-def test_live_gmail_without_google_app_returns_actionable_setup_error(client, workspace, settings):
+@pytest.mark.parametrize("provider,service", [("gmail", "Google"), ("google_sheets", "Google"), ("google_calendar", "Google"), ("slack", "Slack")])
+def test_live_gmail_without_google_app_returns_actionable_setup_error(client, workspace, settings, provider, service):
     from apps.channels.models import OAuthState
 
     set_limits(workspace, integrations_unlocked=True)
     settings.CHANNEL_ADAPTER_MODE = "live"
     settings.GOOGLE_CLIENT_ID = ""
     settings.GOOGLE_CLIENT_SECRET = ""
+    settings.SLACK_CLIENT_ID = ""
+    settings.SLACK_CLIENT_SECRET = ""
     response = client.post(
-        f"/api/workspaces/{workspace.pk}/integrations/gmail/oauth/", {}, format="json"
+        f"/api/workspaces/{workspace.pk}/integrations/{provider}/oauth/", {}, format="json"
     )
     assert response.status_code == 409
     assert response.json()["code"] == "integration_oauth_not_configured"
-    assert "Google OAuth app" in response.json()["detail"]
+    assert f"{service} OAuth app" in response.json()["detail"]
     assert "AI provider API key" in response.json()["detail"]
     assert not OAuthState.all_objects.exists()
     assert not IntegrationConfig.objects.for_workspace(workspace).exists()
+
+
+@pytest.mark.parametrize("provider,credentials,options", [
+    ("gmail", {"api_key": "wrong-kind"}, {"sender_email": "team@example.com"}),
+    ("slack", {"access_token": "token"}, {}),
+    ("airtable", {"api_key": "token"}, {"base_id": "base"}),
+    ("google_sheets", {"access_token": "token"}, {}),
+    ("calcom", {"api_key": "token"}, {}),
+    ("notion", {"unrelated": "token"}, {}),
+    ("stripe", {"api_key": "wrong-kind"}, {}),
+    ("gmail", {"access_token": {"unexpected": "object"}}, {}),
+])
+def test_incomplete_manual_integrations_are_not_marked_active(client, workspace, provider, credentials, options):
+    set_limits(workspace, integrations_unlocked=True)
+    response = client.post(f"/api/workspaces/{workspace.pk}/integrations/", {
+        "provider": provider, "credentials": credentials, "options": options,
+    }, format="json")
+    assert response.status_code == 400
+    assert not IntegrationConfig.objects.for_workspace(workspace).exists()
+
+
+def test_expired_google_token_without_app_credentials_never_calls_google(workspace, settings):
+    from apps.channels.transport import ProviderError
+    from apps.crm.integrations import credentials_for
+
+    settings.GOOGLE_CLIENT_ID = ""
+    settings.GOOGLE_CLIENT_SECRET = ""
+    config = IntegrationConfig(workspace=workspace, provider="gmail", credentials=json.dumps({
+        "access_token": "expired", "refresh_token": "refresh", "expires_at": "2020-01-01T00:00:00Z",
+    }))
+    with patch("apps.crm.integrations.request") as send:
+        with pytest.raises(ProviderError, match="integration_oauth_not_configured"):
+            credentials_for(config)
+    send.assert_not_called()
 
 
 def test_secret_updates_keep_other_saved_secrets_and_destination_options(client, workspace):

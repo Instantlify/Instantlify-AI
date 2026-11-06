@@ -480,8 +480,11 @@ def test_slack_install_picks_the_channel_and_disconnect_revokes(client, workspac
     )
 
 
-def test_dead_google_grant_marks_reconnect_required(client, workspace):
+def test_dead_google_grant_marks_reconnect_required(client, workspace, settings):
     from apps.crm.tasks import refresh_integrations
+
+    settings.GOOGLE_CLIENT_ID = "client"
+    settings.GOOGLE_CLIENT_SECRET = "secret"
 
     config = IntegrationConfig.objects.for_workspace(workspace).create(
         workspace=workspace,

@@ -145,7 +145,7 @@ def test_live_linkedin_is_refused_until_messaging_access_is_confirmed(client, wo
     settings.LINKEDIN_MESSAGING_APPROVED = False
 
     res = client.post(f"/api/workspaces/{workspace.id}/linkedin/connect/")
-    assert res.status_code == 503
+    assert res.status_code == 409
     assert "not available yet" in res.json()["detail"]
 
     settings.LINKEDIN_MESSAGING_APPROVED = True

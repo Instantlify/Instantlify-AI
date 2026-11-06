@@ -77,7 +77,7 @@ def test_expired_oauth_state_cannot_connect(client, workspace):
 
 def test_live_oauth_is_explicitly_unavailable(client, workspace):
     with override_settings(CHANNEL_ADAPTER_MODE="disabled"):
-        assert client.post(f"/api/workspaces/{workspace.pk}/meta/connect/").status_code == 503
+        assert client.post(f"/api/workspaces/{workspace.pk}/meta/connect/").status_code == 409
 
 
 def test_job_replay_is_idempotent_and_wrong_tenant_is_noop(workspace):
