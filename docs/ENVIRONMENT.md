@@ -31,9 +31,9 @@ All settings load from process environment. Docker Compose injects the ignored r
 | `META_API_VERSION` | No | No | Graph API version, default `v23.0` |
 | `PUBLIC_APP_URL` | Deployment | No | Public HTTPS origin used in invite links, voice media, checkout return URLs and Telegram webhooks |
 | `ALLOW_TEST_CHANNELS` | Local testing | No | Default `false`. Set `true` alongside `CHANNEL_ADAPTER_MODE=live` to create explicit simulated channels and simulate inbound messages without platform credentials. Test connections always use fake delivery; non-test connections still require real credentials. Platform support AI stays live. Disabled channel mode continues to block test connections. |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Calendar | Yes | Google Calendar hosted sign-in and token refresh |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google integrations | Yes | Gmail, Google Sheets and Calendar hosted sign-in and token refresh; separate from AI provider keys |
 | `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` | Slack | Yes | Slack app for the hosted "Add to Slack" install (`chat:write`, `incoming-webhook`) |
-| `INTEGRATION_REDIRECT_BASE` | Hosted sign-in | No | Default `PUBLIC_APP_URL/api/integrations/callback/`; register `<base>google_calendar/` and `<base>slack/` with each provider |
+| `INTEGRATION_REDIRECT_BASE` | Hosted sign-in | No | Default `PUBLIC_APP_URL/api/integrations/callback/`; register `<base>gmail/`, `<base>google_sheets/`, `<base>google_calendar/` with Google and `<base>slack/` with Slack |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Platform billing | Yes | Nemio's own subscriptions and metered AI usage |
 | `STRIPE_PRICES` | Bootstrap only | No | Legacy JSON `{plan: {base, meter}}`; copied onto the monthly `PlanPrice` rows by the plans data migration. Prices now live in the database |
 | `PLATFORM_OPENAI_API_KEY` | Prepaid credits | Yes | Nemio's own OpenAI key, used for every workspace on `platform_credits` billing |

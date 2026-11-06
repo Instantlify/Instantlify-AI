@@ -12,6 +12,24 @@ from tests.conftest import set_limits
 pytestmark = pytest.mark.django_db
 
 
+def test_live_gmail_without_google_app_returns_actionable_setup_error(client, workspace, settings):
+    from apps.channels.models import OAuthState
+
+    set_limits(workspace, integrations_unlocked=True)
+    settings.CHANNEL_ADAPTER_MODE = "live"
+    settings.GOOGLE_CLIENT_ID = ""
+    settings.GOOGLE_CLIENT_SECRET = ""
+    response = client.post(
+        f"/api/workspaces/{workspace.pk}/integrations/gmail/oauth/", {}, format="json"
+    )
+    assert response.status_code == 409
+    assert response.json()["code"] == "integration_oauth_not_configured"
+    assert "Google OAuth app" in response.json()["detail"]
+    assert "AI provider API key" in response.json()["detail"]
+    assert not OAuthState.all_objects.exists()
+    assert not IntegrationConfig.objects.for_workspace(workspace).exists()
+
+
 def test_secret_updates_keep_other_saved_secrets_and_destination_options(client, workspace):
     set_limits(workspace, integrations_unlocked=True)
     config = IntegrationConfig.objects.for_workspace(workspace).create(

@@ -173,8 +173,15 @@ class IntegrationOAuthStartView(APIView):
         check_feature(workspace_id, "integrations_unlocked")
         live = configured(provider)
         if not live and settings.CHANNEL_ADAPTER_MODE != "fake":
+            service = "Google" if provider.startswith("google_") or provider == "gmail" else "Slack"
             return Response(
-                {"detail": "The provider app credentials are not configured."}, status=503
+                {
+                    "detail": f"{service} sign-in has not been configured by the platform administrator. "
+                    f"Ask them to configure the {service} OAuth app before connecting. "
+                    "An AI provider API key does not enable this connection.",
+                    "code": "integration_oauth_not_configured",
+                },
+                status=409,
             )
         options = request.data.get("options", {})
         allowed = {

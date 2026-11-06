@@ -399,7 +399,7 @@ def test_fake_oauth_creates_a_test_integration_single_use(client, workspace, set
         == 400
     )
     settings.CHANNEL_ADAPTER_MODE = "disabled"
-    assert start(client, workspace, "google_calendar").status_code == 503
+    assert start(client, workspace, "google_calendar").status_code == 409
 
 
 def test_live_google_exchange_keeps_the_refresh_token(client, workspace, settings):
