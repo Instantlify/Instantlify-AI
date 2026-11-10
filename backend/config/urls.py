@@ -13,6 +13,7 @@ from apps.channels.views import (
     MetaOAuthCallbackView,
     MetaOAuthStartView,
 )
+from apps.dashboard_api.setup_progress import SetupProgressView
 from apps.dashboard_api.views import TelemetryView, WorkspaceStatusView, live, ready
 from apps.platform_ops.public import (
     AnnouncementListView,
@@ -101,6 +102,7 @@ urlpatterns = [
     path("api/invitations/accept/", AcceptInvitationView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/audit/", AuditListView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/status/", WorkspaceStatusView.as_view()),
+    path("api/workspaces/<uuid:workspace_id>/setup-progress/", SetupProgressView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/telemetry/", TelemetryView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/connections/", ConnectionListView.as_view()),
     path(

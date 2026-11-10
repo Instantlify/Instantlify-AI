@@ -41,6 +41,7 @@ PINNABLE_APPS = (
     "forms",
     "creator-kit",
     "forum",
+    "tutorials",
 )
 
 

@@ -6,6 +6,7 @@ import {
   MessageSquareText,
   ShieldBan,
   Smartphone,
+  GraduationCap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,6 +24,16 @@ export type AppEntry = {
 };
 
 export const APPS: AppEntry[] = [
+  {
+    id: "tutorials",
+    label: "Tutorials",
+    icon: GraduationCap,
+    description:
+      "Step-by-step setup guides that tick off as you complete them.",
+    highlights: ["Live setup checklist", "Links to each step"],
+    section: "tutorials",
+    agents: true,
+  },
   {
     id: "forum",
     label: "Community",
