@@ -496,6 +496,11 @@ class LeadSerializer(serializers.ModelSerializer):
             )
         ):
             raise serializers.ValidationError("Fields must be a small map of short values.")
+        view = self.context.get("view")
+        if view:
+            from .field_defs import coerce_fields
+
+            value = coerce_fields(view.kwargs["workspace_id"], value)
         return value
 
 

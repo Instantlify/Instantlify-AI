@@ -50,6 +50,8 @@ import { SegmentationDialog } from "@/components/segmentation-dialog";
 import { ContactAvatar } from "@/components/contact-avatar";
 import { ContactPanel, relativeTime } from "@/components/contact-panel";
 import { PipelineStagesEditor } from "@/components/pipeline-stages-editor";
+import { CustomFieldsEditor } from "@/components/custom-fields-editor";
+import { useCustomFields } from "@/lib/custom-fields";
 import { stageLabelFor, usePipelineStages } from "@/lib/stages";
 import {
   ErrorNotice,
@@ -87,6 +89,8 @@ export default function CrmPage() {
   const STAGES = usePipelineStages(prefix);
   const stageLabel = (id: string) => stageLabelFor(STAGES, id);
   const [stagesModal, setStagesModal] = useState(false);
+  const fieldDefs = useCustomFields(prefix);
+  const [fieldsModal, setFieldsModal] = useState(false);
   // The inbox links here with ?contact=<id> to open a person directly.
   const linkedContact = useSearchParams().get("contact");
   const [leads, setLeads] = useState<LeadRow[]>([]);
@@ -553,6 +557,23 @@ export default function CrmPage() {
             >
               Stages
             </button>
+          )}
+          {manager && (
+            <button
+              type="button"
+              className="boosend-crm-filter-btn"
+              onClick={() => setFieldsModal(true)}
+            >
+              Fields
+            </button>
+          )}
+          {fieldsModal && (
+            <CustomFieldsEditor
+              prefix={prefix}
+              fields={fieldDefs}
+              onClose={() => setFieldsModal(false)}
+              onSaved={() => feedback.setNotice("Contact fields saved.")}
+            />
           )}
           {stagesModal && (
             <PipelineStagesEditor

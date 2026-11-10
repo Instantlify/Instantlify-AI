@@ -60,6 +60,7 @@ from apps.crm.campaigns import (
     CancelCampaignView,
     LaunchCampaignView,
 )
+from apps.crm.field_defs import CustomFieldsView
 from apps.crm.form_imports import ImportFormContactsView
 from apps.crm.lead_import import LeadImportView
 from apps.crm.notifications import AssignmentNotificationsView
@@ -181,6 +182,7 @@ urlpatterns = [
     path(P + "leads/bulk/", LeadBulkView.as_view()),
     path(P + "leads/import/", LeadImportView.as_view()),
     path(P + "pipeline-stages/", PipelineStagesView.as_view()),
+    path(P + "custom-fields/", CustomFieldsView.as_view()),
     path(P + "leads/<uuid:pk>/summary/", ContactSummaryView.as_view()),
     path(P + "leads/broadcast/", LeadBroadcastView.as_view()),
     path(P + "campaigns/", CampaignList.as_view()),

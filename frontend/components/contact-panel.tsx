@@ -30,6 +30,8 @@ import { ChannelBadge, channelLabel } from "@/lib/channels";
 import { ContactAvatar } from "@/components/contact-avatar";
 import { ErrorNotice, Pill, SuccessNotice, useFeedback } from "@/components/ui";
 import { DEFAULT_STAGES, usePipelineStages } from "@/lib/stages";
+import { useCustomFields } from "@/lib/custom-fields";
+import { CustomFieldInput } from "@/components/custom-fields-editor";
 
 /** Built-in stages; screens use the workspace's own list via usePipelineStages. */
 export const STAGES = DEFAULT_STAGES;
@@ -199,6 +201,8 @@ export function ContactPanel({
   };
 
   const pipeline = usePipelineStages(prefix);
+  const definitions = useCustomFields(prefix);
+  const definedKeys = new Set(definitions.map((item) => item.key));
 
   const summarize = async () => {
     const result = await feedback.run(
@@ -591,22 +595,41 @@ export function ContactPanel({
         <section className="contact-section">
           <h3>Details</h3>
           <dl className="contact-details">
-            {Object.entries(lead.fields).map(([key, value]) => (
-              <div key={key}>
-                <dt>{key}</dt>
+            {definitions.map((definition) => (
+              <div key={`def-${definition.key}`}>
+                <dt>{definition.label}</dt>
                 <dd>
-                  {String(value)}
-                  <button
-                    type="button"
-                    className="icon-button"
-                    aria-label={`Remove ${key}`}
-                    onClick={() => removeField(key)}
-                  >
-                    <X size={11} />
-                  </button>
+                  <CustomFieldInput
+                    definition={definition}
+                    value={String(lead.fields[definition.key] ?? "")}
+                    onSave={(value) => {
+                      const next = { ...lead.fields };
+                      if (value) next[definition.key] = value;
+                      else delete next[definition.key];
+                      void patch({ fields: next });
+                    }}
+                  />
                 </dd>
               </div>
             ))}
+            {Object.entries(lead.fields)
+              .filter(([key]) => !definedKeys.has(key))
+              .map(([key, value]) => (
+                <div key={key}>
+                  <dt>{key}</dt>
+                  <dd>
+                    {String(value)}
+                    <button
+                      type="button"
+                      className="icon-button"
+                      aria-label={`Remove ${key}`}
+                      onClick={() => removeField(key)}
+                    >
+                      <X size={11} />
+                    </button>
+                  </dd>
+                </div>
+              ))}
             <div>
               <dt>Messages</dt>
               <dd>{lead.message_count}</dd>
