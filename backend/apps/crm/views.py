@@ -46,6 +46,27 @@ class ConversationSerializer(serializers.ModelSerializer):
     )
     contact_link = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
+    unread = serializers.SerializerMethodField()
+    seen_by = serializers.SerializerMethodField()
+
+    def get_unread(self, obj):
+        reads = self.context.get("reads")
+        if reads is None or not obj.last_inbound_at:
+            return False
+        mine = reads.get(obj.pk, {}).get(self.context.get("user_id"))
+        return mine is None or mine < obj.last_inbound_at
+
+    def get_seen_by(self, obj):
+        reads = self.context.get("reads") or {}
+        names = self.context.get("names") or {}
+        latest = max((t for t in (obj.last_inbound_at, obj.last_outbound_at) if t), default=None)
+        return [
+            names[user_id]
+            for user_id, read_at in reads.get(obj.pk, {}).items()
+            if user_id != self.context.get("user_id")
+            and user_id in names
+            and (latest is None or read_at >= latest)
+        ]
 
     def get_contact_link(self, obj):
         return contact_link(obj.identity)
@@ -85,6 +106,8 @@ class ConversationSerializer(serializers.ModelSerializer):
             "connection_name",
             "contact_link",
             "last_message",
+            "unread",
+            "seen_by",
         ]
 
 
@@ -132,8 +155,42 @@ class ConversationList(generics.ListAPIView):
                     pk__in=ids
                 )
             }
-            kwargs["context"] = {**self.get_serializer_context(), "snippets": snippets}
+            from .models import ConversationRead
+
+            reads = {}
+            for read in ConversationRead.objects.for_workspace(self.kwargs["workspace_id"]).filter(
+                conversation_id__in=[item.pk for item in args[0]]
+            ):
+                reads.setdefault(read.conversation_id, {})[read.user_id] = read.read_at
+            names = {
+                member.user_id: member.user.get_full_name() or member.user.username
+                for member in Membership.objects.for_workspace(
+                    self.kwargs["workspace_id"]
+                ).select_related("user")
+            }
+            kwargs["context"] = {
+                **self.get_serializer_context(),
+                "snippets": snippets,
+                "reads": reads,
+                "names": names,
+                "user_id": self.request.user.id,
+            }
         return super().get_serializer(*args, **kwargs)
+
+
+class ConversationReadView(APIView):
+    """Mark the conversation read by the current teammate."""
+
+    def post(self, request, workspace_id, pk):
+        from .models import ConversationRead
+
+        conversation = get_object_or_404(conversations_for(request, workspace_id), pk=pk)
+        ConversationRead.objects.for_workspace(workspace_id).update_or_create(
+            conversation=conversation,
+            user=request.user,
+            defaults={"workspace_id": conversation.workspace_id, "read_at": timezone.now()},
+        )
+        return Response(status=204)
 
 
 class ConversationDetail(APIView):

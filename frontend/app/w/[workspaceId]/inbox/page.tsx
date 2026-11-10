@@ -253,6 +253,16 @@ export default function InboxPage() {
       setMessages([...thread.results].reverse());
       setNotes(internal);
       setEvents(milestones);
+      // Opening (or refreshing) a thread marks it read for this teammate.
+      api(`${prefix}/conversations/${id}/read/`, "POST", {}, signal)
+        .then(() =>
+          setConversations((list) =>
+            list.map((item) =>
+              item.id === id ? { ...item, unread: false } : item,
+            ),
+          ),
+        )
+        .catch(() => undefined);
     },
     [prefix],
   );
@@ -377,7 +387,9 @@ export default function InboxPage() {
         ? item.assigned_to === user.id
         : filter === "unassigned"
           ? item.assigned_to === null
-          : item.status === filter,
+          : filter === "unread"
+            ? Boolean(item.unread)
+            : item.status === filter,
   );
   const accountName = activeAccount
     ? conversations.find((item) => item.connection_id === activeAccount)
@@ -618,6 +630,7 @@ export default function InboxPage() {
             <option value="all">All</option>
             <option value="mine">Assigned to me</option>
             <option value="unassigned">Unassigned</option>
+            <option value="unread">Unread</option>
             <option value="needs_human">Needs a human</option>
             <option value="open">Open</option>
             <option value="closed">Closed</option>
@@ -662,7 +675,25 @@ export default function InboxPage() {
                   </ContactAvatar>
                   <div className="boosend-conv-info">
                     <div className="boosend-conv-top">
-                      <span className="boosend-conv-name">
+                      <span
+                        className="boosend-conv-name"
+                        style={item.unread ? { fontWeight: 700 } : undefined}
+                      >
+                        {item.unread && (
+                          <span
+                            aria-label="Unread"
+                            title="Unread"
+                            style={{
+                              display: "inline-block",
+                              width: 7,
+                              height: 7,
+                              borderRadius: "50%",
+                              background: "var(--brand, #2563eb)",
+                              marginRight: 6,
+                              verticalAlign: "middle",
+                            }}
+                          />
+                        )}
                         {item.lead.name || "Unknown lead"}
                       </span>
                       <span className="boosend-conv-date">
@@ -744,6 +775,14 @@ export default function InboxPage() {
                     <span aria-hidden="true">·</span>
                     <Clock size={11} />
                     <span>{lastActive}</span>
+                    {Boolean(current.seen_by?.length) && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span title="Teammates who have read the latest message">
+                          Seen by {current.seen_by?.join(", ")}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

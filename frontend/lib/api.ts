@@ -124,6 +124,10 @@ export type LeadIdentity = {
 export type ConversationLead = Omit<Lead, "profile_synced_at" | "created_at">;
 export type Conversation = {
   id: string;
+  /** The current teammate has not opened it since the customer last wrote. */
+  unread?: boolean;
+  /** Other teammates who have read the latest message. */
+  seen_by?: string[];
   lead: ConversationLead;
   provider: string;
   is_test: boolean;
