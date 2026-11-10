@@ -6,6 +6,7 @@ import { CheckCircle2, Circle } from "lucide-react";
 import { api, message } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import { ErrorNotice, PageHeading, Panel } from "@/components/ui";
+import { asList } from "@/lib/as-list";
 
 type Step = { id: string; done: boolean };
 
@@ -76,7 +77,7 @@ export default function TutorialsPage() {
       undefined,
       controller.signal,
     )
-      .then((result) => setSteps(result.steps))
+      .then((result) => setSteps(asList(result?.steps)))
       .catch((err) => {
         if (!controller.signal.aborted) setError(message(err));
       });

@@ -31,6 +31,7 @@ import {
   type PlatformModel,
 } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
+import { asList } from "@/lib/as-list";
 import {
   Empty,
   ErrorNotice,
@@ -660,11 +661,13 @@ function Knowledge({ config }: { config: AgentConfig | null }) {
   const loadBases = useCallback(
     async (signal?: AbortSignal) =>
       setBases(
-        await api<KnowledgeBase[]>(
-          `${prefix}/knowledge-bases/`,
-          "GET",
-          undefined,
-          signal,
+        asList(
+          await api<KnowledgeBase[] | { results?: KnowledgeBase[] }>(
+            `${prefix}/knowledge-bases/`,
+            "GET",
+            undefined,
+            signal,
+          ),
         ),
       ),
     [prefix],

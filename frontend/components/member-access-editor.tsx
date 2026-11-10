@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, type Connection, type Member, type Page } from "@/lib/api";
 import { channelLabel } from "@/lib/channels";
 import { ErrorNotice, Modal, useFeedback } from "@/components/ui";
+import { asList } from "@/lib/as-list";
 
 /** Mirrors backend tenants/access.py SECTIONS. */
 const SECTIONS: { id: string; label: string }[] = [
@@ -52,7 +53,7 @@ export function MemberAccessEditor({
       undefined,
       controller.signal,
     )
-      .then((page) => setConnections(page.results))
+      .then((page) => setConnections(asList(page)))
       .catch(() => undefined);
     return () => controller.abort();
   }, [prefix]);

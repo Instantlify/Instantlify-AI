@@ -10,6 +10,7 @@ import {
   statusTone,
   useFeedback,
 } from "@/components/ui";
+import { asList } from "@/lib/as-list";
 
 type DataOperation = {
   id: string;
@@ -36,11 +37,13 @@ export function DataPrivacyPanel({
   const load = useCallback(
     async (signal?: AbortSignal) =>
       setOperations(
-        await api<DataOperation[]>(
-          `${prefix}/data-operations/`,
-          "GET",
-          undefined,
-          signal,
+        asList(
+          await api<DataOperation[]>(
+            `${prefix}/data-operations/`,
+            "GET",
+            undefined,
+            signal,
+          ),
         ),
       ),
     [prefix],

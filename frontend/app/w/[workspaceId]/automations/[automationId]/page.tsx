@@ -56,6 +56,7 @@ import {
   type NodeKind,
 } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
+import { asList } from "@/lib/as-list";
 import { channelLabel } from "@/lib/channels";
 import { KIND_CHANNELS, TRIGGER_LABELS } from "@/lib/meta-templates";
 import { ErrorNotice, Pill, SuccessNotice, useFeedback } from "@/components/ui";
@@ -436,13 +437,13 @@ export default function BuilderPage() {
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
   useEffect(() => {
     const controller = new AbortController();
-    api<KnowledgeBase[]>(
+    api<KnowledgeBase[] | { results?: KnowledgeBase[] }>(
       `${prefix}/knowledge-bases/`,
       "GET",
       undefined,
       controller.signal,
     )
-      .then(setKnowledgeBases)
+      .then((data) => setKnowledgeBases(asList(data)))
       .catch(() => undefined);
     return () => controller.abort();
   }, [prefix]);

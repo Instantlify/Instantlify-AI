@@ -9,6 +9,7 @@ import {
   SuccessNotice,
   useFeedback,
 } from "@/components/ui";
+import { asList } from "@/lib/as-list";
 
 type OwnBranding = {
   custom_domain: string;
@@ -51,11 +52,13 @@ export function AgencyPanel({
       setDomain(result.own?.custom_domain || "");
       if (!isClient) {
         setClients(
-          await api<ClientWorkspace[]>(
-            `${prefix}/clients/`,
-            "GET",
-            undefined,
-            signal,
+          asList(
+            await api<ClientWorkspace[]>(
+              `${prefix}/clients/`,
+              "GET",
+              undefined,
+              signal,
+            ),
           ),
         );
       }
