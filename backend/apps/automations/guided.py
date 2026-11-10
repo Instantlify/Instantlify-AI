@@ -214,7 +214,7 @@ def validate_workspace_references(graph, workspace_id, automation_id):
                 raise ValidationError(
                     "Generated voice requires an explicit supported messaging channel."
                 )
-        if data["kind"] in {"ai_generate", "ai_extract", "ai_condition"}:
+        if data["kind"] in {"ai_generate", "ai_extract", "ai_condition", "ai_agent"}:
             from apps.billing.gating import check_feature
 
             from .ai_steps import model_config

@@ -111,6 +111,12 @@ const KINDS: {
     hint: "Follow up only if a tracked resource has not been clicked; add a delay before this step",
   },
   {
+    kind: "ai_agent",
+    label: "AI agent",
+    icon: Sparkles,
+    hint: "Chat with the lead toward a goal, then continue",
+  },
+  {
     kind: "ai_generate",
     label: "Generate with AI",
     icon: Sparkles,
@@ -228,6 +234,10 @@ function summary(data: FlowNodeData) {
       return data.text || "Wait for a verified Instagram follow";
     case "send_reminder":
       return data.text || "Remind only if the resource has not been clicked";
+    case "ai_agent":
+      return data.prompt
+        ? `Goal: ${data.prompt} · up to ${data.max_turns ?? 6} replies`
+        : "Describe the agent's goal";
     case "ai_generate":
     case "ai_extract":
     case "ai_condition":
@@ -694,78 +704,86 @@ export default function BuilderPage() {
                   button_title: "I'm following",
                   expected_reply: `nemio:${automationId}:${id}`.slice(0, 64),
                 }
-              : ["ai_generate", "ai_extract", "ai_condition"].includes(kind)
+              : kind === "ai_agent"
                 ? {
                     kind,
                     prompt: "",
-                    variable: "ai_result",
-                    ...(kind === "ai_extract"
-                      ? { fields: ["name", "email"] }
-                      : {}),
+                    persona: "",
+                    max_turns: 6,
+                    use_knowledge: true,
                   }
-                : kind === "send_media"
-                  ? { kind, media_type: "image", media_url: "" }
-                  : kind === "integration_action"
-                    ? {
-                        kind,
-                        operation: "sync_lead",
-                        integration_id: "",
-                        variable: "integration_result",
-                      }
-                    : kind === "set_field"
-                      ? { kind, field: "", value: "" }
-                      : kind === "set_stage"
-                        ? { kind, stage: "new" }
-                        : kind === "randomizer"
-                          ? { kind, percentage: 50 }
-                          : kind === "add_tag"
-                            ? { kind, tag: "" }
-                            : kind === "capture_email"
-                              ? {
-                                  kind,
-                                  variable: "email",
-                                  retry_text:
-                                    "Please reply with a valid email address.",
-                                }
-                              : kind === "assign_member"
-                                ? { kind, user_id: undefined }
-                                : kind === "transfer"
-                                  ? { kind, automation_id: "" }
-                                  : kind === "send_message"
-                                    ? {
-                                        kind,
-                                        text: "Hello! Thanks for reaching out.",
-                                      }
-                                    : kind === "send_buttons"
+                : ["ai_generate", "ai_extract", "ai_condition"].includes(kind)
+                  ? {
+                      kind,
+                      prompt: "",
+                      variable: "ai_result",
+                      ...(kind === "ai_extract"
+                        ? { fields: ["name", "email"] }
+                        : {}),
+                    }
+                  : kind === "send_media"
+                    ? { kind, media_type: "image", media_url: "" }
+                    : kind === "integration_action"
+                      ? {
+                          kind,
+                          operation: "sync_lead",
+                          integration_id: "",
+                          variable: "integration_result",
+                        }
+                      : kind === "set_field"
+                        ? { kind, field: "", value: "" }
+                        : kind === "set_stage"
+                          ? { kind, stage: "new" }
+                          : kind === "randomizer"
+                            ? { kind, percentage: 50 }
+                            : kind === "add_tag"
+                              ? { kind, tag: "" }
+                              : kind === "capture_email"
+                                ? {
+                                    kind,
+                                    variable: "email",
+                                    retry_text:
+                                      "Please reply with a valid email address.",
+                                  }
+                                : kind === "assign_member"
+                                  ? { kind, user_id: undefined }
+                                  : kind === "transfer"
+                                    ? { kind, automation_id: "" }
+                                    : kind === "send_message"
                                       ? {
                                           kind,
-                                          text: "Here you go:",
-                                          buttons: [
-                                            {
-                                              type: "web_url",
-                                              url: "https://",
-                                              title: "Open",
-                                            },
-                                          ],
+                                          text: "Hello! Thanks for reaching out.",
                                         }
-                                      : kind === "wait"
-                                        ? { kind, variable: "reply" }
-                                        : kind === "condition"
-                                          ? {
-                                              kind,
-                                              match: "all",
-                                              rules: [
-                                                {
-                                                  subject: "variable",
-                                                  name: "reply",
-                                                  operator: "equals",
-                                                  value: "yes",
-                                                },
-                                              ],
-                                            }
-                                          : kind === "delay"
-                                            ? { kind, seconds: 60 }
-                                            : { kind };
+                                      : kind === "send_buttons"
+                                        ? {
+                                            kind,
+                                            text: "Here you go:",
+                                            buttons: [
+                                              {
+                                                type: "web_url",
+                                                url: "https://",
+                                                title: "Open",
+                                              },
+                                            ],
+                                          }
+                                        : kind === "wait"
+                                          ? { kind, variable: "reply" }
+                                          : kind === "condition"
+                                            ? {
+                                                kind,
+                                                match: "all",
+                                                rules: [
+                                                  {
+                                                    subject: "variable",
+                                                    name: "reply",
+                                                    operator: "equals",
+                                                    value: "yes",
+                                                  },
+                                                ],
+                                              }
+                                            : kind === "delay"
+                                              ? { kind, seconds: 60 }
+                                              : { kind };
     const last = nodes[nodes.length - 1];
     setNodes((list) => [
       ...list,
@@ -865,7 +883,9 @@ export default function BuilderPage() {
       setAutomation(updated);
     }, "Automation paused.");
   }
-  const boundConnection = connections.find((item) => item.id === graph.connection_id);
+  const boundConnection = connections.find(
+    (item) => item.id === graph.connection_id,
+  );
   const startStep = graph.nodes.find((node) => node.id === graph.start)?.data;
   const buttons = selected?.data.buttons || [];
   function setButtons(next: FlowButton[]) {
@@ -912,7 +932,11 @@ export default function BuilderPage() {
             </Pill>
           )}
           {automation?.enabled && (
-            <button className="button secondary small" onClick={pause} disabled={feedback.busy}>
+            <button
+              className="button secondary small"
+              onClick={pause}
+              disabled={feedback.busy}
+            >
               Pause automation
             </button>
           )}
@@ -948,7 +972,10 @@ export default function BuilderPage() {
           {graph.triggers.map((trigger, index) => (
             <li key={index}>
               {TRIGGER_LABELS[trigger.kind] ?? trigger.kind} ·{" "}
-              {trigger.channel ? channelLabel(trigger.channel) : "Any supported channel"} ·{" "}
+              {trigger.channel
+                ? channelLabel(trigger.channel)
+                : "Any supported channel"}{" "}
+              ·{" "}
               {trigger.match === "intent"
                 ? `Means “${trigger.keyword}” (AI)`
                 : trigger.keyword === "*"
@@ -959,7 +986,9 @@ export default function BuilderPage() {
         </ul>
         <p>
           <strong>First step:</strong>{" "}
-          {startStep?.text || startStep?.kind.replaceAll("_", " ") || "Choose a start step"}
+          {startStep?.text ||
+            startStep?.kind.replaceAll("_", " ") ||
+            "Choose a start step"}
         </p>
       </details>
       <div
@@ -1153,10 +1182,10 @@ export default function BuilderPage() {
           )}
           <p className="muted-text">
             AI intent triggers run only when no keyword trigger matches, use
-            your workspace AI model and spend AI credits.
-            Keywords match whole words, case-insensitively. Comment triggers on
-            Instagram posts and Facebook Page posts reply privately to the
-            comment first. WhatsApp supports message triggers only.
+            your workspace AI model and spend AI credits. Keywords match whole
+            words, case-insensitively. Comment triggers on Instagram posts and
+            Facebook Page posts reply privately to the comment first. WhatsApp
+            supports message triggers only.
           </p>
         </aside>
         <div className="builder-canvas">
@@ -1731,7 +1760,9 @@ export default function BuilderPage() {
                         seconds={selected.data.timeout_seconds || 86400}
                         min={60}
                         onChange={(seconds) =>
-                          updateSelected({ timeout_seconds: Math.max(60, seconds) })
+                          updateSelected({
+                            timeout_seconds: Math.max(60, seconds),
+                          })
                         }
                       />
                       <span className="hint">
@@ -1775,6 +1806,99 @@ export default function BuilderPage() {
                     email.
                   </span>
                 </label>
+              )}
+              {selected.data.kind === "ai_agent" && (
+                <>
+                  <label>
+                    Goal and instructions
+                    <textarea
+                      aria-label="AI agent goal"
+                      rows={5}
+                      maxLength={4000}
+                      value={selected.data.prompt || ""}
+                      onChange={(event) =>
+                        updateSelected({ prompt: event.target.value })
+                      }
+                      placeholder="Qualify the lead: find out what they need, their budget and timeline. Offer the booking link when they are ready."
+                    />
+                  </label>
+                  <label>
+                    Persona (optional)
+                    <textarea
+                      aria-label="AI agent persona"
+                      rows={2}
+                      maxLength={1000}
+                      value={selected.data.persona || ""}
+                      onChange={(event) =>
+                        updateSelected({ persona: event.target.value })
+                      }
+                      placeholder="Friendly, upbeat and brief. Uses the customer's first name."
+                    />
+                  </label>
+                  <label>
+                    Replies before moving on
+                    <input
+                      type="number"
+                      aria-label="AI agent maximum replies"
+                      min={1}
+                      max={20}
+                      value={selected.data.max_turns ?? 6}
+                      onChange={(event) =>
+                        updateSelected({
+                          max_turns: Math.min(
+                            20,
+                            Math.max(1, Number(event.target.value) || 1),
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="inline">
+                    <input
+                      type="checkbox"
+                      checked={selected.data.use_knowledge ?? true}
+                      onChange={(event) =>
+                        updateSelected({ use_knowledge: event.target.checked })
+                      }
+                    />
+                    Answer from the workspace knowledge base
+                  </label>
+                  <label>
+                    AI model
+                    <select
+                      aria-label="AI agent model"
+                      value={
+                        selected.data.ai_provider && selected.data.ai_model
+                          ? `${selected.data.ai_provider}:${selected.data.ai_model}`
+                          : ""
+                      }
+                      onChange={(event) => {
+                        const [ai_provider, ai_model] =
+                          event.target.value.split(":");
+                        updateSelected({
+                          ai_provider: ai_provider || "",
+                          ai_model: ai_model || "",
+                        });
+                      }}
+                    >
+                      <option value="">Use workspace AI settings</option>
+                      {aiModels.map((model) => (
+                        <option
+                          key={`${model.provider}:${model.id}`}
+                          value={`${model.provider}:${model.id}`}
+                        >
+                          {model.label} · {model.rate_summary}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <small>
+                    The agent answers each private message until it reaches the
+                    goal or uses its replies, then the flow continues. Each
+                    reply uses AI credits. {"{{agent_done}}"} is true when the
+                    goal was reached.
+                  </small>
+                </>
               )}
               {["ai_generate", "ai_extract", "ai_condition"].includes(
                 selected.data.kind,
@@ -2175,8 +2299,7 @@ export default function BuilderPage() {
               )}
               {selected.data.kind === "delay" && (
                 <div className="field">
-                  Wait{" "}
-                  <span className="hint">1 second to 30 days</span>
+                  Wait <span className="hint">1 second to 30 days</span>
                   <DurationInput
                     label="Delay"
                     seconds={selected.data.seconds || 60}
@@ -2243,11 +2366,19 @@ export default function BuilderPage() {
                       </option>
                     )}
                   {connections
-                    .filter((c) => c.id === connectionId || (c.status === "active" && !c.locked))
+                    .filter(
+                      (c) =>
+                        c.id === connectionId ||
+                        (c.status === "active" && !c.locked),
+                    )
                     .map((c) => (
                       <option value={c.id} key={c.id}>
                         {c.display_name} · {c.is_test ? "Test" : "Live"} ·{" "}
-                        {c.locked ? "Locked" : c.status === "active" ? "Connected" : c.status.replaceAll("_", " ")}
+                        {c.locked
+                          ? "Locked"
+                          : c.status === "active"
+                            ? "Connected"
+                            : c.status.replaceAll("_", " ")}
                       </option>
                     ))}
                 </select>

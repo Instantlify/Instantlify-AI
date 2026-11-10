@@ -183,6 +183,7 @@ export type Note = {
 };
 
 export type NodeKind =
+  | "ai_agent"
   | "avatar_video"
   | "ai_call"
   | "generate_voice"
@@ -233,6 +234,9 @@ export type ConditionRule = {
 export type FlowNodeData = {
   kind: NodeKind;
   rules?: ConditionRule[];
+  persona?: string;
+  max_turns?: number;
+  use_knowledge?: boolean;
   match?: "all" | "any";
   seconds_max?: number;
   timeout_seconds?: number;

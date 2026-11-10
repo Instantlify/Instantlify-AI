@@ -206,6 +206,29 @@ def step(workspace_id, state_id):
                 state.save()
                 transaction.on_commit(lambda: release(step, state_id))
                 return
+            if kind == "ai_agent":
+                from .agent_step import DEFAULT_TURNS, agent_step
+
+                outcome = agent_step(state, data)
+                if outcome is None:
+                    return
+                result, turns = outcome
+                if result["reply"]:
+                    queue_reply(
+                        state.conversation,
+                        result["reply"],
+                        f"flow:{state.id}:{state.last_message_id}:{state.steps}",
+                        private_reply_id=state.variables.get("comment_id"),
+                        automation_id=state.automation_id,
+                    )
+                    state.variables.pop("comment_id", None)
+                if not result["done"] and turns < int(data.get("max_turns", DEFAULT_TURNS)):
+                    # Wait for the customer's next message on this same step.
+                    state.status = "waiting"
+                    state.steps += 1
+                    state.save()
+                    return
+                state.variables["agent_done"] = result["done"]
             branch = ""
             if kind == "follow_gate":
                 from .followers import follow_step
