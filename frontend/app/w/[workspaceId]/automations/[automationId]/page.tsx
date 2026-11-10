@@ -1852,6 +1852,26 @@ export default function BuilderPage() {
                     />
                   </label>
                   <label>
+                    Details to collect (optional)
+                    <input
+                      aria-label="AI agent details to collect"
+                      placeholder="budget, timeline, company"
+                      value={(selected.data.capture_fields || []).join(", ")}
+                      onChange={(event) =>
+                        updateSelected({
+                          capture_fields: event.target.value
+                            .split(",")
+                            .map((item) => item.trim())
+                            .filter(Boolean),
+                        })
+                      }
+                    />
+                    <small>
+                      Saved to the contact and available as {"{{name}}"} in
+                      later steps, for example a Google Sheets or CRM sync.
+                    </small>
+                  </label>
+                  <label>
                     Replies before moving on
                     <input
                       type="number"

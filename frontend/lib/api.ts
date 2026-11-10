@@ -242,6 +242,7 @@ export type FlowNodeData = {
   max_turns?: number;
   use_knowledge?: boolean;
   knowledge_base_id?: string;
+  capture_fields?: string[];
   match?: "all" | "any";
   seconds_max?: number;
   timeout_seconds?: number;

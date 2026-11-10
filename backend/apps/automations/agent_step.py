@@ -45,6 +45,16 @@ def validate_agent(data):
         raise ValidationError(f"An AI agent can reply 1–{MAX_TURNS} times before moving on.")
     if not isinstance(data.get("use_knowledge", True), bool):
         raise ValidationError("Choose whether the agent uses the knowledge base.")
+    fields = data.get("capture_fields", [])
+    from .ai_steps import variable_name
+
+    if (
+        not isinstance(fields, list)
+        or len(fields) > 10
+        or any(not variable_name(name) for name in fields)
+        or len(set(fields)) != len(fields)
+    ):
+        raise ValidationError("Collect up to 10 uniquely named details (letters, digits, _).")
     base = data.get("knowledge_base_id", "")
     if base:
         import uuid
@@ -110,6 +120,7 @@ def agent_step(state, data):
                     "question": str(state.variables.get("last_text", ""))[:2000],
                     "use_knowledge": data.get("use_knowledge", True),
                     "knowledge_base_id": data.get("knowledge_base_id", ""),
+                    "capture_fields": data.get("capture_fields", []),
                 }
             ),
             "available_at": timezone.now(),
@@ -126,7 +137,18 @@ def agent_step(state, data):
     return json.loads(job.result), used + 1
 
 
-def parse_agent_output(text):
+def capture_instruction(fields):
+    if not fields:
+        return ""
+    return (
+        "\nAlso collect these details when the customer states them: "
+        + json.dumps(fields)
+        + '. Add "captured": {<detail>: <value or null>} to your JSON with every listed '
+        "detail; use null for anything not stated. Never guess a value."
+    )
+
+
+def parse_agent_output(text, fields=()):
     start, end = text.find("{"), text.rfind("}")
     value = json.loads(text[start : end + 1]) if 0 <= start < end else None
     if (
@@ -137,7 +159,41 @@ def parse_agent_output(text):
         or (not value["reply"].strip() and not value["done"])
     ):
         raise ValidationError("invalid_agent_output")
-    return {"reply": value["reply"].strip(), "done": value["done"]}
+    captured = {}
+    raw = value.get("captured") or {}
+    if fields and isinstance(raw, dict):
+        for name in fields:
+            item = raw.get(name)
+            # Only scalar, short answers are kept; anything else is treated as unknown.
+            if isinstance(item, (str, int, float)) and not isinstance(item, bool):
+                text_value = str(item).strip()[:500]
+                if text_value:
+                    captured[name] = text_value
+    return {"reply": value["reply"].strip(), "done": value["done"], "captured": captured}
+
+
+def save_captured(state, captured):
+    """Store collected details as flow variables and on the contact. Values for typed
+    custom fields are checked against their type and skipped when they do not fit."""
+    if not captured:
+        return
+    from rest_framework import serializers
+
+    from apps.crm.field_defs import coerce_fields
+
+    lead = state.conversation.identity.lead
+    fields = dict(lead.fields or {})
+    for name, value in captured.items():
+        state.variables[name] = value
+        try:
+            value = coerce_fields(state.workspace_id, {name: value})[name]
+        except serializers.ValidationError:
+            continue
+        if name in fields or len(fields) < 50:
+            fields[name] = value
+    if fields != lead.fields:
+        lead.fields = fields
+        lead.save(update_fields=["fields"])
 
 
 def knowledge_for(config, question, key, knowledge_base_id=None):

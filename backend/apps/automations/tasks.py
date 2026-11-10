@@ -213,6 +213,9 @@ def step(workspace_id, state_id):
                 if outcome is None:
                     return
                 result, turns = outcome
+                from .agent_step import save_captured
+
+                save_captured(state, result.get("captured") or {})
                 if result["reply"]:
                     queue_reply(
                         state.conversation,

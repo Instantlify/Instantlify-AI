@@ -27,7 +27,7 @@ nodes: {"id": short slug, "data": {...}} where data.kind is one of
   "send_reminder" {"text", "source_node"} - after a delay, follow up only if the earlier source send_buttons message with track_clicks:true has not been clicked;
   "ai_generate" {"prompt", "variable"} - generates text into a saved variable, does not send it automatically;
   "ai_extract" {"prompt", "fields": ["field_name"], "variable"} - extracts named scalar fields into flow variables;
-  "ai_agent" {"prompt" (goal and instructions), optional "persona", "max_turns" 1-20, "use_knowledge"} - chats with the customer toward the goal, then continues; use it for open-ended qualifying or support conversations;
+  "ai_agent" {"prompt" (goal and instructions), optional "persona", "max_turns" 1-20, "use_knowledge", "capture_fields" (up to 10 detail names to collect onto the contact)} - chats with the customer toward the goal, then continues; use it for open-ended qualifying or support conversations;
   "ai_condition" {"prompt", "variable"} - evaluates instructions and branches using true/false edges;
   "send_media" {"media_type": "image"|"video"|"audio", "media_url": "https://..."} - a direct public file URL provided by the user; requires a private reply first for comment triggers;
   "send_buttons" {"text", "buttons": [{"type": "web_url", "url": "https://...",
@@ -69,6 +69,7 @@ NODE_FIELDS = {
     "max_turns",
     "use_knowledge",
     "knowledge_base_id",
+    "capture_fields",
     "seconds_max",
     "timeout_seconds",
     "field",

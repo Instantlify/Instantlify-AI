@@ -173,11 +173,40 @@ def test_output_parsing_and_preview():
     assert parse_agent_output('ok {"reply": " Hi ", "done": false}') == {
         "reply": "Hi",
         "done": False,
+        "captured": {},
     }
-    assert parse_agent_output('{"reply": "", "done": true}') == {"reply": "", "done": True}
+    assert parse_agent_output('{"reply": "", "done": true}') == {
+        "reply": "",
+        "done": True,
+        "captured": {},
+    }
     for bad in ['{"reply": "", "done": false}', '{"reply": 1, "done": true}', "nope"]:
         with pytest.raises(ValidationError):
             parse_agent_output(bad)
     trace = preview(agent_flow(), ["hello"], {})["trace"]
     assert trace[0]["detail"].startswith("Would chat with the lead toward: Qualify the lead")
     assert trace[1]["detail"] == "A teammate will follow up."
+
+
+def test_agent_collects_details_onto_the_contact(client, workspace, channel, config):
+    from apps.crm.models import Lead
+
+    flow_ = agent_flow(capture_fields=["budget", "timeline"])
+    assert publish(client, workspace, flow_).status_code == 200
+    inbound(channel, "hello, I have about 500 dollars")
+    state, model = answer(
+        workspace,
+        ConversationState.objects.for_workspace(workspace).get(),
+        '{"reply": "When do you want to start?", "done": false,'
+        ' "captured": {"budget": "500 USD", "timeline": null, "extra": "x"}}',
+    )
+    instruction = model.complete.call_args.args[0][0]["content"]
+    assert '["budget", "timeline"]' in instruction
+    lead = Lead.objects.for_workspace(workspace).get()
+    assert lead.fields == {"budget": "500 USD"}
+    assert state.variables["budget"] == "500 USD" and "timeline" not in state.variables
+
+
+def test_capture_fields_are_validated(client, workspace, config):
+    for bad in (["Bad Name"], ["a"] * 2, [f"f{i}" for i in range(11)], ["last_text"]):
+        assert publish(client, workspace, agent_flow(capture_fields=bad)).status_code == 400
