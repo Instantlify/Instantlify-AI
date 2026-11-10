@@ -642,6 +642,39 @@ function getConfigSchema(
         required: true,
       },
     ],
+    mailchimp: [
+      ...credentialFields,
+      {
+        key: "list_id",
+        label: "Audience ID",
+        placeholder: "Mailchimp audience (list) ID",
+        required: true,
+      },
+      {
+        key: "double_opt_in",
+        label: "Double opt-in",
+        defaultValue: "true",
+        helper:
+          "true sends Mailchimp's confirmation email before marketing starts; set false only if you already hold consent.",
+      },
+    ],
+    beehiiv: [
+      ...credentialFields,
+      {
+        key: "publication_id",
+        label: "Publication ID",
+        placeholder: "pub_…",
+        required: true,
+      },
+    ],
+    kit: [
+      ...credentialFields,
+      {
+        key: "tag_id",
+        label: "Tag ID (optional)",
+        placeholder: "Numeric Kit tag ID",
+      },
+    ],
     ...Object.fromEntries(
       ["n8n", "make", "discord", "webhook"].map((provider) => [
         provider,

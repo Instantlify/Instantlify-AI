@@ -2095,6 +2095,9 @@ export default function BuilderPage() {
                                       "mailerlite",
                                       "klaviyo",
                                       "systeme_io",
+                                      "mailchimp",
+                                      "beehiiv",
+                                      "kit",
                                     ].includes(config.provider)),
                         )
                         .map((config) => (

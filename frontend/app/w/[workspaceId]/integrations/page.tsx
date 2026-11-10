@@ -16,6 +16,7 @@ import {
   HelpCircle,
   KeyRound,
   LayoutGrid,
+  Mail,
   MessageSquare,
   Webhook,
   X,
@@ -617,7 +618,7 @@ export default function IntegrationsPage() {
     {
       id: "klaviyo",
       name: "Klaviyo",
-      category: ["Email Marketing"],
+      category: ["Email Marketing"] as Category[],
       description:
         "Connect your Klaviyo account to automatically sync your contacts to your list",
       providerKey: "klaviyo",
@@ -635,7 +636,7 @@ export default function IntegrationsPage() {
     {
       id: "mailerlite",
       name: "MailerLite",
-      category: ["Email Marketing"],
+      category: ["Email Marketing"] as Category[],
       description:
         "Connect your MailerLite account to automatically sync your contacts to your subscriber list",
       providerKey: "mailerlite",
@@ -650,6 +651,40 @@ export default function IntegrationsPage() {
         action: "Subscribe to MailerLite Group",
       },
     },
+    ...(
+      [
+        [
+          "mailchimp",
+          "Mailchimp",
+          "Add contacts to a Mailchimp audience with double opt-in.",
+        ],
+        [
+          "beehiiv",
+          "Beehiiv",
+          "Add contacts as Beehiiv newsletter subscribers.",
+        ],
+        [
+          "kit",
+          "Kit",
+          "Add contacts to Kit (ConvertKit), optionally with a tag.",
+        ],
+      ] as const
+    ).map(([providerKey, name, description]) => ({
+      id: providerKey,
+      name,
+      category: ["Email Marketing"] as Category[],
+      description,
+      providerKey,
+      iconBg: "#f5f3ff",
+      iconColor: "#6d28d9",
+      logo: <Mail size={20} />,
+      explainer: {
+        stepType: "Email Marketing step",
+        description: `${description} Use a Sync contact step in an automation; no consent is assumed on the contact's behalf.`,
+        trigger: "Lead shares their email",
+        action: `Add to ${name}`,
+      },
+    })),
     {
       id: "stripe",
       name: "Stripe",

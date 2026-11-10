@@ -955,6 +955,9 @@ class IntegrationSerializer(serializers.ModelSerializer):
             "zorromail",
             "mailerlite",
             "klaviyo",
+            "mailchimp",
+            "beehiiv",
+            "kit",
             "shopify",
             "systeme_io",
             "jotform",
@@ -1134,6 +1137,9 @@ class SyncLeadView(APIView):
             "mailerlite",
             "klaviyo",
             "systeme_io",
+            "mailchimp",
+            "beehiiv",
+            "kit",
         }:
             raise serializers.ValidationError("Choose a CRM integration.")
         job = IntegrationJob.objects.for_workspace(workspace_id).create(

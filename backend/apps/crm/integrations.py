@@ -310,6 +310,8 @@ class CRMIntegration(IntegrationAdapter):
             if not result.get("id"):
                 raise ProviderError("systeme_result_unknown")
             return {"id": str(result["id"]), "existing": False}
+        if provider in {"mailchimp", "beehiiv", "kit"}:
+            return sync_email_list(provider, token, options, payload)
         if provider in {"mailerlite", "klaviyo"}:
             from django.core.validators import validate_email
 
@@ -459,6 +461,93 @@ class CRMIntegration(IntegrationAdapter):
                 },
             )
         raise ProviderError("unsupported_integration")
+
+
+def mailchimp_base(api_key):
+    """Mailchimp keys end in their datacenter (abc123-us21)."""
+    import re
+
+    dc = api_key.rsplit("-", 1)[-1] if "-" in api_key else ""
+    if not re.fullmatch(r"[a-z]{2,4}\d{1,3}", dc):
+        raise ProviderError("mailchimp_key_invalid")
+    return f"https://{dc}.api.mailchimp.com/3.0"
+
+
+def sync_email_list(provider, token, options, payload):
+    """Add a contact to a Mailchimp audience, Beehiiv publication or Kit account.
+    Never grants marketing consent on the lead's behalf: Mailchimp uses double opt-in
+    unless the workspace turned it off, Beehiiv sends no welcome email and does not
+    reactivate unsubscribed readers, and Kit subscribers are added as-is."""
+    import hashlib
+
+    from django.core.validators import validate_email
+
+    email = str(payload.get("email") or "").strip().lower()
+    validate_email(email)
+    if not token:
+        raise ProviderError("integration_credentials_missing")
+    name = str(payload.get("name") or "")[:150]
+    if provider == "mailchimp":
+        list_id = str(options.get("list_id") or "")
+        if not list_id:
+            raise ProviderError("mailchimp_list_missing")
+        double_opt_in = str(options.get("double_opt_in", "true")).lower() != "false"
+        member = hashlib.md5(email.encode(), usedforsecurity=False).hexdigest()
+        result = request(
+            "PUT",
+            f"{mailchimp_base(token)}/lists/{quote(list_id, safe='')}/members/{member}",
+            auth=("nemio", token),
+            side_effect=True,
+            json={
+                "email_address": email,
+                "status_if_new": "pending" if double_opt_in else "subscribed",
+                "merge_fields": {"FNAME": name.split(" ")[0]} if name else {},
+            },
+        )
+        if not result.get("id"):
+            raise ProviderError("mailchimp_result_unknown")
+        return {"id": str(result["id"]), "status": result.get("status", "")}
+    if provider == "beehiiv":
+        publication = str(options.get("publication_id") or "")
+        if not publication:
+            raise ProviderError("beehiiv_publication_missing")
+        result = request(
+            "POST",
+            f"https://api.beehiiv.com/v2/publications/{quote(publication, safe='')}/subscriptions",
+            headers={"Authorization": f"Bearer {token}"},
+            side_effect=True,
+            json={
+                "email": email,
+                "reactivate_existing": False,
+                "send_welcome_email": False,
+                "utm_source": "nemio",
+            },
+        )
+        identifier = (result.get("data") or {}).get("id")
+        if not identifier:
+            raise ProviderError("beehiiv_result_unknown")
+        return {"id": str(identifier)}
+    headers = {"X-Kit-Api-Key": token}
+    result = request(
+        "POST",
+        "https://api.kit.com/v4/subscribers",
+        headers=headers,
+        side_effect=True,
+        json={"email_address": email, "first_name": name.split(" ")[0] if name else None},
+    )
+    subscriber = (result.get("subscriber") or {}).get("id")
+    if not subscriber:
+        raise ProviderError("kit_result_unknown")
+    tag = str(options.get("tag_id") or "")
+    if tag:
+        request(
+            "POST",
+            f"https://api.kit.com/v4/tags/{quote(tag, safe='')}/subscribers",
+            headers=headers,
+            side_effect=True,
+            json={"email_address": email},
+        )
+    return {"id": str(subscriber), "tag_id": tag}
 
 
 def integration_for(config):

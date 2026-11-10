@@ -68,6 +68,17 @@ def probe(provider, credentials, options):
         return "GET", "https://api.cal.com/v2/me", {"headers": _bearer(token)}
     if provider == "attio":
         return "GET", "https://api.attio.com/v2/self", {"headers": _bearer(token)}
+    if provider == "mailchimp":
+        from .integrations import mailchimp_base
+
+        try:
+            return "GET", f"{mailchimp_base(token)}/ping", {"auth": ("nemio", token)}
+        except ProviderError:
+            return None
+    if provider == "beehiiv":
+        return "GET", "https://api.beehiiv.com/v2/publications", {"headers": _bearer(token)}
+    if provider == "kit":
+        return "GET", "https://api.kit.com/v4/account", {"headers": {"X-Kit-Api-Key": token}}
     if provider == "gohighlevel" and options.get("location_id"):
         return (
             "GET",
