@@ -33,6 +33,7 @@ from apps.tenants.invitations import (
     InvitationDetailView,
     InvitationListView,
 )
+from apps.tenants.magic_link import MagicLinkRequestView, MagicLinkVerifyView
 from apps.tenants.profile import ProfilePhotoView
 from apps.tenants.recovery import PasswordResetConfirmView, PasswordResetRequestView
 from apps.tenants.verification import ResendVerificationView, VerifyEmailView
@@ -64,6 +65,8 @@ urlpatterns = [
     path("api/auth/csrf/", CSRFView.as_view()),
     path("api/auth/signup/", SignupView.as_view()),
     path("api/auth/login/", LoginView.as_view()),
+    path("api/auth/magic-link/", MagicLinkRequestView.as_view()),
+    path("api/auth/magic-link/verify/", MagicLinkVerifyView.as_view()),
     path("api/auth/password/", PasswordChangeView.as_view()),
     path("api/auth/password-reset/", PasswordResetRequestView.as_view()),
     path("api/auth/password-reset/confirm/", PasswordResetConfirmView.as_view()),

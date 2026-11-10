@@ -396,6 +396,8 @@ function Auth({
           {!signup && (
             <p>
               <Link href="/auth/reset/">Forgot your password?</Link>
+              {" · "}
+              <Link href="/auth/magic/">Email me a sign-in link</Link>
             </p>
           )}
           <div className="secure-note">
