@@ -205,6 +205,26 @@ const TOOLS: NavItem[] = [
   { id: "activity", label: "Activity", icon: Activity },
 ];
 
+/** Nav item -> access section (tenants/access.py). Unlisted items are never limited. */
+const ACCESS_SECTION: Record<string, string> = {
+  inbox: "inbox",
+  crm: "crm",
+  automations: "automations",
+  templates: "automations",
+  channels: "integrations",
+  integrations: "integrations",
+  agent: "agent",
+  analytics: "analytics",
+  payments: "payments",
+  bio: "bio",
+  forms: "forms",
+  calendar: "calendar",
+  shield: "shield",
+  deeplinks: "deeplinks",
+  webchat: "webchat",
+  "creator-kit": "creator-kit",
+};
+
 /** Sections an agent can open; owners and admins see everything. */
 const AGENT_SECTIONS = [
   "help",
@@ -225,7 +245,10 @@ export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const tab = useSearchParams().get("tab");
   const routeSection = pathname.split("/")[3] || "overview";
-  const section = routeSection === "integrations" && tab === "channels" ? "channels" : routeSection;
+  const section =
+    routeSection === "integrations" && tab === "channels"
+      ? "channels"
+      : routeSection;
   const [creating, setCreating] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [workspaceMenu, setWorkspaceMenu] = useState(false);
@@ -235,12 +258,23 @@ export function Shell({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const branding = workspace.branding;
-  const allowed = (id: string) => manager || AGENT_SECTIONS.includes(id);
+  const limits = workspace.allowed_sections || [];
+  // A teammate limited to some sections only sees those in the menu; the API
+  // refuses the others too.
+  const permitted = (id: string) =>
+    !limits.length ||
+    !ACCESS_SECTION[id] ||
+    limits.includes(ACCESS_SECTION[id]);
+  const allowed = (id: string) =>
+    (manager || AGENT_SECTIONS.includes(id)) && permitted(id);
   const tools = TOOLS.filter((item) => allowed(item.id));
 
   const docked = (workspace.pinned_apps || [])
     .map(appById)
-    .filter((app) => app?.section && (manager || app.agents))
+    .filter(
+      (app) =>
+        app?.section && (manager || app.agents) && permitted(app.section),
+    )
     .map((app) => ({
       id: app!.section!,
       label: app!.label,
@@ -581,12 +615,15 @@ export function Shell({ children }: { children: ReactNode }) {
             <span className="workspace-crumb">{workspace.name}</span>
             <ChevronRight size={14} className="crumb-separator" />
             <span className="section-crumb">
-              {PRIMARY_NAV.find((item) => item.id === section)?.label
-                ?? section.charAt(0).toUpperCase() + section.slice(1)}
+              {PRIMARY_NAV.find((item) => item.id === section)?.label ??
+                section.charAt(0).toUpperCase() + section.slice(1)}
             </span>
           </div>
           <div className="topbar-actions">
-            <AssignmentNotifications key={workspace.id} workspaceId={workspace.id} />
+            <AssignmentNotifications
+              key={workspace.id}
+              workspaceId={workspace.id}
+            />
             {workspace.parent && (
               <span className="badge-agency">Agency Managed</span>
             )}

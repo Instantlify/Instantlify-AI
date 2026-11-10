@@ -23,6 +23,10 @@ def workspace_membership(
         and not allow_viewer_write
     ):
         raise PermissionDenied("Viewers have read-only access.")
+    from .access import section_allowed
+
+    if not section_allowed(membership, request.path):
+        raise PermissionDenied("You do not have access to this part of the workspace.")
     from apps.platform_ops.security import blocked
 
     if blocked(workspace_id):

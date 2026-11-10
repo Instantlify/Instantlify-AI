@@ -38,6 +38,12 @@ class WorkspaceSerializer(serializers.ModelSerializer):
     def get_role(self, obj):
         return Membership.objects.for_workspace(obj).get(user=self.context["request"].user).role
 
+    allowed_sections = serializers.SerializerMethodField()
+
+    def get_allowed_sections(self, obj):
+        member = Membership.objects.for_workspace(obj).get(user=self.context["request"].user)
+        return [] if member.role == "owner" else member.allowed_sections
+
     branding = serializers.SerializerMethodField()
 
     def get_branding(self, obj):
@@ -65,8 +71,17 @@ class WorkspaceSerializer(serializers.ModelSerializer):
             "branding",
             "pinned_apps",
             "checkout_pending",
+            "allowed_sections",
         ]
-        read_only_fields = ["id", "created_at", "role", "parent", "branding", "checkout_pending"]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "role",
+            "parent",
+            "branding",
+            "checkout_pending",
+            "allowed_sections",
+        ]
 
 
 class MembershipSerializer(serializers.ModelSerializer):
@@ -75,8 +90,30 @@ class MembershipSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Membership
-        fields = ["id", "user_id", "name", "email", "role", "created_at"]
+        fields = [
+            "id",
+            "user_id",
+            "name",
+            "email",
+            "role",
+            "allowed_sections",
+            "allowed_connections",
+            "created_at",
+        ]
         read_only_fields = ["id", "user_id", "name", "email", "created_at"]
+
+    def validate(self, attrs):
+        from .access import validate_access
+
+        if "allowed_sections" in attrs or "allowed_connections" in attrs:
+            instance = self.instance
+            sections, connections = validate_access(
+                instance.workspace_id,
+                attrs.get("allowed_sections", instance.allowed_sections),
+                attrs.get("allowed_connections", instance.allowed_connections),
+            )
+            attrs["allowed_sections"], attrs["allowed_connections"] = sections, connections
+        return attrs
 
 
 class AuditSerializer(serializers.ModelSerializer):

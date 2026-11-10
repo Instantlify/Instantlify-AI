@@ -151,6 +151,9 @@ class Membership(TenantModel):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.AGENT)
+    # Access limits (tenants/access.py); empty means unrestricted. Ignored for owners.
+    allowed_sections = models.JSONField(default=list, blank=True)
+    allowed_connections = models.JSONField(default=list, blank=True)
 
     class Meta:
         constraints = [

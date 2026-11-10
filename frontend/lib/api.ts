@@ -36,6 +36,8 @@ export type Workspace = {
   branding: Branding;
   /** App Store apps pinned to the sidebar dock, in order. */
   pinned_apps?: string[];
+  /** Sections this member may use; empty means all. */
+  allowed_sections?: string[];
 };
 export type Member = {
   id: string;
@@ -43,6 +45,8 @@ export type Member = {
   name: string;
   email: string;
   role: string;
+  allowed_sections?: string[];
+  allowed_connections?: string[];
 };
 export type Invitation = {
   id: string;

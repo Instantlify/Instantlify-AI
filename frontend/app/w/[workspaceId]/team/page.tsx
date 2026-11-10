@@ -12,6 +12,7 @@ import { Plus } from "lucide-react";
 import { api, type Invitation, type Member, type Page } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import { initials } from "@/components/shell";
+import { MemberAccessEditor } from "@/components/member-access-editor";
 import {
   ErrorNotice,
   PageHeading,
@@ -24,6 +25,7 @@ export default function TeamPage() {
   const { workspace, user, prefix, manager, refresh } = useWorkspace();
   const router = useRouter();
   const [members, setMembers] = useState<Member[]>([]);
+  const [editingAccess, setEditingAccess] = useState<Member | null>(null);
   const [memberCount, setMemberCount] = useState(0);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [inviteLink, setInviteLink] = useState("");
@@ -197,6 +199,20 @@ export default function TeamPage() {
                       )}
                     </td>
                     <td>
+                      {workspace.role === "owner" &&
+                        member.role !== "owner" && (
+                          <button
+                            className="text-button"
+                            disabled={feedback.busy}
+                            onClick={() => setEditingAccess(member)}
+                          >
+                            Access
+                            {member.allowed_sections?.length ||
+                            member.allowed_connections?.length
+                              ? " (limited)"
+                              : ""}
+                          </button>
+                        )}
                       {canRemove(member) && (
                         <button
                           className="text-button"
@@ -291,6 +307,18 @@ export default function TeamPage() {
             {memberCount > members.length && " Showing the first 50 members."}
           </p>
         </Panel>
+      )}
+      {editingAccess && (
+        <MemberAccessEditor
+          prefix={prefix}
+          member={editingAccess}
+          onClose={() => setEditingAccess(null)}
+          onSaved={(updated) =>
+            setMembers((list) =>
+              list.map((item) => (item.id === updated.id ? updated : item)),
+            )
+          }
+        />
       )}
     </>
   );

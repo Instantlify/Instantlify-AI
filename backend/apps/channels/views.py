@@ -85,8 +85,15 @@ class ConnectionListView(generics.ListAPIView):
         }
 
     def get_queryset(self):
+        from apps.tenants.access import connection_ids
+
         member = workspace_membership(self.request, self.kwargs["workspace_id"])
-        return ChannelConnection.objects.for_workspace(member.workspace).defer("access_token")
+        query = ChannelConnection.objects.for_workspace(member.workspace).defer("access_token")
+        allowed = connection_ids(member)
+        # Members limited to certain accounts see only those.
+        if allowed is not None:
+            query = query.filter(pk__in=allowed)
+        return query
 
 
 class MetaOAuthStartView(APIView):

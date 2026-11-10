@@ -33,6 +33,11 @@ def conversations_for(request, workspace_id, *, allow_viewer_write=False):
     query = Conversation.objects.for_workspace(workspace_id)
     if member.role == "agent":
         query = query.filter(Q(assigned_to=request.user) | Q(assigned_to__isnull=True))
+    from apps.tenants.access import connection_ids
+
+    allowed = connection_ids(member)
+    if allowed is not None:
+        query = query.filter(identity__connection_id__in=allowed)
     return query.select_related("identity__lead", "identity__connection")
 
 
@@ -640,7 +645,11 @@ def visible_leads(request, workspace_id):
     hand; agents see their assigned contacts and contacts behind visible conversations."""
     member = workspace_membership(request, workspace_id)
     query = Lead.objects.for_workspace(workspace_id)
-    if member.role == "agent":
+    from apps.tenants.access import connection_ids
+
+    if member.role == "agent" or connection_ids(member) is not None:
+        # Limited members see contacts behind the conversations they can open, plus
+        # contacts assigned to them.
         ids = conversations_for(request, workspace_id).values_list("identity__lead_id", flat=True)
         query = query.filter(Q(assigned_to=request.user) | Q(pk__in=ids))
     return query
