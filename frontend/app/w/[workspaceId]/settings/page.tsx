@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import {
   ValidatedForm,
   ValidatedInput,
@@ -32,6 +34,8 @@ import {
   Sparkles,
   User,
   Users,
+  ShieldCheck,
+  Globe,
 } from "lucide-react";
 import {
   api,
@@ -51,6 +55,8 @@ import {
 import { BrandIcon } from "@/lib/brand-icons";
 import { creditMoney } from "@/lib/credit-money";
 import { loadWorkspaces, useWorkspace } from "@/lib/workspace";
+import { DataPrivacyPanel } from "@/components/data-privacy-panel";
+import { AgencyPanel } from "@/components/agency-panel";
 import {
   ErrorNotice,
   SuccessNotice,
@@ -67,7 +73,14 @@ import {
   isThemeColor,
 } from "@/lib/workspace-theme";
 
-type SettingsTab = "profile" | "meta" | "team" | "subscription" | "workspaces";
+type SettingsTab =
+  | "profile"
+  | "meta"
+  | "team"
+  | "subscription"
+  | "workspaces"
+  | "data"
+  | "agency";
 
 const QUICK_COLORS = [
   "#10244a",
@@ -114,6 +127,7 @@ const SIDEBAR_TEXT_COLORS = [
 
 export default function SettingsPage() {
   const { workspace, user: workspaceUser, prefix, refresh } = useWorkspace();
+  const confirm = useConfirmation();
   const feedback = useFeedback();
   const router = useRouter();
 
@@ -129,7 +143,12 @@ export default function SettingsPage() {
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState("");
   const photoObjectUrl = useRef("");
-  useEffect(() => () => { if (photoObjectUrl.current) URL.revokeObjectURL(photoObjectUrl.current); }, []);
+  useEffect(
+    () => () => {
+      if (photoObjectUrl.current) URL.revokeObjectURL(photoObjectUrl.current);
+    },
+    [],
+  );
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -145,7 +164,9 @@ export default function SettingsPage() {
   const [latestInviteLink, setLatestInviteLink] = useState("");
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"admin" | "agent">("admin");
+  const [inviteRole, setInviteRole] = useState<"admin" | "agent" | "viewer">(
+    "admin",
+  );
 
   // Subscription state (real billing & credits)
   const [billing, setBilling] = useState<Billing | null>(null);
@@ -172,7 +193,7 @@ export default function SettingsPage() {
     workspace.branding?.sidebar_text_color || DEFAULT_SIDEBAR_TEXT,
   );
   const [brandName, setBrandName] = useState(
-    workspace.branding?.brand_name || "Nemio",
+    workspace.branding?.brand_name || "Instantlify",
   );
   const [logoUrl, setLogoUrl] = useState(workspace.branding?.logo_url || "");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -408,11 +429,21 @@ export default function SettingsPage() {
     e.preventDefault();
     await feedback.run(async () => {
       const form = new FormData();
-      form.set("name", fullName); form.set("email", emailAddress);
+      form.set("name", fullName);
+      form.set("email", emailAddress);
       if (profilePhoto) form.set("photo", profilePhoto);
-      const updated = profilePhoto ? await upload<ApiUser>("/api/auth/me/", form, "PATCH") : await api<ApiUser>("/api/auth/me/", "PATCH", { name: fullName, email: emailAddress });
-      setProfilePhoto(null); setPhotoPreview("");
-      if (photoObjectUrl.current) { URL.revokeObjectURL(photoObjectUrl.current); photoObjectUrl.current = ""; }
+      const updated = profilePhoto
+        ? await upload<ApiUser>("/api/auth/me/", form, "PATCH")
+        : await api<ApiUser>("/api/auth/me/", "PATCH", {
+            name: fullName,
+            email: emailAddress,
+          });
+      setProfilePhoto(null);
+      setPhotoPreview("");
+      if (photoObjectUrl.current) {
+        URL.revokeObjectURL(photoObjectUrl.current);
+        photoObjectUrl.current = "";
+      }
       setCurrentUser(updated);
       await refresh();
     }, "Profile details updated successfully!");
@@ -463,7 +494,7 @@ export default function SettingsPage() {
     connectionId: string,
     name: string,
   ) => {
-    if (!confirm(`Are you sure you want to disconnect ${name}?`)) return;
+    if (!await confirm(`Are you sure you want to disconnect ${name}?`)) return;
     await feedback.run(async () => {
       await api(`${prefix}/channels/${connectionId}/disconnect/`, "POST");
       await loadConnections();
@@ -493,7 +524,7 @@ export default function SettingsPage() {
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
-    if (!confirm(`Remove ${memberName} from this workspace?`)) return;
+    if (!await confirm(`Remove ${memberName} from this workspace?`)) return;
     await feedback.run(async () => {
       await api(`${prefix}/members/${memberId}/`, "DELETE");
       await loadTeam();
@@ -715,7 +746,42 @@ export default function SettingsPage() {
           <Briefcase size={15} />
           Workspaces
         </button>
+
+        {(workspace.role === "owner" || workspace.role === "admin") && (
+          <button
+            type="button"
+            className={`settings-nav-tab ${activeTab === "agency" ? "active" : ""}`}
+            onClick={() => setActiveTab("agency")}
+          >
+            <Globe size={15} />
+            Domain &amp; clients
+          </button>
+        )}
+
+        {workspace.role === "owner" && (
+          <button
+            type="button"
+            className={`settings-nav-tab ${activeTab === "data" ? "active" : ""}`}
+            onClick={() => setActiveTab("data")}
+          >
+            <ShieldCheck size={15} />
+            Data &amp; privacy
+          </button>
+        )}
       </div>
+
+      {activeTab === "agency" &&
+        (workspace.role === "owner" || workspace.role === "admin") && (
+          <AgencyPanel
+            prefix={prefix}
+            isOwner={workspace.role === "owner"}
+            isClient={Boolean(workspace.parent)}
+          />
+        )}
+
+      {activeTab === "data" && workspace.role === "owner" && (
+        <DataPrivacyPanel prefix={prefix} workspaceName={workspace.name} />
+      )}
 
       {/* =========================================================================
           TAB 1: PROFILE
@@ -747,7 +813,23 @@ export default function SettingsPage() {
                 {/* Left column: Avatar */}
                 <div className="profile-avatar-col">
                   <div className="profile-avatar-circle">
-                    {photoPreview || currentUser?.photo_url ? <Image unoptimized width={88} height={88} src={photoPreview || currentUser?.photo_url || ""} alt="Your profile photo" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : <span>{userInitial}</span>}
+                    {photoPreview || currentUser?.photo_url ? (
+                      <Image
+                        unoptimized
+                        width={88}
+                        height={88}
+                        src={photoPreview || currentUser?.photo_url || ""}
+                        alt="Your profile photo"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      <span>{userInitial}</span>
+                    )}
                   </div>
                   <div className="avatar-user-name">
                     {fullName || currentUser?.name || "User"}
@@ -759,15 +841,50 @@ export default function SettingsPage() {
                       accept="image/png,image/jpeg,image/gif,image/webp"
                       style={{ display: "none" }}
                       onChange={(event) => {
-                        const file = event.target.files?.[0]; if (!file) return;
-                        if (file.size > 2 * 1024 * 1024 || !["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.type)) { feedback.setError("Choose a PNG, JPG, GIF or WebP image up to 2 MB."); return; }
-                        if (photoObjectUrl.current) URL.revokeObjectURL(photoObjectUrl.current);
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        if (
+                          file.size > 2 * 1024 * 1024 ||
+                          ![
+                            "image/png",
+                            "image/jpeg",
+                            "image/gif",
+                            "image/webp",
+                          ].includes(file.type)
+                        ) {
+                          feedback.setError(
+                            "Choose a PNG, JPG, GIF or WebP image up to 2 MB.",
+                          );
+                          return;
+                        }
+                        if (photoObjectUrl.current)
+                          URL.revokeObjectURL(photoObjectUrl.current);
                         photoObjectUrl.current = URL.createObjectURL(file);
-                        setProfilePhoto(file); setPhotoPreview(photoObjectUrl.current);
+                        setProfilePhoto(file);
+                        setPhotoPreview(photoObjectUrl.current);
                       }}
                     />
                   </label>
-                  {(profilePhoto || currentUser?.photo_url) && <button type="button" className="text-button" disabled={feedback.busy} onClick={() => void feedback.run(async () => { await api("/api/auth/photo/", "DELETE"); setProfilePhoto(null); setPhotoPreview(""); setCurrentUser((current) => current ? { ...current, photo_url: "" } : current); await refresh(); }, "Profile photo removed.")}>Remove photo</button>}
+                  {(profilePhoto || currentUser?.photo_url) && (
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={feedback.busy}
+                      onClick={() =>
+                        void feedback.run(async () => {
+                          await api("/api/auth/photo/", "DELETE");
+                          setProfilePhoto(null);
+                          setPhotoPreview("");
+                          setCurrentUser((current) =>
+                            current ? { ...current, photo_url: "" } : current,
+                          );
+                          await refresh();
+                        }, "Profile photo removed.")
+                      }
+                    >
+                      Remove photo
+                    </button>
+                  )}
                 </div>
 
                 {/* Right column: Form fields */}
@@ -2038,7 +2155,7 @@ export default function SettingsPage() {
                     className="settings-text-input"
                   />
                   <span className="field-helper-note">
-                    Shown in the sidebar instead of &ldquo;Nemio&rdquo;.
+                    Shown in the sidebar instead of &ldquo;Instantlify&rdquo;.
                   </span>
                 </div>
 
@@ -2108,7 +2225,9 @@ export default function SettingsPage() {
                     id="settings-role"
                     value={inviteRole}
                     onChange={(e) =>
-                      setInviteRole(e.target.value as "admin" | "agent")
+                      setInviteRole(
+                        e.target.value as "admin" | "agent" | "viewer",
+                      )
                     }
                     className="native-page-select"
                   >
@@ -2116,6 +2235,7 @@ export default function SettingsPage() {
                     <option value="agent">
                       Agent (conversations & CRM only)
                     </option>
+                    <option value="viewer">Viewer (read-only)</option>
                   </ValidatedSelect>
                   <ChevronDown size={15} className="select-dropdown-chevron" />
                 </div>

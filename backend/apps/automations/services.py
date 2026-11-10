@@ -16,6 +16,7 @@ from .models import Automation, ConversationState, Edge, Node, Trigger
 MAX_WAIT_SECONDS = 30 * 24 * 3600
 
 KINDS = {
+    "ai_agent",
     "avatar_video",
     "ai_call",
     "generate_voice",
@@ -116,6 +117,10 @@ def validate_graph(graph):
         from .guided import validate_action
 
         validate_action(data)
+        if kind == "ai_agent":
+            from .agent_step import validate_agent
+
+            validate_agent(data)
         if kind == "delay":
             validate_delay(data)
         if kind in {"condition", "branch"}:
@@ -362,6 +367,16 @@ def route_message(message, payload):
     if state and state.status == "waiting":
         node = next(n for n in state.graph["nodes"] if n["id"] == state.node_id)
         data = node["data"]
+        if data["kind"] == "ai_agent":
+            # The agent answers private messages only; it stays on its step until done.
+            if payload.get("kind", "dm") != "dm":
+                return
+            state.variables["last_text"] = message.text
+            state.status = "running"
+            state.available_at = timezone.now()
+            state.last_message_id = message.id
+            state.save()
+            return
         # Guided opt-in and email capture only resume on private replies, never comments.
         if (data.get("expected_reply") or data["kind"] == "capture_email") and payload.get(
             "kind", "dm"

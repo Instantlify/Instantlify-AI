@@ -5,7 +5,7 @@ const { trimSlash } = require("./authentication");
 
 const TOLERANCE_SECONDS = 300;
 
-/** Every outbound webhook event Nemio emits, with Zapier-facing labels. */
+/** Every outbound webhook event Instantlify emits, with Zapier-facing labels. */
 const EVENTS = [
   ["lead.created", "New Lead", "Triggers when a new lead is created."],
   ["lead.updated", "Updated Lead", "Triggers when a lead's details change."],

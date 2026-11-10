@@ -11,7 +11,7 @@ test("visitors can ask a question, retain chat and submit a ticket on mobile", a
     if (path.endsWith("support-chat/"))
       return route.fulfill({
         json: {
-          reply: "Nemio connects your sales conversations.",
+          reply: "Instantlify connects your sales conversations.",
           sentinel: null,
           sources: [],
         },
@@ -29,16 +29,16 @@ test("visitors can ask a question, retain chat and submit a ticket on mobile", a
   });
   await page.goto("/");
   await page.getByRole("button", { name: "Chat with us" }).click();
-  const dialog = page.getByRole("dialog", { name: "Nemio help and support" });
-  await dialog.getByLabel("Message", { exact: true }).fill("What is Nemio?");
+  const dialog = page.getByRole("dialog", { name: "Instantlify help and support" });
+  await dialog.getByLabel("Message", { exact: true }).fill("What is Instantlify?");
   await dialog.getByRole("button", { name: "Send message" }).click();
   await expect(
-    dialog.getByText("Nemio connects your sales conversations."),
+    dialog.getByText("Instantlify connects your sales conversations."),
   ).toBeVisible();
   await dialog.getByRole("button", { name: "Close support" }).click();
   await page.getByRole("button", { name: "Chat with us" }).click();
   await expect(
-    dialog.getByText("Nemio connects your sales conversations."),
+    dialog.getByText("Instantlify connects your sales conversations."),
   ).toBeVisible();
   await dialog
     .getByRole("button", { name: "Raise a ticket", exact: true })

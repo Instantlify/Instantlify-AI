@@ -1,6 +1,6 @@
 # Public API and outbound webhooks
 
-The public API lets agencies, Zapier, n8n and Make plug Nemio into their own stack. It is workspace-scoped: an API key belongs to exactly one workspace and can never read another.
+The public API lets agencies, Zapier, n8n and Make plug Instantlify into their own stack. It is workspace-scoped: an API key belongs to exactly one workspace and can never read another.
 
 ## Authentication
 

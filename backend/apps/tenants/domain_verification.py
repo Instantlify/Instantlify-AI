@@ -12,9 +12,10 @@ from .services import audit
 log = logging.getLogger(__name__)
 
 PLATFORM_CNAME_TARGETS = {
+    settings.CUSTOM_DOMAIN_CNAME_TARGET,
     "domains.nemio.ai",
     "app.nemio.ai",
-    getattr(settings, "APP_DOMAIN", "app.nemio.ai").lower(),
+    getattr(settings, "APP_DOMAIN", "instantlify.com").lower(),
 }
 
 
@@ -55,8 +56,9 @@ def verify_custom_domain(
     """Verifies custom domain ownership for a WorkspaceBranding row.
 
     Verification succeeds if either:
-    1. A TXT record at `_nemio-challenge.<custom_domain>` contains `nemio-verify=<token>` or `<token>`.
-    2. A CNAME record at `<custom_domain>` resolves to one of the platform targets (`domains.nemio.ai`, etc.).
+    1. A TXT record at `_instantlify-challenge.<custom_domain>` contains `instantlify-verify=<token>` or `<token>`.
+       Previously issued verification records remain accepted.
+    2. A CNAME record at `<custom_domain>` resolves to one of the platform targets (the configured platform target).
 
     Args:
         branding: The WorkspaceBranding instance to verify.
@@ -78,14 +80,17 @@ def verify_custom_domain(
 
     dns_query = resolver or query_dns_records
 
-    # 1. Check TXT record at _nemio-challenge.<domain>
-    challenge_host = f"_nemio-challenge.{domain}"
+    # Advertise the new name while retaining existing customer DNS records.
+    challenge_host = f"_instantlify-challenge.{domain}"
     txt_records = dns_query(challenge_host, "TXT")
-    expected_full = f"nemio-verify={token}"
+    expected_full = f"instantlify-verify={token}"
     txt_verified = any(
         record == expected_full or record == token or expected_full in record
         for record in txt_records
     )
+    if not txt_verified:
+        legacy_records = dns_query(f"_nemio-challenge.{domain}", "TXT")
+        txt_verified = any(record in {f"nemio-verify={token}", token} for record in legacy_records)
 
     # 2. Check CNAME record at <domain>
     cname_records = [rec.rstrip(".").lower() for rec in dns_query(domain, "CNAME")]
@@ -122,5 +127,5 @@ def verify_custom_domain(
     )
     return False, (
         f"Verification failed. Set a TXT record at '{challenge_host}' with value "
-        f"'{expected_full}' or a CNAME pointing to 'domains.nemio.ai'."
+        f"'{expected_full}' or a CNAME pointing to '{settings.CUSTOM_DOMAIN_CNAME_TARGET}'."
     )

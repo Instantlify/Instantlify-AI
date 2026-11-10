@@ -78,7 +78,7 @@ test("keyboard navigation expands the rail and workspace menus dismiss with Esca
   const sidebar = page.locator("#workspace-sidebar");
   // Start at the brand link rather than the browser's dev-tools focus target.
   await sidebar
-    .getByRole("link", { name: "Nemio Home", exact: true })
+    .getByRole("link", { name: "Instantlify Home", exact: true })
     .press("Tab");
   await expect(
     sidebar

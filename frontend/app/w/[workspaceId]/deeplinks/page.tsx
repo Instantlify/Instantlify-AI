@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import {
   ValidatedForm,
   ValidatedInput,
@@ -39,6 +41,7 @@ export default function DeepLinksPage() {
   const [creating, setCreating] = useState(false);
   const [qrModal, setQrModal] = useState<DeepLink | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const confirm = useConfirmation();
   const feedback = useFeedback();
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const shortUrl = (link: DeepLink) => `${origin}/go/${link.code}/`;
@@ -132,7 +135,7 @@ export default function DeepLinksPage() {
 
   async function remove(link: DeepLink) {
     if (
-      !window.confirm(`Delete "${link.title}"? Its short link stops working.`)
+      !await confirm(`Delete "${link.title}"? Its short link stops working.`)
     )
       return;
     await feedback.run(async () => {

@@ -194,7 +194,7 @@ def test_bio_page_public_view_and_click_tracking(client, workspace):
     anonymous = APIClient()
     page = anonymous.get("/api/public/bio/ACME-STUDIO/").json()
     assert page["title"] == "Acme Studio" and page["links"][0]["index"] == 0
-    assert "workspace" not in page and page["branding"]["brand_name"] == "Nemio"
+    assert "workspace" not in page and page["branding"]["brand_name"] == "Instantlify"
     click = anonymous.post("/api/public/bio/acme-studio/", {"index": 0}, format="json")
     assert click.status_code == 200 and click.json()["url"] == "https://cal.com/acme"
     assert (
@@ -271,7 +271,7 @@ def test_public_branding_resolves_by_host_and_domains_are_unique(client, workspa
         resolved = APIClient().get("/api/public/branding/", HTTP_HOST="app.growthco.com").json()
     assert resolved["brand_name"] == "Growth Co" and resolved["hide_platform_branding"] is True
     default = APIClient().get("/api/public/branding/").json()
-    assert default["brand_name"] == "Nemio"
+    assert default["brand_name"] == "Instantlify"
     other_owner = User.objects.create_user(username="o", email="o@example.com")
     other = create_workspace(other_owner, "Other")
     clash = as_user(other_owner).put(

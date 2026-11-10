@@ -7,15 +7,10 @@ import {
 } from "@/components/validated-form";
 
 import { useEffect, useState, type FormEvent } from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  ExternalLink,
-  Plus,
-  Save,
-  Trash2,
-} from "lucide-react";
-import { api, message, type BioLink, type BioPage } from "@/lib/api";
+import { ExternalLink, Save } from "lucide-react";
+import { api, message, type BioPage } from "@/lib/api";
+import { BioBlockEditor } from "@/components/bio-block-editor";
+import { BIO_THEMES, BioRenderer } from "@/components/bio-renderer";
 import { useWorkspace } from "@/lib/workspace";
 import {
   CopyField,
@@ -34,6 +29,8 @@ const EMPTY: BioPage = {
   avatar_url: "",
   accent: "#313a34",
   links: [],
+  blocks: [],
+  theme: "light",
   published: false,
 };
 
@@ -56,8 +53,13 @@ export default function BioPageEditor() {
       .then((data) => {
         setOrigin(window.location.origin);
         if ("slug" in data && data.slug) {
-          setPage(data as BioPage);
-          setSaved(data as BioPage);
+          const loaded = data as BioPage;
+          // Pages made before blocks existed open with their links as link blocks.
+          const blocks = loaded.blocks?.length
+            ? loaded.blocks
+            : loaded.links.map((link) => ({ type: "link" as const, ...link }));
+          setPage({ ...loaded, blocks, theme: loaded.theme || "light" });
+          setSaved(loaded);
         } else {
           setPage({
             ...EMPTY,
@@ -83,20 +85,6 @@ export default function BioPageEditor() {
   const update = <K extends keyof BioPage>(key: K, value: BioPage[K]) =>
     setPage((current) => ({ ...current, [key]: value }));
 
-  const updateLink = (index: number, patch: Partial<BioLink>) =>
-    update(
-      "links",
-      page.links.map((link, i) => (i === index ? { ...link, ...patch } : link)),
-    );
-
-  const moveLink = (index: number, direction: -1 | 1) => {
-    const target = index + direction;
-    if (target < 0 || target >= page.links.length) return;
-    const links = [...page.links];
-    [links[index], links[target]] = [links[target], links[index]];
-    update("links", links);
-  };
-
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const result = await feedback.run(
@@ -107,13 +95,14 @@ export default function BioPageEditor() {
           bio: page.bio,
           avatar_url: page.avatar_url,
           accent: page.accent,
-          links: page.links,
+          blocks: page.blocks,
+          theme: page.theme,
           published: page.published,
         }),
       "Page saved.",
     );
     if (result) {
-      setPage(result);
+      setPage({ ...result, blocks: result.blocks });
       setSaved(result);
     }
   }
@@ -150,7 +139,13 @@ export default function BioPageEditor() {
             {!manager && (
               <Empty>Owners and admins edit the link-in-bio page.</Empty>
             )}
-            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={save}>
+            <ValidatedForm
+              fieldErrors={feedback.fieldErrors}
+              validationTarget={feedback.validationTarget}
+              onEdit={() => feedback.setError("")}
+              className="form-grid"
+              onSubmit={save}
+            >
               <fieldset
                 disabled={!manager}
                 style={{
@@ -162,7 +157,8 @@ export default function BioPageEditor() {
               >
                 <label>
                   Page address
-                  <ValidatedInput name="slug"
+                  <ValidatedInput
+                    name="slug"
                     value={page.slug}
                     onChange={(event) =>
                       update("slug", event.target.value.toLowerCase())
@@ -179,7 +175,8 @@ export default function BioPageEditor() {
                 </label>
                 <label>
                   Title
-                  <ValidatedInput name="title"
+                  <ValidatedInput
+                    name="title"
                     value={page.title}
                     onChange={(event) => update("title", event.target.value)}
                     maxLength={80}
@@ -188,7 +185,8 @@ export default function BioPageEditor() {
                 </label>
                 <label>
                   Bio
-                  <ValidatedTextarea name="bio"
+                  <ValidatedTextarea
+                    name="bio"
                     value={page.bio}
                     onChange={(event) => update("bio", event.target.value)}
                     maxLength={300}
@@ -197,7 +195,8 @@ export default function BioPageEditor() {
                 </label>
                 <label>
                   Avatar URL
-                  <ValidatedInput name="avatar_url"
+                  <ValidatedInput
+                    name="avatar_url"
                     type="url"
                     pattern="https://.*"
                     value={page.avatar_url}
@@ -209,91 +208,31 @@ export default function BioPageEditor() {
                 </label>
                 <label>
                   Accent colour
-                  <ValidatedInput name="accent"
+                  <ValidatedInput
+                    name="accent"
                     type="color"
                     value={page.accent}
                     onChange={(event) => update("accent", event.target.value)}
                   />
                 </label>
-                <div className="field">
-                  <span>Links ({page.links.length}/20)</span>
-                  <div className="card-list">
-                    {page.links.map((link, index) => (
-                      <div className="card" key={index}>
-                        <div className="row">
-                          <ValidatedInput name="title"
-                            aria-label={`Link ${index + 1} title`}
-                            value={link.title}
-                            maxLength={60}
-                            placeholder="Book a call"
-                            onChange={(event) =>
-                              updateLink(index, { title: event.target.value })
-                            }
-                            required
-                            style={{ flex: "1 1 140px" }}
-                          />
-                          <ValidatedInput name="url"
-                            aria-label={`Link ${index + 1} URL`}
-                            type="url"
-                            pattern="https://.*"
-                            value={link.url}
-                            placeholder="https://…"
-                            onChange={(event) =>
-                              updateLink(index, { url: event.target.value })
-                            }
-                            required
-                            style={{ flex: "2 1 200px" }}
-                          />
-                        </div>
-                        <div className="row">
-                          <button
-                            type="button"
-                            className="icon-button"
-                            aria-label="Move up"
-                            disabled={index === 0}
-                            onClick={() => moveLink(index, -1)}
-                          >
-                            <ArrowUp size={15} />
-                          </button>
-                          <button
-                            type="button"
-                            className="icon-button"
-                            aria-label="Move down"
-                            disabled={index === page.links.length - 1}
-                            onClick={() => moveLink(index, 1)}
-                          >
-                            <ArrowDown size={15} />
-                          </button>
-                          <span className="spacer" />
-                          <button
-                            type="button"
-                            className="text-button"
-                            onClick={() =>
-                              update(
-                                "links",
-                                page.links.filter((_, i) => i !== index),
-                              )
-                            }
-                          >
-                            <Trash2 size={14} /> Remove
-                          </button>
-                        </div>
-                      </div>
+                <label>
+                  Theme
+                  <select
+                    aria-label="Theme"
+                    value={page.theme}
+                    onChange={(event) => update("theme", event.target.value)}
+                  >
+                    {BIO_THEMES.map((theme) => (
+                      <option key={theme.id} value={theme.id}>
+                        {theme.label}
+                      </option>
                     ))}
-                  </div>
-                  {page.links.length < 20 && (
-                    <button
-                      type="button"
-                      className="button secondary small"
-                      onClick={() =>
-                        update("links", [...page.links, { title: "", url: "" }])
-                      }
-                    >
-                      Add link
-                      <Plus size={14} />
-                    </button>
-                  )}
-                </div>
+                  </select>
+                </label>
+                <BioBlockEditor
+                  blocks={page.blocks}
+                  onChange={(blocks) => update("blocks", blocks)}
+                />
                 <label className="inline">
                   <ValidatedInput
                     type="checkbox"
@@ -315,37 +254,10 @@ export default function BioPageEditor() {
             {publicUrl && <CopyField label="Public URL" value={publicUrl} />}
           </Panel>
           <Panel title="Preview" aside={page.published ? "Live" : "Draft"}>
-            <div className="bio-preview">
-              {page.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={page.avatar_url} alt="" />
-              ) : (
-                <span
-                  className="user-avatar"
-                  style={{
-                    width: 84,
-                    height: 84,
-                    fontSize: 24,
-                    margin: "0 auto",
-                  }}
-                >
-                  {(page.title || workspace.name).slice(0, 2).toUpperCase()}
-                </span>
-              )}
-              <h2>{page.title || "Your title"}</h2>
-              {page.bio && <p>{page.bio}</p>}
-              {page.links.length === 0 && (
-                <p className="muted-text">Add links to see them here.</p>
-              )}
-              {page.links.map((link, index) => (
-                <span
-                  key={index}
-                  className="bio-link"
-                  style={{ background: page.accent }}
-                >
-                  {link.title || "Untitled link"}
-                </span>
-              ))}
+            <div
+              style={{ borderRadius: 16, overflow: "hidden", minHeight: 420 }}
+            >
+              <BioRenderer page={page} />
             </div>
           </Panel>
         </div>

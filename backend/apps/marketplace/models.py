@@ -37,7 +37,7 @@ class TemplateInstall(TenantModel):
 class SellerAccount(TenantModel):
     """The author's Stripe Connect recipient account (Accounts v2, express dashboard).
 
-    Nemio is the merchant of record for template sales: buyers pay on the platform
+    Instantlify is the merchant of record for template sales: buyers pay on the platform
     account and the author's share is transferred by destination charge. Only the
     account ID and the last observed capability status are stored here."""
 

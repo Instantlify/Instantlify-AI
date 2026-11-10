@@ -36,7 +36,7 @@ test.beforeEach(async ({ page }) => {
       });
     if (path === "/api/public/branding/")
       return route.fulfill({
-        json: { brand_name: "Nemio", primary_color: "#347359", logo_url: "" },
+        json: { brand_name: "Instantlify", primary_color: "#347359", logo_url: "" },
       });
     return route.fulfill({ json: {} });
   });
@@ -46,7 +46,7 @@ test("public homepage has metadata, live plan controls and signup navigation", a
   page,
 }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("Nemio · Turn conversations into customers");
+  await expect(page).toHaveTitle("Instantlify · Turn conversations into customers");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Every conversation.",
   );
@@ -62,7 +62,7 @@ test("public homepage has metadata, live plan controls and signup navigation", a
   await expect(page.locator(".plan-trial")).toHaveText("10-day free trial");
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await page.screenshot({
-    path: "test-results/nemio-home-desktop.png",
+    path: "test-results/instantlify-home-desktop.png",
     fullPage: true,
   });
   await page
@@ -98,7 +98,7 @@ test("mobile homepage fits and links to sign in", async ({ page }) => {
   );
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await page.screenshot({
-    path: "test-results/nemio-home-mobile.png",
+    path: "test-results/instantlify-home-mobile.png",
     fullPage: true,
   });
   await page
@@ -507,7 +507,7 @@ test("workspace navigation remains usable on desktop and mobile", async ({
     role: "owner",
     parent: null,
     branding: {
-      brand_name: "Nemio",
+      brand_name: "Instantlify",
       primary_color: "#347359",
       logo_url: "",
       hide_platform_branding: false,
@@ -567,7 +567,7 @@ test("workspace navigation remains usable on desktop and mobile", async ({
   // No channel is connected yet, so the overview asks for one.
   await expect(page.getByText("Connect your Instagram account")).toBeVisible();
   await page.screenshot({
-    path: "test-results/nemio-workspace-desktop.png",
+    path: "test-results/instantlify-workspace-desktop.png",
     fullPage: true,
   });
   await page.locator(".nav-tools > summary").click();
@@ -585,7 +585,7 @@ test("workspace navigation remains usable on desktop and mobile", async ({
     ),
   ).toBeTruthy();
   await page.screenshot({
-    path: "test-results/nemio-workspace-mobile.png",
+    path: "test-results/instantlify-workspace-mobile.png",
     fullPage: true,
   });
 });
@@ -617,7 +617,7 @@ test("Instagram connection follows the API redirect and workspace Continue stays
     name: "My workspace",
     role: "owner",
     parent: null,
-    branding: { brand_name: "Nemio", primary_color: "", logo_url: "" },
+    branding: { brand_name: "Instantlify", primary_color: "", logo_url: "" },
     pinned_apps: [],
   };
   await page.route("**/api/workspaces/", (route) =>

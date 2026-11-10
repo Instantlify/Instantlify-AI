@@ -1,6 +1,6 @@
-"""Platform-side LLM calls — segment classification and Nemio's own support agent.
+"""Platform-side LLM calls — segment classification and Instantlify's own support agent.
 
-These run on Nemio's platform key and are never billed to a tenant's credit balance,
+These run on Instantlify's platform key and are never billed to a tenant's credit balance,
 because they are our work, not theirs. They are also deliberately separate from
 `apps.agents`: that runtime is scoped to a workspace and grounded in a tenant's
 knowledge base, and the two must never retrieve into each other's context.

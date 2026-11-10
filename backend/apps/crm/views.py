@@ -28,11 +28,16 @@ from .models import (
 from .services import notify, queue_reply
 
 
-def conversations_for(request, workspace_id):
-    member = workspace_membership(request, workspace_id)
+def conversations_for(request, workspace_id, *, allow_viewer_write=False):
+    member = workspace_membership(request, workspace_id, allow_viewer_write=allow_viewer_write)
     query = Conversation.objects.for_workspace(workspace_id)
     if member.role == "agent":
         query = query.filter(Q(assigned_to=request.user) | Q(assigned_to__isnull=True))
+    from apps.tenants.access import connection_ids
+
+    allowed = connection_ids(member)
+    if allowed is not None:
+        query = query.filter(identity__connection_id__in=allowed)
     return query.select_related("identity__lead", "identity__connection")
 
 
@@ -46,6 +51,27 @@ class ConversationSerializer(serializers.ModelSerializer):
     )
     contact_link = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
+    unread = serializers.SerializerMethodField()
+    seen_by = serializers.SerializerMethodField()
+
+    def get_unread(self, obj):
+        reads = self.context.get("reads")
+        if reads is None or not obj.last_inbound_at:
+            return False
+        mine = reads.get(obj.pk, {}).get(self.context.get("user_id"))
+        return mine is None or mine < obj.last_inbound_at
+
+    def get_seen_by(self, obj):
+        reads = self.context.get("reads") or {}
+        names = self.context.get("names") or {}
+        latest = max((t for t in (obj.last_inbound_at, obj.last_outbound_at) if t), default=None)
+        return [
+            names[user_id]
+            for user_id, read_at in reads.get(obj.pk, {}).items()
+            if user_id != self.context.get("user_id")
+            and user_id in names
+            and (latest is None or read_at >= latest)
+        ]
 
     def get_contact_link(self, obj):
         return contact_link(obj.identity)
@@ -85,6 +111,8 @@ class ConversationSerializer(serializers.ModelSerializer):
             "connection_name",
             "contact_link",
             "last_message",
+            "unread",
+            "seen_by",
         ]
 
 
@@ -132,8 +160,44 @@ class ConversationList(generics.ListAPIView):
                     pk__in=ids
                 )
             }
-            kwargs["context"] = {**self.get_serializer_context(), "snippets": snippets}
+            from .models import ConversationRead
+
+            reads = {}
+            for read in ConversationRead.objects.for_workspace(self.kwargs["workspace_id"]).filter(
+                conversation_id__in=[item.pk for item in args[0]]
+            ):
+                reads.setdefault(read.conversation_id, {})[read.user_id] = read.read_at
+            names = {
+                member.user_id: member.user.get_full_name() or member.user.username
+                for member in Membership.objects.for_workspace(
+                    self.kwargs["workspace_id"]
+                ).select_related("user")
+            }
+            kwargs["context"] = {
+                **self.get_serializer_context(),
+                "snippets": snippets,
+                "reads": reads,
+                "names": names,
+                "user_id": self.request.user.id,
+            }
         return super().get_serializer(*args, **kwargs)
+
+
+class ConversationReadView(APIView):
+    """Mark the conversation read by the current teammate."""
+
+    def post(self, request, workspace_id, pk):
+        from .models import ConversationRead
+
+        conversation = get_object_or_404(
+            conversations_for(request, workspace_id, allow_viewer_write=True), pk=pk
+        )
+        ConversationRead.objects.for_workspace(workspace_id).update_or_create(
+            conversation=conversation,
+            user=request.user,
+            defaults={"workspace_id": conversation.workspace_id, "read_at": timezone.now()},
+        )
+        return Response(status=204)
 
 
 class ConversationDetail(APIView):
@@ -470,9 +534,10 @@ class LeadSerializer(serializers.ModelSerializer):
         return value
 
     def validate_stage(self, value):
-        if value not in {"new", "qualified", "interested", "booked", "won", "lost"}:
-            raise serializers.ValidationError("Invalid stage.")
-        return value
+        from .stages import validate_stage_for
+
+        view = self.context.get("view")
+        return validate_stage_for(view.kwargs["workspace_id"] if view else None, value)
 
     def validate_tags(self, value):
         if not isinstance(value, list) or len(value) > 50:
@@ -495,6 +560,11 @@ class LeadSerializer(serializers.ModelSerializer):
             )
         ):
             raise serializers.ValidationError("Fields must be a small map of short values.")
+        view = self.context.get("view")
+        if view:
+            from .field_defs import coerce_fields
+
+            value = coerce_fields(view.kwargs["workspace_id"], value)
         return value
 
 
@@ -575,7 +645,11 @@ def visible_leads(request, workspace_id):
     hand; agents see their assigned contacts and contacts behind visible conversations."""
     member = workspace_membership(request, workspace_id)
     query = Lead.objects.for_workspace(workspace_id)
-    if member.role == "agent":
+    from apps.tenants.access import connection_ids
+
+    if member.role == "agent" or connection_ids(member) is not None:
+        # Limited members see contacts behind the conversations they can open, plus
+        # contacts assigned to them.
         ids = conversations_for(request, workspace_id).values_list("identity__lead_id", flat=True)
         query = query.filter(Q(assigned_to=request.user) | Q(pk__in=ids))
     return query
@@ -683,7 +757,9 @@ class LeadBulkView(APIView):
         if action == "stage":
             if not isinstance(value, str):
                 raise serializers.ValidationError("Invalid stage.")
-            value = LeadSerializer().validate_stage(value)
+            from .stages import validate_stage_for
+
+            value = validate_stage_for(workspace_id, value)
         elif action in {"tag", "untag"}:
             if not isinstance(value, str) or not 1 <= len(value.strip()) <= 40:
                 raise serializers.ValidationError("A tag needs 1–40 characters.")
@@ -888,6 +964,9 @@ class IntegrationSerializer(serializers.ModelSerializer):
             "zorromail",
             "mailerlite",
             "klaviyo",
+            "mailchimp",
+            "beehiiv",
+            "kit",
             "shopify",
             "systeme_io",
             "jotform",
@@ -1067,6 +1146,9 @@ class SyncLeadView(APIView):
             "mailerlite",
             "klaviyo",
             "systeme_io",
+            "mailchimp",
+            "beehiiv",
+            "kit",
         }:
             raise serializers.ValidationError("Choose a CRM integration.")
         job = IntegrationJob.objects.for_workspace(workspace_id).create(

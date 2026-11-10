@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import {
   ValidatedForm,
   ValidatedInput,
@@ -12,6 +14,7 @@ import { Plus } from "lucide-react";
 import { api, type Invitation, type Member, type Page } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import { initials } from "@/components/shell";
+import { MemberAccessEditor } from "@/components/member-access-editor";
 import {
   ErrorNotice,
   PageHeading,
@@ -24,10 +27,12 @@ export default function TeamPage() {
   const { workspace, user, prefix, manager, refresh } = useWorkspace();
   const router = useRouter();
   const [members, setMembers] = useState<Member[]>([]);
+  const [editingAccess, setEditingAccess] = useState<Member | null>(null);
   const [memberCount, setMemberCount] = useState(0);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [inviteLink, setInviteLink] = useState("");
   const [loading, setLoading] = useState(true);
+  const confirm = useConfirmation();
   const feedback = useFeedback();
 
   useEffect(() => {
@@ -112,7 +117,7 @@ export default function TeamPage() {
   async function removeMember(member: Member) {
     const leaving = member.email === user.email;
     if (
-      !window.confirm(
+      !await confirm(
         leaving
           ? "Leave this workspace? You will lose access immediately."
           : `Remove ${member.email} from this workspace?`,
@@ -134,7 +139,8 @@ export default function TeamPage() {
     member.role !== "owner" &&
     (member.email === user.email ||
       workspace.role === "owner" ||
-      (workspace.role === "admin" && member.role === "agent"));
+      (workspace.role === "admin" &&
+        ["agent", "viewer"].includes(member.role)));
 
   return (
     <>
@@ -178,7 +184,8 @@ export default function TeamPage() {
                     <td>{member.email}</td>
                     <td>
                       {workspace.role === "owner" && member.role !== "owner" ? (
-                        <ValidatedSelect name="role"
+                        <ValidatedSelect
+                          name="role"
                           aria-label={`Role for ${member.email}`}
                           value={member.role}
                           disabled={feedback.busy}
@@ -186,6 +193,7 @@ export default function TeamPage() {
                             changeRole(member, event.target.value)
                           }
                         >
+                          <option value="viewer">Viewer</option>
                           <option value="agent">Agent</option>
                           <option value="admin">Admin</option>
                         </ValidatedSelect>
@@ -194,6 +202,20 @@ export default function TeamPage() {
                       )}
                     </td>
                     <td>
+                      {workspace.role === "owner" &&
+                        member.role !== "owner" && (
+                          <button
+                            className="text-button"
+                            disabled={feedback.busy}
+                            onClick={() => setEditingAccess(member)}
+                          >
+                            Access
+                            {member.allowed_sections?.length ||
+                            member.allowed_connections?.length
+                              ? " (limited)"
+                              : ""}
+                          </button>
+                        )}
                       {canRemove(member) && (
                         <button
                           className="text-button"
@@ -212,7 +234,13 @@ export default function TeamPage() {
           {manager && (
             <div className="invite-section">
               <h3>Invite a teammate</h3>
-              <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="invite-form" onSubmit={sendInvite}>
+              <ValidatedForm
+                fieldErrors={feedback.fieldErrors}
+                validationTarget={feedback.validationTarget}
+                onEdit={() => feedback.setError("")}
+                className="invite-form"
+                onSubmit={sendInvite}
+              >
                 <label>
                   Email address
                   <ValidatedInput
@@ -227,6 +255,7 @@ export default function TeamPage() {
                   Role
                   <ValidatedSelect name="role" defaultValue="agent">
                     <option value="agent">Agent</option>
+                    <option value="viewer">Viewer (read-only)</option>
                     {workspace.role === "owner" && (
                       <option value="admin">Admin</option>
                     )}
@@ -281,6 +310,18 @@ export default function TeamPage() {
             {memberCount > members.length && " Showing the first 50 members."}
           </p>
         </Panel>
+      )}
+      {editingAccess && (
+        <MemberAccessEditor
+          prefix={prefix}
+          member={editingAccess}
+          onClose={() => setEditingAccess(null)}
+          onSaved={(updated) =>
+            setMembers((list) =>
+              list.map((item) => (item.id === updated.id ? updated : item)),
+            )
+          }
+        />
       )}
     </>
   );

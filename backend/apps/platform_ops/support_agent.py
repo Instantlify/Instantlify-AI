@@ -1,7 +1,7 @@
-"""Nemio's own support agent — the bot on our marketing site and in-app widget.
+"""Instantlify's own support agent — the bot on our marketing site and in-app widget.
 
 Distinct from `apps.agents` in every way that matters: it answers questions about
-Nemio to our prospects, it is grounded in `PlatformKnowledgeSection` (never a
+Instantlify to our prospects, it is grounded in `PlatformKnowledgeSection` (never a
 tenant's documents), it runs on the platform key, and it is not billed to anyone's
 credit balance.
 
@@ -18,7 +18,7 @@ NAME_CARD = "[[REQUEST_NAME_CARD]]"
 EMAIL_CARD = "[[REQUEST_EMAIL_CARD]]"
 SENTINELS = [NAME_CARD, EMAIL_CARD]
 
-DEFAULT_PROMPT = """You are Nemio's support assistant. Answer questions about Nemio
+DEFAULT_PROMPT = """You are Instantlify's support assistant. Answer questions about Instantlify
 using only the knowledge sections provided. If the knowledge does not cover it, say
 so plainly and offer to open a ticket rather than guessing.
 

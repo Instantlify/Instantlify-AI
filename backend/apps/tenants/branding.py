@@ -17,7 +17,7 @@ from .permissions import workspace_membership
 from .services import audit, create_workspace
 
 DEFAULT_BRANDING = {
-    "brand_name": "Nemio",
+    "brand_name": "Instantlify",
     "logo_url": "",
     "primary_color": "#10244a",
     "sidebar_bg_color": "#ffffff",

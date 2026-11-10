@@ -6,6 +6,7 @@ import type {
   FormField,
 } from "@/lib/portal-tools";
 import { ValidatedInput } from "./validated-form";
+import { useT } from "@/lib/i18n";
 
 export function FormContactQuestion({
   field,
@@ -16,6 +17,7 @@ export function FormContactQuestion({
   value?: FormAnswer;
   onChange: (value: FormContactAnswer) => void;
 }) {
+  const t = useT();
   const contact: FormContactAnswer =
     value && typeof value === "object" && "first_name" in value
       ? value
@@ -32,10 +34,10 @@ export function FormContactQuestion({
           <label key={key}>
             {
               {
-                first_name: "First name",
-                last_name: "Last name",
-                email: "Email address",
-                phone: "Phone number",
+                first_name: t("form.firstName"),
+                last_name: t("form.lastName"),
+                email: t("form.email"),
+                phone: t("form.phone"),
               }[key]
             }
             <ValidatedInput

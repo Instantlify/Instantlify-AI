@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { X } from "lucide-react";
 import { ApiError, message } from "@/lib/api";
@@ -182,10 +183,16 @@ export function Modal({
   title,
   onClose,
   children,
+  role = "dialog",
+  descriptionId,
+  initialFocusRef,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  role?: "dialog" | "alertdialog";
+  descriptionId?: string;
+  initialFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -196,18 +203,21 @@ export function Modal({
         : null;
     const overflow = document.body.style.overflow;
     dialog?.showModal();
+    initialFocusRef?.current?.focus();
     document.body.style.overflow = "hidden";
     return () => {
       dialog?.close();
       document.body.style.overflow = overflow;
       if (opener?.isConnected) opener.focus();
     };
-  }, []);
+  }, [initialFocusRef]);
   return (
     <dialog
       ref={dialogRef}
       className="modal-backdrop"
+        role={role}
       aria-label={title}
+        aria-describedby={descriptionId}
       onKeyDown={(event) => {
         if (event.key !== "Tab") return;
         const controls = Array.from(

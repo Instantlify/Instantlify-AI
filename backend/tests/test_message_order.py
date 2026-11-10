@@ -67,8 +67,21 @@ def test_long_webchat_threads_return_the_latest_two_hundred_messages(workspace):
     )
 
 
+@pytest.fixture
+def seeded_plans(settings):
+    """Transactional tests start from a flushed database, without the plans the billing
+    migration seeds; create the default plan so workspace creation finds it."""
+    from apps.billing.models import Plan, PlanLimits, PlanPrice
+    from tests.conftest import DEFAULT_TEST_LIMITS
+
+    if not Plan.objects.filter(slug=settings.DEFAULT_PLAN_SLUG).exists():
+        plan = Plan.objects.create(slug=settings.DEFAULT_PLAN_SLUG, name="Free")
+        PlanLimits.objects.create(plan=plan, **DEFAULT_TEST_LIMITS)
+        PlanPrice.objects.create(plan=plan, billing_interval="monthly", price_cents=0)
+
+
 @pytest.mark.django_db(transaction=True)
-def test_concurrent_message_numbers_are_unique_on_postgresql(workspace):
+def test_concurrent_message_numbers_are_unique_on_postgresql(seeded_plans, workspace):
     if connection.vendor != "postgresql":
         pytest.skip("Requires PostgreSQL conversation row locks")
     anonymous = APIClient()
@@ -96,7 +109,9 @@ def test_concurrent_message_numbers_are_unique_on_postgresql(workspace):
                 .sequence
             )
         finally:
-            close_old_connections()
+            # Each worker thread opened its own connection; close it so teardown can
+            # drop the test database.
+            connection.close()
 
     with ThreadPoolExecutor(max_workers=4) as executor:
         numbers = list(executor.map(create, range(8)))

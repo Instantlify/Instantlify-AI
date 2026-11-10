@@ -1,4 +1,6 @@
+import { ConfirmationProvider } from "@/components/confirmation-provider";
 import { SupportWidget } from "@/components/support-center";
+import { LanguageProvider } from "@/lib/i18n";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -32,7 +34,7 @@ const display = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Nemio · Your workspace",
+  title: "Instantlify · Your workspace",
   description: "One workspace for your sales conversations.",
 };
 
@@ -42,8 +44,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${body.variable} ${display.variable}`}>
       <body>
-        {children}
-        <SupportWidget />
+        <LanguageProvider>
+          <ConfirmationProvider>
+          {children}
+          <SupportWidget />
+          </ConfirmationProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

@@ -6,6 +6,7 @@ import {
   MessageSquareText,
   ShieldBan,
   Smartphone,
+  GraduationCap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,10 +25,20 @@ export type AppEntry = {
 
 export const APPS: AppEntry[] = [
   {
+    id: "tutorials",
+    label: "Tutorials",
+    icon: GraduationCap,
+    description:
+      "Step-by-step setup guides that tick off as you complete them.",
+    highlights: ["Live setup checklist", "Links to each step"],
+    section: "tutorials",
+    agents: true,
+  },
+  {
     id: "forum",
     label: "Community",
     icon: MessageSquareText,
-    description: "Share questions and answers with Nemio members.",
+    description: "Share questions and answers with Instantlify members.",
     highlights: ["Discussions and replies", "Community search assistant"],
     section: "forum",
     agents: true,
@@ -65,7 +76,7 @@ export const APPS: AppEntry[] = [
     label: "Content calendar",
     icon: CalendarDays,
     description:
-      "Plan and schedule Instagram posts, then let Nemio publish them on time.",
+      "Plan and schedule Instagram posts, then let Instantlify publish them on time.",
     highlights: ["Scheduled publishing", "Retry and status per post"],
     section: "calendar",
     agents: true,
@@ -75,8 +86,8 @@ export const APPS: AppEntry[] = [
     label: "Comment shield",
     icon: ShieldBan,
     description:
-      "Hide or delete comments on your Meta posts that match your keyword rules, with a log of every action.",
-    highlights: ["Keyword rules", "Hide, delete or flag"],
+      "Hide, delete or reply to comments on your Meta posts using keyword rules or AI rules written in plain words.",
+    highlights: ["Keyword and AI rules", "Hide, delete, flag or reply"],
     section: "shield",
     agents: false,
   },

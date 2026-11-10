@@ -30,12 +30,14 @@ export type Workspace = {
   checkout_pending?: boolean;
   id: string;
   name: string;
-  role: "owner" | "admin" | "agent";
+  role: "owner" | "admin" | "agent" | "viewer";
   created_at: string;
   parent: string | null;
   branding: Branding;
   /** App Store apps pinned to the sidebar dock, in order. */
   pinned_apps?: string[];
+  /** Sections this member may use; empty means all. */
+  allowed_sections?: string[];
 };
 export type Member = {
   id: string;
@@ -43,11 +45,13 @@ export type Member = {
   name: string;
   email: string;
   role: string;
+  allowed_sections?: string[];
+  allowed_connections?: string[];
 };
 export type Invitation = {
   id: string;
   email: string;
-  role: "admin" | "agent";
+  role: "admin" | "agent" | "viewer";
   expires_at: string;
   accept_url?: string;
   email_sent?: boolean;
@@ -124,6 +128,10 @@ export type LeadIdentity = {
 export type ConversationLead = Omit<Lead, "profile_synced_at" | "created_at">;
 export type Conversation = {
   id: string;
+  /** The current teammate has not opened it since the customer last wrote. */
+  unread?: boolean;
+  /** Other teammates who have read the latest message. */
+  seen_by?: string[];
   lead: ConversationLead;
   provider: string;
   is_test: boolean;
@@ -183,6 +191,7 @@ export type Note = {
 };
 
 export type NodeKind =
+  | "ai_agent"
   | "avatar_video"
   | "ai_call"
   | "generate_voice"
@@ -233,6 +242,11 @@ export type ConditionRule = {
 export type FlowNodeData = {
   kind: NodeKind;
   rules?: ConditionRule[];
+  persona?: string;
+  max_turns?: number;
+  use_knowledge?: boolean;
+  knowledge_base_id?: string;
+  capture_fields?: string[];
   match?: "all" | "any";
   seconds_max?: number;
   timeout_seconds?: number;
@@ -377,6 +391,15 @@ export type KnowledgeDocument = {
   error_code: string;
   embedding_model: string;
   created_at: string;
+  knowledge_base?: string | null;
+  file_type?: string;
+};
+export type KnowledgeBase = {
+  id: string;
+  name: string;
+  description: string;
+  document_count: number;
+  created_at: string;
 };
 export type AgentAudit = {
   runs: {
@@ -506,6 +529,10 @@ export type ShieldRule = {
   id: string;
   name: string;
   keywords: string[];
+  /** AI rule description; blank for a keyword rule. */
+  prompt: string;
+  /** Public reply posted when the rule matches; blank for none. */
+  reply_text: string;
   action: "hide" | "delete" | "flag";
   enabled: boolean;
   created_at: string;
@@ -525,8 +552,34 @@ export type WebChatSettings = {
   greeting: string;
   color: string;
   bot_enabled: boolean;
+  position?: "left" | "right";
+  launcher_label?: string;
+  logo_url?: string;
+  quick_replies?: string[];
   allowed_domains: string[];
   updated_at?: string;
+};
+export type BioBlock = {
+  type:
+    | "link"
+    | "heading"
+    | "text"
+    | "image"
+    | "video"
+    | "social"
+    | "email_capture"
+    | "divider";
+  index?: number;
+  title?: string;
+  url?: string;
+  highlight?: boolean;
+  text?: string;
+  alt?: string;
+  link?: string;
+  embed?: string;
+  items?: { platform: string; url: string }[];
+  button?: string;
+  tag?: string;
 };
 export type BioPage = {
   id?: string;
@@ -536,6 +589,8 @@ export type BioPage = {
   avatar_url: string;
   accent: string;
   links: BioLink[];
+  blocks: BioBlock[];
+  theme: string;
   published: boolean;
 };
 export type PublicBio = Omit<BioPage, "links" | "id"> & {

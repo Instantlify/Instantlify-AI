@@ -78,7 +78,7 @@ Real Stripe data, provider review status, corporate DNS/TLS/VPN and staff enroll
 
 ## Website chat and client support tickets
 
-The public site and authenticated portal have a floating support launcher. Visitors can ask Nemio questions or submit a categorized ticket with a name, email, subject and description. Logged-in clients can also open **Help & support** in the sidebar to create tickets, see their status and read or send replies. Replying to a resolved ticket reopens it. Chat-created client tickets include the recent conversation.
+The public site and authenticated portal have a floating support launcher. Visitors can ask Instantlify questions or submit a categorized ticket with a name, email, subject and description. Logged-in clients can also open **Help & support** in the sidebar to create tickets, see their status and read or send replies. Replying to a resolved ticket reopens it. Chat-created client tickets include the recent conversation.
 
 Apply the normal backend migrations before deploying this version (`python manage.py migrate`); migration `platform_ops.0008` adds a reporter relationship and reply messages. Existing tickets remain in the admin queues. They are not automatically linked by email to a client's account, so historical anonymous requests are not accidentally exposed.
 

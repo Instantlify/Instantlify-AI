@@ -25,7 +25,6 @@ from .models import Lead
 
 MAX_BYTES = 2 * 1024 * 1024
 MAX_ROWS = 5000
-STAGES = {"new", "qualified", "interested", "booked", "won", "lost"}
 ALIASES = {
     "name": "name",
     "full name": "name",
@@ -92,7 +91,7 @@ def parse(upload):
     return columns, body
 
 
-def read_row(columns, row):
+def read_row(columns, row, stages):
     """(contact dict, error). Values are trimmed; blanks are dropped."""
     data = {"tags": [], "fields": {}}
     first = last = ""
@@ -122,7 +121,7 @@ def read_row(columns, row):
             return None, "invalid email"
     if data.get("stage"):
         data["stage"] = data["stage"].lower()
-        if data["stage"] not in STAGES:
+        if data["stage"] not in stages:
             return None, "unknown stage"
     if not (
         data.get("name") or data.get("email") or data["fields"].get("phone") or data.get("handle")
@@ -165,9 +164,12 @@ class LeadImportView(APIView):
             raise serializers.ValidationError("The import tag can have at most 40 characters.")
         extra_tags = [extra] if extra else []
         columns, body = parse(request.FILES.get("file"))
+        from .stages import stage_ids
+
+        stages = stage_ids(workspace.pk)
         parsed, errors = [], []
         for number, row in enumerate(body, start=2):
-            data, error = read_row(columns, row)
+            data, error = read_row(columns, row, stages)
             if error:
                 errors.append({"row": number, "reason": error})
             else:

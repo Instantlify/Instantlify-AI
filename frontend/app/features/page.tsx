@@ -3,9 +3,9 @@ import { LandingPage } from "@/components/landing-page";
 import { PublicHelpLinks } from "@/components/public-help-links";
 
 export const metadata: Metadata = {
-  title: "Explore the product · Nemio",
+  title: "Explore the product · Instantlify",
   description:
-    "Explore Nemio automations, AI assistants, shared inbox and integrations with interactive product previews.",
+    "Explore Instantlify automations, AI assistants, shared inbox and integrations with interactive product previews.",
 };
 
 export default function Features() {

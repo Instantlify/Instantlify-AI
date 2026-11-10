@@ -1,6 +1,6 @@
 """Paid template installs on Stripe Connect.
 
-Nemio owns checkout (merchant of record). Authors onboard a Connect *recipient*
+Instantlify owns checkout (merchant of record). Authors onboard a Connect *recipient*
 account (Accounts v2, express dashboard); buyers pay a destination charge on the
 platform account and the author's share moves automatically, less the platform
 fee. Capability status is re-read from Stripe before any charge references an

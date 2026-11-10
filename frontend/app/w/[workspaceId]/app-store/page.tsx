@@ -16,6 +16,7 @@ import {
   Star,
   Trash2,
   TrendingUp,
+  GraduationCap,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
@@ -54,9 +55,23 @@ export default function AppStorePage() {
 
   const STORE_APPS: StoreApp[] = [
     {
+      id: "tutorials",
+      name: "Tutorials",
+      description: "Setup guides that tick off as you complete each step.",
+      section: "tutorials",
+      status: "available",
+      icon: <GraduationCap size={18} />,
+      banner: (
+        <div style={{ padding: 24 }}>
+          <GraduationCap size={36} />
+          <p>A live checklist for getting set up</p>
+        </div>
+      ),
+    },
+    {
       id: "forum",
       name: "Community",
-      description: "Share questions and answers with Nemio members.",
+      description: "Share questions and answers with Instantlify members.",
       section: "forum",
       status: "available",
       icon: <MessageSquare size={18} />,
@@ -258,7 +273,8 @@ export default function AppStorePage() {
     {
       id: "shield",
       name: "Hate Detection",
-      description: "Hide or delete comments that match your keyword rules.",
+      description:
+        "Hide or reply to abusive comments with keyword or AI rules.",
       section: "shield",
       icon: <ShieldAlert size={18} color="#ffffff" />,
       banner: (
@@ -382,7 +398,8 @@ export default function AppStorePage() {
     {
       id: "deeplinks",
       name: "Tracking Links",
-      description: "Trackable short links with UTM tags, QR codes and click counts",
+      description:
+        "Trackable short links with UTM tags, QR codes and click counts",
       section: "deeplinks",
       icon: <MousePointerClick size={18} color="#ffffff" />,
       banner: (
@@ -411,7 +428,7 @@ export default function AppStorePage() {
               boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             }}
           >
-            <span style={{ color: "#0f172a" }}>nemio.ai/offer</span>
+            <span style={{ color: "#0f172a" }}>instantlify.com/offer</span>
             <span
               style={{
                 background: "#f0fdf4",
@@ -438,7 +455,7 @@ export default function AppStorePage() {
               boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             }}
           >
-            <span style={{ color: "#0f172a" }}>nemio.ai/community</span>
+            <span style={{ color: "#0f172a" }}>instantlify.com/community</span>
             <span
               style={{
                 background: "#f0fdf4",

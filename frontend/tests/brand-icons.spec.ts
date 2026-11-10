@@ -15,7 +15,7 @@ test("landing page shows the real channel and integration logos", async ({
       return route.fulfill({ json: { trial_days: 10, plans: [] } });
     if (path === "/api/public/branding/")
       return route.fulfill({
-        json: { brand_name: "Nemio", primary_color: "#347359", logo_url: "" },
+        json: { brand_name: "Instantlify", primary_color: "#347359", logo_url: "" },
       });
     if (path === "/api/auth/me/")
       return route.fulfill({

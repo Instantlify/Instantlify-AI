@@ -20,6 +20,7 @@ import { lastWorkspaceId, loadWorkspaces } from "@/lib/workspace";
 import { Brand, WorkspaceForm } from "@/components/shell";
 import { ErrorNotice } from "@/components/ui";
 import { TrackVisit } from "@/components/growth";
+import { useT } from "@/lib/i18n";
 
 export default function AuthPage({ signup = false }: { signup?: boolean }) {
   const router = useRouter();
@@ -55,6 +56,13 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
   // Once signed in: accept a pending invite, then go to the last (or first) workspace.
   useEffect(() => {
     if (!user) return;
+    // Return to an in-app flow that sent the visitor here to sign in (only the
+    // connector consent screen is allowed, never an arbitrary or external URL).
+    const next = new URLSearchParams(window.location.search).get("next") || "";
+    if (/^\/connect\/authorize\/\?request=[0-9a-f-]{36}$/.test(next)) {
+      router.replace(next);
+      return;
+    }
     const controller = new AbortController();
     (async () => {
       try {
@@ -163,10 +171,10 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
           <h1>Join your team.</h1>
           <ErrorNotice error={error} />
           <p>
-            You are signed into Nemio as <strong>{user.email}</strong>.
+            You are signed into Instantlify as <strong>{user.email}</strong>.
           </p>
           <p>
-            Opening an email does not change your Nemio account. Sign in or
+            Opening an email does not change your Instantlify account. Sign in or
             create an account using the email address that received this
             invitation. Your invitation link will be kept while you switch
             accounts.
@@ -226,6 +234,14 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
   );
 }
 
+const GOOGLE_ERRORS: Record<string, string> = {
+  not_configured: "Google sign-in is not available yet.",
+  invalid_state: "That Google sign-in attempt expired. Please try again.",
+  google_rejected: "Google could not complete the sign-in. Please try again.",
+  email_not_verified: "Your Google account's email is not verified.",
+  account_unavailable: "This account cannot sign in. Contact support.",
+};
+
 function Auth({
   onSuccess,
   initialError,
@@ -237,11 +253,32 @@ function Auth({
   branding: Branding | null;
   signupInitially: boolean;
 }) {
+  const t = useT();
   const [signup, setSignup] = useState(signupInitially);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const name = branding?.brand_name || "Nemio";
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const name = branding?.brand_name || "Instantlify";
+  useEffect(() => {
+    const controller = new AbortController();
+    api<{ enabled: boolean }>(
+      "/api/auth/google/",
+      "GET",
+      undefined,
+      controller.signal,
+    )
+      .then((result) => setGoogleEnabled(result.enabled))
+      .catch(() => undefined);
+    const code = new URLSearchParams(window.location.search).get(
+      "google_error",
+    );
+    if (code)
+      queueMicrotask(() =>
+        setError(GOOGLE_ERRORS[code] || GOOGLE_ERRORS.google_rejected),
+      );
+    return () => controller.abort();
+  }, []);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -317,7 +354,7 @@ function Auth({
         <div className="story-footer">
           Built for teams. Designed for connection.
           {!branding?.hide_platform_branding && (
-            <span>© {new Date().getFullYear()} Nemio</span>
+            <span>© {new Date().getFullYear()} Instantlify</span>
           )}
         </div>
       </section>
@@ -389,13 +426,24 @@ function Auth({
               />
             </label>
             <button className="button primary full" disabled={busy}>
-              {busy ? "Please wait…" : signup ? "Create account" : "Sign in"}
+              {busy
+                ? t("auth.wait")
+                : signup
+                  ? t("auth.createAccount")
+                  : t("auth.signIn")}
               <ArrowRight size={17} />
             </button>
           </ValidatedForm>
+          {googleEnabled && (
+            <a className="button secondary full" href="/api/auth/google/start/">
+              {t("auth.google")}
+            </a>
+          )}
           {!signup && (
             <p>
-              <Link href="/auth/reset/">Forgot your password?</Link>
+              <Link href="/auth/reset/">{t("auth.forgot")}</Link>
+              {" · "}
+              <Link href="/auth/magic/">{t("auth.magicLink")}</Link>
             </p>
           )}
           <div className="secure-note">

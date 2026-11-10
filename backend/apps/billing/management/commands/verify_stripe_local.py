@@ -90,7 +90,7 @@ class Command(BaseCommand):
         # No memberships or email recipients: this fixture cannot notify an existing user.
         workspace = Workspace.objects.create(name=f"Stripe local verification {marker[:8]}")
         customer = stripe.Customer.create(
-            name="Nemio local webhook verification",
+            name="Instantlify local webhook verification",
             metadata={"nemio_local_verification": marker},
             api_key=self.key,
             idempotency_key=f"nemio-local-customer:{marker}",

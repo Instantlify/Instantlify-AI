@@ -1,7 +1,7 @@
 {
   "name": "watchEvents",
   "label": "Watch Events",
-  "description": "Triggers instantly when Nemio emits a subscribed event (lead, message, handoff, booking, payment).",
+  "description": "Triggers instantly when Instantlify emits a subscribed event (lead, message, handoff, booking, payment).",
   "type": "instant_trigger",
   "connection": "nemio",
   "webhook": "nemio",

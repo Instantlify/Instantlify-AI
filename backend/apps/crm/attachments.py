@@ -2,6 +2,10 @@
 channel provider fetches when the media message is delivered."""
 
 import base64
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
 
 from django.conf import settings
 from django.core import signing
@@ -35,8 +39,62 @@ ALLOWED = {
     "audio/mp4": ("audio", lambda b: b[4:8] == b"ftyp"),
     "audio/aac": ("audio", _is_adts),
     "audio/ogg": ("audio", lambda b: b[:4] == b"OggS"),
+    # Browser voice recordings (Chrome, Firefox, Edge); converted to M4A below.
+    "audio/webm": ("audio", lambda b: b[:4] == bytes([0x1A, 0x45, 0xDF, 0xA3])),
 }
-ALIASES = {"audio/x-m4a": "audio/mp4", "audio/mp3": "audio/mpeg", "image/jpg": "image/jpeg"}
+ALIASES = {
+    "audio/x-m4a": "audio/mp4",
+    "audio/mp3": "audio/mpeg",
+    "image/jpg": "image/jpeg",
+    "video/webm": "audio/webm",
+}
+# Re-encoded to standard AAC/M4A: OGG and WebM are rejected by some channels, and
+# browser-recorded MP4 is often fragmented, which some channels refuse.
+CONVERT = {"audio/ogg", "audio/webm", "audio/mp4"}
+MAX_VOICE_SECONDS = 300
+
+
+def to_m4a(data):
+    """Transcode browser audio to mono AAC/M4A with ffmpeg; None if ffmpeg is missing."""
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        return None
+    with tempfile.TemporaryDirectory() as folder:
+        source, target = Path(folder, "in"), Path(folder, "out.m4a")
+        source.write_bytes(data)
+        try:
+            subprocess.run(  # noqa: S603 - fixed argument list, no shell, temp paths only
+                [
+                    ffmpeg,
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-nostdin",
+                    "-i",
+                    str(source),
+                    "-t",
+                    str(MAX_VOICE_SECONDS),
+                    "-vn",
+                    "-ac",
+                    "1",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "64k",
+                    "-movflags",
+                    "+faststart",
+                    str(target),
+                ],
+                check=True,
+                capture_output=True,
+                timeout=60,
+            )
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            raise ValidationError("That recording could not be processed.") from None
+        result = target.read_bytes()
+    if not result or len(result) > MAX_ATTACHMENT_BYTES:
+        raise ValidationError("That recording is too long to send.")
+    return result
 
 
 def store_attachment(conversation, upload):
@@ -45,7 +103,7 @@ def store_attachment(conversation, upload):
     content_type = ALIASES.get(content_type, content_type)
     if content_type not in ALLOWED:
         raise ValidationError(
-            "Attach a JPEG or PNG image, an MP4 video, or an MP3, M4A, AAC or OGG audio file."
+            "Attach a JPEG or PNG image, an MP4 video, or an MP3, M4A, AAC, OGG or WebM audio file."
         )
     if not upload.size or upload.size > MAX_ATTACHMENT_BYTES:
         raise ValidationError("Attachments must be 5 MB or smaller.")
@@ -54,6 +112,13 @@ def store_attachment(conversation, upload):
     if len(data) > MAX_ATTACHMENT_BYTES or not looks_right(data):
         raise ValidationError("The file's contents do not match its type.")
     name = "".join(ch for ch in (upload.name or "") if ch.isprintable()).strip()[:200]
+    if content_type in CONVERT:
+        converted = to_m4a(data)
+        if converted is not None:
+            data, content_type = converted, "audio/mp4"
+            name = (name.rsplit(".", 1)[0] or "voice-note") + ".m4a"
+        elif content_type == "audio/webm":
+            raise ValidationError("Voice recordings need ffmpeg installed on the server.")
     attachment = MessageAttachment.objects.for_workspace(conversation.workspace_id).create(
         workspace_id=conversation.workspace_id,
         conversation=conversation,

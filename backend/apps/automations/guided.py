@@ -112,7 +112,7 @@ def validate_action(data):
             )
     if kind == "set_stage" and (
         not isinstance(data.get("stage"), str)
-        or data["stage"] not in {"new", "qualified", "interested", "booked", "won", "lost"}
+        or not re.fullmatch(r"[a-z][a-z0-9_]{0,19}", data["stage"])
     ):
         raise ValidationError("Choose a valid contact stage.")
     if kind == "set_field":
@@ -151,9 +151,20 @@ def validate_action(data):
 
 def validate_workspace_references(graph, workspace_id, automation_id):
     from apps.channels.models import ChannelConnection
+    from apps.crm.stages import stage_ids
 
     from .models import Automation
 
+    stages = stage_ids(workspace_id)
+    for node in graph["nodes"]:
+        if node["data"]["kind"] == "set_stage" and node["data"]["stage"] not in stages:
+            raise ValidationError("Choose a stage from this workspace's pipeline.")
+        base = node["data"].get("knowledge_base_id") if node["data"]["kind"] == "ai_agent" else ""
+        if base:
+            from apps.agents.models import KnowledgeBase
+
+            if not KnowledgeBase.objects.for_workspace(workspace_id).filter(pk=base).exists():
+                raise ValidationError("Choose a knowledge base from this workspace.")
     connection_id = graph.get("connection_id")
     if connection_id:
         try:
@@ -214,7 +225,7 @@ def validate_workspace_references(graph, workspace_id, automation_id):
                 raise ValidationError(
                     "Generated voice requires an explicit supported messaging channel."
                 )
-        if data["kind"] in {"ai_generate", "ai_extract", "ai_condition"}:
+        if data["kind"] in {"ai_generate", "ai_extract", "ai_condition", "ai_agent"}:
             from apps.billing.gating import check_feature
 
             from .ai_steps import model_config
@@ -249,6 +260,9 @@ def validate_workspace_references(graph, workspace_id, automation_id):
                     "mailerlite",
                     "klaviyo",
                     "systeme_io",
+                    "mailchimp",
+                    "beehiiv",
+                    "kit",
                 },
                 "send_email": {"gmail", "outlook", "zorromail"},
                 "webhook": {"n8n", "make", "discord", "webhook"},

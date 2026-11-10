@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import {
   ValidatedForm,
   ValidatedInput,
@@ -59,6 +61,7 @@ export default function CalendarPage() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [selected, setSelected] = useState<ScheduledPost | null>(null);
+  const confirm = useConfirmation();
   const feedback = useFeedback();
 
   const load = useCallback(
@@ -185,7 +188,7 @@ export default function CalendarPage() {
   }
 
   async function cancel() {
-    if (!selected || !window.confirm("Cancel this scheduled post?")) return;
+    if (!selected || !await confirm("Cancel this scheduled post?")) return;
     const id = selected.id;
     const done = await feedback.run(
       () => api(`${prefix}/posts/${id}/`, "DELETE"),
@@ -212,7 +215,7 @@ export default function CalendarPage() {
       <PageHeading
         eyebrow="Content calendar"
         title="Plan what you post."
-        text="Schedule your own Instagram feed posts. Nemio publishes them for you at the chosen time."
+        text="Schedule your own Instagram feed posts. Instantlify publishes them for you at the chosen time."
       />
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />

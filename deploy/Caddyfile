@@ -1,15 +1,15 @@
-# Production edge for Nemio. Caddy obtains and renews certificates itself.
+# Production edge for Instantlify. Caddy obtains and renews certificates itself.
 #
-#   APP_DOMAIN            app.nemio.ai        (the tenant app, API, webhooks, websockets)
-#   PLATFORM_ADMIN_HOST   ops.nemio.ai        (platform console; must match Django's setting)
-#   ACME_EMAIL            ops@nemio.ai        (certificate expiry notices)
+#   APP_DOMAIN            instantlify.com        (the tenant app, API, webhooks, websockets)
+#   PLATFORM_ADMIN_HOST   ops.instantlify.com        (platform console; must match Django's setting)
+#   ACME_EMAIL            support@instantlify.com        (certificate expiry notices)
 #
 # Django sets SECURE_PROXY_SSL_HEADER from X-Forwarded-Proto, which Caddy always sends.
 
 {
 	email {$ACME_EMAIL}
 	# Custom tenant domains (white label) get certificates on demand, but only for
-	# domains Nemio has verified.
+	# domains Instantlify has verified.
 	on_demand_tls {
 		ask http://backend:8000/api/v1/tls/check-domain/
 	}

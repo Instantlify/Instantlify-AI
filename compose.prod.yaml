@@ -19,7 +19,7 @@ services:
       - '443:443'
       - '443:443/udp'
     environment:
-      APP_DOMAIN: ${APP_DOMAIN:?Set the public app domain, e.g. app.nemio.ai}
+      APP_DOMAIN: ${APP_DOMAIN:?Set the public app domain, e.g. instantlify.com}
       PLATFORM_ADMIN_HOST: ${PLATFORM_ADMIN_HOST:?Must match Django PLATFORM_ADMIN_HOST}
       ACME_EMAIL: ${ACME_EMAIL:?Set an address for certificate expiry notices}
     volumes:

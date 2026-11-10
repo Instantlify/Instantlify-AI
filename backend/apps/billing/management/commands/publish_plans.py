@@ -106,7 +106,7 @@ class Command(BaseCommand):
                 self.client.products.create(
                     {
                         "id": product_id,
-                        "name": f"Nemio {plan.name}",
+                        "name": f"Instantlify {plan.name}",
                         "metadata": {"nemio_plan": plan.slug},
                     }
                 )

@@ -13,14 +13,14 @@ const STAGES = ["new", "qualified", "pitched", "booked", "won", "lost"];
 
 export class Nemio implements INodeType {
   description: INodeTypeDescription = {
-    displayName: "Nemio",
+    displayName: "Instantlify",
     name: "nemio",
     icon: "file:nemio.svg",
     group: ["transform"],
     version: 1,
     subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-    description: "Read and update leads, list conversations and send replies in Nemio",
-    defaults: { name: "Nemio" },
+    description: "Read and update leads, list conversations and send replies in Instantlify",
+    defaults: { name: "Instantlify" },
     inputs: ["main"],
     outputs: ["main"],
     credentials: [{ name: "nemioApi", required: true }],
@@ -96,7 +96,7 @@ export class Nemio implements INodeType {
         required: true,
         displayOptions: { show: { resource: ["message"], operation: ["send"] } },
         description:
-          "Queued through Nemio's delivery pipeline; opt-out and messaging-window rules apply",
+          "Queued through Instantlify's delivery pipeline; opt-out and messaging-window rules apply",
       },
       {
         displayName: "Update Fields",

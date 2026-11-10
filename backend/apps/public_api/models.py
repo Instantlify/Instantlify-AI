@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -86,3 +88,49 @@ class MCPClient(TenantModel):
                 fields=["api_key", "client_name"], name="one_mcp_client_per_key"
             )
         ]
+
+
+class OAuthClient(models.Model):
+    """An MCP client registered itself through dynamic client registration (RFC 7591).
+    Public client: no secret, PKCE required."""
+
+    client_id = models.CharField(max_length=64, unique=True)
+    client_name = models.CharField(max_length=100)
+    redirect_uris = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class OAuthAuthorization(models.Model):
+    """One authorization request, from the authorize redirect through user consent to
+    the code exchange. Only a hash of the code is stored."""
+
+    # Random, so a pending request cannot be guessed and approved by someone else.
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    client = models.ForeignKey(OAuthClient, on_delete=models.CASCADE)
+    redirect_uri = models.CharField(max_length=2000)
+    code_challenge = models.CharField(max_length=128)
+    state = models.CharField(max_length=500, blank=True)
+    scopes = models.JSONField(default=list)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)
+    workspace = models.ForeignKey("tenants.Workspace", null=True, on_delete=models.CASCADE)
+    code_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    status = models.CharField(max_length=10, default="pending")
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class OAuthToken(models.Model):
+    """Access and refresh token pair. Each grant is backed by a workspace API key, so
+    MCP tools, throttles and auditing treat OAuth and key callers the same, and revoking
+    that key in Instantlify ends the connection."""
+
+    client = models.ForeignKey(OAuthClient, on_delete=models.CASCADE)
+    authorization = models.ForeignKey(OAuthAuthorization, null=True, on_delete=models.SET_NULL)
+    api_key = models.ForeignKey(APIKey, on_delete=models.CASCADE)
+    access_hash = models.CharField(max_length=64, unique=True)
+    refresh_hash = models.CharField(max_length=64, unique=True)
+    access_expires_at = models.DateTimeField()
+    refresh_expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)

@@ -72,7 +72,7 @@ Safety contracts for signatures and state transitions were written first. Unit/A
 
 **Handoff is a state, not a message.** `Conversation.status = needs_human` disables AI, stops running/waiting automation states, pages Slack once per day per conversation, records a funnel event and emits `conversation.handoff`.
 
-**In-chat payments use the tenant's Stripe.** Each workspace stores its own secret key and webhook secret (encrypted) and registers `/webhooks/stripe/<workspace_id>/`. Nemio never holds customer funds; Stripe Connect is the future path for marketplace payouts. `checkout.session.completed` with `payment_status=paid` marks the payment, sets the lead to `won`, records revenue and emits `payment.paid`.
+**In-chat payments use the tenant's Stripe.** Each workspace stores its own secret key and webhook secret (encrypted) and registers `/webhooks/stripe/<workspace_id>/`. Instantlify never holds customer funds; Stripe Connect is the future path for marketplace payouts. `checkout.session.completed` with `payment_status=paid` marks the payment, sets the lead to `won`, records revenue and emits `payment.paid`.
 
 **Public API keys are workspace principals.** `X-API-Key` (never `Authorization`, to avoid confusion with JWT), SHA-256 hashed, read/write scopes, per-key throttle. Outbound webhooks are signed `t=…,v1=HMAC-SHA256(secret, t + "." + body)`, delivered only to public HTTPS hosts (DNS-checked against private ranges), retried with backoff and disabled after sustained failure.
 
@@ -86,7 +86,7 @@ Safety contracts for signatures and state transitions were written first. Unit/A
 
 ## 2026-09-16 — Paid marketplace and connectors
 
-**Template sales run on Stripe Connect with Nemio as merchant of record.** Authors onboard a Connect *recipient* account (Accounts v2: `dashboard=express`, `fees_collector`/`losses_collector=application`, only `stripe_transfers` requested) through Stripe-hosted onboarding. Buyers pay a Checkout Session on the platform account with a destination charge and `application_fee_amount` (`MARKETPLACE_FEE_PERCENT`, rounded up, capped at the price). Only the account ID and the last observed `stripe_transfers` capability status are stored; the status is re-read from Stripe when older than an hour before any checkout references the author, and every 12 hours by Beat. Publishing a paid template requires an active capability. The purchase is buyer-side (`TemplatePurchase`), idempotent per key, and a template paid for once is never charged again. Fulfilment happens only from the platform webhook (`checkout.session.completed` / `async_payment_succeeded` with `payment_status=paid`, routed by purchase metadata that must match the buyer workspace) or from an authenticated re-read of the session; nothing about payment is trusted from the browser. Refunds and disputes are handled in Stripe, not in the app (the platform absorbs losses, as Stripe requires for destination charges). The `marketplace` kill switch pauses new checkouts.
+**Template sales run on Stripe Connect with Instantlify as merchant of record.** Authors onboard a Connect *recipient* account (Accounts v2: `dashboard=express`, `fees_collector`/`losses_collector=application`, only `stripe_transfers` requested) through Stripe-hosted onboarding. Buyers pay a Checkout Session on the platform account with a destination charge and `application_fee_amount` (`MARKETPLACE_FEE_PERCENT`, rounded up, capped at the price). Only the account ID and the last observed `stripe_transfers` capability status are stored; the status is re-read from Stripe when older than an hour before any checkout references the author, and every 12 hours by Beat. Publishing a paid template requires an active capability. The purchase is buyer-side (`TemplatePurchase`), idempotent per key, and a template paid for once is never charged again. Fulfilment happens only from the platform webhook (`checkout.session.completed` / `async_payment_succeeded` with `payment_status=paid`, routed by purchase metadata that must match the buyer workspace) or from an authenticated re-read of the session; nothing about payment is trusted from the browser. Refunds and disputes are handled in Stripe, not in the app (the platform absorbs losses, as Stripe requires for destination charges). The `marketplace` kill switch pauses new checkouts.
 
 **Connectors are packages over the public API, not special server code.** `connectors/zapier` (Zapier Platform CLI app, REST hooks with HMAC verification in `perform`, `send_message`/`update_lead` creates, `find_lead` search), `connectors/n8n` (community node package: credential test, trigger node that subscribes/unsubscribes and verifies signatures with the stored secret, CRUD node) both target `/api/v1/`. The only server additions were `GET /api/v1/me/` (auth test / connection label) and an `email` filter on leads. Each connector rejects unsigned, stale (>5 min) or mismatched deliveries rather than trusting the transport.
 
@@ -107,7 +107,7 @@ renders as 402 with `upgrade_required`. A Stripe price we do not map flags the a
 
 ## AI billing is prepaid credits with a margin (2026-09-18)
 
-Workspaces default to `billing_mode="platform_credits"`: Nemio's provider key is used, and
+Workspaces default to `billing_mode="platform_credits"`: Instantlify's provider key is used, and
 every model call and embedding batch debits a prepaid `AICreditBalance` at the rate in
 `ModelPricingRate` (cents per million tokens, `%` wildcards, most specific pattern wins,
 one mandatory fallback row so an unknown model never bills at zero). Each debit is one
@@ -123,7 +123,7 @@ the only ones still reported to the Stripe usage meter.
 
 `apps.analytics` is tenant-scoped: every row is a `TenantModel` describing one
 workspace's funnel. The signup funnel, marketing-site visits, segments, tickets,
-blog, promos and announcements describe *Nemio's* business, not a tenant's, so they
+blog, promos and announcements describe *Instantlify's* business, not a tenant's, so they
 sit in `platform_ops` as plain models with no workspace scoping. Tenant apps already
 import `platform_ops` (`security.assert_enabled`, `metrics`), so the dependency
 direction is unchanged.
@@ -131,12 +131,12 @@ direction is unchanged.
 The practical consequence: there is no tenant API that can read any of it, and a
 console aggregate can never accidentally leak into a workspace dashboard.
 
-## Nemio's support agent is a separate system from the tenant agent
+## Instantlify's support agent is a separate system from the tenant agent
 
 Two agents, two knowledge bases, two tables. `apps.agents` answers a tenant's leads
 about a tenant's business, grounded in `KnowledgeDocument`, billed to that
 workspace's credit balance. `platform_ops.support_agent` answers our prospects about
-Nemio, grounded in `PlatformKnowledgeDocument`, on our platform key, billed to us.
+Instantlify, grounded in `PlatformKnowledgeDocument`, on our platform key, billed to us.
 
 They are not parameterisations of one system. Sharing a model would make it possible
 for a tenant's private knowledge to be retrieved into an answer we give a stranger,

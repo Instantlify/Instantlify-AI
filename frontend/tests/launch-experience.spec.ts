@@ -7,7 +7,7 @@ const workspace = {
   role: "owner",
   parent: null,
   branding: {
-    brand_name: "Nemio",
+    brand_name: "Instantlify",
     primary_color: "#347359",
     logo_url: "",
     support_email: "",

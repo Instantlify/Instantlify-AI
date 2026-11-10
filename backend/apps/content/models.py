@@ -41,6 +41,9 @@ class BioPage(TenantModel):
     accent = models.CharField(max_length=7, default="#347359")
     # [{"title": str, "url": https}] — at most 20, validated at the API boundary.
     links = models.JSONField(default=list)
+    # Ordered page blocks (content/bio_blocks.py); when empty the legacy links show.
+    blocks = models.JSONField(default=list, blank=True)
+    theme = models.CharField(max_length=20, default="light")
     published = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 

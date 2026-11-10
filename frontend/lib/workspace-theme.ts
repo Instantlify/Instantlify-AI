@@ -32,7 +32,7 @@ export function colorContrast(first: string, second: string) {
   return (values[0] + 0.05) / (values[1] + 0.05);
 }
 export function workspaceTheme(branding: Branding): CSSProperties {
-  // Upgrade the former Nemio defaults; explicit white-label palettes stay intact.
+  // Upgrade the former Instantlify defaults; explicit white-label palettes stay intact.
   const legacyDefault =
     (!branding.primary_color ||
       ["#10244a", "#347359"].includes(branding.primary_color.toLowerCase())) &&

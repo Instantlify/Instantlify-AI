@@ -133,8 +133,31 @@ RESERVED_SLUGS = {"api", "app", "admin", "p", "health", "webhooks", "media", "st
 class BioSerializer(serializers.ModelSerializer):
     class Meta:
         model = BioPage
-        fields = ["id", "slug", "title", "bio", "avatar_url", "accent", "links", "published"]
+        fields = [
+            "id",
+            "slug",
+            "title",
+            "bio",
+            "avatar_url",
+            "accent",
+            "links",
+            "blocks",
+            "theme",
+            "published",
+        ]
         read_only_fields = ["id"]
+
+    def validate_blocks(self, value):
+        from .bio_blocks import validate_blocks
+
+        return validate_blocks(value)
+
+    def validate_theme(self, value):
+        from .bio_blocks import THEMES
+
+        if value not in THEMES:
+            raise serializers.ValidationError("Choose a theme.")
+        return value
 
     def validate_slug(self, value):
         value = value.lower()
@@ -201,6 +224,8 @@ class PublicBioView(APIView):
         page = get_object_or_404(BioPage.all_objects, slug=slug.lower(), published=True)
         from apps.tenants.branding import effective_branding
 
+        from .bio_blocks import public_block
+
         return Response(
             {
                 "slug": page.slug,
@@ -208,7 +233,9 @@ class PublicBioView(APIView):
                 "bio": page.bio,
                 "avatar_url": page.avatar_url,
                 "accent": page.accent,
+                "theme": page.theme,
                 "links": [{"index": i, **link} for i, link in enumerate(page.links)],
+                "blocks": [public_block(i, block) for i, block in enumerate(page.blocks)],
                 "branding": effective_branding(page.workspace),
             }
         )
@@ -218,10 +245,62 @@ class PublicBioView(APIView):
         from apps.analytics.services import record
 
         page = get_object_or_404(BioPage.all_objects, slug=slug.lower(), published=True)
+        if "email" in request.data:
+            return self.subscribe(request, page)
         try:
-            index = int(request.data.get("index"))
-            link = page.links[index]
-        except (TypeError, ValueError, IndexError):
+            if "block" in request.data:
+                block = page.blocks[int(request.data.get("block"))]
+                url = block.get("url") if block["type"] == "link" else block.get("link")
+                if block["type"] == "social":
+                    url = block["items"][int(request.data.get("item", 0))]["url"]
+                if not url:
+                    raise IndexError
+            else:
+                url = page.links[int(request.data.get("index"))]["url"]
+        except (TypeError, ValueError, IndexError, KeyError):
             return Response({"detail": "Unknown link."}, status=404)
         record(page.workspace_id, "link_click", provider="bio")
-        return Response({"url": link["url"]})
+        return Response({"url": url})
+
+    def subscribe(self, request, page):
+        """An email-signup block: create or tag the contact, never message them."""
+        from django.core.validators import validate_email
+
+        from apps.billing.gating import PlanLimitExceeded, check_within_limit
+        from apps.crm.models import Lead
+        from apps.tenants.models import Workspace
+
+        try:
+            block = page.blocks[int(request.data.get("block"))]
+            if block["type"] != "email_capture":
+                raise IndexError
+        except (TypeError, ValueError, IndexError, KeyError):
+            return Response({"detail": "Unknown signup form."}, status=404)
+        email = str(request.data.get("email") or "").strip().lower()[:254]
+        name = str(request.data.get("name") or "").strip()[:150]
+        try:
+            validate_email(email)
+        except Exception:
+            return Response({"detail": "Enter a valid email address."}, status=400)
+        with transaction.atomic():
+            Workspace.objects.select_for_update().get(pk=page.workspace_id)
+            lead = Lead.objects.for_workspace(page.workspace_id).filter(email=email).first()
+            if lead is None:
+                try:
+                    check_within_limit(page.workspace_id, "max_contacts")
+                except PlanLimitExceeded:
+                    return Response(
+                        {"detail": "Signups are paused right now. Please try again later."},
+                        status=503,
+                    )
+                lead = Lead.objects.for_workspace(page.workspace_id).create(
+                    workspace_id=page.workspace_id,
+                    name=name,
+                    email=email,
+                    tags=[block["tag"]],
+                    fields={"source": "bio"},
+                )
+            elif block["tag"] not in lead.tags and len(lead.tags) < 50:
+                lead.tags = [*lead.tags, block["tag"]]
+                lead.save(update_fields=["tags"])
+        return Response({"subscribed": True}, status=201)

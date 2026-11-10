@@ -13,7 +13,12 @@ from tests.conftest import set_limits
 
 pytestmark = pytest.mark.django_db
 TOKEN = "123456789:example-token-for-tests"
-PROFILE = {"id": 123456789, "is_bot": True, "first_name": "Nemio Bot", "username": "nemio_test_bot"}
+PROFILE = {
+    "id": 123456789,
+    "is_bot": True,
+    "first_name": "Instantlify Bot",
+    "username": "nemio_test_bot",
+}
 
 
 @pytest.fixture(autouse=True)
@@ -46,7 +51,7 @@ def test_token_only_connection_autofills_bot_and_encrypts_token(client, workspac
     verify.assert_called_once_with("getMe", {})
     item = ChannelConnection.objects.for_workspace(workspace).get()
     assert item.external_account_id == "123456789"
-    assert item.display_name == "Nemio Bot"
+    assert item.display_name == "Instantlify Bot"
     assert item.status == "active" and item.is_test is False
     webhook.assert_called_once_with(f"https://nemio.example/webhooks/telegram/{item.pk}/")
     assert TOKEN not in response.content.decode()

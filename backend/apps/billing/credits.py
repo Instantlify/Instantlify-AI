@@ -1,6 +1,6 @@
 """Prepaid AI credits with margin pricing (brief 2.10).
 
-Nemio pays the provider and resells usage at a per-model rate. Every model call, embedding
+Instantlify pays the provider and resells usage at a per-model rate. Every model call, embedding
 batch and top-up is one ledger row carrying the amount charged, the real cost and the
 balance after it, so the ledger audits itself without replaying history.
 
@@ -183,7 +183,7 @@ def auto_topup(balance):
             payment_method=balance.payment_method_id,
             off_session=True,
             confirm=True,
-            description="Nemio AI credits auto top-up",
+            description="Instantlify AI credits auto top-up",
             metadata={"workspace_id": str(balance.workspace_id), "nemio_credit_auto_topup": key},
             idempotency_key=key,
         )
@@ -245,7 +245,7 @@ def grant_signup_credit(workspace_id):
 
     Without it `billing_mode="platform_credits"` (the default) starts at zero, so the
     first thing a new signup meets is a card form, and nobody reaches the product they
-    came to evaluate. Nemio pays the provider for this, so it is handed out only once
+    came to evaluate. Instantlify pays the provider for this, so it is handed out only once
     per workspace, only after the owner confirmed their address (see
     tenants.verification), and only to workspaces that are not an agency's clients:
     a reseller's child balances resolve to the parent, so granting there would pay
@@ -289,7 +289,7 @@ def create_topup_session(job, account):
                 "price_data": {
                     "currency": "usd",
                     "unit_amount": int(job.amount_cents),
-                    "product_data": {"name": "Nemio AI credits"},
+                    "product_data": {"name": "Instantlify AI credits"},
                 },
             }
         ],

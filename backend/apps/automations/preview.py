@@ -160,6 +160,11 @@ def preview(graph, replies, samples, trigger_event=None):
             }
             branch = "true" if evaluate(data, context) else "false"
             entry["detail"] = describe(data)
+        elif kind == "ai_agent":
+            entry["detail"] = (
+                f"Would chat with the lead toward: {data['prompt'][:120]} "
+                f"(up to {data.get('max_turns', 6)} replies), then continue"
+            )
         elif kind == "delay":
             low, high = data["seconds"], data.get("seconds_max")
             entry["detail"] = (

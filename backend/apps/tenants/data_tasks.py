@@ -39,6 +39,7 @@ def export_tables():
     Adding a model that stores tenant data means adding it here (see the export test)."""
     from apps.agents.models import (
         AgentConfig,
+        KnowledgeBase,
         KnowledgeDocument,
         KnowledgeSourceSync,
         ToolCall,
@@ -61,6 +62,7 @@ def export_tables():
         ChannelIdentity,
         ContactSegment,
         Conversation,
+        ConversationRead,
         IntegrationConfig,
         IntegrationJob,
         InternalNote,
@@ -239,6 +241,7 @@ def export_tables():
             ["id", "conversation_id", "filename", "content_type", "size", "created_at"],
         ),
         "saved_replies": (SavedReply, ["id", "text", "position", "created_at"]),
+        "conversation_reads": (ConversationRead, ["id", "conversation_id", "user_id", "read_at"]),
         "assignment_notifications": (
             AssignmentNotification,
             ["id", "recipient_id", "actor_id", "lead_id", "read_at", "created_at"],
@@ -313,7 +316,11 @@ def export_tables():
                 "handoff_keywords",
             ],
         ),
-        "knowledge": (KnowledgeDocument, ["id", "title", "source", "file_type", "source_revision"]),
+        "knowledge": (
+            KnowledgeDocument,
+            ["id", "title", "source", "file_type", "source_revision", "knowledge_base_id"],
+        ),
+        "knowledge_bases": (KnowledgeBase, ["id", "name", "description", "created_at"]),
         "knowledge_syncs": (
             KnowledgeSourceSync,
             [

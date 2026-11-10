@@ -105,6 +105,14 @@ test("community discussions support reactions, replies, edits and source-backed 
   await expect(
     dialog.getByText("Match the incoming comment", { exact: false }),
   ).toBeVisible();
+  const deleteReply = dialog.getByRole("button", { name: "Delete reply", exact: true });
+  await deleteReply.click();
+  const confirmation = page.getByRole("alertdialog");
+  await expect(confirmation).toContainText("Delete this reply?");
+  await confirmation.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(confirmation).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+  await expect(deleteReply).toBeFocused();
   await dialog.getByRole("button", { name: "Close" }).click();
   await page.getByRole("button", { name: "Edit post", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "Edit discussion" });
@@ -120,8 +128,8 @@ test("community discussions support reactions, replies, edits and source-backed 
   await expect(
     page.getByText("Keyword matching starts a workflow.", { exact: true }),
   ).toBeVisible();
-  page.once("dialog", (prompt) => prompt.accept());
   await page.getByRole("button", { name: "Delete post", exact: true }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete", exact: true }).click();
   await expect(page.getByText("No discussions to show.")).toBeVisible();
 });
 

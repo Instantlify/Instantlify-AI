@@ -67,7 +67,7 @@ def test_publishes_every_priced_interval_and_stores_the_ids(settings):
     published = PlanPrice.objects.exclude(stripe_price_id="")
     assert published.count() == len(fake.created_prices)
     assert published.count() == PlanPrice.objects.filter(price_cents__gt=0).count()
-    # Stripe's own interval names, not Nemio's.
+    # Stripe's own interval names, not Instantlify's.
     intervals = {call["recurring"]["interval"] for call in fake.created_prices}
     assert intervals == {"month", "year"}
     assert {p["id"] for p in fake.created_products} == {"nemio-starter", "nemio-pro", "nemio-scale"}

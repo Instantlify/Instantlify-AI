@@ -400,7 +400,9 @@ def segment_lead(workspace_id, lead_id):
                     "integration": slack,
                     "operation": "notify",
                     "payload": json.dumps(
-                        {"text": f"Hot lead: {lead.name}. Open Nemio to review the conversation."}
+                        {
+                            "text": f"Hot lead: {lead.name}. Open Instantlify to review the conversation."
+                        }
                     ),
                     "available_at": timezone.now(),
                 },

@@ -1,4 +1,5 @@
-"""Local setup checks only; saving credentials does not verify provider access."""
+"""Local setup checks only. Saving does not contact the provider; use the integration
+"Test connection" action (crm/connection_test.py) to verify credentials."""
 
 from rest_framework import serializers
 
@@ -32,6 +33,8 @@ def validate_live_configuration(provider, credentials, options):
         "airtable": ("base_id", "table_id"),
         "gohighlevel": ("location_id",),
         "calcom": ("event_type_id",),
+        "mailchimp": ("list_id",),
+        "beehiiv": ("publication_id",),
     }.get(provider, ())
     missing = [
         key.replace("_", " ") for key in required_options if not str(options.get(key) or "").strip()

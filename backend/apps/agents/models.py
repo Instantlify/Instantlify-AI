@@ -37,7 +37,7 @@ class AgentConfig(TenantModel):
     # Seconds to wait after a customer's last message before replying, so several quick
     # messages get one answer instead of one answer each. 0 replies at once.
     reply_delay_seconds = models.PositiveSmallIntegerField(default=0)
-    # platform_credits: Nemio's provider key, prepaid balance debited per call.
+    # platform_credits: Instantlify's provider key, prepaid balance debited per call.
     # byo_key: the workspace's own key, nothing debited. Explicit per workspace (2.10).
     billing_mode = models.CharField(max_length=20, default="platform_credits")
     # agent: LangGraph sales agent with tools and stages. simple: one grounded
@@ -48,7 +48,21 @@ class AgentConfig(TenantModel):
         constraints = [models.UniqueConstraint(fields=["workspace"], name="one_workspace_agent")]
 
 
+class KnowledgeBase(TenantModel):
+    """A named collection of documents an AI agent step can answer from. Documents
+    without a base form the workspace's General knowledge."""
+
+    name = models.CharField(max_length=80)
+    description = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+
 class KnowledgeDocument(TenantModel):
+    knowledge_base = models.ForeignKey(
+        KnowledgeBase, null=True, blank=True, on_delete=models.SET_NULL, related_name="documents"
+    )
     title = models.CharField(max_length=200)
     source = EncryptedTextField()
     source_revision = models.PositiveIntegerField(default=0)

@@ -27,6 +27,9 @@ export function integrationConfiguration(
     zorromail: ["sender_email", "sender_name"],
     mailerlite: ["group_id"],
     klaviyo: ["list_id"],
+    mailchimp: ["list_id", "double_opt_in"],
+    beehiiv: ["publication_id"],
+    kit: ["tag_id"],
   };
   const aliases: Record<string, string> =
     provider === "slack"

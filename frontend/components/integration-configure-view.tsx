@@ -86,7 +86,7 @@ export function IntegrationConfigureView({
   const origin =
     typeof window !== "undefined"
       ? window.location.origin
-      : "https://app.nemio.ai";
+      : "https://instantlify.com";
   const oauthRedirectUrl = `${origin}/api/integrations/callback/${pk.replace(/[^a-z0-9]/g, "_")}/`;
 
   // Tailored configurations per integration
@@ -642,6 +642,39 @@ function getConfigSchema(
         required: true,
       },
     ],
+    mailchimp: [
+      ...credentialFields,
+      {
+        key: "list_id",
+        label: "Audience ID",
+        placeholder: "Mailchimp audience (list) ID",
+        required: true,
+      },
+      {
+        key: "double_opt_in",
+        label: "Double opt-in",
+        defaultValue: "true",
+        helper:
+          "true sends Mailchimp's confirmation email before marketing starts; set false only if you already hold consent.",
+      },
+    ],
+    beehiiv: [
+      ...credentialFields,
+      {
+        key: "publication_id",
+        label: "Publication ID",
+        placeholder: "pub_…",
+        required: true,
+      },
+    ],
+    kit: [
+      ...credentialFields,
+      {
+        key: "tag_id",
+        label: "Tag ID (optional)",
+        placeholder: "Numeric Kit tag ID",
+      },
+    ],
     ...Object.fromEntries(
       ["n8n", "make", "discord", "webhook"].map((provider) => [
         provider,
@@ -755,8 +788,8 @@ function getConfigSchema(
             pk.startsWith("google_") || pk === "gmail"
               ? "Use Connect for secure Google sign-in. You can also save provider tokens manually; existing saved tokens stay private when these fields are left blank."
               : ["n8n", "make", "discord", "webhook"].includes(pk)
-                ? "Paste the webhook URL from your workflow or service. Nemio sends JSON POST requests to this address. Saved URLs and authorization headers remain private when left blank."
-                : "Create an API token in your provider account, then enter the destination where Nemio should save contacts.",
+                ? "Paste the webhook URL from your workflow or service. Instantlify sends JSON POST requests to this address. Saved URLs and authorization headers remain private when left blank."
+                : "Create an API token in your provider account, then enter the destination where Instantlify should save contacts.",
         },
       ],
       fields: manual[pk],
@@ -948,7 +981,7 @@ function getConfigSchema(
         },
       ],
       guideNotice:
-        "Nemio connects directly to your self-hosted or cloud n8n instance via REST API.",
+        "Instantlify connects directly to your self-hosted or cloud n8n instance via REST API.",
       fields: [
         {
           key: "base_url",
@@ -1008,7 +1041,7 @@ function getConfigSchema(
           placeholder: "••••••••",
           type: "password",
           helper:
-            "Required if you want Nemio to inspect or activate scenarios programmatically.",
+            "Required if you want Instantlify to inspect or activate scenarios programmatically.",
         },
       ],
       docsUrl: "https://www.make.com/en/api-documentation",
@@ -1035,7 +1068,7 @@ function getConfigSchema(
           text: '3. Under "OAuth & Permissions", copy the "Bot User OAuth Token" (starts with xoxb-)',
         },
         {
-          text: "4. Ensure the bot is invited to your target channel (e.g. /invite @Nemio in #leads)",
+          text: "4. Ensure the bot is invited to your target channel (e.g. /invite @Instantlify in #leads)",
         },
       ],
       guideNotice:
@@ -1080,7 +1113,7 @@ function getConfigSchema(
             url: "https://app.hubspot.com/",
           },
         },
-        { text: '2. Click "Create a private app" and name it "Nemio AI"' },
+        { text: '2. Click "Create a private app" and name it "Instantlify AI"' },
         {
           text: "3. Under Scopes, select `crm.objects.contacts.write` and `crm.objects.contacts.read`",
         },
@@ -1289,7 +1322,7 @@ function getConfigSchema(
         placeholder: "e.g. workspace_123",
       },
     ],
-    docsUrl: "https://docs.nemio.ai/integrations",
+    docsUrl: "/help",
     docsLabel: `View ${appName} Documentation`,
   };
 }

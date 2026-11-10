@@ -343,7 +343,7 @@ export default function AutomationsPage() {
               <div className="resource-card-text">
                 <strong className="resource-title">Integrations</strong>
                 <p className="resource-desc">
-                  Connect your favorite tools and platforms to Nemio. Sync
+                  Connect your favorite tools and platforms to Instantlify. Sync
                   contacts, automate workflows, and extend your automation
                   capabilities with powerful integrations.
                 </p>

@@ -48,7 +48,11 @@ import { useWorkspace } from "@/lib/workspace";
 import { CampaignsDialog } from "@/components/campaigns-dialog";
 import { SegmentationDialog } from "@/components/segmentation-dialog";
 import { ContactAvatar } from "@/components/contact-avatar";
-import { ContactPanel, STAGES, relativeTime } from "@/components/contact-panel";
+import { ContactPanel, relativeTime } from "@/components/contact-panel";
+import { PipelineStagesEditor } from "@/components/pipeline-stages-editor";
+import { CustomFieldsEditor } from "@/components/custom-fields-editor";
+import { useCustomFields } from "@/lib/custom-fields";
+import { stageLabelFor, usePipelineStages } from "@/lib/stages";
 import {
   ErrorNotice,
   Modal,
@@ -57,9 +61,6 @@ import {
 } from "@/components/ui";
 
 const PAGE_SIZES = [25, 50, 100];
-
-const stageLabel = (id: string) =>
-  STAGES.find((stage) => stage.id === (id || "new"))?.label ?? id;
 
 /** Brand-coloured channel mark for one identity. */
 function ChannelMark({ provider, title }: { provider: string; title: string }) {
@@ -85,6 +86,11 @@ function csvEscape(value: unknown) {
 
 export default function CrmPage() {
   const { workspace, prefix, manager } = useWorkspace();
+  const STAGES = usePipelineStages(prefix);
+  const stageLabel = (id: string) => stageLabelFor(STAGES, id);
+  const [stagesModal, setStagesModal] = useState(false);
+  const fieldDefs = useCustomFields(prefix);
+  const [fieldsModal, setFieldsModal] = useState(false);
   // The inbox links here with ?contact=<id> to open a person directly.
   const linkedContact = useSearchParams().get("contact");
   const [leads, setLeads] = useState<LeadRow[]>([]);
@@ -546,6 +552,43 @@ export default function CrmPage() {
           {manager && (
             <button
               type="button"
+              className="boosend-crm-filter-btn"
+              onClick={() => setStagesModal(true)}
+            >
+              Stages
+            </button>
+          )}
+          {manager && (
+            <button
+              type="button"
+              className="boosend-crm-filter-btn"
+              onClick={() => setFieldsModal(true)}
+            >
+              Fields
+            </button>
+          )}
+          {fieldsModal && (
+            <CustomFieldsEditor
+              prefix={prefix}
+              fields={fieldDefs}
+              onClose={() => setFieldsModal(false)}
+              onSaved={() => feedback.setNotice("Contact fields saved.")}
+            />
+          )}
+          {stagesModal && (
+            <PipelineStagesEditor
+              prefix={prefix}
+              stages={STAGES}
+              onClose={() => setStagesModal(false)}
+              onSaved={() => {
+                feedback.setNotice("Pipeline stages saved.");
+                void load();
+              }}
+            />
+          )}
+          {manager && (
+            <button
+              type="button"
               className="boosend-crm-campaign-btn"
               onClick={() => setCampaignModal(true)}
             >
@@ -875,7 +918,10 @@ export default function CrmPage() {
                     moveStage(target, stage.id);
                 }}
               >
-                <div className="crm-kanban-head">
+                <div
+                  className="crm-kanban-head"
+                  style={{ borderTop: `3px solid ${stage.color}` }}
+                >
                   <strong>{stage.label}</strong>
                   <span>{columnLeads.length}</span>
                 </div>

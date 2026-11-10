@@ -1,9 +1,14 @@
-from django.urls import include, path
+from django.urls import include, path, re_path
 
 from apps.channels.ingress import (
     linkedin_webhook,
     meta_webhook,
     telegram_webhook,
+)
+from apps.channels.meta_callbacks import (
+    data_deletion_status,
+    meta_data_deletion,
+    meta_deauthorize,
 )
 from apps.channels.views import (
     ConnectionListView,
@@ -13,6 +18,7 @@ from apps.channels.views import (
     MetaOAuthCallbackView,
     MetaOAuthStartView,
 )
+from apps.dashboard_api.setup_progress import SetupProgressView
 from apps.dashboard_api.views import TelemetryView, WorkspaceStatusView, live, ready
 from apps.platform_ops.public import (
     AnnouncementListView,
@@ -28,11 +34,18 @@ from apps.platform_ops.public import (
     WizardProgressView,
 )
 from apps.platform_ops.support import MyTicketReplyView, MyTicketsView
+from apps.public_api import oauth
+from apps.tenants.google_login import (
+    GoogleLoginCallbackView,
+    GoogleLoginStartView,
+    GoogleLoginStatusView,
+)
 from apps.tenants.invitations import (
     AcceptInvitationView,
     InvitationDetailView,
     InvitationListView,
 )
+from apps.tenants.magic_link import MagicLinkRequestView, MagicLinkVerifyView
 from apps.tenants.profile import ProfilePhotoView
 from apps.tenants.recovery import PasswordResetConfirmView, PasswordResetRequestView
 from apps.tenants.verification import ResendVerificationView, VerifyEmailView
@@ -58,12 +71,28 @@ urlpatterns = [
     path("", include("config.feature_urls")),
     path("webhooks/telegram/<uuid:connection_id>/", telegram_webhook),
     path("webhooks/linkedin/", linkedin_webhook),
+    path("webhooks/meta/deauthorize/", meta_deauthorize),
+    path("webhooks/meta/data-deletion/", meta_data_deletion),
+    path("api/public/data-deletion/<str:code>/", data_deletion_status),
     path("webhooks/<str:provider>/", meta_webhook),
     path("health/live/", live),
     path("health/ready/", ready),
     path("api/auth/csrf/", CSRFView.as_view()),
     path("api/auth/signup/", SignupView.as_view()),
     path("api/auth/login/", LoginView.as_view()),
+    path(".well-known/oauth-protected-resource", oauth.protected_resource_metadata),
+    re_path(r"^\.well-known/oauth-protected-resource/.+$", oauth.protected_resource_metadata),
+    path(".well-known/oauth-authorization-server", oauth.authorization_server_metadata),
+    re_path(r"^\.well-known/oauth-authorization-server/.+$", oauth.authorization_server_metadata),
+    path("api/oauth/register/", oauth.RegisterView.as_view()),
+    path("api/oauth/authorize/", oauth.authorize),
+    path("api/oauth/token/", oauth.token),
+    path("api/oauth/requests/<uuid:pk>/", oauth.ConsentView.as_view()),
+    path("api/auth/magic-link/", MagicLinkRequestView.as_view()),
+    path("api/auth/magic-link/verify/", MagicLinkVerifyView.as_view()),
+    path("api/auth/google/", GoogleLoginStatusView.as_view()),
+    path("api/auth/google/start/", GoogleLoginStartView.as_view()),
+    path("api/auth/google/callback/", GoogleLoginCallbackView.as_view()),
     path("api/auth/password/", PasswordChangeView.as_view()),
     path("api/auth/password-reset/", PasswordResetRequestView.as_view()),
     path("api/auth/password-reset/confirm/", PasswordResetConfirmView.as_view()),
@@ -90,6 +119,7 @@ urlpatterns = [
     path("api/invitations/accept/", AcceptInvitationView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/audit/", AuditListView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/status/", WorkspaceStatusView.as_view()),
+    path("api/workspaces/<uuid:workspace_id>/setup-progress/", SetupProgressView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/telemetry/", TelemetryView.as_view()),
     path("api/workspaces/<uuid:workspace_id>/connections/", ConnectionListView.as_view()),
     path(

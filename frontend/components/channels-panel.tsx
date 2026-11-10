@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import {
   ValidatedForm,
   ValidatedInput,
@@ -41,28 +43,39 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
   const { workspace } = useWorkspace();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [deliveryPage, setDeliveryPage] = useState(1);
+  const [deliveryCount, setDeliveryCount] = useState(0);
   const [manualProvider, setManualProvider] = useState("whatsapp");
   const [queuedTest, setQueuedTest] = useState(false);
+  const confirm = useConfirmation();
   const feedback = useFeedback();
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const [testChannelsEnabled, setTestChannelsEnabled] = useState(false);
   const [linkedinAvailable, setLinkedinAvailable] = useState(false);
 
+  const loadDeliveries = useCallback(async (page: number, signal?: AbortSignal) => {
+    const result = await api<Page<Delivery> | Delivery[]>(
+      `${prefix}/deliveries/?page=${page}`, "GET", undefined, signal,
+    );
+    setDeliveries(Array.isArray(result) ? result.slice((page - 1) * 5, page * 5) : result.results);
+    setDeliveryCount(Array.isArray(result) ? result.length : result.count);
+    setDeliveryPage(page);
+  }, [prefix]);
+
   const load = useCallback(
     async (signal?: AbortSignal) => {
-      const [channels, sent] = await Promise.all([
+      const [channels] = await Promise.all([
         api<Page<Connection>>(`${prefix}/connections/`, "GET", undefined, signal),
         manager
-          ? api<Delivery[]>(`${prefix}/deliveries/`, "GET", undefined, signal)
-          : Promise.resolve([] as Delivery[]),
+          ? loadDeliveries(1, signal)
+          : Promise.resolve(),
       ]);
       setConnections(channels.results);
-      setDeliveries(sent);
       const status = await api<{ test_channels_enabled?: boolean; linkedin_available?: boolean }>(`${prefix}/status/`, "GET", undefined, signal);
       setTestChannelsEnabled(status.test_channels_enabled === true);
       setLinkedinAvailable(status.linkedin_available === true);
     },
-    [prefix, manager],
+    [prefix, manager, loadDeliveries],
   );
 
   useEffect(() => {
@@ -117,7 +130,7 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
   }
 
   async function disconnect(connection: Connection) {
-    if (!window.confirm(`Disconnect ${connection.display_name}?`)) return;
+    if (!await confirm(`Disconnect ${connection.display_name}?`)) return;
     await feedback.run(async () => {
       await api(`${prefix}/channels/${connection.id}/disconnect/`, "POST", {});
       await load();
@@ -140,7 +153,7 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
   }
 
   async function removeChannel(connection: Connection) {
-    if (!window.confirm(`Permanently remove ${connection.display_name}? This deletes its linked conversations, messages, delivery history, scheduled posts, and channel-specific records from Nemio. Contacts remain. This cannot be undone.`)) return;
+    if (!await confirm(`Permanently remove ${connection.display_name}? This deletes its linked conversations, messages, delivery history, scheduled posts, and channel-specific records from Instantlify. Contacts remain. This cannot be undone.`)) return;
     await feedback.run(async () => {
       await api(`${prefix}/channels/${connection.id}/`, "DELETE", { confirm_delete: true });
       await load();
@@ -264,7 +277,7 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
         {manager && (
           <div className="stack">
             {testChannelsEnabled && <Panel title="Test without platform credentials">
-              <p className="muted-text">Create a simulated account, send a test DM or comment, then open Conversations to test replies and assignment. Messages stay inside Nemio and are not delivered to a real platform.</p>
+              <p className="muted-text">Create a simulated account, send a test DM or comment, then open Conversations to test replies and assignment. Messages stay inside Instantlify and are not delivered to a real platform.</p>
               <div className="row wrap channel-connect-buttons">
                 {CHANNEL_PROVIDERS.map((provider) => <button key={provider.id} type="button" className="button secondary" disabled={feedback.busy} onClick={() => addTestChannel(provider.id)}>
                   <Plus size={16} /> Test {provider.label}
@@ -373,10 +386,10 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
               </details>
             </Panel>
 
-            <Panel title="Recent deliveries" aside={`${deliveries.length}`}>
+            <Panel title="Recent deliveries" aside={`${deliveryCount}`}>
               {deliveries.length ? (
                 <Table head={["When", "Recipient", "Status", "Attempts", "Error"]}>
-                  {deliveries.slice(0, 20).map((delivery) => (
+                  {deliveries.map((delivery) => (
                     <tr key={delivery.id}>
                       <td>{when(delivery.created_at)}</td>
                       <td className="mono">{delivery.recipient_id}</td>
@@ -390,6 +403,15 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                 </Table>
               ) : (
                 <Empty>Nothing sent yet.</Empty>
+              )}
+              {deliveryCount > 0 && (
+                <nav aria-label="Delivery pagination" className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", marginTop: 16 }}>
+                  <button type="button" className="button secondary small" disabled={feedback.busy || deliveryPage === 1} onClick={() => void feedback.run(() => loadDeliveries(deliveryPage - 1))}>Previous</button>
+                  <span className="muted-text" aria-live="polite">
+                    {(deliveryPage - 1) * 5 + 1}–{Math.min(deliveryPage * 5, deliveryCount)} of {deliveryCount}
+                  </span>
+                  <button type="button" className="button secondary small" disabled={feedback.busy || deliveryPage * 5 >= deliveryCount} onClick={() => void feedback.run(() => loadDeliveries(deliveryPage + 1))}>Next</button>
+                </nav>
               )}
             </Panel>
           </div>

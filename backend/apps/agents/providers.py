@@ -50,7 +50,7 @@ def platform_key(provider):
 
 
 def api_key_for(config, provider=None):
-    """BYO workspaces use their own key; everyone else uses Nemio's platform key for the
+    """BYO workspaces use their own key; everyone else uses Instantlify's platform key for the
     provider and is debited from their prepaid balance."""
     provider = provider or config.provider
     if provider not in PLATFORM_KEYS:
@@ -520,6 +520,12 @@ class FakeLLMProvider:
             return Completion(json.dumps(dict.fromkeys(fields)), [], 5, 5)
         if instruction.startswith("Evaluate the user condition. Return only"):
             return Completion('{"result":false}', [], 5, 5)
+        if instruction.startswith("You are a business's chat assistant running one step"):
+            # Local stand-in for the flow AI agent: finishes when the customer says bye.
+            customer = [line for line in content.splitlines() if line.startswith("Customer:")]
+            done = bool(customer) and "bye" in customer[-1].lower()
+            reply = "" if done else "[Local test] Thanks! What else would you like to know?"
+            return Completion(json.dumps({"reply": reply, "done": done}), [], 20, 10)
         if instruction.startswith("Decide which numbered intent"):
             # Local stand-in for intent matching: the first intent sharing a word of four
             # or more letters with the message, so test channels can exercise the path.
@@ -534,7 +540,7 @@ class FakeLLMProvider:
                 None,
             )
             return Completion(json.dumps({"match": match}), [], 5, 5)
-        if str(first.get("content", "")).startswith("You are the Nemio flow designer"):
+        if str(first.get("content", "")).startswith("You are the Instantlify flow designer"):
             return Completion(FAKE_FLOW, [], 40, 120)
         return Completion(
             "[Local test] Thanks for reaching out. What would you like to know?", [], 20, 15

@@ -35,14 +35,14 @@ function verifySignature(secret, header, rawBody) {
 class NemioTrigger {
     constructor() {
         this.description = {
-            displayName: "Nemio Trigger",
+            displayName: "Instantlify Trigger",
             name: "nemioTrigger",
             icon: "file:nemio.svg",
             group: ["trigger"],
             version: 1,
             subtitle: '={{$parameter["events"].join(", ")}}',
-            description: "Starts the workflow when Nemio emits a signed webhook event",
-            defaults: { name: "Nemio Trigger" },
+            description: "Starts the workflow when Instantlify emits a signed webhook event",
+            defaults: { name: "Instantlify Trigger" },
             inputs: [],
             outputs: ["main"],
             credentials: [{ name: "nemioApi", required: true }],
@@ -62,7 +62,7 @@ class NemioTrigger {
                     options: EVENTS.map((event) => ({ name: event, value: event })),
                     default: ["lead.hot"],
                     required: true,
-                    description: "Nemio events that trigger this workflow",
+                    description: "Instantlify events that trigger this workflow",
                 },
             ],
         };

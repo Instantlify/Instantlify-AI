@@ -1,7 +1,7 @@
 {
   "name": "sendMessage",
   "label": "Send a Message",
-  "description": "Queues a reply into a conversation through Nemio's delivery pipeline (opt-out and messaging-window rules apply).",
+  "description": "Queues a reply into a conversation through Instantlify's delivery pipeline (opt-out and messaging-window rules apply).",
   "type": "action",
   "actionType": "create",
   "connection": "nemio",

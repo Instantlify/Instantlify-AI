@@ -715,10 +715,10 @@ def automation_accounts():
 
 
 def agent_config_context(selected=""):
-    """Nemio's OWN support bot: its knowledge base and system prompt.
+    """Instantlify's OWN support bot: its knowledge base and system prompt.
 
     Deliberately not the tenant agent from `apps.agents`. That one answers a tenant's
-    leads about a tenant's business; this one answers our prospects about Nemio, and
+    leads about a tenant's business; this one answers our prospects about Instantlify, and
     the two knowledge bases must never retrieve into each other's context.
     """
     from .knowledge_indexing import status

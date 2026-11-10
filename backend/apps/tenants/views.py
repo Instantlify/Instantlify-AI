@@ -284,15 +284,19 @@ class MembershipDetailView(APIView):
     def delete(self, request, workspace_id, membership_id):
         from apps.crm.models import Conversation, Lead
 
-        actor = workspace_membership(request, workspace_id)
+        actor = workspace_membership(request, workspace_id, allow_viewer_write=True)
         member = get_object_or_404(
             Membership.objects.for_workspace(actor.workspace).select_for_update(), pk=membership_id
         )
         if member.role == "owner":
             raise PermissionDenied("The owner cannot be removed.")
+        if actor.role == "viewer" and member.user_id != request.user.id:
+            raise PermissionDenied("Viewers have read-only access.")
         leaving = member.user_id == request.user.id
         if not (
-            leaving or actor.role == "owner" or (actor.role == "admin" and member.role == "agent")
+            leaving
+            or actor.role == "owner"
+            or (actor.role == "admin" and member.role in {"agent", "viewer"})
         ):
             raise PermissionDenied("Your role cannot remove this member.")
         # Removed members lose access; their conversations return to the shared queue.

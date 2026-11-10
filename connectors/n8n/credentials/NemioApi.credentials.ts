@@ -8,7 +8,7 @@ import type {
 export class NemioApi implements ICredentialType {
   name = "nemioApi";
 
-  displayName = "Nemio API";
+  displayName = "Instantlify API";
 
   documentationUrl = "https://github.com/nemio/nemio/blob/main/docs/PUBLIC_API.md";
 
@@ -19,7 +19,7 @@ export class NemioApi implements ICredentialType {
       type: "string",
       default: "",
       placeholder: "https://app.example.com",
-      description: "Address of your Nemio deployment, without a trailing slash",
+      description: "Address of your Instantlify deployment, without a trailing slash",
       required: true,
     },
     {

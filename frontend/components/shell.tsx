@@ -9,7 +9,6 @@ import { workspaceTheme } from "@/lib/workspace-theme";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   useEffect,
-  useId,
   useRef,
   useState,
   type FormEvent,
@@ -50,104 +49,28 @@ import { ErrorNotice } from "./ui";
 import { UpgradePrompt } from "./plans";
 import { MetaAccountSwitcher } from "./meta-switcher";
 import { BrandIcon, type BrandName } from "@/lib/brand-icons";
+import { LanguageSwitcher, useT, type MessageKey } from "@/lib/i18n";
 
 export const initials = (name: string) =>
   name.trim().slice(0, 2).toUpperCase() || "N";
 
 export function Brand({
-  name = "Nemio",
+  name = "Instantlify",
   logo = "",
 }: {
   name?: string;
   logo?: string;
 }) {
-  const logoFilter = `nemio-logo-${useId().replace(/:/g, "")}`;
-  const defaultBrand = !logo && /^nemio(?:\s*ai)?$/i.test(name.trim());
+  const defaultBrand = !logo && /^(?:instantlify|nemio)(?:\s*ai)?$/i.test(name.trim());
   return (
     <div
-      className={`brand-logo-container${defaultBrand ? " nemio-original-brand" : ""}`}
+      className={`brand-logo-container${defaultBrand ? " instantlify-original-brand" : ""}`}
     >
       {defaultBrand ? (
-        <span className="nemio-mark" aria-hidden="true">
-          <svg
-            width="0"
-            height="0"
-            aria-hidden="true"
-            className="nemio-logo-filter"
-          >
-            <defs>
-              <filter
-                id={logoFilter}
-                x="0"
-                y="0"
-                width="100%"
-                height="100%"
-                colorInterpolationFilters="sRGB"
-              >
-                {/* Separate saturated icons from neutral umbrella/text pixels. */}
-                <feColorMatrix
-                  in="SourceGraphic"
-                  type="saturate"
-                  values="0"
-                  result="gray"
-                />
-                <feBlend
-                  in="SourceGraphic"
-                  in2="gray"
-                  mode="difference"
-                  result="chroma"
-                />
-                <feColorMatrix
-                  in="chroma"
-                  type="matrix"
-                  values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  8 8 8 0 0"
-                  result="colorMask"
-                />
-                <feComposite
-                  in="SourceGraphic"
-                  in2="colorMask"
-                  operator="in"
-                  result="originalIcons"
-                />
-                {/* Key out white while retaining smooth animated ink edges. */}
-                <feColorMatrix
-                  in="SourceGraphic"
-                  type="matrix"
-                  values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -0.2126 -0.7152 -0.0722 0 1"
-                />
-                <feComponentTransfer result="ink">
-                  <feFuncA type="linear" slope="1.1" intercept="-0.1" />
-                </feComponentTransfer>
-                <feFlood floodColor="currentColor" />
-                <feComposite in2="ink" operator="in" result="limeInk" />
-                <feComposite
-                  in="limeInk"
-                  in2="colorMask"
-                  operator="out"
-                  result="neutralInk"
-                />
-                <feMerge result="recoloredLogo">
-                  <feMergeNode in="neutralInk" />
-                  <feMergeNode in="originalIcons" />
-                </feMerge>
-                <feComposite
-                  in="recoloredLogo"
-                  in2="SourceAlpha"
-                  operator="in"
-                />
-              </filter>
-            </defs>
+        <span className="instantlify-mark" aria-hidden="true">
+          <svg className="instantlify-mark-image" width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <path d="M18 2 6 18h9l-1 12L27 12h-9l0-10Z" fill="currentColor" />
           </svg>
-          {/* Keep all original GIF frames, timing, and looping. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/nemio-ai-logo.gif"
-            alt=""
-            width={900}
-            height={600}
-            className="nemio-mark-image"
-            style={{ filter: `url(#${logoFilter})` }}
-          />
         </span>
       ) : logo ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -205,6 +128,43 @@ const TOOLS: NavItem[] = [
   { id: "activity", label: "Activity", icon: Activity },
 ];
 
+const NAV_KEYS: Record<string, MessageKey> = {
+  overview: "nav.overview",
+  inbox: "nav.inbox",
+  crm: "nav.crm",
+  automations: "nav.automations",
+  channels: "nav.channels",
+  integrations: "nav.integrations",
+  agent: "nav.agent",
+  analytics: "nav.analytics",
+  templates: "nav.templates",
+  payments: "nav.payments",
+  team: "nav.team",
+  activity: "nav.activity",
+  support: "nav.help",
+  settings: "nav.settings",
+};
+
+/** Nav item -> access section (tenants/access.py). Unlisted items are never limited. */
+const ACCESS_SECTION: Record<string, string> = {
+  inbox: "inbox",
+  crm: "crm",
+  automations: "automations",
+  templates: "automations",
+  channels: "integrations",
+  integrations: "integrations",
+  agent: "agent",
+  analytics: "analytics",
+  payments: "payments",
+  bio: "bio",
+  forms: "forms",
+  calendar: "calendar",
+  shield: "shield",
+  deeplinks: "deeplinks",
+  webchat: "webchat",
+  "creator-kit": "creator-kit",
+};
+
 /** Sections an agent can open; owners and admins see everything. */
 const AGENT_SECTIONS = [
   "help",
@@ -221,11 +181,18 @@ const AGENT_SECTIONS = [
 export function Shell({ children }: { children: ReactNode }) {
   const { user, workspace, workspaces, manager, prefix, refresh } =
     useWorkspace();
+  const t = useT();
+  // Built-in sections use translated names; pinned apps keep their own labels.
+  const navLabel = (item: NavItem) =>
+    NAV_KEYS[item.id] ? t(NAV_KEYS[item.id]) : item.label;
   const router = useRouter();
   const pathname = usePathname();
   const tab = useSearchParams().get("tab");
   const routeSection = pathname.split("/")[3] || "overview";
-  const section = routeSection === "integrations" && tab === "channels" ? "channels" : routeSection;
+  const section =
+    routeSection === "integrations" && tab === "channels"
+      ? "channels"
+      : routeSection;
   const [creating, setCreating] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [workspaceMenu, setWorkspaceMenu] = useState(false);
@@ -235,12 +202,23 @@ export function Shell({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const branding = workspace.branding;
-  const allowed = (id: string) => manager || AGENT_SECTIONS.includes(id);
+  const limits = workspace.allowed_sections || [];
+  // A teammate limited to some sections only sees those in the menu; the API
+  // refuses the others too.
+  const permitted = (id: string) =>
+    !limits.length ||
+    !ACCESS_SECTION[id] ||
+    limits.includes(ACCESS_SECTION[id]);
+  const allowed = (id: string) =>
+    (manager || AGENT_SECTIONS.includes(id)) && permitted(id);
   const tools = TOOLS.filter((item) => allowed(item.id));
 
   const docked = (workspace.pinned_apps || [])
     .map(appById)
-    .filter((app) => app?.section && (manager || app.agents))
+    .filter(
+      (app) =>
+        app?.section && (manager || app.agents) && permitted(app.section),
+    )
     .map((app) => ({
       id: app!.section!,
       label: app!.label,
@@ -325,8 +303,8 @@ export function Shell({ children }: { children: ReactNode }) {
         href={`/w/${workspace.id}/${item.id === "channels" ? "integrations?tab=channels" : item.id}`}
         className={`boosend-nav-link ${active ? "active" : ""} ${isSub ? "sub-item" : ""}`}
         aria-current={active ? "page" : undefined}
-        aria-label={item.label}
-        title={item.label}
+        aria-label={navLabel(item)}
+        title={navLabel(item)}
       >
         <span
           className="nav-icon-wrap"
@@ -338,7 +316,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <Icon size={18} />
           )}
         </span>
-        <span className="nav-label-text">{item.label}</span>
+        <span className="nav-label-text">{navLabel(item)}</span>
         {item.badge && <span className="nav-badge-pill">{item.badge}</span>}
       </Link>
     );
@@ -346,7 +324,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="app-shell-root"
+      className={`app-shell-root${section === "inbox" ? " inbox-shell" : ""}`}
       data-workspace-theme={workspace.id}
       style={workspaceTheme(branding)}
     >
@@ -361,10 +339,10 @@ export function Shell({ children }: { children: ReactNode }) {
           <Link
             href={`/w/${workspace.id}/overview`}
             className="brand-link"
-            aria-label={`${branding.brand_name || "Nemio"} Home`}
+            aria-label={`${branding.brand_name || "Instantlify"} Home`}
           >
             <Brand
-              name={branding.brand_name || "Nemio"}
+              name={branding.brand_name || "Instantlify"}
               logo={branding.logo_url}
             />
           </Link>
@@ -524,6 +502,7 @@ export function Shell({ children }: { children: ReactNode }) {
             label: "Settings",
             icon: Settings,
           })}
+          <LanguageSwitcher className="sidebar-language" />
         </nav>
 
         {/* 4. Bottom User Profile Card */}
@@ -581,12 +560,15 @@ export function Shell({ children }: { children: ReactNode }) {
             <span className="workspace-crumb">{workspace.name}</span>
             <ChevronRight size={14} className="crumb-separator" />
             <span className="section-crumb">
-              {PRIMARY_NAV.find((item) => item.id === section)?.label
-                ?? section.charAt(0).toUpperCase() + section.slice(1)}
+              {PRIMARY_NAV.find((item) => item.id === section)?.label ??
+                section.charAt(0).toUpperCase() + section.slice(1)}
             </span>
           </div>
           <div className="topbar-actions">
-            <AssignmentNotifications key={workspace.id} workspaceId={workspace.id} />
+            <AssignmentNotifications
+              key={workspace.id}
+              workspaceId={workspace.id}
+            />
             {workspace.parent && (
               <span className="badge-agency">Agency Managed</span>
             )}

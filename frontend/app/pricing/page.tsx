@@ -37,7 +37,7 @@ export default function PricingPage() {
   return (
     <main className="pricing-page">
       <TrackVisit page="/pricing" />
-      <Link href="/" aria-label="Nemio home">
+      <Link href="/" aria-label="Instantlify home">
         <Brand />
       </Link>
       <div className="pricing-head">

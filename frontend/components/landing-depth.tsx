@@ -507,7 +507,7 @@ export function ProductDepth() {
   return (
     <div className="nd-depth">
       <nav className="nd-jump" aria-label="Explore product features">
-        <span>EXPLORE NEMIO</span>
+        <span>EXPLORE INSTANTLIFY</span>
         {[
           ["Channels", "channels-detail"],
           ["Flow builder", "flow-builder"],

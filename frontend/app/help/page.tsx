@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Brand } from "@/components/shell";
 import { PublicHelpLinks } from "@/components/public-help-links";
 
-export const metadata = { title: "Help getting started · Nemio" };
+export const metadata = { title: "Help getting started · Instantlify" };
 
 export default function PublicHelp() {
-  const email = process.env.NEMIO_SUPPORT_EMAIL;
+  const email = process.env.INSTANTLIFY_SUPPORT_EMAIL || process.env.NEMIO_SUPPORT_EMAIL || "support@instantlify.com";
   const contact =
     email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
   return (

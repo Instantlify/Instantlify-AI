@@ -1,4 +1,4 @@
-# Nemio versus Boosend — source and validation audit
+# Instantlify versus Boosend — source and validation audit
 
 Historical baseline before the implementation changes in this session. For current changes and verification, see [the implementation status](BOOSEND_IMPLEMENTATION_STATUS_2026-11-10.md).
 
@@ -6,9 +6,9 @@ Audit date: 10 November 2026, Asia/Karachi.
 
 ## Verdict
 
-Nemio is a substantial implementation with broad overlap, but it is not yet demonstrably a production replacement for Boosend or better overall. Several reference features have narrower equivalents or no equivalent. The current quality gates are not all green. Passing local tests does not establish live delivery, commercial reliability, UX parity or production readiness.
+Instantlify is a substantial implementation with broad overlap, but it is not yet demonstrably a production replacement for Boosend or better overall. Several reference features have narrower equivalents or no equivalent. The current quality gates are not all green. Passing local tests does not establish live delivery, commercial reliability, UX parity or production readiness.
 
-This audit inspected the local Boosend source at `C:/Users/Jawad/Desktop/Boosend` and Nemio's routes, models, runtime services, integration configuration, tests, CI and existing verification records. Boosend was treated as read-only. No production customer data, messages, automations or subscriptions were changed. The owner's statement that Boosend runs in production is context; this audit did not independently verify its deployed revision or every reference workflow.
+This audit inspected the local Boosend source at `C:/Users/Jawad/Desktop/Boosend` and Instantlify's routes, models, runtime services, integration configuration, tests, CI and existing verification records. Boosend was treated as read-only. No production customer data, messages, automations or subscriptions were changed. The owner's statement that Boosend runs in production is context; this audit did not independently verify its deployed revision or every reference workflow.
 
 ## Fresh checks
 
@@ -34,7 +34,7 @@ The failed backend test is `tests/test_content_branding.py::test_resaving_integr
 
 “Covered locally” below means related backend scenarios passed in this audit, not that every control was clicked or every permutation tested. All browser and live-provider claims remain subject to the limitations above.
 
-| Area | Reference scope found in Boosend | Nemio implementation and standing |
+| Area | Reference scope found in Boosend | Instantlify implementation and standing |
 |---|---|---|
 | Authentication/onboarding | Email/password, callback routes, magic callback, Instagram callback, recovery and setup | Signup/login/logout, email verification, password reset, invitations, workspace onboarding exist; related tests pass. Exact magic-link and Instagram-first sign-in parity is not established. |
 | Workspaces/team | Workspace switching, settings, invitations, team membership | Tenant-scoped workspaces, roles, invitations, appearance, logo uploads and assignment notifications exist and have passing local tests. Browser usability needs revalidation. |
@@ -52,21 +52,21 @@ The failed backend test is `tests/test_content_branding.py::test_resaving_integr
 | Integrations | Google/Microsoft, calendars, CRMs, marketing, voice/media, automation platforms and knowledge providers | 28 provider keys accepted by backend serializer, with operations distributed across dedicated adapters. This is not 28 complete or live-verified integrations. Slack contract regression exists; Notavo/Poppy unavailable; several reference providers have no direct backend key. |
 | Booking | Google Calendar, Cal.com, Calendly, TidyCal and Zoho Bookings endpoints | Guarded availability/booking tools for Google Calendar and Cal.com exist. Calendly configuration UI exists, but backend integration allowlist lacks `calendly`; no equivalent keys for TidyCal/Zoho. Full provider parity absent. |
 | Voice calling | Vapi/Retell nodes and agent/number discovery | Reusable agent creation, scheduled calls, private request/consent, callbacks and uncertainty handling implemented and covered locally. Actual calls and outcomes not verified. |
-| Native forms | Rich question catalog, branching, themes, uploads, signatures and embedded booking | **Partial:** Nemio accepts only text, textarea, email, tel and select; 1–20 fields with mandatory email. Consent, CRM capture, idempotency, exports and post-submit actions work in local tests. Branching, binary uploads/signatures, richer question types, booking embeds and theme/layout parity absent. |
-| Form-to-automation | Form actions and conversational collection | Nemio supports limited post-submit integration actions and signed `form.submitted` events. Arbitrary conversation-canvas execution for a form-only contact is not established as supported. |
-| Link in bio | Rich editor/blocks plus product checkout and purchase-protected digital downloads | **Partial:** Nemio BioPage is title/bio/avatar/accent plus up to 20 links. Local publication/click behavior covered. No equivalent rich block/product-download fulfillment pipeline found. In-chat offers do not replace this feature. |
-| Creator kit | Creator-facing pages/profile/offer tools | Nemio public kit, services/manual stats and approved Instagram follower refresh exist; local tests pass. Reach/engagement automation is not implemented; manually entered figures are not provider insights. |
-| Instagram Insights | Separate account/post insights APIs: reach, profile views and post statistics | **Gap:** Nemio funnel/revenue/AI metrics are internal product analytics; they do not replace provider account/post Insights. Follower counts are only a subset. |
-| Analytics/experiments | Dashboard and automation/contact statistics | Nemio funnels, revenue and A/B experiments implemented with passing local tests. Potential strength, but no measured comparison of accuracy, latency or conversion impact. |
-| Tracking/deep links | Tracking links, click paths, deep links | Nemio deep links, UTM fields, daily aggregates and form attribution implemented with local coverage. Exact reference attribution/reporting parity not established. |
-| Hate detection/moderation | Prompt-based rules, delete/reply, static/AI reply options | **Partial:** Nemio shield matches literal keywords and hides/deletes/flags. No equivalent prompt-based classifier or moderation reply action found. App description claims “toxicity rules” and “Team alerts” beyond what the inspected shield runtime demonstrates. |
-| Website chat | Multiple widgets, sessions, messages, events and buttons | **Partial:** Nemio has a workspace-level widget/settings model, public session/chat and unified inbox integration with local tests. Multiple independent widgets and the full reference events/button configuration need parity work. |
-| Payments/subscriptions | Subscription limits, trial/cancel, billing locks, Stripe methods/portal and product payments | Nemio plans/gates, credits/ledger, top-ups, Stripe subscriptions, offers, marketplace/Connect and reconciliation implemented; local tests pass. Historical genuine Stripe test callbacks cover only selected trial/plan/cancel cases. Failed payments, paid charges, metering, Connect and customer checkout acceptance remain separate. |
-| Public API/MCP/connectors | OAuth/MCP server and integration endpoints | Nemio public API, MCP handlers, signed outbound webhooks and Zapier/n8n/Make packages exist with backend coverage. Published-directory/install acceptance and complete tool-scope parity not established. |
-| Community forum | Posts, reactions, threads, pins and AI assistant UI | **Missing equivalent:** no Nemio forum route/model found. Support tickets/blog are different workflows. |
-| Affiliate program | FirstPromoter-backed referral/campaign/revenue portal and tracking API | **Missing equivalent:** no Nemio affiliate/referral commission portal found. Marketing attribution is not affiliate accounting. |
-| Platform operations | Reference admin/operational tooling requires a separate deeper inventory | Nemio has staff console, audit/security, plans, credits, support, growth/email configuration and backups. Local tests support many controls; superiority cannot be concluded from architecture alone. |
-| Production operations | Owner reports reference is in production | Nemio production overlay, TLS edge and backup/restore scripts exist. Current deploy, public HTTPS, alert delivery, restore drill, load and live provider SLOs not verified. |
+| Native forms | Rich question catalog, branching, themes, uploads, signatures and embedded booking | **Partial:** Instantlify accepts only text, textarea, email, tel and select; 1–20 fields with mandatory email. Consent, CRM capture, idempotency, exports and post-submit actions work in local tests. Branching, binary uploads/signatures, richer question types, booking embeds and theme/layout parity absent. |
+| Form-to-automation | Form actions and conversational collection | Instantlify supports limited post-submit integration actions and signed `form.submitted` events. Arbitrary conversation-canvas execution for a form-only contact is not established as supported. |
+| Link in bio | Rich editor/blocks plus product checkout and purchase-protected digital downloads | **Partial:** Instantlify BioPage is title/bio/avatar/accent plus up to 20 links. Local publication/click behavior covered. No equivalent rich block/product-download fulfillment pipeline found. In-chat offers do not replace this feature. |
+| Creator kit | Creator-facing pages/profile/offer tools | Instantlify public kit, services/manual stats and approved Instagram follower refresh exist; local tests pass. Reach/engagement automation is not implemented; manually entered figures are not provider insights. |
+| Instagram Insights | Separate account/post insights APIs: reach, profile views and post statistics | **Gap:** Instantlify funnel/revenue/AI metrics are internal product analytics; they do not replace provider account/post Insights. Follower counts are only a subset. |
+| Analytics/experiments | Dashboard and automation/contact statistics | Instantlify funnels, revenue and A/B experiments implemented with passing local tests. Potential strength, but no measured comparison of accuracy, latency or conversion impact. |
+| Tracking/deep links | Tracking links, click paths, deep links | Instantlify deep links, UTM fields, daily aggregates and form attribution implemented with local coverage. Exact reference attribution/reporting parity not established. |
+| Hate detection/moderation | Prompt-based rules, delete/reply, static/AI reply options | **Partial:** Instantlify shield matches literal keywords and hides/deletes/flags. No equivalent prompt-based classifier or moderation reply action found. App description claims “toxicity rules” and “Team alerts” beyond what the inspected shield runtime demonstrates. |
+| Website chat | Multiple widgets, sessions, messages, events and buttons | **Partial:** Instantlify has a workspace-level widget/settings model, public session/chat and unified inbox integration with local tests. Multiple independent widgets and the full reference events/button configuration need parity work. |
+| Payments/subscriptions | Subscription limits, trial/cancel, billing locks, Stripe methods/portal and product payments | Instantlify plans/gates, credits/ledger, top-ups, Stripe subscriptions, offers, marketplace/Connect and reconciliation implemented; local tests pass. Historical genuine Stripe test callbacks cover only selected trial/plan/cancel cases. Failed payments, paid charges, metering, Connect and customer checkout acceptance remain separate. |
+| Public API/MCP/connectors | OAuth/MCP server and integration endpoints | Instantlify public API, MCP handlers, signed outbound webhooks and Zapier/n8n/Make packages exist with backend coverage. Published-directory/install acceptance and complete tool-scope parity not established. |
+| Community forum | Posts, reactions, threads, pins and AI assistant UI | **Missing equivalent:** no Instantlify forum route/model found. Support tickets/blog are different workflows. |
+| Affiliate program | FirstPromoter-backed referral/campaign/revenue portal and tracking API | **Missing equivalent:** no Instantlify affiliate/referral commission portal found. Marketing attribution is not affiliate accounting. |
+| Platform operations | Reference admin/operational tooling requires a separate deeper inventory | Instantlify has staff console, audit/security, plans, credits, support, growth/email configuration and backups. Local tests support many controls; superiority cannot be concluded from architecture alone. |
+| Production operations | Owner reports reference is in production | Instantlify production overlay, TLS edge and backup/restore scripts exist. Current deploy, public HTTPS, alert delivery, restore drill, load and live provider SLOs not verified. |
 
 ## Concrete source anchors
 
@@ -81,7 +81,7 @@ Boosend reference anchors, relative to its root:
 - `app/api/oauth/{calendly,calcom,zoho,microsoft,shopify,notion,google}/...`: reference provider scope.
 - `components/nodes/`, `supabase/functions/automation-runner/`: workflow configuration and execution boundaries.
 
-Nemio implementation anchors, relative to its root:
+Instantlify implementation anchors, relative to its root:
 
 - `backend/apps/tools/forms.py`, `models.py`, `form_actions.py`: narrower forms and post-submit actions.
 - `backend/apps/content/models.py`: simple BioPage shape and scheduled publishing model.
@@ -110,7 +110,7 @@ Nemio implementation anchors, relative to its root:
 2. **Prove the core customer journey:** on PostgreSQL/Redis, test signup → connect → publish → real inbound → delivered reply → inbox/CRM → billing. Exercise retries, duplicate callbacks, disconnects, opt-outs, plan limits and cross-workspace access. Capture provider delivery IDs and receipt states with secrets redacted.
 3. **Close high-value reference gaps:** rich forms with branching/uploads, bio commerce and digital fulfillment, provider Insights, moderation behavior, booking integrations and reusable knowledge UX. Explicitly decide whether forum and affiliate features belong in the launch scope; they remain gaps until delivered or deliberately excluded.
 4. **Verify money and operations:** failed payment/recovery, metered usage and top-up reconciliation, Connect payouts/refunds, TLS/domain routing, backup restore, alert delivery, permission review and production-like load.
-5. **Demonstrate improvement:** use matched scenarios and measure setup completion/time, send success/latency, duplicate side effects, agent task completion/hallucinations, cost per resolved conversation, accessibility and mobile completion, and operator recovery time. There is no measured evidence yet that Nemio beats Boosend on these outcomes.
+5. **Demonstrate improvement:** use matched scenarios and measure setup completion/time, send success/latency, duplicate side effects, agent task completion/hallucinations, cost per resolved conversation, accessibility and mobile completion, and operator recovery time. There is no measured evidence yet that Instantlify beats Boosend on these outcomes.
 
 No honest parity percentage can be assigned from route counts or passing test counts. The denominator must be a behavioral acceptance checklist, with each item classified as missing, implemented, locally verified, full-stack verified or live-provider verified.
 

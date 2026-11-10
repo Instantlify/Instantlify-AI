@@ -199,7 +199,7 @@ export default function OverviewPage() {
             <GraduationCap size={32} />
           </div>
           <div className="action-card-content">
-            <h2 className="action-card-heading">Learn To Use Nemio</h2>
+            <h2 className="action-card-heading">Learn To Use Instantlify</h2>
             <p className="action-card-desc">
               Discover how to build Meta automated funnels, comment triggers, and human handoffs.
             </p>

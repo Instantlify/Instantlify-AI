@@ -262,3 +262,20 @@ class SavedReply(TenantModel):
 
     class Meta:
         ordering = ["position", "created_at"]
+
+
+class ConversationRead(TenantModel):
+    """When a teammate last opened a conversation: drives unread and "seen by"."""
+
+    conversation = models.ForeignKey(
+        "crm.Conversation", on_delete=models.CASCADE, related_name="reads"
+    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    read_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["conversation", "user"], name="one_read_marker_per_user"
+            )
+        ]

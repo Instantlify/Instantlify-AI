@@ -58,6 +58,9 @@ test("comment shield shows real rules and events and saves new rules", async ({
     .toEqual({
       name: "Refund spam",
       keywords: ["refund now", "scam"],
+      // A keyword rule: no AI description and no public reply.
+      prompt: "",
+      reply_text: "",
       action: "hide",
     });
   await expect(page.getByText("Refund spam")).toBeVisible();

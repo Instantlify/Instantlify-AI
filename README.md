@@ -1,4 +1,4 @@
-# Nemio
+# Instantlify
 
 A multi-tenant platform that automates sales conversations across Instagram, WhatsApp, Messenger and Telegram with a visual flow builder and an autonomous AI sales agent: unified inbox, CRM, bookings, in-chat payments, funnel analytics, A/B tests, a template marketplace, content calendar, link-in-bio pages, a public API with webhooks, and white-label agency workspaces.
 
@@ -22,7 +22,7 @@ sh scripts/bootstrap.sh
 docker compose up --build -d --wait --wait-timeout 240
 ```
 
-Open [Nemio](http://localhost:3000) for the public homepage, product information and current pricing. Choose **Get started** to create an account (password of at least 12 characters), or **Sign in** to return to your workspace. Authentication is at `/auth/`; existing invitation links remain supported. A good first tour with no external keys:
+Open [Instantlify](http://localhost:3000) for the public homepage, product information and current pricing. Choose **Get started** to create an account (password of at least 12 characters), or **Sign in** to return to your workspace. Authentication is at `/auth/`; existing invitation links remain supported. A good first tour with no external keys:
 
 1. **Overview → Test connection setup** creates a local Instagram test channel.
 2. **Automations → Create** opens the flow builder with a starter “comment *price* → DM with a button” flow; press **Publish**.

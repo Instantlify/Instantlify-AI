@@ -43,7 +43,7 @@ class PasswordResetRequestView(SignupView):
             # A fragment keeps the reset secret out of HTTP/access logs and referrers.
             url = f"{settings.PUBLIC_APP_URL}/auth/reset/#uid={uid}&token={token}"
             send_mail(
-                "Reset your Nemio password",
+                "Reset your Instantlify password",
                 f"Use this link to choose a new password:\n\n{url}\n\n"
                 "If you did not request this, you can ignore this email.",
                 settings.DEFAULT_FROM_EMAIL,

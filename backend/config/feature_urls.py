@@ -10,6 +10,8 @@ from apps.agents.views import (
     AgentView,
     DocumentDetail,
     DocumentList,
+    KnowledgeBaseDetail,
+    KnowledgeBaseList,
 )
 from apps.agents.voice import voice_asset
 from apps.analytics.views import ExperimentDetail, ExperimentList, FunnelView
@@ -60,16 +62,20 @@ from apps.crm.campaigns import (
     CancelCampaignView,
     LaunchCampaignView,
 )
+from apps.crm.connection_test import IntegrationTestView
+from apps.crm.field_defs import CustomFieldsView
 from apps.crm.form_imports import ImportFormContactsView
 from apps.crm.lead_import import LeadImportView
 from apps.crm.notifications import AssignmentNotificationsView
 from apps.crm.oauth import IntegrationOAuthCallbackView, IntegrationOAuthStartView
 from apps.crm.segments import SegmentDetail, SegmentList
+from apps.crm.stages import PipelineStagesView
 from apps.crm.summary import ContactSummaryView
 from apps.crm.views import (
     ConversationDetail,
     ConversationEventsView,
     ConversationList,
+    ConversationReadView,
     IntegrationDetail,
     IntegrationList,
     LeadBroadcastView,
@@ -173,12 +179,16 @@ urlpatterns = [
     path(P + "conversations/<uuid:pk>/", ConversationDetail.as_view()),
     path(P + "conversations/<uuid:pk>/messages/", MessageList.as_view()),
     path(P + "conversations/<uuid:pk>/notes/", NotesView.as_view()),
+    path(P + "conversations/<uuid:pk>/read/", ConversationReadView.as_view()),
     path(P + "saved-replies/", SavedRepliesView.as_view()),
     path(P + "conversations/<uuid:pk>/events/", ConversationEventsView.as_view()),
     path(P + "conversations/<uuid:pk>/payment-link/", SendPaymentLinkView.as_view()),
     path(P + "leads/", LeadList.as_view()),
     path(P + "leads/bulk/", LeadBulkView.as_view()),
     path(P + "leads/import/", LeadImportView.as_view()),
+    path(P + "pipeline-stages/", PipelineStagesView.as_view()),
+    path(P + "custom-fields/", CustomFieldsView.as_view()),
+    path(P + "integrations/<uuid:pk>/test/", IntegrationTestView.as_view()),
     path(P + "leads/<uuid:pk>/summary/", ContactSummaryView.as_view()),
     path(P + "leads/broadcast/", LeadBroadcastView.as_view()),
     path(P + "campaigns/", CampaignList.as_view()),
@@ -201,6 +211,8 @@ urlpatterns = [
     path(P + "agent/models/", AgentModelsView.as_view()),
     path(P + "agent-audit/", AgentAuditView.as_view()),
     path(P + "documents/", DocumentList.as_view()),
+    path(P + "knowledge-bases/", KnowledgeBaseList.as_view()),
+    path(P + "knowledge-bases/<uuid:pk>/", KnowledgeBaseDetail.as_view()),
     path(P + "segments/", SegmentList.as_view()),
     path(P + "segments/<uuid:pk>/", SegmentDetail.as_view()),
     path(P + "integrations/<uuid:pk>/knowledge/", ImportKnowledgeView.as_view()),

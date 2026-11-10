@@ -34,21 +34,21 @@ All settings load from process environment. Docker Compose injects the ignored r
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google integrations | Yes | Gmail, Google Sheets and Calendar hosted sign-in and token refresh; separate from AI provider keys |
 | `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` | Slack | Yes | Slack app for the hosted "Add to Slack" install (`chat:write`, `incoming-webhook`) |
 | `INTEGRATION_REDIRECT_BASE` | Hosted sign-in | No | Default `PUBLIC_APP_URL/api/integrations/callback/`; register `<base>gmail/`, `<base>google_sheets/`, `<base>google_calendar/` with Google and `<base>slack/` with Slack |
-| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Platform billing | Yes | Nemio's own subscriptions and metered AI usage |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Platform billing | Yes | Instantlify's own subscriptions and metered AI usage |
 | `STRIPE_PRICES` | Bootstrap only | No | Legacy JSON `{plan: {base, meter}}`; copied onto the monthly `PlanPrice` rows by the plans data migration. Prices now live in the database |
-| `PLATFORM_OPENAI_API_KEY` | Prepaid credits | Yes | Nemio's own OpenAI key, used for every workspace on `platform_credits` billing |
-| `PLATFORM_AI_MODEL` | Platform AI | No | OpenAI model used by Nemio support chat and business classification; defaults to `gpt-5`. Must be available to the key's project. Independent of workspace agents' model settings. Support knowledge search/indexing also needs `text-embedding-3-small` access; an empty or unindexed support knowledge base skips search. |
+| `PLATFORM_OPENAI_API_KEY` | Prepaid credits | Yes | Instantlify's own OpenAI key, used for every workspace on `platform_credits` billing |
+| `PLATFORM_AI_MODEL` | Platform AI | No | OpenAI model used by Instantlify support chat and business classification; defaults to `gpt-5`. Must be available to the key's project. Independent of workspace agents' model settings. Support knowledge search/indexing also needs `text-embedding-3-small` access; an empty or unindexed support knowledge base skips search. |
 | `PLATFORM_GEMINI_MODEL` | Provider health | No | Gemini model for the admin provider health test; defaults to `gemini-3.5-flash-lite`. Also offered in the assistant model catalog. Workspace assistants use the model selected in their own settings. |
-| `PLATFORM_ANTHROPIC_API_KEY` / `PLATFORM_GEMINI_API_KEY` / `PLATFORM_XAI_API_KEY` | For those providers | Yes | Nemio's key for agents on `platform_credits` whose provider (or fallback provider) is Anthropic, Gemini or xAI. Knowledge-base embeddings always use `PLATFORM_OPENAI_API_KEY` |
+| `PLATFORM_ANTHROPIC_API_KEY` / `PLATFORM_GEMINI_API_KEY` / `PLATFORM_XAI_API_KEY` | For those providers | Yes | Instantlify's key for agents on `platform_credits` whose provider (or fallback provider) is Anthropic, Gemini or xAI. Knowledge-base embeddings always use `PLATFORM_OPENAI_API_KEY` |
 | `PLATFORM_<PROVIDER>_API_KEY_<LABEL>` | No | Yes | Extra named keys; each gets its own on-demand health card in the console. Not used by the agent runtime |
-| `UPTIME_PROBE_URL` | No | No | Public readiness URL (e.g. `https://app.nemio.ai/health/ready/`) probed every minute through DNS, TLS and the proxy. Unset: the ingress check is skipped |
+| `UPTIME_PROBE_URL` | No | No | Public readiness URL (e.g. `https://instantlify.com/health/ready/`) probed every minute through DNS, TLS and the proxy. Unset: the ingress check is skipped |
 | `UPTIME_LATENCY_MS` | No | No | Default `2500`; a slower ingress response counts as a failure |
 | `ALERT_WEBHOOK_URL` | No | Yes | Slack-compatible incoming webhook (JSON `text`) for DOWN/RESOLVED pages |
 | `PAGERDUTY_ROUTING_KEY` | No | Yes | PagerDuty Events API v2 key; incidents trigger and resolve by check |
 | `EMAIL_HOST` | Production | No | SMTP host for transactional email. Production refuses to boot without it; locally mail prints to the console |
 | `EMAIL_PORT` / `EMAIL_USE_TLS` | No | No | Default `587` / `true` |
 | `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | With SMTP auth | Yes | SMTP credentials |
-| `DEFAULT_FROM_EMAIL` | Production | No | Sender, e.g. `Nemio <no-reply@nemio.app>` |
+| `DEFAULT_FROM_EMAIL` | Production | No | Sender, e.g. `Instantlify <no-reply@nemio.app>` |
 | `STRIPE_TRIAL_DAYS` | No | No | Trial days on a workspace's first subscription (default 3; 0 disables) |
 | `DEFAULT_PLAN_SLUG` | No | No | Plan a workspace is on before subscribing. `free` in base settings, `dev` (unlimited) in local settings |
 | `STRIPE_METER_EVENT_NAME` | No | No | Meter event name, default `ai_messages` |

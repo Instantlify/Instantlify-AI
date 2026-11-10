@@ -32,12 +32,12 @@ def parse_template(document):
         except ValueError:
             raise ValidationError("Template is not valid JSON.") from None
     if not isinstance(document, dict) or document.get("format") != FORMAT:
-        raise ValidationError("This file is not a Nemio automation template.")
+        raise ValidationError("This file is not an Instantlify automation template.")
     version = document.get("version")
     if isinstance(version, bool) or not isinstance(version, int) or version < 1:
         raise ValidationError("Template version must be a positive integer.")
     if version > VERSION:
-        raise ValidationError("This template needs a newer version of Nemio.")
+        raise ValidationError("This template needs a newer version of Instantlify.")
     if len(json.dumps(document)) > MAX_BYTES:
         raise ValidationError("Template is too large.")
     name = str(document.get("name", "Imported automation")).strip()[:100] or "Imported automation"

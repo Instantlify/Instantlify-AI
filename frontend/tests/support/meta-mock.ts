@@ -13,7 +13,7 @@ export const workspace = {
   parent: null,
   created_at: iso(-90 * 864e5),
   branding: {
-    brand_name: "Nemio",
+    brand_name: "Instantlify",
     primary_color: "#347359",
     logo_url: "",
     support_email: "",

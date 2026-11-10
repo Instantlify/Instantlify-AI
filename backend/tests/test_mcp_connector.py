@@ -97,8 +97,20 @@ def test_handshake_records_the_client_and_lists_tools(workspace):
         "get_workspace_metrics",
         "send_message",
         "trigger_automation",
+        "list_automations",
+        "set_automation_enabled",
+        "list_leads",
+        "update_lead",
+        "list_pipeline_stages",
+        "list_tracking_links",
+        "create_tracking_link",
+        "list_knowledge_bases",
+        "add_knowledge_text",
     }
     assert tools["send_message"]["annotations"]["readOnlyHint"] is False
+    assert tools["send_message"]["annotations"]["openWorldHint"] is True
+    # Workspace-only writes never reach a customer.
+    assert tools["update_lead"]["annotations"]["openWorldHint"] is False
     assert tools["list_conversations"]["inputSchema"]["type"] == "object"
     assert rpc(raw, "ping").json()["result"] == {}
     assert rpc(raw, "resources/list").json()["error"]["code"] == -32601

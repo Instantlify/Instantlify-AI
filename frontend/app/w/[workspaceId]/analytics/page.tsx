@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import {
   ValidatedForm,
   ValidatedInput,
@@ -343,6 +345,7 @@ function Experiments({ automations }: { automations: Automation[] }) {
     auto_promote: false,
     min_leads: 100,
   });
+  const confirm = useConfirmation();
   const feedback = useFeedback();
   const published = automations.filter(
     (item) => item.published && Object.keys(item.published).length > 0,
@@ -406,7 +409,7 @@ function Experiments({ automations }: { automations: Automation[] }) {
         ? nameOf(experiment.variant)
         : nameOf(experiment.control);
     if (
-      !window.confirm(
+      !await confirm(
         `Promote “${label}” as the winner? ${
           winner === "variant"
             ? "Its flow will be republished under the control automation."

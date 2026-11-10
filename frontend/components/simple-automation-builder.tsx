@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -83,6 +85,7 @@ export function SimpleAutomationBuilder({
   onBack,
   onSaved,
 }: SimpleAutomationBuilderProps) {
+  const confirm = useConfirmation();
   const prefix = `/api/workspaces/${workspaceId}`;
   const [settings, setSettings] = useState<GuidedSettings>(INITIAL);
   const [name, setName] = useState("My automation");
@@ -268,10 +271,10 @@ export function SimpleAutomationBuilder({
         <button
           type="button"
           className="button secondary"
-          onClick={() => {
+          onClick={async () => {
             if (
               !dirty ||
-              window.confirm("Discard your unsaved automation changes?")
+              await confirm("Discard your unsaved automation changes?")
             )
               onBack();
           }}
@@ -768,7 +771,7 @@ export function SimpleAutomationBuilder({
                     />
                   </label>
                   <p>
-                    Nemio checks follow status after a private reply. Tapping
+                    Instantlify checks follow status after a private reply. Tapping
                     the button alone does not unlock resources. Your Instagram
                     connection must allow profile lookup.
                   </p>
