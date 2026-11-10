@@ -10,7 +10,9 @@ from apps.platform_ops.intelligence import fake_mode
 pytestmark = pytest.mark.django_db
 
 
-def test_simulated_channel_works_in_live_mode_without_platform_keys(client, workspace, settings, user):
+def test_simulated_channel_works_in_live_mode_without_platform_keys(
+    client, workspace, settings, user
+):
     settings.CHANNEL_ADAPTER_MODE = "live"
     settings.ALLOW_TEST_CHANNELS = True
     base = f"/api/workspaces/{workspace.pk}/channels/"

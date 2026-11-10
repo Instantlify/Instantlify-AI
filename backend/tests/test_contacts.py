@@ -19,8 +19,12 @@ def test_form_and_manual_contact_filters_follow_stored_provenance(client, worksp
         workspace=workspace, name="Form contact", fields={"source": "form", "form": "qa"}
     )
     url = WORKSPACE.format(workspace.pk)
-    assert [row["id"] for row in client.get(url + "?source=manual").json()["results"]] == [str(manual.pk)]
-    assert [row["id"] for row in client.get(url + "?source=form").json()["results"]] == [str(form.pk)]
+    assert [row["id"] for row in client.get(url + "?source=manual").json()["results"]] == [
+        str(manual.pk)
+    ]
+    assert [row["id"] for row in client.get(url + "?source=form").json()["results"]] == [
+        str(form.pk)
+    ]
 
 
 def test_webhooks_carry_the_senders_name_and_handle():

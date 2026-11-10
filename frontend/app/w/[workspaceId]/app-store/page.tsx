@@ -5,24 +5,14 @@ import { type ReactNode } from "react";
 import {
   ArrowUpRight,
   Calendar,
-  Check,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
   FileText,
-  HeartHandshake,
-  Layers,
   Link2,
   MessageCircle,
   MessageSquare,
   Minus,
   MousePointerClick,
-  Pin,
-  PinOff,
   Plus,
   ShieldAlert,
-  Smartphone,
-  Sparkles,
   Star,
   Trash2,
   TrendingUp,
@@ -63,6 +53,20 @@ export default function AppStorePage() {
   }
 
   const STORE_APPS: StoreApp[] = [
+    {
+      id: "forum",
+      name: "Community",
+      description: "Share questions and answers with Nemio members.",
+      section: "forum",
+      status: "available",
+      icon: <MessageSquare size={18} />,
+      banner: (
+        <div style={{ padding: 24 }}>
+          <MessageSquare size={36} />
+          <p>Discussions, replies and community answers</p>
+        </div>
+      ),
+    },
     {
       id: "forms",
       name: "Forms",
@@ -195,7 +199,7 @@ export default function AppStorePage() {
     {
       id: "calendar",
       name: "Content Calendar",
-      description: "Schedule Content Across Channels",
+      description: "Schedule Instagram posts and publish them on time",
       section: "calendar",
       icon: <Calendar size={18} color="#ffffff" />,
       banner: (
@@ -254,7 +258,7 @@ export default function AppStorePage() {
     {
       id: "shield",
       name: "Hate Detection",
-      description: "Delete negative comments and keep your reputation clean.",
+      description: "Hide or delete comments that match your keyword rules.",
       section: "shield",
       icon: <ShieldAlert size={18} color="#ffffff" />,
       banner: (
@@ -378,7 +382,7 @@ export default function AppStorePage() {
     {
       id: "deeplinks",
       name: "Tracking Links",
-      description: "Create tracking links to see where your leads come from",
+      description: "Trackable short links with UTM tags, QR codes and click counts",
       section: "deeplinks",
       icon: <MousePointerClick size={18} color="#ffffff" />,
       banner: (
@@ -447,68 +451,6 @@ export default function AppStorePage() {
             >
               14,896 clicks
             </span>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "smart-links",
-      name: "Deep Link",
-      description:
-        "Track destination clicks and campaign attribution with shareable links.",
-      section: "deeplinks",
-      icon: <Smartphone size={18} color="#ffffff" />,
-      banner: (
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: "12px",
-              padding: "12px",
-              width: "190px",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-            }}
-          >
-            <div
-              style={{
-                width: "28px",
-                height: "28px",
-                borderRadius: "8px",
-                background: "#ef4444",
-                color: "#fff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 800,
-                fontSize: "12px",
-              }}
-            >
-              ▶
-            </div>
-            <div style={{ flex: 1 }}>
-              <div
-                style={{ fontSize: "11px", fontWeight: 700, color: "#0f172a" }}
-              >
-                youtube.com/...
-              </div>
-              <div
-                style={{ fontSize: "9px", color: "#10b981", fontWeight: 600 }}
-              >
-                ✓ Native App Bypass
-              </div>
-            </div>
           </div>
         </div>
       ),
@@ -604,7 +546,7 @@ export default function AppStorePage() {
       {/* 3-Column Visual Grid matching Screenshot 11 */}
       <div className="boosend-appstore-grid">
         {STORE_APPS.map((app) => {
-          const pinId = app.id === "smart-links" ? "deeplinks" : app.id;
+          const pinId = app.id;
           const isPinned = pinned.includes(pinId);
           const isComingSoon = app.status === "coming_soon";
           const openUrl = app.section

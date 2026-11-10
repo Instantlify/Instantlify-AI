@@ -607,7 +607,7 @@
   .nm-guided-preview-toggle {
     display: flex;
     position: fixed;
-    bottom: 20px;
+    bottom: calc(88px + env(safe-area-inset-bottom));
     right: 18px;
     z-index: 45;
     box-shadow: 0 5px 25px #20281938;

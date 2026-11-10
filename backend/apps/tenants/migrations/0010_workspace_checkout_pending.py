@@ -6,13 +6,11 @@ def mark_unfinished_checkouts(apps, schema_editor):
     Workspace = apps.get_model("tenants", "Workspace")
     BillingJob = apps.get_model("billing", "BillingJob")
     BillingAccount = apps.get_model("billing", "BillingAccount")
-    attempted = BillingJob._base_manager.using(db).filter(
-        kind="checkout", return_to="onboarding"
-    )
+    attempted = BillingJob._base_manager.using(db).filter(kind="checkout", return_to="onboarding")
     subscribed = BillingAccount._base_manager.using(db).exclude(subscription_id="")
-    Workspace.objects.using(db).filter(
-        pk__in=attempted.values("workspace_id")
-    ).exclude(pk__in=subscribed.values("workspace_id")).update(checkout_pending=True)
+    Workspace.objects.using(db).filter(pk__in=attempted.values("workspace_id")).exclude(
+        pk__in=subscribed.values("workspace_id")
+    ).update(checkout_pending=True)
 
 
 class Migration(migrations.Migration):

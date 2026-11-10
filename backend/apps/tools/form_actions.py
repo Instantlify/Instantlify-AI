@@ -10,6 +10,8 @@ from apps.billing.gating import check_feature
 from apps.crm.models import IntegrationConfig, IntegrationJob
 from apps.public_api.services import lead_payload
 
+from .form_files import answer_metadata
+
 OPERATIONS = {
     "send_email": {"gmail", "outlook", "zorromail"},
     "sync_lead": {
@@ -89,9 +91,18 @@ def validate_actions(value, workspace_id):
 
 
 def queue_submission_actions(submission, form, lead, answers):
+    answers = answer_metadata(answers)
+
     def render(text, limit):
         for key, value in answers.items():
-            text = text.replace("{{" + key + "}}", value)
+            rendered = (
+                value.get("name") or ", ".join(str(item) for item in value.values() if item)
+                if isinstance(value, dict)
+                else ", ".join(value)
+                if isinstance(value, list)
+                else value
+            )
+            text = text.replace("{{" + key + "}}", rendered)
         return text[:limit]
 
     errors = []
@@ -104,11 +115,18 @@ def queue_submission_actions(submission, form, lead, answers):
         if not config:
             errors.append({"action": index + 1, "error": "integration_unavailable"})
             continue
-        payload = lead_payload(lead)
+        if not lead and action["operation"] not in {"notify", "webhook"}:
+            errors.append({"action": index + 1, "error": "contact_required"})
+            continue
+        payload = lead_payload(lead) if lead else {}
         payload.update(
             to=answers["email"],
             email=answers["email"],
-            name=answers.get("name", lead.name),
+            name=answers.get("name", lead.name if lead else "")
+            if isinstance(answers.get("name", lead.name if lead else ""), str)
+            else lead.name
+            if lead
+            else "",
             text=render(action.get("text", ""), 2000),
             subject=" ".join(render(action.get("subject", ""), 200).splitlines()),
         )
@@ -118,7 +136,7 @@ def queue_submission_actions(submission, form, lead, answers):
                 "form_id": str(form.pk),
                 "submission_id": str(submission.pk),
                 "answers": answers,
-                "lead_id": str(lead.pk),
+                "lead_id": str(lead.pk) if lead else None,
                 "consent_text": submission.consent_text,
             }
         IntegrationJob.objects.for_workspace(form.workspace_id).get_or_create(

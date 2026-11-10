@@ -7,21 +7,10 @@ import {
 } from "@/components/validated-form";
 
 import { useEffect, useState } from "react";
-import {
-  Bot,
-  Check,
-  Code,
-  Copy,
-  MessageCircle,
-  MessageSquareText,
-  Palette,
-  Send,
-  Sparkles,
-} from "lucide-react";
+import { Check, Copy, Send, Sparkles } from "lucide-react";
 import { api, message, type WebChatSettings } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
 import {
-  CopyField,
   ErrorNotice,
   PageHeading,
   Panel,
@@ -42,7 +31,12 @@ export default function WebChatPage() {
   useEffect(() => {
     const controller = new AbortController();
     queueMicrotask(() =>
-      api<WebChatSettings>(`${prefix}/webchat/`, "GET", undefined, controller.signal)
+      api<WebChatSettings>(
+        `${prefix}/webchat/`,
+        "GET",
+        undefined,
+        controller.signal,
+      )
         .then((saved) => {
           setTitle(saved.title);
           setGreeting(saved.greeting);
@@ -93,10 +87,23 @@ export default function WebChatPage() {
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "24px", alignItems: "start" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1.2fr 0.8fr",
+          gap: "24px",
+          alignItems: "start",
+        }}
+      >
         <div>
           <Panel title="Widget Configuration">
-            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <ValidatedForm
+              fieldErrors={feedback.fieldErrors}
+              validationTarget={feedback.validationTarget}
+              onEdit={() => feedback.setError("")}
+              onSubmit={handleSave}
+              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+            >
               <label>
                 Widget Title
                 <ValidatedInput
@@ -117,15 +124,35 @@ export default function WebChatPage() {
                 />
               </label>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "14px",
+                }}
+              >
                 <label>
                   Brand Accent Color
-                  <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "4px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "10px",
+                      alignItems: "center",
+                      marginTop: "4px",
+                    }}
+                  >
                     <ValidatedInput
                       type="color"
                       value={color}
                       onChange={(e) => setColor(e.target.value)}
-                      style={{ width: "42px", height: "36px", padding: "2px", cursor: "pointer", border: "1px solid var(--brand-line)", borderRadius: "6px" }}
+                      style={{
+                        width: "42px",
+                        height: "36px",
+                        padding: "2px",
+                        cursor: "pointer",
+                        border: "1px solid var(--brand-line)",
+                        borderRadius: "6px",
+                      }}
                     />
                     <ValidatedInput
                       type="text"
@@ -140,7 +167,15 @@ export default function WebChatPage() {
                 <label>
                   AI Assistant Autoreply
                   <div style={{ marginTop: "8px" }}>
-                    <label style={{ display: "flex", gap: "8px", alignItems: "center", cursor: "pointer", fontWeight: "normal" }}>
+                    <label
+                      style={{
+                        display: "flex",
+                        gap: "8px",
+                        alignItems: "center",
+                        cursor: "pointer",
+                        fontWeight: "normal",
+                      }}
+                    >
                       <ValidatedInput
                         type="checkbox"
                         checked={botEnabled}
@@ -161,7 +196,11 @@ export default function WebChatPage() {
                 />
               </label>
 
-              <button type="submit" className="button primary" style={{ alignSelf: "flex-start", marginTop: "6px" }}>
+              <button
+                type="submit"
+                className="button primary"
+                style={{ alignSelf: "flex-start", marginTop: "6px" }}
+              >
                 Save Widget Settings
               </button>
             </ValidatedForm>
@@ -169,35 +208,46 @@ export default function WebChatPage() {
 
           <div style={{ marginTop: "20px" }}>
             <Panel title="Embed Code" aside="One-line script installation">
-            <p style={{ fontSize: "13px", color: "var(--brand-muted)", marginBottom: "12px" }}>
-              Paste this snippet right before the closing <code>&lt;/body&gt;</code> tag of your website:
-            </p>
-            <div style={{ position: "relative" }}>
-              <pre
+              <p
                 style={{
-                  backgroundColor: "var(--brand-sidebar)",
-                  color: "#e2e8f0",
-                  padding: "16px",
-                  borderRadius: "10px",
                   fontSize: "13px",
-                  overflowX: "auto",
-                  margin: 0,
+                  color: "var(--brand-muted)",
+                  marginBottom: "12px",
                 }}
               >
-                <code>{embedScript}</code>
-              </pre>
-              <button
-                className="button secondary small"
-                onClick={copyCode}
-                style={{ position: "absolute", top: "10px", right: "10px" }}
-              >
-                {copied ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
-                {copied ? "Copied" : "Copy snippet"}
-              </button>
-            </div>
-          </Panel>
+                Paste this snippet right before the closing{" "}
+                <code>&lt;/body&gt;</code> tag of your website:
+              </p>
+              <div style={{ position: "relative" }}>
+                <pre
+                  style={{
+                    backgroundColor: "var(--brand-sidebar)",
+                    color: "#e2e8f0",
+                    padding: "16px",
+                    borderRadius: "10px",
+                    fontSize: "13px",
+                    overflowX: "auto",
+                    margin: 0,
+                  }}
+                >
+                  <code>{embedScript}</code>
+                </pre>
+                <button
+                  className="button secondary small"
+                  onClick={copyCode}
+                  style={{ position: "absolute", top: "10px", right: "10px" }}
+                >
+                  {copied ? (
+                    <Check size={14} color="#10b981" />
+                  ) : (
+                    <Copy size={14} />
+                  )}
+                  {copied ? "Copied" : "Copy snippet"}
+                </button>
+              </div>
+            </Panel>
+          </div>
         </div>
-      </div>
 
         {/* Live Widget Preview */}
         <Panel title="Live Widget Preview" aside="Interactive preview">
@@ -234,7 +284,9 @@ export default function WebChatPage() {
                 }}
               />
               <div>
-                <strong style={{ display: "block", fontSize: "15px" }}>{title}</strong>
+                <strong style={{ display: "block", fontSize: "15px" }}>
+                  {title}
+                </strong>
                 <span style={{ fontSize: "12px", opacity: 0.9 }}>
                   {botEnabled ? "AI Agent + Team Online" : "Team Online"}
                 </span>
@@ -267,13 +319,31 @@ export default function WebChatPage() {
                 >
                   {greeting}
                 </div>
-                <span style={{ fontSize: "10px", color: "var(--brand-muted)", marginLeft: "4px" }}>
+                <span
+                  style={{
+                    fontSize: "10px",
+                    color: "var(--brand-muted)",
+                    marginLeft: "4px",
+                  }}
+                >
                   Just now
                 </span>
               </div>
 
               {botEnabled && (
-                <div style={{ alignSelf: "center", padding: "4px 10px", borderRadius: "10px", backgroundColor: "rgba(0,0,0,0.04)", fontSize: "11px", color: "var(--brand-muted)", display: "flex", alignItems: "center", gap: "5px" }}>
+                <div
+                  style={{
+                    alignSelf: "center",
+                    padding: "4px 10px",
+                    borderRadius: "10px",
+                    backgroundColor: "rgba(0,0,0,0.04)",
+                    fontSize: "11px",
+                    color: "var(--brand-muted)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                  }}
+                >
                   <Sparkles size={12} /> Powered by Nemio AI
                 </div>
               )}

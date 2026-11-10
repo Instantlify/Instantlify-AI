@@ -1,0 +1,497 @@
+reference_source,kind,methods,area,nemio_status,nemio_source,acceptance_test,live_verified
+app/[username]/page.tsx,screen,,[username],requires_behavior_mapping,,,no
+app/affiliate/page.tsx,screen,,affiliate,partial_implemented_mock_provider_tests,backend/apps/platform_ops/affiliates.py;frontend/app/w/[workspaceId]/affiliate/page.tsx,backend/tests/test_affiliates.py;frontend/tests/affiliate-profile.spec.ts,no
+app/app-store/page.tsx,screen,,app-store,requires_behavior_mapping,,,no
+app/auth/confirm-action/page.tsx,screen,,auth,requires_behavior_mapping,,,no
+app/auth/error/page.tsx,screen,,auth,requires_behavior_mapping,,,no
+app/auth/instagram-callback/page.tsx,screen,,auth,requires_behavior_mapping,,,no
+app/auth/magic-callback/page.tsx,screen,,auth,requires_behavior_mapping,,,no
+app/auth/reset-password/page.tsx,screen,,auth,requires_behavior_mapping,,,no
+app/auth-test/page.tsx,screen,,auth-test,requires_behavior_mapping,,,no
+app/automation/basic/page.tsx,screen,,automation,requires_behavior_mapping,,,no
+app/automation/builder/page.tsx,screen,,automation,requires_behavior_mapping,,,no
+app/automation/my-automations/page.tsx,screen,,automation,requires_behavior_mapping,,,no
+app/automation/page.tsx,screen,,automation,requires_behavior_mapping,,,no
+app/automation/sequence/page.tsx,screen,,automation,requires_behavior_mapping,,,no
+app/automation/share/[id]/page.tsx,screen,,automation,requires_behavior_mapping,,,no
+app/automation/simple/page.tsx,screen,,automation,requires_behavior_mapping,,,no
+app/clear-session/page.tsx,screen,,clear-session,requires_behavior_mapping,,,no
+app/connect-instagram/page.tsx,screen,,connect-instagram,requires_behavior_mapping,,,no
+app/connections/page.tsx,screen,,connections,requires_behavior_mapping,,,no
+app/contacts/page.tsx,screen,,contacts,requires_behavior_mapping,,,no
+app/conversations/debug/page.tsx,screen,,conversations,requires_behavior_mapping,,,no
+app/conversations/page.tsx,screen,,conversations,requires_behavior_mapping,,,no
+app/data-deletion-status/page.tsx,screen,,data-deletion-status,requires_behavior_mapping,,,no
+app/debug/page.tsx,screen,,debug,requires_behavior_mapping,,,no
+app/deep-link/page.tsx,screen,,deep-link,requires_behavior_mapping,,,no
+app/f/[slug]/page.tsx,screen,,f,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/files/page.tsx,screen,,files,requires_behavior_mapping,,,no
+app/forms/[id]/edit/page.tsx,screen,,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/forms/[id]/responses/page.tsx,screen,,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/forms/page.tsx,screen,,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/forum/page.tsx,screen,,forum,partial_implemented_local_tests,backend/apps/platform_ops/community.py;frontend/components/community-forum.tsx,backend/tests/test_community.py;frontend/tests/community.spec.ts,no
+app/hate-detection/page.tsx,screen,,hate-detection,requires_behavior_mapping,,,no
+app/inbox/page.tsx,screen,,inbox,requires_behavior_mapping,,,no
+app/insights/page.tsx,screen,,insights,requires_behavior_mapping,,,no
+app/link-in-bio/page.tsx,screen,,link-in-bio,requires_behavior_mapping,,,no
+app/login/page.tsx,screen,,login,requires_behavior_mapping,,,no
+app/messenger/page.tsx,screen,,messenger,requires_behavior_mapping,,,no
+app/oauth/authorize/page.tsx,screen,,oauth,requires_behavior_mapping,,,no
+app/oauth/callback/calcom/page.tsx,screen,,oauth,requires_behavior_mapping,,,no
+app/oauth/callback/calendly/page.tsx,screen,,oauth,requires_behavior_mapping,,,no
+app/oauth/callback/discord/page.tsx,screen,,oauth,requires_behavior_mapping,,,no
+app/oauth/callback/google/page.tsx,screen,,oauth,requires_behavior_mapping,,,no
+app/oauth/callback/microsoft/page.tsx,screen,,oauth,requires_behavior_mapping,,,no
+app/oauth/callback/notion/page.tsx,screen,,oauth,requires_behavior_mapping,,,no
+app/oauth/callback/slack/page.tsx,screen,,oauth,requires_behavior_mapping,,,no
+app/oauth/callback/slack-assistant/page.tsx,screen,,oauth,requires_behavior_mapping,,,no
+app/oauth/callback/zoho/page.tsx,screen,,oauth,requires_behavior_mapping,,,no
+app/onboarding/setup/page.tsx,screen,,onboarding,requires_behavior_mapping,,,no
+app/onboarding/voice-test/page.tsx,screen,,onboarding,requires_behavior_mapping,,,no
+app/p/[username]/thank-you/page.tsx,screen,,p,requires_behavior_mapping,,,no
+app/page.tsx,screen,,page.tsx,requires_behavior_mapping,,,no
+app/posts/page.tsx,screen,,posts,requires_behavior_mapping,,,no
+app/preview/connect/page.tsx,screen,,preview,requires_behavior_mapping,,,no
+app/preview/payment/page.tsx,screen,,preview,requires_behavior_mapping,,,no
+app/preview/team/page.tsx,screen,,preview,requires_behavior_mapping,,,no
+app/preview/workspace/page.tsx,screen,,preview,requires_behavior_mapping,,,no
+app/settings/page.tsx,screen,,settings,requires_behavior_mapping,,,no
+app/share/automation/[id]/page.tsx,screen,,share,requires_behavior_mapping,,,no
+app/team/accept-invitation/page.tsx,screen,,team,requires_behavior_mapping,,,no
+app/telegram/page.tsx,screen,,telegram,requires_behavior_mapping,,,no
+app/template/[id]/page.tsx,screen,,template,requires_behavior_mapping,,,no
+app/test-login/page.tsx,screen,,test-login,requires_behavior_mapping,,,no
+app/test-sidebar/page.tsx,screen,,test-sidebar,requires_behavior_mapping,,,no
+app/tracking-links/page.tsx,screen,,tracking-links,requires_behavior_mapping,,,no
+app/upgrade/page.tsx,screen,,upgrade,requires_behavior_mapping,,,no
+app/web-support/page.tsx,screen,,web-support,requires_behavior_mapping,,,no
+app/web-support/widgets/[id]/page.tsx,screen,,web-support,requires_behavior_mapping,,,no
+app/whatsapp/page.tsx,screen,,whatsapp,requires_behavior_mapping,,,no
+app/workspace/accept-invitation/page.tsx,screen,,workspace,requires_behavior_mapping,,,no
+app/workspace/settings/page.tsx,screen,,workspace,requires_behavior_mapping,,,no
+app/.well-known/oauth-authorization-server/route.ts,http,GET OPTIONS,.well-known,requires_behavior_mapping,,,no
+app/.well-known/oauth-protected-resource/[...path]/route.ts,http,GET OPTIONS,.well-known,requires_behavior_mapping,,,no
+app/.well-known/oauth-protected-resource/route.ts,http,GET OPTIONS,.well-known,requires_behavior_mapping,,,no
+app/api/affiliate/route.ts,http,GET POST,affiliate,partial_implemented_mock_provider_tests,backend/apps/platform_ops/affiliates.py;frontend/app/w/[workspaceId]/affiliate/page.tsx,backend/tests/test_affiliates.py;frontend/tests/affiliate-profile.spec.ts,no
+app/api/affiliate/track-signup/route.ts,http,POST,affiliate,requires_behavior_mapping,,,no
+app/api/ai-pricing/route.ts,http,GET,ai-pricing,requires_behavior_mapping,,,no
+app/api/ai-test-basic/route.ts,http,POST,ai-test-basic,requires_behavior_mapping,,,no
+app/api/airtable/bases/[baseId]/tables/route.ts,http,GET POST,airtable,requires_behavior_mapping,,,no
+app/api/airtable/bases/route.ts,http,GET POST,airtable,requires_behavior_mapping,,,no
+app/api/airtable/sync-knowledge-base/route.ts,http,POST,airtable,requires_behavior_mapping,,,no
+app/api/airtable/test/route.ts,http,POST,airtable,requires_behavior_mapping,,,no
+app/api/auth/email-change-status/route.ts,http,GET,auth,requires_behavior_mapping,,,no
+app/api/auth/linked-identities/route.ts,http,DELETE GET,auth,requires_behavior_mapping,,,no
+app/api/auth/log-refresh-storm/route.ts,http,POST,auth,requires_behavior_mapping,,,no
+app/api/auth/request-email-change/route.ts,http,POST,auth,requires_behavior_mapping,,,no
+app/api/auth/request-magic-link/route.ts,http,POST,auth,requires_behavior_mapping,,,no
+app/api/auth/request-password-reset/route.ts,http,POST,auth,requires_behavior_mapping,,,no
+app/api/automation-agent/route.ts,http,POST,automation-agent,requires_behavior_mapping,,,no
+app/api/automation-folders/assignments/route.ts,http,DELETE GET POST,automation-folders,requires_behavior_mapping,,,no
+app/api/automation-folders/route.ts,http,DELETE GET POST PUT,automation-folders,requires_behavior_mapping,,,no
+app/api/automation-preview/route.ts,http,POST,automation-preview,requires_behavior_mapping,,,no
+app/api/automation-test-execution/route.ts,http,DELETE POST,automation-test-execution,requires_behavior_mapping,,,no
+app/api/automations/[id]/activate/route.ts,http,GET POST,automations,requires_behavior_mapping,,,no
+app/api/automations/[id]/advanced-agent/route.ts,http,GET POST,automations,requires_behavior_mapping,,,no
+app/api/automations/[id]/compile/route.ts,http,POST,automations,requires_behavior_mapping,,,no
+app/api/automations/[id]/executions/route.ts,http,GET,automations,requires_behavior_mapping,,,no
+app/api/automations/[id]/generate-description/route.ts,http,POST,automations,requires_behavior_mapping,,,no
+app/api/automations/[id]/nodes/[nodeId]/stats/route.ts,http,GET,automations,requires_behavior_mapping,,,no
+app/api/automations/[id]/save/route.ts,http,POST,automations,requires_behavior_mapping,,,no
+app/api/automations/[id]/template-description/route.ts,http,POST,automations,requires_behavior_mapping,,,no
+app/api/automations/check-keywords/route.ts,http,POST,automations,requires_behavior_mapping,,,no
+app/api/automations/route.ts,http,DELETE GET POST PUT,automations,requires_behavior_mapping,,,no
+app/api/automations/stats/route.ts,http,GET,automations,requires_behavior_mapping,,,no
+app/api/avatar-proxy/route.ts,http,GET,avatar-proxy,requires_behavior_mapping,,,no
+app/api/beehiiv/publications/route.ts,http,POST,beehiiv,requires_behavior_mapping,,,no
+app/api/billing/past-due/route.ts,http,GET,billing,requires_behavior_mapping,,,no
+app/api/billing-lock/charge-existing-card/route.ts,http,POST,billing-lock,requires_behavior_mapping,,,no
+app/api/billing-lock/create-payment-intent/route.ts,http,POST,billing-lock,requires_behavior_mapping,,,no
+app/api/billing-lock/status/route.ts,http,GET,billing-lock,requires_behavior_mapping,,,no
+app/api/campaigns/[id]/route.ts,http,DELETE GET PATCH,campaigns,requires_behavior_mapping,,,no
+app/api/campaigns/[id]/send/route.ts,http,POST,campaigns,requires_behavior_mapping,,,no
+app/api/campaigns/audience/route.ts,http,GET,campaigns,requires_behavior_mapping,,,no
+app/api/campaigns/route.ts,http,GET POST,campaigns,requires_behavior_mapping,,,no
+app/api/chat/route.ts,http,POST,chat,requires_behavior_mapping,,,no
+app/api/chat-llm-test/route.ts,http,POST,chat-llm-test,requires_behavior_mapping,,,no
+app/api/click/[trackingId]/route.ts,http,GET,click,requires_behavior_mapping,,,no
+app/api/connections/stripe/test/route.ts,http,POST,connections,requires_behavior_mapping,,,no
+app/api/contact-summary/route.ts,http,POST,contact-summary,requires_behavior_mapping,,,no
+app/api/contacts/assignable-members/route.ts,http,GET,contacts,requires_behavior_mapping,,,no
+app/api/contacts/custom-fields/route.ts,http,GET,contacts,requires_behavior_mapping,,,no
+app/api/contacts/executions/route.ts,http,DELETE,contacts,requires_behavior_mapping,,,no
+app/api/contacts/export/route.ts,http,GET,contacts,requires_behavior_mapping,,,no
+app/api/contacts/sessions/route.ts,http,DELETE,contacts,requires_behavior_mapping,,,no
+app/api/credits/auto-topup/route.ts,http,GET POST,credits,requires_behavior_mapping,,,no
+app/api/credits/auto-topup-trigger/route.ts,http,POST,credits,requires_behavior_mapping,,,no
+app/api/credits/top-up/route.ts,http,POST,credits,requires_behavior_mapping,,,no
+app/api/dashboard-stats/leaderboard/route.ts,http,GET,dashboard-stats,requires_behavior_mapping,,,no
+app/api/dashboard-stats/monthly/route.ts,http,GET,dashboard-stats,requires_behavior_mapping,,,no
+app/api/dashboard-stats/route.ts,http,GET POST,dashboard-stats,requires_behavior_mapping,,,no
+app/api/debug/auth-handoff/route.ts,http,GET,debug,requires_behavior_mapping,,,no
+app/api/debug-tables/route.ts,http,GET,debug-tables,requires_behavior_mapping,,,no
+app/api/deep-link/route.ts,http,POST,deep-link,requires_behavior_mapping,,,no
+app/api/deep-links/route.ts,http,GET,deep-links,requires_behavior_mapping,,,no
+app/api/early-access/apply/route.ts,http,GET POST,early-access,requires_behavior_mapping,,,no
+app/api/elevenlabs/text-to-speech/route.ts,http,POST,elevenlabs,requires_behavior_mapping,,,no
+app/api/enhance-ai-config/route.ts,http,POST,enhance-ai-config,requires_behavior_mapping,,,no
+app/api/fetch-website/route.ts,http,POST,fetch-website,requires_behavior_mapping,,,no
+app/api/forms/[id]/branching/route.ts,http,GET PUT,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forms/[id]/publish/route.ts,http,POST,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forms/[id]/responses/[rid]/file/route.ts,http,GET,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forms/[id]/responses/[rid]/route.ts,http,DELETE,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forms/[id]/responses/csv/route.ts,http,GET,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forms/[id]/responses/route.ts,http,GET,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forms/[id]/route.ts,http,DELETE GET PUT,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forms/[id]/unpublish/route.ts,http,POST,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forms/public/[slug]/route.ts,http,GET,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forms/public/[slug]/submit/route.ts,http,POST,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forms/public/[slug]/upload/route.ts,http,POST,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forms/route.ts,http,GET POST,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forms/tool/questions/route.ts,http,GET,forms,partial_forms_increment_2026_11_10,backend/apps/tools/forms.py; backend/apps/tools/form_schema.py; backend/apps/tools/form_files.py; backend/apps/tools/form_exports.py; frontend/app/w/[workspaceId]/forms/page.tsx,backend/tests/test_form_branching.py; backend/tests/test_form_files.py; backend/tests/test_form_exports.py; frontend/tests/form-branching.spec.ts,no
+app/api/forum/assistant/route.ts,http,POST,forum,partial_implemented_local_tests,backend/apps/platform_ops/community.py;frontend/components/community-forum.tsx,backend/tests/test_community.py;frontend/tests/community.spec.ts,no
+app/api/generate-email-text/route.ts,http,POST,generate-email-text,requires_behavior_mapping,,,no
+app/api/hate-detection/route.ts,http,GET POST,hate-detection,requires_behavior_mapping,,,no
+app/api/heygen/avatars/route.ts,http,GET,heygen,requires_behavior_mapping,,,no
+app/api/heygen/generate/route.ts,http,POST,heygen,requires_behavior_mapping,,,no
+app/api/heygen/voices/route.ts,http,GET,heygen,requires_behavior_mapping,,,no
+app/api/instagram/create-container/route.ts,http,OPTIONS POST,instagram,requires_behavior_mapping,,,no
+app/api/instagram/data-deletion/route.ts,http,GET POST,instagram,requires_behavior_mapping,,,no
+app/api/instagram/deauthorize/route.ts,http,GET POST,instagram,requires_behavior_mapping,,,no
+app/api/instagram/get-account/route.ts,http,POST,instagram,requires_behavior_mapping,,,no
+app/api/instagram/insights/account/route.ts,http,GET,instagram,requires_behavior_mapping,,,no
+app/api/instagram/insights/posts/route.ts,http,GET,instagram,requires_behavior_mapping,,,no
+app/api/instagram/media/[mediaId]/route.ts,http,GET,instagram,requires_behavior_mapping,,,no
+app/api/instagram/publish/route.ts,http,DELETE POST,instagram,requires_behavior_mapping,,,no
+app/api/instagram/publish-container/route.ts,http,OPTIONS POST,instagram,requires_behavior_mapping,,,no
+app/api/instagram/send-message/route.ts,http,POST,instagram,requires_behavior_mapping,,,no
+app/api/instagram/test-webhook/route.ts,http,GET POST,instagram,requires_behavior_mapping,,,no
+app/api/instagram/update-last-post/route.ts,http,POST,instagram,requires_behavior_mapping,,,no
+app/api/instagram/upload-video/route.ts,http,OPTIONS POST,instagram,requires_behavior_mapping,,,no
+app/api/instagram/validate-token/route.ts,http,POST,instagram,requires_behavior_mapping,,,no
+app/api/instagram-accounts/route.ts,http,GET,instagram-accounts,requires_behavior_mapping,,,no
+app/api/integrations/notavo/sync/route.ts,http,POST,integrations,requires_behavior_mapping,,,no
+app/api/inworld/text-to-speech/route.ts,http,POST,inworld,requires_behavior_mapping,,,no
+app/api/jotform/forms/route.ts,http,GET,jotform,requires_behavior_mapping,,,no
+app/api/jotform/questions/route.ts,http,GET,jotform,requires_behavior_mapping,,,no
+app/api/knowledge-base/route.ts,http,POST,knowledge-base,requires_behavior_mapping,,,no
+app/api/knowledge-bases/[id]/route.ts,http,DELETE GET PUT,knowledge-bases,requires_behavior_mapping,,,no
+app/api/knowledge-bases/route.ts,http,DELETE GET POST PUT,knowledge-bases,requires_behavior_mapping,,,no
+app/api/link-in-bio/analytics/route.ts,http,GET,link-in-bio,requires_behavior_mapping,,,no
+app/api/link-in-bio/track-click/route.ts,http,POST,link-in-bio,requires_behavior_mapping,,,no
+app/api/make/workflows/route.ts,http,DELETE GET POST PUT,make,requires_behavior_mapping,,,no
+app/api/messenger/exchange-token/route.ts,http,GET,messenger,requires_behavior_mapping,,,no
+app/api/messenger/posts/route.ts,http,GET,messenger,requires_behavior_mapping,,,no
+app/api/messenger/send-message/route.ts,http,POST,messenger,requires_behavior_mapping,,,no
+app/api/migrate-profile-pictures/route.ts,http,POST,migrate-profile-pictures,requires_behavior_mapping,,,no
+app/api/minimax/test/route.ts,http,POST,minimax,requires_behavior_mapping,,,no
+app/api/minimax/text-to-speech/route.ts,http,POST,minimax,requires_behavior_mapping,,,no
+app/api/minimax/voices/route.ts,http,GET,minimax,requires_behavior_mapping,,,no
+app/api/n8n/response/[n8nNodeId]/route.ts,http,POST,n8n,requires_behavior_mapping,,,no
+app/api/n8n/webhooks/[n8nNodeId]/route.ts,http,DELETE GET,n8n,requires_behavior_mapping,,,no
+app/api/n8n/webhooks/route.ts,http,POST,n8n,requires_behavior_mapping,,,no
+app/api/n8n/webhooks/test/route.ts,http,GET,n8n,requires_behavior_mapping,,,no
+app/api/n8n/workflows/route.ts,http,DELETE GET POST PUT,n8n,requires_behavior_mapping,,,no
+app/api/notavo/sync-knowledge-base/route.ts,http,POST,notavo,requires_behavior_mapping,,,no
+app/api/notification-emails/route.ts,http,DELETE GET POST PUT,notification-emails,requires_behavior_mapping,,,no
+app/api/notification-strips/read/route.ts,http,POST,notification-strips,requires_behavior_mapping,,,no
+app/api/notification-strips/route.ts,http,GET,notification-strips,requires_behavior_mapping,,,no
+app/api/notion/database-properties/route.ts,http,POST,notion,requires_behavior_mapping,,,no
+app/api/notion/pages/route.ts,http,POST,notion,requires_behavior_mapping,,,no
+app/api/notion/sync-knowledge-base/route.ts,http,POST,notion,requires_behavior_mapping,,,no
+app/api/notion/test/route.ts,http,POST,notion,requires_behavior_mapping,,,no
+app/api/oauth/authorize/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calcom/callback/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calcom/config/route.ts,http,GET POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calcom/connection/route.ts,http,DELETE GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calcom/event-types/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calcom/schedules/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calcom/start/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calcom/test/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calendly/callback/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calendly/config/route.ts,http,GET POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calendly/connection/route.ts,http,DELETE GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calendly/event-types/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calendly/start/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/calendly/test/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/discord/callback/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/discord/channels/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/discord/confirm-install/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/discord/connection/route.ts,http,DELETE GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/discord/guilds/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/discord/servers/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/discord/start/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/discord/user-connection/route.ts,http,DELETE,oauth,requires_behavior_mapping,,,no
+app/api/oauth/google/calendar/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/google/config/route.ts,http,GET POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/google/connection/route.ts,http,DELETE GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/google/start/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/google/test/calendars/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/google/test/gmail/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/google/test/gmail/send/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/google/test/sheets/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/instagram/authorize/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/microsoft/config/route.ts,http,GET POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/microsoft/connection/route.ts,http,DELETE GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/microsoft/start/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/microsoft/test/outlook/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/microsoft/test/outlook/send/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/notavo/available-kbs/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/notavo/callback/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/notavo/connection/route.ts,http,DELETE GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/notavo/start/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/notion/callback/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/notion/config/route.ts,http,GET POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/notion/connection/route.ts,http,DELETE GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/notion/start/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/notion/test/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/shopify/callback/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/shopify/config/route.ts,http,GET POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/shopify/connection/route.ts,http,DELETE GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/shopify/start/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/shopify/test/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/slack/callback/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/slack/channels/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/slack/connection/route.ts,http,DELETE GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/slack/join-channel/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/slack/start/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/slack/users/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/slack/workspaces/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/slack-assistant/callback/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/slack-assistant/clear-chat/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/slack-assistant/connection/route.ts,http,DELETE GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/slack-assistant/start/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/telegram-assistant/connection/route.ts,http,DELETE GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/telegram-assistant/start/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/telegram-assistant/verify/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/token/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/zoho/bookings/services/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/zoho/bookings/staffs/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/zoho/bookings/workspaces/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/zoho/callback/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/zoho/config/route.ts,http,GET POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/zoho/connection/route.ts,http,DELETE GET,oauth,requires_behavior_mapping,,,no
+app/api/oauth/zoho/start/route.ts,http,POST,oauth,requires_behavior_mapping,,,no
+app/api/oauth/zoho/test/route.ts,http,GET,oauth,requires_behavior_mapping,,,no
+app/api/onboarding/ask/route.ts,http,POST,onboarding,requires_behavior_mapping,,,no
+app/api/onboarding/create-automations/route.ts,http,POST,onboarding,requires_behavior_mapping,,,no
+app/api/onboarding/events/route.ts,http,POST,onboarding,requires_behavior_mapping,,,no
+app/api/onboarding/extract-brand/route.ts,http,POST,onboarding,requires_behavior_mapping,,,no
+app/api/onboarding/speak/route.ts,http,POST,onboarding,requires_behavior_mapping,,,no
+app/api/onboarding/transcribe/route.ts,http,POST,onboarding,requires_behavior_mapping,,,no
+app/api/platform-connections/kit/forms/route.ts,http,POST,platform-connections,requires_behavior_mapping,,,no
+app/api/platform-connections/route.ts,http,DELETE GET POST PUT,platform-connections,requires_behavior_mapping,,,no
+app/api/platform-connections/test/route.ts,http,POST,platform-connections,requires_behavior_mapping,,,no
+app/api/poppy/boards/route.ts,http,GET,poppy,requires_behavior_mapping,,,no
+app/api/poppy/chats/route.ts,http,GET,poppy,requires_behavior_mapping,,,no
+app/api/poppy/conversation/route.ts,http,POST,poppy,requires_behavior_mapping,,,no
+app/api/popups/read/route.ts,http,POST,popups,requires_behavior_mapping,,,no
+app/api/popups/route.ts,http,GET,popups,requires_behavior_mapping,,,no
+app/api/products/create/route.ts,http,POST,products,requires_behavior_mapping,,,no
+app/api/products/create-checkout/route.ts,http,POST,products,requires_behavior_mapping,,,no
+app/api/products/download/route.ts,http,GET,products,requires_behavior_mapping,,,no
+app/api/products/list/route.ts,http,GET,products,requires_behavior_mapping,,,no
+app/api/retell/assistants/route.ts,http,GET,retell,requires_behavior_mapping,,,no
+app/api/retell/phone-numbers/route.ts,http,GET,retell,requires_behavior_mapping,,,no
+app/api/scheduled-posts/route.ts,http,DELETE GET POST PUT,scheduled-posts,requires_behavior_mapping,,,no
+app/api/scheduled-posts/signed-upload-url/route.ts,http,POST,scheduled-posts,requires_behavior_mapping,,,no
+app/api/scheduled-posts/upload-media/route.ts,http,DELETE POST,scheduled-posts,requires_behavior_mapping,,,no
+app/api/secrets/generate/route.ts,http,POST,secrets,requires_behavior_mapping,,,no
+app/api/secrets/route.ts,http,GET,secrets,requires_behavior_mapping,,,no
+app/api/segment-contacts/route.ts,http,POST,segment-contacts,requires_behavior_mapping,,,no
+app/api/shopify/products/list/route.ts,http,GET,shopify,requires_behavior_mapping,,,no
+app/api/slack/assistant/events/route.ts,http,POST,slack,requires_behavior_mapping,,,no
+app/api/slack/send-message/route.ts,http,POST,slack,requires_behavior_mapping,,,no
+app/api/stripe/create-checkout-session/route.ts,http,POST,stripe,requires_behavior_mapping,,,no
+app/api/stripe/create-payment-intent/route.ts,http,POST,stripe,requires_behavior_mapping,,,no
+app/api/stripe/create-portal-session/route.ts,http,POST,stripe,requires_behavior_mapping,,,no
+app/api/stripe/payment-methods/route.ts,http,DELETE GET POST,stripe,requires_behavior_mapping,,,no
+app/api/subscription-limits/route.ts,http,GET POST,subscription-limits,requires_behavior_mapping,,,no
+app/api/subscriptions/cancel/route.ts,http,POST,subscriptions,requires_behavior_mapping,,,no
+app/api/subscriptions/incomplete/route.ts,http,DELETE GET,subscriptions,requires_behavior_mapping,,,no
+app/api/subscriptions/route.ts,http,GET POST,subscriptions,requires_behavior_mapping,,,no
+app/api/subscriptions/start-trial/route.ts,http,POST,subscriptions,requires_behavior_mapping,,,no
+app/api/support-chat/route.ts,http,POST,support-chat,requires_behavior_mapping,,,no
+app/api/team-members/accept-invitation/route.ts,http,POST,team-members,requires_behavior_mapping,,,no
+app/api/team-members/route.ts,http,DELETE GET POST PUT,team-members,requires_behavior_mapping,,,no
+app/api/telegram/bots/route.ts,http,DELETE GET POST,telegram,requires_behavior_mapping,,,no
+app/api/telegram/send-message/route.ts,http,POST,telegram,requires_behavior_mapping,,,no
+app/api/telegram/threads/route.ts,http,GET,telegram,requires_behavior_mapping,,,no
+app/api/templates/route.ts,http,GET POST PUT,templates,requires_behavior_mapping,,,no
+app/api/test-button-click/route.ts,http,GET POST,test-button-click,requires_behavior_mapping,,,no
+app/api/test-button-click/verify/route.ts,http,GET,test-button-click,requires_behavior_mapping,,,no
+app/api/test-compilation/route.ts,http,POST,test-compilation,requires_behavior_mapping,,,no
+app/api/test-runner/route.ts,http,DELETE POST,test-runner,requires_behavior_mapping,,,no
+app/api/test-webhook-request/route.ts,http,POST,test-webhook-request,requires_behavior_mapping,,,no
+app/api/tidycal/booking-types/[id]/route.ts,http,GET,tidycal,requires_behavior_mapping,,,no
+app/api/tidycal/booking-types/route.ts,http,GET,tidycal,requires_behavior_mapping,,,no
+app/api/tracking-links/[id]/clicks/route.ts,http,GET,tracking-links,requires_behavior_mapping,,,no
+app/api/tracking-links/[id]/route.ts,http,DELETE PUT,tracking-links,requires_behavior_mapping,,,no
+app/api/tracking-links/route.ts,http,GET POST,tracking-links,requires_behavior_mapping,,,no
+app/api/transcribe/route.ts,http,POST,transcribe,requires_behavior_mapping,,,no
+app/api/upload-image/route.ts,http,POST,upload-image,requires_behavior_mapping,,,no
+app/api/upload-media/route.ts,http,POST,upload-media,requires_behavior_mapping,,,no
+app/api/usage/analytics/route.ts,http,GET,usage,requires_behavior_mapping,,,no
+app/api/usage/route.ts,http,GET,usage,requires_behavior_mapping,,,no
+app/api/user/menu-apps/route.ts,http,GET PUT,user,requires_behavior_mapping,,,no
+app/api/vapi/assistants/route.ts,http,GET,vapi,requires_behavior_mapping,,,no
+app/api/vapi/phone-numbers/route.ts,http,GET,vapi,requires_behavior_mapping,,,no
+app/api/web-support/billing/checkout/route.ts,http,POST,web-support,requires_behavior_mapping,,,no
+app/api/web-support/chat/[slug]/button/route.ts,http,OPTIONS POST,web-support,requires_behavior_mapping,,,no
+app/api/web-support/chat/[slug]/events/route.ts,http,GET OPTIONS,web-support,requires_behavior_mapping,,,no
+app/api/web-support/chat/[slug]/message/route.ts,http,OPTIONS POST,web-support,requires_behavior_mapping,,,no
+app/api/web-support/chat/[slug]/session/route.ts,http,GET OPTIONS,web-support,requires_behavior_mapping,,,no
+app/api/web-support/embed/config/[slug]/route.ts,http,GET OPTIONS,web-support,requires_behavior_mapping,,,no
+app/api/web-support/entitlement/route.ts,http,GET,web-support,requires_behavior_mapping,,,no
+app/api/web-support/inbox/messages/route.ts,http,GET,web-support,requires_behavior_mapping,,,no
+app/api/web-support/inbox/send-message/route.ts,http,POST,web-support,requires_behavior_mapping,,,no
+app/api/web-support/inbox/sessions/route.ts,http,GET,web-support,requires_behavior_mapping,,,no
+app/api/web-support/widgets/[id]/route.ts,http,DELETE GET PATCH,web-support,requires_behavior_mapping,,,no
+app/api/web-support/widgets/route.ts,http,GET POST,web-support,requires_behavior_mapping,,,no
+app/api/webhooks/instagram/route.ts,http,GET POST,webhooks,requires_behavior_mapping,,,no
+app/api/webhooks/stripe-creator/route.ts,http,POST,webhooks,requires_behavior_mapping,,,no
+app/api/webhooks/telegram-assistant/route.ts,http,GET OPTIONS POST,webhooks,requires_behavior_mapping,,,no
+app/api/whatsapp/accounts/route.ts,http,DELETE,whatsapp,requires_behavior_mapping,,,no
+app/api/whatsapp/profile/route.ts,http,GET PATCH,whatsapp,requires_behavior_mapping,,,no
+app/api/whatsapp/send-message/route.ts,http,POST,whatsapp,requires_behavior_mapping,,,no
+app/api/workspaces/[id]/instagram-accounts/route.ts,http,DELETE GET POST,workspaces,requires_behavior_mapping,,,no
+app/api/workspaces/[id]/members/route.ts,http,DELETE GET POST PUT,workspaces,requires_behavior_mapping,,,no
+app/api/workspaces/[id]/route.ts,http,DELETE GET PUT,workspaces,requires_behavior_mapping,,,no
+app/api/workspaces/accept-invitation/route.ts,http,GET POST,workspaces,requires_behavior_mapping,,,no
+app/api/workspaces/billing/checkout/route.ts,http,POST,workspaces,requires_behavior_mapping,,,no
+app/api/workspaces/limits/route.ts,http,GET,workspaces,requires_behavior_mapping,,,no
+app/api/workspaces/migrate/route.ts,http,GET POST,workspaces,requires_behavior_mapping,,,no
+app/api/workspaces/reset/route.ts,http,POST,workspaces,requires_behavior_mapping,,,no
+app/api/workspaces/route.ts,http,GET POST,workspaces,requires_behavior_mapping,,,no
+app/api/zorromail/test/send/route.ts,http,POST,zorromail,requires_behavior_mapping,,,no
+app/auth/callback/route.ts,http,GET,auth,requires_behavior_mapping,,,no
+app/mcp/authorize/route.ts,http,GET,mcp,requires_behavior_mapping,,,no
+app/mcp/register/route.ts,http,OPTIONS POST,mcp,requires_behavior_mapping,,,no
+app/mcp/server/route.ts,http,DELETE GET POST,mcp,requires_behavior_mapping,,,no
+app/mcp/token/route.ts,http,OPTIONS POST,mcp,requires_behavior_mapping,,,no
+app/share/ai-test/[slug]/route.ts,http,GET,share,requires_behavior_mapping,,,no
+supabase/functions/advanced-test-preview/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/affiliate-signup/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/ai-fallback-generate/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/auth-send-email-hook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/auto-topup-cron/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/auto-topup-now/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/auto-topup-retry-cron/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-agent-stream/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-agent-stream-copy/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-agent-stream-copy-test/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-agent-stream-v2/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-agent-stream-v3/helpers/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-agent-stream-v3/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-agent-stream-v5/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-agent-stream-v5-1/helpers/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-agent-stream-v5-1/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-runner/helpers/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-runner/helpers/tool-executors/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-runner/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/automation-scheduler/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/calendly-oauth-callback/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/calendly-oauth-start/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/campaign-runner/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/cancel-lifetime-trial/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/check-provider-keys/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/contact-avatar-mirror/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/create-checkout-session/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/create-portal-session/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/create-promoter/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/create-setup-intent/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/execution-logs/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/facebook-user-sync/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/google-sheets-token-exchange/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/google-token-refresh/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/heygen-webhook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-account-resync/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-data-deletion/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-deauthorize/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-disconnect-account/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-disconnect-request/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-post-poller/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-proxy/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-publish-status/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-publisher/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-sync-conversations/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-token-exchange/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-token-refresh/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-webhook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-webhook-notify/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-webhook-runtime/helpers/transcription/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/instagram-webhook-runtime/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/messenger-disconnect-account/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/messenger-token-exchange/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/messenger-webhook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/migrate-profile-pictures/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/n8n-auth-test/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/n8n-context/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/n8n-conversation-history/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/n8n-response/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/oauth-callback/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/oauth-config/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/oauth-microsoft-callback/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/oauth-microsoft-config/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/oauth-microsoft-start/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/oauth-start/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/oauth-token-refresh/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/process-lifetime-trials/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/refresh-dashboard-analytics/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/resubscribe-khaled-oneshot/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/retell-webhook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/send-email/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/send-team-invitation/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/slack-assistant-webhook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/start-lifetime-trial/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/stripe-webhook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/sync-email-external/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/telegram-assistant-webhook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/telegram-webhook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/telnyx-sms-webhook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/telnyx_buy_number/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/telnyx_search_numbers/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/test-ai-step/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/test-contact-sync/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/test-exec-preview/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/test-instagram-send-voice-node/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/test-systemeio-sync/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/twilio-sms-webhook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/twilio_buy_number/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/twilio_provision_tenant/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/twilio_search_numbers/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/twilio_set_test_creds/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/vapi-webhook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/web-support/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/whatsapp-disconnect-account/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/whatsapp-token-exchange/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/whatsapp-webhook/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+supabase/functions/xai-probe/index.ts,edge_function,,functions,requires_behavior_mapping,,,no
+components/nodes/ActionNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/AIConditionNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/AIExtractorNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/AINode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/AssignContactNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/automation-tools/AutomationToolNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/ConditionNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/DebugNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/DiscordNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/GhostExecutionNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/HeyGenNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/InstagramNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/InstagramReplyCommentNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/llm/LLMNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/MessengerNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/PoppyAINode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/RandomizerNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/RetellNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/SetStageNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/SlackNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/SmartDelayNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/TelegramNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/ToolNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/TransferWorkflowNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/TriggerNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/VapiNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/WaitForReplyNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no
+components/nodes/WhatsAppNode.tsx,canvas_node,,nodes,requires_behavior_mapping,,,no

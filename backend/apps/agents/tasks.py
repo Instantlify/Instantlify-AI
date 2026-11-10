@@ -49,6 +49,24 @@ def process_run(workspace_id, run_id):
         )
         if (
             AgentRun.objects.for_workspace(workspace_id)
+            .filter(message__conversation=conversation, status="pending")
+            .filter(
+                **(
+                    {"message__sequence__gt": run.message.sequence}
+                    if run.message.sequence is not None
+                    else {"message__created_at__gt": run.message.created_at}
+                )
+            )
+            .exists()
+        ):
+            # The customer wrote again before this was answered. The newest message's run
+            # replies to the whole burst (it reads the recent transcript), so answering
+            # each message separately would only send duplicates.
+            run.status = "superseded"
+            run.save()
+            return
+        if (
+            AgentRun.objects.for_workspace(workspace_id)
             .filter(message__conversation=conversation, status="running")
             .exists()
         ):
@@ -60,6 +78,12 @@ def process_run(workspace_id, run_id):
         if not config or not conversation.ai_enabled or conversation.identity.lead.opted_out:
             run.status = "skipped"
             run.save()
+            return
+        if config.reply_delay_seconds and run.message.created_at > timezone.now() - timedelta(
+            seconds=config.reply_delay_seconds
+        ):
+            # Give the customer a moment to finish typing; a later message supersedes this.
+            release(process_run, run_id)
             return
         from apps.billing.gating import guard
 

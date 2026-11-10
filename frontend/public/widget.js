@@ -12,12 +12,12 @@
   var visitor = "";
   try {
     visitor = localStorage.getItem(storageKey) || "";
-  } catch (e) {}
+  } catch {}
   if (!visitor) {
     visitor = "v-" + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
     try {
       localStorage.setItem(storageKey, visitor);
-    } catch (e) {}
+    } catch {}
   }
 
   var config = { title: "Chat with us", greeting: "", color: "#347359", bot_enabled: true };

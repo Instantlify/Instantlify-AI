@@ -17,6 +17,9 @@ import {
   type FormResponse,
 } from "@/lib/portal-tools";
 import { useWorkspace } from "@/lib/workspace";
+import { FORM_TYPES, EMAIL_TYPES, NON_INPUT_TYPES } from "@/lib/form-path";
+import { FormPresentationEditor } from "@/components/form-presentation-editor";
+import { FormBranchEditor } from "@/components/form-branch-editor";
 import { FormAutomationActions } from "@/components/form-automation-actions";
 import {
   ErrorNotice,
@@ -39,10 +42,11 @@ export default function FormsPage() {
   const [loaded, setLoaded] = useState(false);
   const feedback = useFeedback();
   const requiredEmailIndex =
-    draft?.fields.findIndex(
-      (field) =>
-        field.id === "email" && field.type === "email" && field.required,
-    ) ?? -1;
+    draft?.capture_contacts === false
+      ? -1
+      : (draft?.fields.findIndex(
+          (field) => EMAIL_TYPES.includes(field.type) && field.required,
+        ) ?? -1);
   useEffect(() => {
     const controller = new AbortController();
     api<LeadForm[]>(`${prefix}/forms/`, "GET", undefined, controller.signal)
@@ -58,18 +62,6 @@ export default function FormsPage() {
   }, [prefix]);
   const publicUrl = (slug: string) =>
     `${typeof window === "undefined" ? "" : window.location.origin}/f/${slug}`;
-  function exportResponses() {
-    const url = URL.createObjectURL(
-      new Blob([JSON.stringify(responses, null, 2)], {
-        type: "application/json",
-      }),
-    );
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${active?.slug || "form"}-responses.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
   return (
     <>
       <PageHeading
@@ -111,7 +103,15 @@ export default function FormsPage() {
           <Panel
             key={form.id}
             title={form.title}
-            aside={<Pill>{form.published ? "Published" : "Draft"}</Pill>}
+            aside={
+              <Pill>
+                {form.closed
+                  ? "Closed"
+                  : form.published
+                    ? "Published"
+                    : "Draft"}
+              </Pill>
+            }
           >
             <p>{form.description}</p>
             <p>
@@ -140,7 +140,7 @@ export default function FormsPage() {
               >
                 Responses
               </button>
-              {form.published && (
+              {form.published && !form.closed && (
                 <a
                   className="text-button"
                   href={`/f/${form.slug}`}
@@ -175,7 +175,7 @@ export default function FormsPage() {
                   errors[`fields.${index}.id`] =
                     "This answer name is already used by another question. Choose a different name.";
                 names.add(field.id);
-                if (field.type === "select") {
+                if (["select", "checkboxes"].includes(field.type)) {
                   const options = (field.options || [])
                     .map((option) => option.trim())
                     .filter(Boolean);
@@ -191,11 +191,9 @@ export default function FormsPage() {
                 }
               });
               if (
+                draft.capture_contacts !== false &&
                 !draft.fields.some(
-                  (field) =>
-                    field.id === "email" &&
-                    field.type === "email" &&
-                    field.required,
+                  (field) => EMAIL_TYPES.includes(field.type) && field.required,
                 )
               )
                 errors.fields =
@@ -210,8 +208,11 @@ export default function FormsPage() {
                   draft.id ? "PATCH" : "POST",
                   {
                     ...draft,
+                    submission_tags: draft.submission_tags
+                      ?.map((tag) => tag.trim())
+                      .filter(Boolean),
                     fields: draft.fields.map((field) =>
-                      field.type === "select"
+                      ["select", "checkboxes"].includes(field.type)
                         ? {
                             ...field,
                             options: field.options
@@ -347,7 +348,14 @@ export default function FormsPage() {
                             ? {
                                 ...item,
                                 type: e.target.value as typeof field.type,
-                                ...(e.target.value === "select"
+                                required: NON_INPUT_TYPES.includes(
+                                  e.target.value,
+                                )
+                                  ? false
+                                  : item.required,
+                                ...(["select", "checkboxes"].includes(
+                                  e.target.value,
+                                )
                                   ? { options: ["Option 1"] }
                                   : {}),
                               }
@@ -356,26 +364,103 @@ export default function FormsPage() {
                       })
                     }
                   >
-                    {["text", "textarea", "email", "tel", "select"].map(
-                      (type) => (
-                        <option key={type} value={type}>
-                          {
-                            (
-                              {
-                                text: "Short answer",
-                                textarea: "Long answer",
-                                email: "Email address",
-                                tel: "Phone number",
-                                select: "Dropdown choices",
-                              } as Record<string, string>
-                            )[type]
-                          }
-                        </option>
-                      ),
-                    )}
+                    {Object.entries(FORM_TYPES).map(([type, label]) => (
+                      <option key={type} value={type}>
+                        {label}
+                      </option>
+                    ))}
                   </ValidatedSelect>
                 </label>
-                {field.type === "select" && (
+                {field.type === "contact_block" && (
+                  <label className="inline">
+                    <ValidatedInput
+                      type="checkbox"
+                      checked={field.include_phone || false}
+                      onChange={(event) =>
+                        setDraft({
+                          ...draft,
+                          fields: draft.fields.map((item, i) =>
+                            i === index
+                              ? { ...item, include_phone: event.target.checked }
+                              : item,
+                          ),
+                        })
+                      }
+                    />
+                    Include phone number
+                  </label>
+                )}
+                {field.type === "cover_card" && (
+                  <label>
+                    Welcome text
+                    <ValidatedTextarea
+                      value={field.description || ""}
+                      maxLength={1000}
+                      onChange={(event) =>
+                        setDraft({
+                          ...draft,
+                          fields: draft.fields.map((item, i) =>
+                            i === index
+                              ? { ...item, description: event.target.value }
+                              : item,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                )}
+                {["calendly", "calcom", "tidycal"].includes(field.type) && (
+                  <label>
+                    Public booking address
+                    <ValidatedInput
+                      type="url"
+                      required
+                      value={field.booking_url || ""}
+                      onChange={(event) =>
+                        setDraft({
+                          ...draft,
+                          fields: draft.fields.map((item, i) =>
+                            i === index
+                              ? { ...item, booking_url: event.target.value }
+                              : item,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                )}
+                {["number", "rating", "opinion_scale"].includes(field.type) && (
+                  <div className="row">
+                    {(["min", "max"] as const).map((bound) => (
+                      <label key={bound}>
+                        {bound === "min" ? "Minimum" : "Maximum"}
+                        <ValidatedInput
+                          type="number"
+                          name={`fields.${index}.${bound}`}
+                          step={field.type === "number" ? "any" : "1"}
+                          value={field[bound] ?? ""}
+                          onChange={(event) =>
+                            setDraft({
+                              ...draft,
+                              fields: draft.fields.map((item, i) =>
+                                i === index
+                                  ? {
+                                      ...item,
+                                      [bound]:
+                                        event.target.value === ""
+                                          ? undefined
+                                          : Number(event.target.value),
+                                    }
+                                  : item,
+                              ),
+                            })
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {["select", "checkboxes"].includes(field.type) && (
                   <label>
                     Options, one per line
                     <ValidatedTextarea
@@ -398,7 +483,10 @@ export default function FormsPage() {
                 <label className="inline">
                   <ValidatedInput
                     type="checkbox"
-                    disabled={index === requiredEmailIndex}
+                    disabled={
+                      index === requiredEmailIndex ||
+                      NON_INPUT_TYPES.includes(field.type)
+                    }
                     checked={field.required}
                     onChange={(e) =>
                       setDraft({
@@ -428,15 +516,24 @@ export default function FormsPage() {
                 </button>
               </fieldset>
             ))}
+            <label className="inline">
+              <ValidatedInput
+                type="checkbox"
+                checked={draft.capture_contacts !== false}
+                onChange={(event) =>
+                  setDraft({ ...draft, capture_contacts: event.target.checked })
+                }
+              />
+              Save respondents as CRM contacts
+            </label>
             <small>
-              An email address is required so each response can be saved to your
-              contacts. Answer names are managed for you under Advanced answer
-              settings.
+              CRM capture requires an email or contact-details question marked
+              as required. Turn it off for a survey without contact details.
             </small>
             <button
               type="button"
               className="button secondary"
-              disabled={draft.fields.length >= 20}
+              disabled={draft.fields.length >= 100}
               onClick={() => {
                 let number = draft.fields.length + 1;
                 while (
@@ -461,6 +558,14 @@ export default function FormsPage() {
             >
               Add question
             </button>
+            <FormPresentationEditor
+              form={draft}
+              onChange={(patch) => setDraft({ ...draft, ...patch })}
+            />
+            <FormBranchEditor
+              form={draft}
+              onChange={(branching) => setDraft({ ...draft, branching })}
+            />
             <FormAutomationActions
               prefix={prefix}
               actions={draft.submission_actions || []}
@@ -529,9 +634,20 @@ export default function FormsPage() {
           title={`${active?.title} responses`}
           onClose={() => setResponses(null)}
         >
-          <button className="button secondary small" onClick={exportResponses}>
-            <Download size={14} /> Export responses
-          </button>
+          <div className="row">
+            <a
+              className="button secondary small"
+              href={`${prefix}/forms/${active?.id}/submissions/export/`}
+            >
+              <Download size={14} /> Export all responses (JSON)
+            </a>
+            <a
+              className="button secondary small"
+              href={`${prefix}/forms/${active?.id}/submissions/export/?file_type=csv`}
+            >
+              <Download size={14} /> Export all responses (CSV)
+            </a>
+          </div>
           <p>
             Latest {responses.length}{" "}
             {responses.length === 1 ? "response" : "responses"} (up to 500).
@@ -545,7 +661,7 @@ export default function FormsPage() {
               style={{ padding: 12, marginTop: 10 }}
             >
               <summary>
-                {row.answers.name || row.answers.email} ·{" "}
+                {String(row.answers.name || row.answers.email || "Response")} ·{" "}
                 {new Date(row.created_at).toLocaleString()}
               </summary>
               <dl>
@@ -554,7 +670,29 @@ export default function FormsPage() {
                     <dt>
                       <strong>{key}</strong>
                     </dt>
-                    <dd style={{ whiteSpace: "pre-wrap" }}>{value}</dd>
+                    <dd style={{ whiteSpace: "pre-wrap" }}>
+                      {Array.isArray(value) ? (
+                        value.join(", ")
+                      ) : typeof value === "object" ? (
+                        "name" in value ? (
+                          value.download_url ? (
+                            <a href={value.download_url}>{value.name}</a>
+                          ) : (
+                            value.name
+                          )
+                        ) : (
+                          Object.entries(value)
+                            .filter(([, item]) => item)
+                            .map(([key, item]) => (
+                              <div key={key}>
+                                {key.replaceAll("_", " ")}: {item}
+                              </div>
+                            ))
+                        )
+                      ) : (
+                        value
+                      )}
+                    </dd>
                   </div>
                 ))}
               </dl>

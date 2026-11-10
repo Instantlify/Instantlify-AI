@@ -50,10 +50,20 @@ def get_platform_models():
     """Returns curated models with live rates matched against the platform rate card."""
     results = []
     entries = list(PLATFORM_MODELS)
-    for provider, model in [("openai", settings.PLATFORM_AI_MODEL), ("gemini", settings.PLATFORM_GEMINI_MODEL)]:
+    for provider, model in [
+        ("openai", settings.PLATFORM_AI_MODEL),
+        ("gemini", settings.PLATFORM_GEMINI_MODEL),
+    ]:
         if not any(entry["id"] == model for entry in entries):
-            entries.append({"id": model, "provider": provider, "label": model,
-                            "badge": "Platform configured", "description": "The model configured for this provider on your Nemio server."})
+            entries.append(
+                {
+                    "id": model,
+                    "provider": provider,
+                    "label": model,
+                    "badge": "Platform configured",
+                    "description": "The model configured for this provider on your Nemio server.",
+                }
+            )
     for entry in entries:
         # Display the same rate resolver used by the real credit debit, including fallbacks.
         rate = resolve_rate(entry["id"])

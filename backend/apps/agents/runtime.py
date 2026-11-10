@@ -191,7 +191,7 @@ def run_agent(run, config):
             Message.objects.for_workspace(run.workspace_id)
             .filter(conversation=conversation)
             .exclude(text="")
-            .order_by("-created_at")[:12]
+            .order_by("-created_at", "-sequence", "-id")[:12]
         )
         return [
             {"role": "user" if item.direction == "inbound" else "assistant", "content": item.text}

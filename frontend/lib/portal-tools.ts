@@ -1,9 +1,42 @@
 export type FormField = {
   id: string;
   label: string;
-  type: "text" | "textarea" | "email" | "tel" | "select";
+  type:
+    | "text"
+    | "textarea"
+    | "email"
+    | "tel"
+    | "select"
+    | "number"
+    | "date"
+    | "url"
+    | "checkboxes"
+    | "yes_no"
+    | "rating"
+    | "opinion_scale"
+    | "file_upload"
+    | "signature"
+    | "cover_card"
+    | "calendly"
+    | "calcom"
+    | "tidycal"
+    | "contact_block"
+    | "contact_first_name"
+    | "contact_last_name"
+    | "contact_full_name"
+    | "contact_email"
+    | "contact_phone"
+    | "contact_business"
+    | "contact_instagram"
+    | "contact_linkedin"
+    | "contact_x";
   required: boolean;
   options?: string[];
+  min?: number;
+  max?: number;
+  description?: string;
+  booking_url?: string;
+  include_phone?: boolean;
 };
 export type FormAction = {
   integration_id: string;
@@ -11,12 +44,33 @@ export type FormAction = {
   text?: string;
   subject?: string;
 };
+export type FormFileAnswer = {
+  name: string;
+  data?: string;
+  size?: number;
+  sha256?: string;
+  download_url?: string;
+};
+export type FormContactAnswer = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+};
+export type FormAnswer = string | string[] | FormFileAnswer | FormContactAnswer;
 export type LeadForm = {
   id: string;
   slug: string;
   title: string;
   description: string;
   fields: FormField[];
+  branching?: { field_id: string; answer: string; next_id: string | null }[];
+  theme?: { primary?: string; background?: string; text?: string };
+  redirect_url?: string;
+  submission_tags?: string[];
+  button_align?: "left" | "center" | "right";
+  closed?: boolean;
+  capture_contacts?: boolean;
   consent_text: string;
   success_text: string;
   published: boolean;
@@ -35,7 +89,7 @@ export type FormResponse = {
   id: string;
   lead_id: string | null;
   created_at: string;
-  answers: Record<string, string>;
+  answers: Record<string, FormAnswer>;
   consent_text: string;
   link_id: string | null;
 };
@@ -61,6 +115,7 @@ export type CreatorKit = {
 };
 
 export const defaultForm = (): Omit<LeadForm, "id"> => ({
+  capture_contacts: true,
   submission_actions: [],
   slug: "",
   title: "Contact us",

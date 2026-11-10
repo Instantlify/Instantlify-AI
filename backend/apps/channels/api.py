@@ -199,10 +199,27 @@ class RemoveChannelView(APIView):
         if connection.status != "disconnected":
             raise serializers.ValidationError("Disconnect this channel before removing it.")
         if request.data.get("confirm_delete") is not True:
-            raise serializers.ValidationError("Confirm permanent removal of this channel and its linked conversation history.")
-        if Delivery.objects.for_workspace(workspace_id).filter(connection=connection, status="sending").exists() or ScheduledPost.objects.for_workspace(workspace_id).filter(connection=connection, status="publishing").exists():
-            raise serializers.ValidationError("This channel still has work in progress. Wait for sending or publishing to finish, then retry.")
-        audit(member.workspace, request.user, "channel.removed", connection.pk, provider=connection.provider)
+            raise serializers.ValidationError(
+                "Confirm permanent removal of this channel and its linked conversation history."
+            )
+        if (
+            Delivery.objects.for_workspace(workspace_id)
+            .filter(connection=connection, status="sending")
+            .exists()
+            or ScheduledPost.objects.for_workspace(workspace_id)
+            .filter(connection=connection, status="publishing")
+            .exists()
+        ):
+            raise serializers.ValidationError(
+                "This channel still has work in progress. Wait for sending or publishing to finish, then retry."
+            )
+        audit(
+            member.workspace,
+            request.user,
+            "channel.removed",
+            connection.pk,
+            provider=connection.provider,
+        )
         connection.delete()
         transaction.on_commit(lambda: notify(workspace_id))
         return Response(status=204)

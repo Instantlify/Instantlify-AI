@@ -68,6 +68,8 @@ class AgentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Up to 30 handoff keywords of 1–40 characters.")
         if not 1 <= attrs.get("max_tool_rounds", 4) <= 8:
             raise serializers.ValidationError("Tool rounds must be 1–8.")
+        if not 0 <= attrs.get("reply_delay_seconds", 0) <= 30:
+            raise serializers.ValidationError("The reply delay must be 0–30 seconds.")
         if attrs.get("mode", "agent") not in {"agent", "simple"}:
             raise serializers.ValidationError("Mode must be agent or simple.")
         if attrs.get("billing_mode", "platform_credits") not in {"platform_credits", "byo_key"}:
@@ -100,6 +102,7 @@ class AgentSerializer(serializers.ModelSerializer):
             "triage_enabled",
             "handoff_keywords",
             "max_tool_rounds",
+            "reply_delay_seconds",
             "mode",
             "billing_mode",
         ]

@@ -21,8 +21,27 @@ class User(AbstractUser):
         constraints = [models.UniqueConstraint(Lower("email"), name="user_email_ci_unique")]
 
 
+class ProfilePhoto(models.Model):
+    from .crypto import EncryptedTextField
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    data = EncryptedTextField()
+    content_type = models.CharField(max_length=30)
+    digest = models.CharField(max_length=64)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 # App Store apps a workspace can pin; the client catalog uses the same IDs.
-PINNABLE_APPS = ("bio", "calendar", "shield", "deeplinks", "webchat", "forms", "creator-kit")
+PINNABLE_APPS = (
+    "bio",
+    "calendar",
+    "shield",
+    "deeplinks",
+    "webchat",
+    "forms",
+    "creator-kit",
+    "forum",
+)
 
 
 def default_pinned_apps():

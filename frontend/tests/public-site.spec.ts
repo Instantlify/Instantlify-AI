@@ -79,11 +79,11 @@ test("mobile homepage fits and links to sign in", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator(".plan-card")).toBeVisible();
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBeTruthy();
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    )
+    .toBeTruthy();
   await page
     .getByText("Do I need to know how to code?", { exact: true })
     .click();
@@ -282,8 +282,8 @@ test("feature catalogue filters current and planned capabilities", async ({
   const catalogue = page.locator("#feature-catalog");
   expect(await catalogue.locator("article").count()).toBeGreaterThan(50);
   await catalogue.getByRole("button", { name: "Roadmap", exact: true }).click();
-  await expect(catalogue.locator("article")).toHaveCount(8);
-  await expect(catalogue.locator(".nm-planned")).toHaveCount(8);
+  await expect(catalogue.locator("article")).toHaveCount(7);
+  await expect(catalogue.locator(".nm-planned")).toHaveCount(7);
   await catalogue
     .getByRole("button", { name: "All features", exact: true })
     .click();
@@ -337,11 +337,11 @@ test("rich product menu works on mobile without overflowing", async ({
   await expect(
     page.getByRole("button", { name: "Open navigation" }),
   ).toBeVisible();
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBeTruthy();
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    )
+    .toBeTruthy();
 });
 
 test("legacy invitation and pricing links reach authentication", async ({
@@ -485,7 +485,9 @@ test("signup preserves the selected plan through onboarding", async ({
     "true",
   );
   await expect(page.getByText("3-day free trial")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Continue with Free" })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Continue with Free" }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Choose plan" }).click();
   await expect(page).toHaveURL("https://checkout.stripe.com/c/onboarding");
   expect(checkout).toEqual({

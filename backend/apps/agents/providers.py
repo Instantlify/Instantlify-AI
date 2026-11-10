@@ -13,6 +13,7 @@ import hashlib
 import json
 import logging
 import math
+import re
 from dataclasses import dataclass
 from urllib.parse import quote
 
@@ -519,6 +520,20 @@ class FakeLLMProvider:
             return Completion(json.dumps(dict.fromkeys(fields)), [], 5, 5)
         if instruction.startswith("Evaluate the user condition. Return only"):
             return Completion('{"result":false}', [], 5, 5)
+        if instruction.startswith("Decide which numbered intent"):
+            # Local stand-in for intent matching: the first intent sharing a word of four
+            # or more letters with the message, so test channels can exercise the path.
+            words = {w for w in re.findall(r"[a-z]{4,}", content.lower())}
+            options = re.findall(r"^(\d+)\. (.+)$", instruction, flags=re.MULTILINE)
+            match = next(
+                (
+                    int(n)
+                    for n, text in options
+                    if words & set(re.findall(r"[a-z]{4,}", text.lower()))
+                ),
+                None,
+            )
+            return Completion(json.dumps({"match": match}), [], 5, 5)
         if str(first.get("content", "")).startswith("You are the Nemio flow designer"):
             return Completion(FAKE_FLOW, [], 40, 120)
         return Completion(

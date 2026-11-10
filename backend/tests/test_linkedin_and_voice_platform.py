@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import json
 
 import pytest
@@ -6,7 +7,7 @@ from django.utils import timezone
 
 from apps.agents.voice import queue_voice
 from apps.channels.models import ChannelConnection, OAuthState, WebhookEvent
-from apps.crm.models import ChannelIdentity, Conversation, Lead, Message
+from apps.crm.models import ChannelIdentity, Conversation, Lead
 
 
 @pytest.mark.django_db
@@ -66,8 +67,13 @@ def test_linkedin_oauth_callback(client, workspace, user):
     assert ChannelConnection.objects.for_workspace(workspace).filter(provider="linkedin").exists()
 
 
+def _li_sign(secret, body):
+    return hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+
+
 @pytest.mark.django_db
-def test_linkedin_webhook(client, workspace):
+def test_linkedin_webhook(client, workspace, settings):
+    settings.LINKEDIN_CLIENT_SECRET = "li-secret"
     ChannelConnection.objects.for_workspace(workspace).create(
         workspace=workspace,
         provider="linkedin",
@@ -78,12 +84,14 @@ def test_linkedin_webhook(client, workspace):
         status="active",
     )
 
-    # Challenge request
+    # Validation challenge is answered with an HMAC of the code, not an echo.
     res_get = client.get("/webhooks/linkedin/?challengeCode=xyz987")
     assert res_get.status_code == 200
-    assert res_get.content.decode() == "xyz987"
+    assert res_get.json() == {
+        "challengeCode": "xyz987",
+        "challengeResponse": _li_sign("li-secret", b"xyz987"),
+    }
 
-    # Event webhook
     payload = {
         "elements": [
             {
@@ -95,43 +103,81 @@ def test_linkedin_webhook(client, workspace):
             }
         ]
     }
+    body = json.dumps(payload).encode()
     res_post = client.post(
         "/webhooks/linkedin/",
-        data=json.dumps(payload),
+        data=body,
         content_type="application/json",
+        HTTP_X_LI_SIGNATURE=_li_sign("li-secret", body),
     )
     assert res_post.status_code == 200
     assert WebhookEvent.objects.for_workspace(workspace).filter(event_id="li-msg-event-1").exists()
 
 
 @pytest.mark.django_db
-def test_snapchat_webhook(client, workspace):
-    # Challenge check
-    res_get = client.get("/webhooks/snapchat/?challenge=snap-verify-code")
-    assert res_get.status_code == 200
-    assert res_get.content.decode() == "snap-verify-code"
+def test_linkedin_webhook_rejects_unsigned_or_forged_events(client, workspace, settings):
+    settings.LINKEDIN_CLIENT_SECRET = "li-secret"
+    ChannelConnection.objects.for_workspace(workspace).create(
+        workspace=workspace,
+        provider="linkedin",
+        external_account_id="urn:li:organization:123456",
+        display_name="LinkedIn Page",
+        access_token="tok",
+        expires_at=timezone.now(),
+        status="active",
+    )
+    body = json.dumps(
+        {
+            "organization": "urn:li:organization:123456",
+            "id": "forged-1",
+            "sender": "urn:li:person:x",
+            "text": "hi",
+        }
+    ).encode()
+    assert (
+        client.post("/webhooks/linkedin/", data=body, content_type="application/json").status_code
+        == 403
+    )
+    assert (
+        client.post(
+            "/webhooks/linkedin/",
+            data=body,
+            content_type="application/json",
+            HTTP_X_LI_SIGNATURE=_li_sign("wrong-secret", body),
+        ).status_code
+        == 403
+    )
+    # Events missing routing or dedupe keys are dropped, never given placeholder IDs.
+    partial = json.dumps({"text": "no ids"}).encode()
+    assert (
+        client.post(
+            "/webhooks/linkedin/",
+            data=partial,
+            content_type="application/json",
+            HTTP_X_LI_SIGNATURE=_li_sign("li-secret", partial),
+        ).status_code
+        == 200
+    )
+    assert not WebhookEvent.objects.for_workspace(workspace).exists()
 
-    # Inbound lead ad payload
-    payload = {
-        "lead_id": "snap_lead_99",
-        "form_data": {
-            "name": "Sarah Influencer",
-            "email": "sarah@snapchatleads.com",
-            "phone": "+1234567890",
-        },
-    }
-    res_post = client.post(
+    # With no client secret configured the endpoint accepts nothing.
+    settings.LINKEDIN_CLIENT_SECRET = ""
+    assert client.get("/webhooks/linkedin/?challengeCode=abc").status_code == 404
+
+
+@pytest.mark.django_db
+def test_snapchat_webhook_is_removed(client, workspace):
+    """The old receiver was unauthenticated and fell back to an arbitrary workspace."""
+    payload = {"lead_id": "snap_lead_99", "form_data": {"email": "sarah@snapchatleads.com"}}
+    res = client.post(
         f"/webhooks/snapchat/?workspace_id={workspace.id}",
         data=json.dumps(payload),
         content_type="application/json",
     )
-    assert res_post.status_code == 200
-
-    lead = Lead.objects.for_workspace(workspace).filter(email="sarah@snapchatleads.com").first()
-    assert lead is not None
-    assert lead.name == "Sarah Influencer"
-    assert "snapchat" in lead.tags
-    assert Message.objects.for_workspace(workspace).filter(direction="inbound").exists()
+    assert res.status_code == 404
+    assert (
+        not Lead.objects.for_workspace(workspace).filter(email="sarah@snapchatleads.com").exists()
+    )
 
 
 @pytest.mark.django_db

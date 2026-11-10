@@ -31,10 +31,16 @@ def preview(graph, replies, samples, trigger_event=None):
             isinstance(value, str) and len(value) <= 2000 for value in (kind, channel, text)
         ):
             raise ValidationError("Supply a sample event with a kind, channel and text.")
+        # Intent triggers need the model; the preview takes a sample answer instead.
+        intent_sample = bool(isinstance(samples, dict) and samples.get("intent_match"))
         matched = any(
             trigger["kind"] == kind
             and (not trigger.get("channel") or trigger["channel"] == channel)
-            and (trigger["keyword"] == ANY_KEYWORD or keyword_matches(trigger["keyword"], text))
+            and (
+                intent_sample
+                if trigger.get("match") == "intent"
+                else trigger["keyword"] == ANY_KEYWORD or keyword_matches(trigger["keyword"], text)
+            )
             for trigger in graph["triggers"]
         )
         if not matched:
@@ -141,14 +147,26 @@ def preview(graph, replies, samples, trigger_event=None):
                     else "Would send the reminder: " + data["text"]
                 )
         elif kind in {"condition", "branch"}:
-            branch = (
-                "true"
-                if str(variables.get(data.get("variable", "last_text"), "")).casefold()
-                == str(data.get("equals", "")).casefold()
-                else "false"
-            )
+            from .conditions import describe, evaluate
+
+            contact = samples.get("contact") if isinstance(samples.get("contact"), dict) else {}
+            context = {
+                "variables": variables,
+                "fields": contact.get("fields") if isinstance(contact.get("fields"), dict) else {},
+                "tags": contact.get("tags") if isinstance(contact.get("tags"), list) else [],
+                "stage": contact.get("stage", "new"),
+                "email": variables.get("email", contact.get("email", "")),
+                "channel": (trigger_event or {}).get("channel", ""),
+            }
+            branch = "true" if evaluate(data, context) else "false"
+            entry["detail"] = describe(data)
         elif kind == "delay":
-            entry["detail"] = f"Would wait {data['seconds']} seconds"
+            low, high = data["seconds"], data.get("seconds_max")
+            entry["detail"] = (
+                f"Would wait between {low} and {high} seconds"
+                if high
+                else f"Would wait {low} seconds"
+            )
         elif kind == "avatar_video":
             entry["detail"] = (
                 "Would create an avatar video, wait for rendering and send it privately; no provider called"

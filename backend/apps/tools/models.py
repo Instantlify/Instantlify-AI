@@ -38,6 +38,13 @@ class LeadForm(TenantModel):
     description = models.CharField(max_length=1000, blank=True)
     fields = models.JSONField(default=list)
     submission_actions = models.JSONField(default=list)
+    branching = models.JSONField(default=list)
+    theme = models.JSONField(default=dict)
+    redirect_url = models.URLField(max_length=2000, blank=True)
+    submission_tags = models.JSONField(default=list)
+    button_align = models.CharField(max_length=6, default="left")
+    closed = models.BooleanField(default=False)
+    capture_contacts = models.BooleanField(default=True)
     consent_text = models.CharField(
         max_length=500, default="I agree to be contacted about my enquiry."
     )

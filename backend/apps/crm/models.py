@@ -1,5 +1,6 @@
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
+from django.db.models import Max
 
 from apps.tenants.crypto import EncryptedTextField
 from apps.tenants.models import TenantModel
@@ -7,7 +8,10 @@ from apps.tenants.models import TenantModel
 
 class Lead(TenantModel):
     assigned_to = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name="assigned_contacts",
     )
     name = models.CharField(max_length=150, blank=True)
@@ -20,6 +24,9 @@ class Lead(TenantModel):
     handle = models.CharField(max_length=150, blank=True)
     avatar_url = models.URLField(max_length=1000, blank=True)
     profile_synced_at = models.DateTimeField(null=True, blank=True)
+    # Written on request by the workspace AI model from the contact's messages.
+    ai_summary = models.TextField(blank=True)
+    ai_summary_at = models.DateTimeField(null=True, blank=True)
     # Set when a first message arrives; the enrichment worker fetches the profile.
     profile_due_at = models.DateTimeField(null=True, blank=True)
     # Debounced AI intent classification; set on inbound messages, cleared when claimed.
@@ -34,14 +41,23 @@ class Lead(TenantModel):
 
 
 class AssignmentNotification(TenantModel):
-    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="assignment_notifications")
-    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="sent_assignment_notifications")
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="assignment_notifications"
+    )
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="sent_assignment_notifications",
+    )
     lead = models.ForeignKey(Lead, on_delete=models.CASCADE)
     read_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at", "-id"]
-        indexes = [models.Index(fields=["workspace", "recipient", "read_at"], name="assignment_unread_idx")]
+        indexes = [
+            models.Index(fields=["workspace", "recipient", "read_at"], name="assignment_unread_idx")
+        ]
 
 
 class ChannelIdentity(TenantModel):
@@ -74,6 +90,8 @@ class Conversation(TenantModel):
 
 
 class Message(TenantModel):
+    # Serializes creation order when clocks give several messages the same timestamp.
+    sequence = models.PositiveBigIntegerField(null=True, editable=False)
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE)
     direction = models.CharField(max_length=10)
     text = EncryptedTextField(blank=True)
@@ -89,8 +107,36 @@ class Message(TenantModel):
     transcription_status = models.CharField(max_length=20, blank=True)
 
     class Meta:
-        ordering = ["created_at", "id"]
+        ordering = ["created_at", "sequence", "id"]
         indexes = [models.Index(fields=["transcription_status"])]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["conversation", "sequence"], name="unique_conversation_message_sequence"
+            )
+        ]
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.sequence is None and self.conversation_id:
+            from django.core.exceptions import ValidationError
+
+            with transaction.atomic():
+                conversation = (
+                    Conversation.objects.for_workspace(self.workspace_id)
+                    .select_for_update()
+                    .filter(pk=self.conversation_id)
+                    .first()
+                )
+                if conversation is None:
+                    raise ValidationError("Related records must belong to this workspace.")
+                previous = (
+                    Message.objects.for_workspace(self.workspace_id)
+                    .filter(conversation_id=self.conversation_id)
+                    .aggregate(last=Max("sequence"))["last"]
+                    or 0
+                )
+                self.sequence = previous + 1
+                return super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
 
 class InternalNote(TenantModel):
@@ -193,3 +239,26 @@ class CampaignRecipient(TenantModel):
                 fields=["campaign", "conversation"], name="one_campaign_recipient"
             )
         ]
+
+
+class MessageAttachment(TenantModel):
+    """A file a teammate sent from the inbox. Providers (Meta, Telegram) fetch media by
+    URL, so the bytes are served from a signed link rather than a public bucket."""
+
+    conversation = models.ForeignKey(
+        "crm.Conversation", on_delete=models.CASCADE, related_name="attachments"
+    )
+    filename = models.CharField(max_length=200)
+    content_type = models.CharField(max_length=60)
+    size = models.PositiveIntegerField()
+    data = EncryptedTextField()
+
+
+class SavedReply(TenantModel):
+    """A workspace-wide canned reply teammates insert from the inbox composer."""
+
+    text = models.CharField(max_length=1000)
+    position = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["position", "created_at"]

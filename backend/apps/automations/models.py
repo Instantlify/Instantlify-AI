@@ -28,6 +28,9 @@ class Trigger(TenantModel):
     keyword = models.CharField(max_length=100)
     # Provider this trigger listens on; blank matches every connected channel.
     channel = models.CharField(max_length=30, blank=True)
+    # "keyword": `keyword` must appear in the message. "intent": `keyword` describes what
+    # the message means (e.g. "asks about price") and the workspace model decides.
+    match = models.CharField(max_length=10, default="keyword")
 
 
 class Node(TenantModel):
@@ -64,6 +67,8 @@ class ConversationState(TenantModel):
     error_code = models.CharField(max_length=50, blank=True)
     experiment_id = models.UUIDField(null=True)
     variant = models.CharField(max_length=10, blank=True)
+    # When a waiting step gives up on a reply and takes its "timeout" path.
+    timeout_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     def save(self, *args, **kwargs):
         from django.db import transaction
@@ -148,3 +153,15 @@ class AutomationTransferLog(models.Model):
 
     class Meta:
         ordering = ["-created_at", "-id"]
+
+
+class IntentMatch(TenantModel):
+    """A message waiting for the model to decide which intent trigger (if any) it fits."""
+
+    message = models.OneToOneField("crm.Message", on_delete=models.CASCADE)
+    payload = models.JSONField(default=dict)
+    candidates = models.JSONField(default=list)
+    status = models.CharField(max_length=20, default="pending")
+    trigger_id = models.UUIDField(null=True, blank=True)
+    error_code = models.CharField(max_length=60, blank=True)
+    available_at = models.DateTimeField()

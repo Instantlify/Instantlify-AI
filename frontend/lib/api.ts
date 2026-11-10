@@ -6,6 +6,7 @@ import {
 } from "./form-errors";
 
 export type User = {
+  photo_url?: string;
   id: number;
   name: string;
   email: string;
@@ -105,6 +106,9 @@ export type Lead = {
   opted_out: boolean;
   profile_synced_at: string | null;
   created_at: string;
+  /** Written on request by the workspace AI model; empty until then. */
+  ai_summary?: string;
+  ai_summary_at?: string | null;
 };
 /** One channel account the contact has written from. */
 export type LeadIdentity = {
@@ -143,6 +147,7 @@ export type Conversation = {
 };
 export type MessageSender = "customer" | "ai" | "human" | "automation" | "api";
 export type Message = {
+  sequence?: number | null;
   provider_status?: string;
   media_url?: string;
   id: string;
@@ -209,8 +214,28 @@ export type FlowButton = {
   url?: string;
   payload?: string;
 };
+export type ConditionRule = {
+  subject: "variable" | "field" | "tag" | "stage" | "email" | "channel";
+  name?: string;
+  operator:
+    | "equals"
+    | "not_equals"
+    | "contains"
+    | "not_contains"
+    | "starts_with"
+    | "ends_with"
+    | "is_set"
+    | "is_not_set"
+    | "greater_than"
+    | "less_than";
+  value?: string;
+};
 export type FlowNodeData = {
   kind: NodeKind;
+  rules?: ConditionRule[];
+  match?: "all" | "any";
+  seconds_max?: number;
+  timeout_seconds?: number;
   prompt?: string;
   fields?: string[];
   ai_provider?: string;
@@ -255,6 +280,8 @@ export type FlowNodeData = {
 export type FlowTrigger = {
   kind: string;
   keyword: string;
+  /** "keyword" (default): the word must appear. "intent": `keyword` describes a meaning. */
+  match?: "keyword" | "intent";
   /** Provider the trigger listens on; blank or absent means every channel. */
   channel?: string;
 };
@@ -327,6 +354,7 @@ export type AgentConfig = {
   triage_enabled: boolean;
   handoff_keywords: string[];
   max_tool_rounds: number;
+  reply_delay_seconds?: number;
   mode: "agent" | "simple";
   billing_mode: "platform_credits" | "byo_key";
   available_models?: PlatformModel[];
@@ -840,10 +868,15 @@ export async function api<T>(
 }
 
 /** Multipart upload (files) with the same CSRF and error handling as `api`. */
-export async function upload<T>(path: string, form: FormData, method = "POST"): Promise<T> {
+export async function upload<T>(
+  path: string,
+  form: FormData,
+  method = "POST",
+  extraHeaders: Record<string, string> = {},
+): Promise<T> {
   const response = await fetch(path, {
     method,
-    headers: { "X-CSRFToken": await csrfToken() },
+    headers: { ...extraHeaders, "X-CSRFToken": await csrfToken() },
     credentials: "same-origin",
     cache: "no-store",
     body: form,

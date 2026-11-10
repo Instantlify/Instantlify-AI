@@ -38,6 +38,7 @@ import {
   api,
   idempotencyKey,
   money,
+  upload,
   type Conversation,
   type ConversationEvent,
   type Lead,
@@ -113,19 +114,28 @@ const EVENT_LABELS: Record<ConversationEvent["kind"], string> = {
   paid: "Payment received",
 };
 
-const repliesKey = (workspaceId: string) =>
+// Quick replies used to live only in each browser. They are now shared by the team on
+// the server; a browser's old list is moved up once if the team has none yet.
+const legacyRepliesKey = (workspaceId: string) =>
   `nemio:quick-replies:${workspaceId}`;
-function loadReplies(workspaceId: string): string[] {
+function takeLegacyReplies(workspaceId: string): string[] | null {
   try {
     const stored = JSON.parse(
-      localStorage.getItem(repliesKey(workspaceId)) || "null",
+      localStorage.getItem(legacyRepliesKey(workspaceId)) || "null",
     );
     return Array.isArray(stored) &&
-      stored.every((item) => typeof item === "string")
-      ? stored
-      : DEFAULT_REPLIES;
+      stored.every((item) => typeof item === "string" && item.trim())
+      ? stored.slice(0, 50)
+      : null;
   } catch {
-    return DEFAULT_REPLIES;
+    return null;
+  }
+}
+function forgetLegacyReplies(workspaceId: string) {
+  try {
+    localStorage.removeItem(legacyRepliesKey(workspaceId));
+  } catch {
+    // Storage unavailable; nothing to clean up.
   }
 }
 
@@ -174,17 +184,10 @@ export default function InboxPage() {
   const [live, setLive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [picker, setPicker] = useState<"emoji" | "replies" | null>(null);
-  const [replies, setReplies] = useState<string[]>(() =>
-    loadReplies(workspace.id),
-  );
+  const [replies, setReplies] = useState<string[]>([]);
   // Wall clock for the 24-hour window countdown; ticks every 30 seconds.
   const [now, setNow] = useState(() => Date.now());
-  const [attachedFile, setAttachedFile] = useState<{
-    name: string;
-    size: number;
-    url: string;
-    type: string;
-  } | null>(null);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [showChannelDropdown, setShowChannelDropdown] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const feedback = useFeedback();
@@ -294,12 +297,27 @@ export default function InboxPage() {
     api<Page<Offer>>(`${prefix}/offers/`, "GET", undefined, controller.signal)
       .then((page) => setOffers(page.results.filter((offer) => offer.active)))
       .catch(() => undefined);
+    api<{ replies: string[] }>(`${prefix}/saved-replies/`, "GET", undefined, controller.signal)
+      .then(async ({ replies: shared }) => {
+        const legacy = takeLegacyReplies(workspace.id);
+        if (!shared.length && legacy?.length) {
+          const moved = await api<{ replies: string[] }>(
+            `${prefix}/saved-replies/`, "PUT", { replies: legacy }, controller.signal,
+          );
+          forgetLegacyReplies(workspace.id);
+          setReplies(moved.replies);
+          return;
+        }
+        if (legacy) forgetLegacyReplies(workspace.id);
+        setReplies(shared.length ? shared : DEFAULT_REPLIES);
+      })
+      .catch(() => undefined);
     const clock = window.setInterval(() => setNow(Date.now()), 30000);
     return () => {
       controller.abort();
       window.clearInterval(clock);
     };
-  }, [prefix]);
+  }, [prefix, workspace.id]);
   useEffect(() => {
     if (!selected) return;
     const controller = new AbortController();
@@ -378,17 +396,18 @@ export default function InboxPage() {
   }
   async function send() {
     if (!current || (!draft.trim() && !attachedFile)) return;
-    const text = attachedFile
-      ? `[${attachedFile.type}: ${attachedFile.name}] ${draft.trim()}`.trim()
-      : draft.trim();
+    const text = draft.trim();
+    const path = `${prefix}/conversations/${current.id}/messages/`;
+    const headers = { "Idempotency-Key": idempotencyKey() };
     await feedback.run(async () => {
-      await api(
-        `${prefix}/conversations/${current.id}/messages/`,
-        "POST",
-        { text },
-        undefined,
-        { "Idempotency-Key": idempotencyKey() },
-      );
+      if (attachedFile) {
+        const form = new FormData();
+        form.append("file", attachedFile);
+        if (text) form.append("text", text);
+        await upload(path, form, "POST", headers);
+      } else {
+        await api(path, "POST", { text }, undefined, headers);
+      }
       setDraft("");
       setAttachedFile(null);
       await loadThread(current.id);
@@ -446,13 +465,13 @@ export default function InboxPage() {
       field?.setSelectionRange(start + text.length, start + text.length);
     });
   }
-  function saveReplies(next: string[]) {
+  async function saveReplies(next: string[]) {
+    const previous = replies;
     setReplies(next);
-    try {
-      localStorage.setItem(repliesKey(workspace.id), JSON.stringify(next));
-    } catch {
-      // Storage unavailable: the replies last for this visit only.
-    }
+    const saved = await feedback.run(() =>
+      api<{ replies: string[] }>(`${prefix}/saved-replies/`, "PUT", { replies: next }),
+    );
+    setReplies(saved ? saved.replies : previous);
   }
 
   const timeline = [
@@ -929,7 +948,7 @@ export default function InboxPage() {
                         className="icon-button"
                         style={{ color: "#94a3b8", padding: "4px" }}
                         aria-label="Attach file"
-                        title="Attach file (images, PDFs, audio)"
+                        title="Attach a photo, video or audio file (up to 5 MB)"
                         disabled={windowClosed}
                         onClick={() => fileInputRef.current?.click()}
                       >
@@ -939,22 +958,16 @@ export default function InboxPage() {
                         type="file"
                         ref={fileInputRef}
                         style={{ display: "none" }}
-                        accept="image/*,.pdf,audio/*"
+                        accept="image/jpeg,image/png,video/mp4,audio/mpeg,audio/mp4,audio/x-m4a,audio/aac,audio/ogg"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) {
-                            setAttachedFile({
-                              name: file.name,
-                              size: file.size,
-                              type: file.type.startsWith("image/")
-                                ? "Image"
-                                : file.type.startsWith("audio/")
-                                  ? "Audio"
-                                  : "Document",
-                              url: URL.createObjectURL(file),
-                            });
-                          }
                           e.target.value = "";
+                          if (!file) return;
+                          if (file.size > 5 * 1024 * 1024) {
+                            feedback.setError("Attachments must be 5 MB or smaller.");
+                            return;
+                          }
+                          setAttachedFile(file);
                         }}
                       />
 
@@ -1079,13 +1092,13 @@ export default function InboxPage() {
                               !draft.trim() || replies.includes(draft.trim())
                             }
                             onClick={() =>
-                              saveReplies([...replies, draft.trim()].slice(-20))
+                              saveReplies([...replies, draft.trim()].slice(-50))
                             }
                           >
                             Save current reply
                           </button>
                           <small className="muted-text">
-                            Saved in this browser.
+                            Shared with your team.
                           </small>
                         </div>
                       )}

@@ -126,13 +126,24 @@ def embed_platform_knowledge(run_token=None):
             "rate_limited": "The embedding request was rate limited or could not connect. Check provider availability and API quota, then retry.",
             "platform_llm_key_missing": "The worker has no OpenAI key. Set PLATFORM_OPENAI_API_KEY and recreate the worker service.",
         }
-        set_status("failed", messages.get(exc.code, "Embedding failed. Check the worker configuration and provider access, then retry."))
+        set_status(
+            "failed",
+            messages.get(
+                exc.code,
+                "Embedding failed. Check the worker configuration and provider access, then retry.",
+            ),
+        )
         raise
     except Exception:
-        set_status("failed", "Re-embedding failed. Check the worker logs and retry. Sections remain saved.")
+        set_status(
+            "failed", "Re-embedding failed. Check the worker logs and retry. Sections remain saved."
+        )
         raise
     else:
-        set_status("succeeded", f"Re-embedding completed: {count} sections indexed. Refresh this page to see updated section badges.")
+        set_status(
+            "succeeded",
+            f"Re-embedding completed: {count} sections indexed. Refresh this page to see updated section badges.",
+        )
         return count
     finally:
         if run_token and cache.get(LOCK_KEY) == run_token:

@@ -13,6 +13,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -27,11 +28,13 @@ import {
   Plus,
   Rocket,
   Search,
+  Upload,
   UserPlus,
 } from "lucide-react";
 import {
   api,
   message,
+  upload,
   type Connection,
   type Integration,
   type Lead,
@@ -105,6 +108,32 @@ export default function CrmPage() {
   const [openId, setOpenId] = useState<string | null>(linkedContact);
   const [tagInput, setTagInput] = useState("");
   const feedback = useFeedback();
+  const importInput = useRef<HTMLInputElement>(null);
+
+  async function importCsv(file: File) {
+    const form = new FormData();
+    form.append("file", file);
+    const result = await feedback.run(() =>
+      upload<{
+        created: number;
+        updated: number;
+        unchanged: number;
+        skipped: number;
+        errors: { row: number; reason: string }[];
+      }>(`${prefix}/leads/import/`, form),
+    );
+    if (!result) return;
+    const skipped = result.skipped
+      ? ` ${result.skipped} skipped (${result.errors
+          .slice(0, 3)
+          .map((item) => `row ${item.row}: ${item.reason}`)
+          .join("; ")}${result.skipped > 3 ? "; …" : ""}).`
+      : "";
+    feedback.setNotice(
+      `Imported ${result.created} new and updated ${result.updated} existing contacts.${skipped}`,
+    );
+    await load();
+  }
 
   // Debounce typing so the API is not hit on every keystroke.
   useEffect(() => {
@@ -478,6 +507,33 @@ export default function CrmPage() {
             <Download size={13} />
             Export
           </button>
+
+          {manager && (
+            <>
+              <button
+                type="button"
+                className="boosend-crm-filter-btn"
+                onClick={() => importInput.current?.click()}
+                disabled={feedback.busy}
+                title="Import contacts from a CSV file (name, email, phone, tags, stage and any custom columns)"
+              >
+                <Upload size={13} />
+                Import
+              </button>
+              <input
+                ref={importInput}
+                type="file"
+                accept=".csv,text/csv"
+                aria-label="Import contacts CSV"
+                hidden
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file) void importCsv(file);
+                }}
+              />
+            </>
+          )}
 
           {manager && (
             <button

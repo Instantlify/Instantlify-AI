@@ -12,6 +12,9 @@ from apps.tenants.services import audit
 
 from .models import Automation, ConversationState, Edge, Node, Trigger
 
+# Longest a delay or a reply timeout may wait: 30 days.
+MAX_WAIT_SECONDS = 30 * 24 * 3600
+
 KINDS = {
     "avatar_video",
     "ai_call",
@@ -113,8 +116,20 @@ def validate_graph(graph):
         from .guided import validate_action
 
         validate_action(data)
-        if kind == "delay" and not 1 <= int(data.get("seconds", 0)) <= 86400:
-            raise ValidationError("Delays must be 1–86400 seconds.")
+        if kind == "delay":
+            validate_delay(data)
+        if kind in {"condition", "branch"}:
+            from .conditions import validate_condition
+
+            validate_condition(data)
+        if kind == "wait" and "timeout_seconds" in data:
+            timeout = data["timeout_seconds"]
+            if (
+                isinstance(timeout, bool)
+                or not isinstance(timeout, int)
+                or not 60 <= timeout <= MAX_WAIT_SECONDS
+            ):
+                raise ValidationError("A reply timeout must be between 1 minute and 30 days.")
     for edge in graph["edges"]:
         if (
             not isinstance(edge, dict)
@@ -128,6 +143,11 @@ def validate_graph(graph):
         if kind in {"condition", "branch", "randomizer", "ai_condition"}:
             if sorted(e.get("sourceHandle", "") for e in outgoing) != ["false", "true"]:
                 raise ValidationError("Conditions need exactly one true and one false edge.")
+        elif kind == "wait" and node["data"].get("timeout_seconds"):
+            if sorted(e.get("sourceHandle", "") for e in outgoing) != ["", "timeout"]:
+                raise ValidationError(
+                    "A wait with a timeout needs one reply path and one timeout path."
+                )
         elif len(outgoing) != (0 if kind in {"end", "transfer", "start_agent"} else 1):
             raise ValidationError("Each non-end node needs one outgoing edge.")
     visited = set()
@@ -157,6 +177,13 @@ def validate_graph(graph):
             or not 1 <= len(trigger["keyword"]) <= 100
         ):
             raise ValidationError("Invalid trigger.")
+        match = trigger.get("match", "keyword")
+        if match not in {"keyword", "intent"}:
+            raise ValidationError("A trigger matches by keyword or by intent.")
+        if match == "intent" and (
+            trigger["keyword"] == ANY_KEYWORD or len(trigger["keyword"].strip()) < 3
+        ):
+            raise ValidationError("Describe the intent in 3–100 characters, e.g. asks about price.")
         channel = trigger.get("channel") or ""
         if not isinstance(channel, str) or (
             channel and channel not in TRIGGER_CHANNELS[trigger["kind"]]
@@ -191,9 +218,41 @@ def validate_graph(graph):
     return graph
 
 
+def validate_delay(data):
+    def seconds(value):
+        if isinstance(value, bool):
+            raise ValueError
+        return int(value)
+
+    try:
+        low = seconds(data.get("seconds", 0))
+        high = seconds(data["seconds_max"]) if data.get("seconds_max") else None
+    except (TypeError, ValueError):
+        raise ValidationError("Delays must be a whole number of seconds.") from None
+    if not 1 <= low <= MAX_WAIT_SECONDS:
+        raise ValidationError("Delays must be between 1 second and 30 days.")
+    if high is not None and not low < high <= MAX_WAIT_SECONDS:
+        raise ValidationError(
+            "A random delay needs a maximum above its minimum and at most 30 days."
+        )
+
+
+def delay_seconds(state, data):
+    """Fixed delay, or a deterministic pick inside a random window so a retried step
+    waits the same time."""
+    low = int(data["seconds"])
+    high = int(data.get("seconds_max") or 0)
+    if high <= low:
+        return low
+    import hashlib
+
+    seed = f"{state.run_token}:{state.node_id}:{state.steps}"
+    return low + int(hashlib.sha256(seed.encode()).hexdigest(), 16) % (high - low + 1)
+
+
 # Channels each trigger kind can arrive on; a blank channel on a trigger means "any".
 TRIGGER_CHANNELS = {
-    "dm": {"instagram", "messenger", "whatsapp", "telegram", "linkedin"},
+    "dm": {"instagram", "messenger", "whatsapp", "telegram", "linkedin", "webchat"},
     "comment": {"instagram", "messenger", "linkedin"},
     "story_reply": {"instagram"},
     "live_comment": {"instagram"},
@@ -241,6 +300,7 @@ def publish(automation, graph, actor):
             kind=trigger["kind"],
             keyword=trigger["keyword"],
             channel=trigger.get("channel") or "",
+            match=trigger.get("match", "keyword"),
         )
     automation.published = graph
     automation.draft = graph
@@ -317,9 +377,13 @@ def route_message(message, payload):
         state.variables[node["data"].get("variable", "reply")] = message.text
         state.variables["last_text"] = message.text
         if data["kind"] != "follow_gate":
+            # A wait with a timeout also has a "timeout" path; a reply takes the other.
             state.node_id = next(
-                e["target"] for e in state.graph["edges"] if e["source"] == state.node_id
+                e["target"]
+                for e in state.graph["edges"]
+                if e["source"] == state.node_id and e.get("sourceHandle", "") != "timeout"
             )
+        state.timeout_at = None
         state.status = "running"
         state.available_at = timezone.now()
         state.last_message_id = message.id
@@ -335,7 +399,7 @@ def route_message(message, payload):
         []
         if cooling
         else Trigger.objects.for_workspace(message.workspace_id)
-        .filter(automation__enabled=True, kind=payload.get("kind", "dm"))
+        .filter(automation__enabled=True, kind=payload.get("kind", "dm"), match="keyword")
         .filter(Q(channel="") | Q(channel=provider))
         .select_related("automation")
         .order_by("created_at", "id")
@@ -346,42 +410,56 @@ def route_message(message, payload):
         ):
             continue
         if trigger.keyword == ANY_KEYWORD or keyword_matches(trigger.keyword, message.text):
-            from apps.analytics.services import choose_automation, record
+            if fire_trigger(message, payload, trigger):
+                return
+    if not cooling:
+        from .intents import queue_intent_match
 
-            lead_id = message.conversation.identity.lead_id
-            automation, experiment, arm = choose_automation(trigger.automation, lead_id)
-            # An experiment arm must obey its own account and post constraints too.
-            if automation.published.get("connection_id") and str(
-                automation.published["connection_id"]
-            ) != str(message.conversation.identity.connection_id):
-                continue
-            from apps.channels.commenting import matches_comment_target
-
-            if not matches_comment_target(automation, message, payload):
-                continue
-            from apps.channels.commenting import queue_public_reply
-
-            queue_public_reply(message, payload, automation)
-            start_flow(
-                message.conversation,
-                automation,
-                message=message,
-                comment_id=payload.get("comment_id"),
-                experiment=experiment,
-                variant=arm,
-            )
-            record(
-                message.workspace_id,
-                "triggered",
-                key=f"triggered:{message.id}",
-                provider=message.conversation.identity.connection.provider,
-                lead_id=lead_id,
-                conversation_id=message.conversation_id,
-                automation_id=automation.pk,
-                experiment_id=experiment.pk if experiment else None,
-                variant=arm,
-            )
+        # Intent matching decides between a flow and the agent once the model answers.
+        if queue_intent_match(message, payload):
             return
+    queue_agent(message)
+
+
+def fire_trigger(message, payload, trigger):
+    """Start the trigger's automation (or its A/B arm) for this message. False when the
+    chosen arm does not apply to this account or post."""
+    from apps.analytics.services import choose_automation, record
+    from apps.channels.commenting import matches_comment_target, queue_public_reply
+
+    lead_id = message.conversation.identity.lead_id
+    automation, experiment, arm = choose_automation(trigger.automation, lead_id)
+    # An experiment arm must obey its own account and post constraints too.
+    if automation.published.get("connection_id") and str(
+        automation.published["connection_id"]
+    ) != str(message.conversation.identity.connection_id):
+        return False
+    if not matches_comment_target(automation, message, payload):
+        return False
+    queue_public_reply(message, payload, automation)
+    start_flow(
+        message.conversation,
+        automation,
+        message=message,
+        comment_id=payload.get("comment_id"),
+        experiment=experiment,
+        variant=arm,
+    )
+    record(
+        message.workspace_id,
+        "triggered",
+        key=f"triggered:{message.id}",
+        provider=message.conversation.identity.connection.provider,
+        lead_id=lead_id,
+        conversation_id=message.conversation_id,
+        automation_id=automation.pk,
+        experiment_id=experiment.pk if experiment else None,
+        variant=arm,
+    )
+    return True
+
+
+def queue_agent(message):
     if message.conversation.ai_enabled:
         from apps.agents.models import AgentRun
 

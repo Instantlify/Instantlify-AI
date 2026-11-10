@@ -13,7 +13,10 @@ Design one messaging automation for Instagram, Facebook Messenger or WhatsApp fr
 user's request. Answer with a single JSON object and nothing else:
 {"name": str, "start": node id, "triggers": [...], "nodes": [...], "edges": [...]}
 
-triggers: 1-3 items {"kind", "keyword", "channel"}.
+triggers: 1-3 items {"kind", "keyword", "channel", optional "match"}.
+  match: "keyword" (default; keyword must appear in the message) or "intent" (keyword is a
+  short description of what the message means, e.g. "asks about price"; use it when the
+  user describes a meaning rather than an exact word).
   kind: "comment" (post/reel comment), "dm", "story_reply" or "live_comment".
   channel: "instagram", "messenger", "whatsapp" or "" for any. WhatsApp only supports
   "dm"; Messenger supports "dm" and "comment"; story_reply and live_comment are
@@ -29,8 +32,8 @@ nodes: {"id": short slug, "data": {...}} where data.kind is one of
   "send_buttons" {"text", "buttons": [{"type": "web_url", "url": "https://...",
     "title": up to 20 characters}]} - 1-3 buttons;
   "wait" {"variable"} - pauses until the customer replies, saved as {{variable}};
-  "condition" {"variable", "equals"} - case-insensitive equality check;
-  "delay" {"seconds"} - 1-86400;
+  "condition" {"match": "all"|"any", "rules": [{"subject": "variable"|"field"|"tag"|"stage"|"email"|"channel", "name" (variable or field name), "operator": "equals"|"not_equals"|"contains"|"not_contains"|"starts_with"|"ends_with"|"is_set"|"is_not_set"|"greater_than"|"less_than", "value"}]} - case-insensitive; tags use contains/not_contains/is_set/is_not_set;
+  "delay" {"seconds", optional "seconds_max" for a random window} - 1 second to 30 days (2592000);
   "set_field" {"field", "value"} - a contact field name up to 60 characters and value up to 500;
   "set_stage" {"stage"} - new, qualified, interested, booked, won or lost;
   "randomizer" {"percentage"} - weighted split, first path 0-100 percent, with true and false edges;
@@ -59,6 +62,10 @@ NODE_FIELDS = {
     "seconds",
     "variable",
     "equals",
+    "rules",
+    "match",
+    "seconds_max",
+    "timeout_seconds",
     "field",
     "value",
     "stage",
@@ -111,6 +118,7 @@ def graph_from_completion(text):
                 "kind": item.get("kind"),
                 "keyword": item.get("keyword"),
                 "channel": item.get("channel") or "",
+                **({"match": "intent"} if item.get("match") == "intent" else {}),
             }
             for item in triggers
             if isinstance(item, dict)

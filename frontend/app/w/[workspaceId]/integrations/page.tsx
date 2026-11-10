@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  ValidatedForm,
-  ValidatedInput,
-} from "@/components/validated-form";
+import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
 
 import {
   useCallback,
@@ -13,24 +10,14 @@ import {
   type ReactNode,
 } from "react";
 import {
-  ArrowRight,
-  Calendar,
-  Check,
   CheckCircle2,
   Clock,
   Code2,
-  ExternalLink,
   HelpCircle,
   KeyRound,
   LayoutGrid,
   MessageSquare,
-  Plug,
-  Plus,
-  RefreshCw,
-  Send,
-  Volume2,
   Webhook,
-  Workflow,
   X,
 } from "lucide-react";
 import {
@@ -39,7 +26,6 @@ import {
   WEBHOOK_EVENTS,
   type APIKey,
   type Connection,
-  type Delivery,
   type Integration,
   type Page,
   type WebhookDelivery,
@@ -54,9 +40,7 @@ import {
   CopyField,
   Empty,
   ErrorNotice,
-  Modal,
   Pill,
-  statusTone,
   SuccessNotice,
   Table,
   useFeedback,
@@ -119,9 +103,10 @@ export default function IntegrationsPage() {
 
   // Other pages link straight to a tab with ?tab=channels or ?tab=developer.
   const requestedTab = useSearchParams().get("tab");
-  const activeTab = requestedTab === "channels" || requestedTab === "developer"
-    ? requestedTab
-    : "gallery";
+  const activeTab =
+    requestedTab === "channels" || requestedTab === "developer"
+      ? requestedTab
+      : "gallery";
   function setActiveTab(tab: "gallery" | "channels" | "developer") {
     const url = new URL(window.location.href);
     if (tab === "gallery") url.searchParams.delete("tab");
@@ -138,7 +123,6 @@ export default function IntegrationsPage() {
   const [subscriptions, setSubscriptions] = useState<WebhookSubscription[]>([]);
   const [hookLog, setHookLog] = useState<WebhookDelivery[]>([]);
   const [configuring, setConfiguring] = useState<string>("");
-  const [testMode, setTestMode] = useState(false);
   const [newKey, setNewKey] = useState("");
   const [newSecret, setNewSecret] = useState("");
   const [newToken, setNewToken] = useState("");
@@ -252,32 +236,6 @@ export default function IntegrationsPage() {
       await api(`${prefix}/integrations/${current.id}/`, "DELETE");
       setIntegrations((list) => list.filter((item) => item.id !== current.id));
     }, "Integration disconnected.");
-  }
-
-  async function saveIntegration(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const credentials: Record<string, string> = {};
-    for (const [k, v] of data.entries()) {
-      if (k.startsWith("cred_") && v) {
-        credentials[k.replace("cred_", "")] = String(v);
-      }
-    }
-    const isTest = data.get("is_test") === "on";
-    await feedback.run(async () => {
-      const saved = await api<Integration>(`${prefix}/integrations/`, "POST", {
-        provider: configuring,
-        credentials,
-        options: {},
-        enabled: true,
-        is_test: isTest,
-      });
-      setIntegrations((list) => [
-        ...list.filter((item) => item.provider !== saved.provider),
-        saved,
-      ]);
-      setConfiguring("");
-    }, "Integration saved.");
   }
 
   async function createKey(event: FormEvent<HTMLFormElement>) {
@@ -590,9 +548,9 @@ export default function IntegrationsPage() {
     {
       id: "shopify",
       name: "Shopify",
-      category: ["Payments", "CRM & Contacts"],
+      category: ["Knowledge Base"],
       description:
-        "Connect your Shopify store for product discovery in AI agents.",
+        "Import your Shopify products into the AI agent's knowledge base.",
       providerKey: "shopify",
       iconBg: "#f0fdf4",
       iconColor: "#16a34a",
@@ -600,9 +558,9 @@ export default function IntegrationsPage() {
       explainer: {
         stepType: "Commerce & Store step",
         description:
-          "Allow AI agents to query product inventory, prices, variants, and generate pre-filled checkout carts directly in conversation threads.",
+          "Import your Shopify products into the AI agent's knowledge so it can answer questions about what you sell, with scheduled re-sync.",
         trigger: "Customer asks about a product",
-        action: "Search Shopify Catalog & Cart",
+        action: "Answer from your product catalog",
       },
     },
     {
@@ -947,6 +905,15 @@ export default function IntegrationsPage() {
           </p>
         </div>
 
+        {loading && <p role="status">Loading integrations�</p>}
+        <p>
+          {
+            connections.filter(
+              (connection) => connection.status === "connected",
+            ).length
+          }{" "}
+          connected channels
+        </p>
         {/* Tab Switcher: Gallery vs Developer API & Webhooks */}
         <div className="boosend-view-tabs">
           <button
@@ -1183,6 +1150,24 @@ export default function IntegrationsPage() {
             marginTop: "12px",
           }}
         >
+          <section className="boosend-int-card" style={{ padding: 20 }}>
+            <h3>Webhook delivery history</h3>
+            {hookLog.length ? (
+              <Table head={["Event", "Status", "Attempts", "Response", "Time"]}>
+                {hookLog.map((delivery) => (
+                  <tr key={delivery.id}>
+                    <td>{delivery.event}</td>
+                    <td>{delivery.status}</td>
+                    <td>{delivery.attempts}</td>
+                    <td>{delivery.response_code ?? "Pending"}</td>
+                    <td>{when(delivery.created_at)}</td>
+                  </tr>
+                ))}
+              </Table>
+            ) : (
+              <Empty>No webhook deliveries yet.</Empty>
+            )}
+          </section>
           {/* Connectors overview */}
           <div className="boosend-int-card" style={{ padding: "20px" }}>
             <h3
@@ -1343,7 +1328,10 @@ export default function IntegrationsPage() {
               )}
 
               {owner && (
-                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
+                <ValidatedForm
+                  fieldErrors={feedback.fieldErrors}
+                  validationTarget={feedback.validationTarget}
+                  onEdit={() => feedback.setError("")}
                   className="form-grid"
                   style={{ marginTop: "16px" }}
                   onSubmit={createKey}
@@ -1366,7 +1354,11 @@ export default function IntegrationsPage() {
                         fontSize: "13px",
                       }}
                     >
-                      <ValidatedInput type="checkbox" name="read" defaultChecked />
+                      <ValidatedInput
+                        type="checkbox"
+                        name="read"
+                        defaultChecked
+                      />
                       Read
                     </label>
                     <label
@@ -1426,6 +1418,12 @@ export default function IntegrationsPage() {
                 Sign events with HMAC-SHA256 signature header for verification.
               </p>
 
+              {newToken && (
+                <CopyField
+                  label="Webhook token (shown once)"
+                  value={newToken}
+                />
+              )}
               {subscriptions.length ? (
                 <div
                   style={{
@@ -1488,7 +1486,10 @@ export default function IntegrationsPage() {
                 </div>
               )}
 
-              <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
+              <ValidatedForm
+                fieldErrors={feedback.fieldErrors}
+                validationTarget={feedback.validationTarget}
+                onEdit={() => feedback.setError("")}
                 className="form-grid"
                 style={{ marginTop: "16px" }}
                 onSubmit={createSubscription}

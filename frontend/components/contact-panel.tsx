@@ -175,7 +175,10 @@ export function ContactPanel({
   };
 
   const assign = async (userId: number | null) => {
-    await patch({ assigned_to: userId }, userId ? "Contact assigned." : "Contact unassigned.");
+    await patch(
+      { assigned_to: userId },
+      userId ? "Contact assigned." : "Contact unassigned.",
+    );
   };
 
   const addNote = async (event: FormEvent) => {
@@ -198,6 +201,19 @@ export function ContactPanel({
       "Profile refreshed from the channel.",
     );
     if (updated) onChange(updated);
+  };
+
+  const summarize = async () => {
+    const result = await feedback.run(
+      () =>
+        api<{ ai_summary: string; ai_summary_at: string }>(
+          `${prefix}/leads/${lead.id}/summary/`,
+          "POST",
+          {},
+        ),
+      "Summary updated.",
+    );
+    if (result) onChange({ ...lead, ...result });
   };
 
   const remove = async () => {
@@ -397,6 +413,40 @@ export function ContactPanel({
 
         <ErrorNotice error={feedback.error} />
         <SuccessNotice notice={feedback.notice} />
+
+        <section className="contact-section">
+          <div className="row between">
+            <h3>AI summary</h3>
+            <button
+              type="button"
+              className="button small secondary"
+              disabled={feedback.busy || !lead.identities.length}
+              title={
+                lead.identities.length
+                  ? "Summarize this contact's conversations with your AI model (uses AI credits)"
+                  : "This contact has no conversations to summarize yet"
+              }
+              onClick={summarize}
+            >
+              {lead.ai_summary ? "Refresh summary" : "Summarize"}
+            </button>
+          </div>
+          {lead.ai_summary ? (
+            <>
+              <p style={{ whiteSpace: "pre-line" }}>{lead.ai_summary}</p>
+              {lead.ai_summary_at && (
+                <p className="muted-text small">
+                  Written {relativeTime(lead.ai_summary_at)}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="muted-text">
+              A short brief of who this contact is, what they want and the best
+              next step, written from their messages.
+            </p>
+          )}
+        </section>
 
         <section className="contact-section">
           <h3>Channels</h3>

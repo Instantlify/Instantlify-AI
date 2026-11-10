@@ -940,7 +940,9 @@ def dashboard(request):
                     {
                         "key": key,
                         "label": label,
-                        "enabled": bool(grants.get((workspace.pk, key)) and grants[(workspace.pk, key)].enabled),
+                        "enabled": bool(
+                            grants.get((workspace.pk, key)) and grants[(workspace.pk, key)].enabled
+                        ),
                     }
                     for key, label in CAPABILITIES.items()
                 ],
@@ -1157,15 +1159,24 @@ def capability_change(request):
     reason = request.POST.get("reason", "").strip()
     enabled = request.POST.get("enabled")
     if key not in CAPABILITIES or enabled not in {"true", "false"}:
-        return HttpResponseForbidden("Choose a known feature and an explicit grant or revoke action.")
+        return HttpResponseForbidden(
+            "Choose a known feature and an explicit grant or revoke action."
+        )
     if not reason or len(reason) > 300:
         return HttpResponseForbidden("Provide a reason of up to 300 characters.")
     WorkspaceCapability.objects.update_or_create(
-        workspace=workspace, key=key,
+        workspace=workspace,
+        key=key,
         defaults={"enabled": enabled == "true", "reason": reason},
     )
-    record(request.user, "capability.changed", workspace.pk,
-           key=key, enabled=enabled == "true", reason=reason)
+    record(
+        request.user,
+        "capability.changed",
+        workspace.pk,
+        key=key,
+        enabled=enabled == "true",
+        reason=reason,
+    )
     return redirect("/ops/?tab=operations&q=" + str(workspace.pk))
 
 

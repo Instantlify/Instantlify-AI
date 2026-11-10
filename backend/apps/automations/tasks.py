@@ -56,6 +56,62 @@ def dispatch_runs():
         status="running", available_at__lte=timezone.now()
     ).values_list("workspace_id", "pk")[:100]:
         enqueue_once(step, workspace_id, pk)
+    for workspace_id, pk in ConversationState.all_objects.filter(
+        status="waiting", timeout_at__lte=timezone.now()
+    ).values_list("workspace_id", "pk")[:100]:
+        enqueue_once(wait_timed_out, workspace_id, pk)
+    from .intents import recover_stuck
+    from .models import IntentMatch
+
+    recover_stuck()
+    for workspace_id, pk in IntentMatch.all_objects.filter(
+        status="pending", available_at__lte=timezone.now()
+    ).values_list("workspace_id", "pk")[:100]:
+        enqueue_once(process_intent_match, workspace_id, pk)
+
+
+@shared_task(ignore_result=True, soft_time_limit=60, time_limit=90)
+@pause_guard("automations", "ai")
+def process_intent_match(workspace_id, job_id):
+    from .intents import execute_intent_match
+
+    execute_intent_match(workspace_id, job_id)
+
+
+@shared_task(ignore_result=True)
+@pause_guard("automations")
+def wait_timed_out(workspace_id, state_id):
+    """No reply arrived in time: continue down the wait step's "timeout" path."""
+    with transaction.atomic():
+        state = (
+            ConversationState.objects.for_workspace(workspace_id)
+            .select_for_update()
+            .filter(pk=state_id, status="waiting", timeout_at__lte=timezone.now())
+            .first()
+        )
+        if not state:
+            return
+        target = next(
+            (
+                e["target"]
+                for e in state.graph["edges"]
+                if e["source"] == state.node_id and e.get("sourceHandle") == "timeout"
+            ),
+            None,
+        )
+        state.timeout_at = None
+        if target is None:
+            state.status = "failed"
+            state.error_code = "invalid_transition_or_delivery_guard"
+        else:
+            state.node_id = target
+            state.variables["timed_out"] = True
+            state.status = "running"
+            state.available_at = timezone.now()
+            state.steps += 1
+        state.save()
+        if state.status == "running":
+            transaction.on_commit(lambda: release(step, state_id))
 
 
 @shared_task(ignore_result=True)
@@ -87,6 +143,10 @@ def step(workspace_id, state_id):
                 return
             if kind in {"wait", "capture_email"}:
                 state.status = "waiting"
+                timeout = data.get("timeout_seconds") if kind == "wait" else None
+                state.timeout_at = (
+                    timezone.now() + timedelta(seconds=int(timeout)) if timeout else None
+                )
                 state.save()
                 return
             if kind == "start_agent":
@@ -226,7 +286,9 @@ def step(workspace_id, state_id):
                     )
                 state.variables.pop("comment_id", None)
             elif kind == "delay":
-                state.available_at = timezone.now() + timedelta(seconds=int(data["seconds"]))
+                from .services import delay_seconds
+
+                state.available_at = timezone.now() + timedelta(seconds=delay_seconds(state, data))
             elif kind in {"add_tag", "assign_member", "set_field", "set_stage"}:
                 from .guided import apply_action
 
@@ -236,12 +298,9 @@ def step(workspace_id, state_id):
                 bucket = int(hashlib.sha256(seed.encode()).hexdigest(), 16) % 100
                 branch = "true" if bucket < data.get("percentage", 50) else "false"
             elif kind in {"condition", "branch"}:
-                branch = (
-                    "true"
-                    if str(state.variables.get(data.get("variable", "last_text"), "")).casefold()
-                    == str(data.get("equals", "")).casefold()
-                    else "false"
-                )
+                from .conditions import context_for, evaluate
+
+                branch = "true" if evaluate(data, context_for(state)) else "false"
             state.node_id = next(
                 e["target"]
                 for e in state.graph["edges"]

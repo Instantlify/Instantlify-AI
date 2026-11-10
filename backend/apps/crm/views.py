@@ -23,6 +23,7 @@ from .models import (
     InternalNote,
     Lead,
     Message,
+    SavedReply,
 )
 from .services import notify, queue_reply
 
@@ -111,7 +112,7 @@ class ConversationList(generics.ListAPIView):
             last_message_id=Subquery(
                 Message.objects.for_workspace(self.kwargs["workspace_id"])
                 .filter(conversation=OuterRef("pk"))
-                .order_by("-created_at", "-id")
+                .order_by("-created_at", "-sequence", "-id")
                 .values("pk")[:1]
             )
         )
@@ -236,6 +237,7 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = [
             "id",
+            "sequence",
             "direction",
             "text",
             "kind",
@@ -259,19 +261,114 @@ class MessageList(generics.ListAPIView):
             Message.objects.for_workspace(conversation.workspace_id)
             .filter(conversation=conversation)
             .select_related("delivery", "author")
-            .order_by("-created_at", "-id")
+            .order_by("-created_at", "-sequence", "-id")
         )
 
     def post(self, request, workspace_id, pk):
         conversation = get_object_or_404(conversations_for(request, workspace_id), pk=pk)
-        text = request.data.get("text")
+        upload = request.FILES.get("file")
+        text = request.data.get("text") or ""
         key = request.headers.get("Idempotency-Key", "")
-        if not isinstance(text, str) or not 1 <= len(text) <= 2000 or not 1 <= len(key) <= 100:
+        if (
+            not isinstance(text, str)
+            or len(text) > 2000
+            or not (text.strip() or upload)
+            or not 1 <= len(key) <= 100
+        ):
             raise serializers.ValidationError(
-                "Supply text (1–2000 characters) and an Idempotency-Key."
+                "Supply text (1–2000 characters) or a file, and an Idempotency-Key."
             )
+        if upload:
+            return self._send_attachment(request, conversation, upload, text.strip(), key)
         item = queue_reply(conversation, text, f"human:{pk}:{key}", actor=request.user)
         return Response({"id": item.id, "status": item.status}, status=202)
+
+    @staticmethod
+    def _send_attachment(request, conversation, upload, caption, key):
+        from apps.channels.media import MEDIA_CHANNELS
+        from apps.channels.models import Delivery
+
+        from .attachments import attachment_url, can_deliver_by_url, store_attachment
+
+        connection = conversation.identity.connection
+        if connection.provider not in MEDIA_CHANNELS:
+            raise serializers.ValidationError("This channel cannot receive files.")
+        pk = conversation.pk
+        file_key = f"human:{pk}:{key}:file"
+        with transaction.atomic():
+            existing = (
+                Delivery.objects.for_workspace(conversation.workspace_id)
+                .filter(idempotency_key=file_key)
+                .first()
+            )
+            if existing:
+                # A retried request must not store the file a second time.
+                return Response({"id": existing.id, "status": existing.status}, status=202)
+            attachment, kind = store_attachment(conversation, upload)
+            if can_deliver_by_url():
+                item = queue_reply(
+                    conversation,
+                    "",
+                    file_key,
+                    actor=request.user,
+                    media_url=attachment_url(attachment),
+                    media_type=kind,
+                )
+            elif connection.is_test:
+                # Local test channels never reach a provider; record what would be sent.
+                item = queue_reply(
+                    conversation,
+                    f"[Local test {kind}: {attachment.filename}]",
+                    file_key,
+                    actor=request.user,
+                )
+            else:
+                raise serializers.ValidationError(
+                    "Sending files needs a public HTTPS app address (PUBLIC_APP_URL)."
+                )
+            # Media messages carry no caption on every channel, so the text follows.
+            if caption:
+                item = queue_reply(conversation, caption, f"human:{pk}:{key}", actor=request.user)
+        return Response({"id": item.id, "status": item.status}, status=202)
+
+
+class SavedRepliesView(APIView):
+    """The team's shared quick replies. PUT replaces the whole ordered list, which is
+    how the composer edits it (add, delete), so there is no partial-update drift."""
+
+    MAX_REPLIES = 50
+
+    def _list(self, workspace_id):
+        return list(SavedReply.objects.for_workspace(workspace_id).values_list("text", flat=True))
+
+    def get(self, request, workspace_id):
+        member = workspace_membership(request, workspace_id)
+        return Response({"replies": self._list(member.workspace_id)})
+
+    def put(self, request, workspace_id):
+        member = workspace_membership(request, workspace_id)
+        replies = request.data.get("replies")
+        if (
+            not isinstance(replies, list)
+            or len(replies) > self.MAX_REPLIES
+            or not all(isinstance(item, str) and 1 <= len(item.strip()) <= 1000 for item in replies)
+        ):
+            raise serializers.ValidationError(
+                f"Send up to {self.MAX_REPLIES} replies of 1–1000 characters each."
+            )
+        cleaned = list(dict.fromkeys(item.strip() for item in replies))
+        workspace = member.workspace
+        with transaction.atomic():
+            Workspace.objects.select_for_update().get(pk=workspace.pk)
+            SavedReply.objects.for_workspace(workspace).delete()
+            SavedReply.objects.for_workspace(workspace).bulk_create(
+                [
+                    SavedReply(workspace=workspace, text=text, position=index)
+                    for index, text in enumerate(cleaned)
+                ]
+            )
+        audit(workspace, request.user, "saved_replies.updated", workspace.pk)
+        return Response({"replies": cleaned})
 
 
 class NotesView(APIView):
@@ -325,7 +422,9 @@ class ConversationEventsView(APIView):
 
 
 class LeadSerializer(serializers.ModelSerializer):
-    assigned_to = serializers.IntegerField(source="assigned_to_id", required=False, allow_null=True, min_value=1)
+    assigned_to = serializers.IntegerField(
+        source="assigned_to_id", required=False, allow_null=True, min_value=1
+    )
 
     class Meta:
         model = Lead
@@ -342,8 +441,17 @@ class LeadSerializer(serializers.ModelSerializer):
             "opted_out",
             "profile_synced_at",
             "created_at",
+            "ai_summary",
+            "ai_summary_at",
         ]
-        read_only_fields = ["id", "avatar_url", "profile_synced_at", "created_at"]
+        read_only_fields = [
+            "id",
+            "avatar_url",
+            "profile_synced_at",
+            "created_at",
+            "ai_summary",
+            "ai_summary_at",
+        ]
 
     def validate_assigned_to(self, value):
         request = self.context.get("request")
@@ -352,9 +460,12 @@ class LeadSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Assign contacts through the workspace contact API.")
         workspace_id = view.kwargs["workspace_id"]
         workspace_membership(request, workspace_id, ["owner", "admin"])
-        if value is not None and not Membership.objects.for_workspace(workspace_id).filter(
-            user_id=value, user__is_active=True, user__is_banned=False
-        ).exists():
+        if (
+            value is not None
+            and not Membership.objects.for_workspace(workspace_id)
+            .filter(user_id=value, user__is_active=True, user__is_banned=False)
+            .exists()
+        ):
             raise serializers.ValidationError("Assignee must be an active workspace member.")
         return value
 
@@ -666,9 +777,9 @@ class LeadDetail(generics.RetrieveUpdateDestroyAPIView):
             from .notifications import assignment_changed
 
             assignment_changed(lead, lead.assigned_to_id, previous_assignee, self.request.user)
-            Conversation.objects.for_workspace(lead.workspace_id).filter(identity__lead=lead).update(
-                assigned_to_id=lead.assigned_to_id
-            )
+            Conversation.objects.for_workspace(lead.workspace_id).filter(
+                identity__lead=lead
+            ).update(assigned_to_id=lead.assigned_to_id)
             transaction.on_commit(lambda: notify(lead.workspace_id))
         audit(lead.workspace, self.request.user, "lead.updated", lead.id)
         emit(lead.workspace_id, "lead.updated", lead_payload(lead))
@@ -741,7 +852,16 @@ class MergeLeadView(APIView):
         ):
             target.name = source.name
         target.save(
-            update_fields=["tags", "opted_out", "fields", "email", "handle", "avatar_url", "name", "assigned_to"]
+            update_fields=[
+                "tags",
+                "opted_out",
+                "fields",
+                "email",
+                "handle",
+                "avatar_url",
+                "name",
+                "assigned_to",
+            ]
         )
         source.delete()
         audit(member.workspace, request.user, "leads.merged", target.id)

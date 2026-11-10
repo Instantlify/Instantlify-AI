@@ -51,6 +51,7 @@ from apps.channels.telegram_connect import TelegramConnectView
 from apps.channels.whatsapp import WhatsAppActivateView, WhatsAppCompleteView, WhatsAppConnectView
 from apps.channels.whatsapp_templates import ConversationTemplatesView
 from apps.content.views import BioView, PostDetail, PostList, PublicBioView
+from apps.crm.attachments import attachment_file
 from apps.crm.campaigns import (
     CampaignAudienceView,
     CampaignDetail,
@@ -60,9 +61,11 @@ from apps.crm.campaigns import (
     LaunchCampaignView,
 )
 from apps.crm.form_imports import ImportFormContactsView
+from apps.crm.lead_import import LeadImportView
 from apps.crm.notifications import AssignmentNotificationsView
 from apps.crm.oauth import IntegrationOAuthCallbackView, IntegrationOAuthStartView
 from apps.crm.segments import SegmentDetail, SegmentList
+from apps.crm.summary import ContactSummaryView
 from apps.crm.views import (
     ConversationDetail,
     ConversationEventsView,
@@ -77,6 +80,7 @@ from apps.crm.views import (
     MessageList,
     NotesView,
     RefreshLeadView,
+    SavedRepliesView,
     SyncLeadView,
 )
 from apps.marketplace.views import (
@@ -89,6 +93,16 @@ from apps.marketplace.views import (
     PublishTemplateView,
     PurchaseDetail,
     PurchaseList,
+)
+from apps.platform_ops.affiliates import AffiliateView
+from apps.platform_ops.community import (
+    CommunityAssistant,
+    CommunityFeed,
+    CommunityOwnData,
+    CommunityPostView,
+    CommunityReaction,
+    CommunityReplies,
+    CommunityReplyView,
 )
 from apps.public_api.mcp import MCPView
 from apps.public_api.views import (
@@ -116,6 +130,8 @@ from apps.tenants.branding import (
 from apps.tenants.data_views import DataOperationsView, DownloadExportView
 from apps.tenants.tls import CheckDomainTLSView
 from apps.tools.creator import CreatorView, PublicCreatorView
+from apps.tools.form_exports import SubmissionExportView
+from apps.tools.form_files import FormFileDownload
 from apps.tools.forms import FormDetail, FormList, PublicFormView, SubmissionList
 from apps.tools.views import (
     DeepLinkDetail,
@@ -131,6 +147,14 @@ from apps.tools.views import (
 
 P = "api/workspaces/<uuid:workspace_id>/"
 urlpatterns = [
+    path("api/affiliate/", AffiliateView.as_view()),
+    path("api/community/", CommunityFeed.as_view()),
+    path("api/community/assistant/", CommunityAssistant.as_view()),
+    path("api/community/me/export/", CommunityOwnData.as_view()),
+    path("api/community/<uuid:pk>/", CommunityPostView.as_view()),
+    path("api/community/<uuid:pk>/replies/", CommunityReplies.as_view()),
+    path("api/community/<uuid:pk>/replies/<uuid:reply_id>/", CommunityReplyView.as_view()),
+    path("api/community/<uuid:pk>/reaction/", CommunityReaction.as_view()),
     path(P + "agent/preview/", AgentPreviewView.as_view()),
     path(P + "data-operations/", DataOperationsView.as_view()),
     path(P + "data-operations/<uuid:pk>/download/", DownloadExportView.as_view()),
@@ -149,10 +173,13 @@ urlpatterns = [
     path(P + "conversations/<uuid:pk>/", ConversationDetail.as_view()),
     path(P + "conversations/<uuid:pk>/messages/", MessageList.as_view()),
     path(P + "conversations/<uuid:pk>/notes/", NotesView.as_view()),
+    path(P + "saved-replies/", SavedRepliesView.as_view()),
     path(P + "conversations/<uuid:pk>/events/", ConversationEventsView.as_view()),
     path(P + "conversations/<uuid:pk>/payment-link/", SendPaymentLinkView.as_view()),
     path(P + "leads/", LeadList.as_view()),
     path(P + "leads/bulk/", LeadBulkView.as_view()),
+    path(P + "leads/import/", LeadImportView.as_view()),
+    path(P + "leads/<uuid:pk>/summary/", ContactSummaryView.as_view()),
     path(P + "leads/broadcast/", LeadBroadcastView.as_view()),
     path(P + "campaigns/", CampaignList.as_view()),
     path(P + "campaigns/audience/", CampaignAudienceView.as_view()),
@@ -209,6 +236,11 @@ urlpatterns = [
     path(P + "forms/", FormList.as_view()),
     path(P + "forms/<uuid:pk>/", FormDetail.as_view()),
     path(P + "forms/<uuid:pk>/submissions/", SubmissionList.as_view()),
+    path(P + "forms/<uuid:pk>/submissions/export/", SubmissionExportView.as_view()),
+    path(
+        P + "forms/<uuid:pk>/submissions/<uuid:submission_id>/<slug:field_id>/file/",
+        FormFileDownload.as_view(),
+    ),
     path(P + "creator-kit/", CreatorView.as_view()),
     path(P + "shield/rules/", ShieldRuleList.as_view()),
     path(P + "shield/rules/<uuid:pk>/", ShieldRuleDetail.as_view()),
@@ -261,4 +293,5 @@ urlpatterns = [
     path("webhooks/stripe/", stripe_webhook),
     path("webhooks/stripe/<uuid:workspace_id>/", tenant_stripe_webhook),
     path("media/voice/<str:token>/", voice_asset),
+    path("media/attachment/<str:token>/", attachment_file),
 ]

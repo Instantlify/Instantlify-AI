@@ -3,7 +3,6 @@ from django.urls import include, path
 from apps.channels.ingress import (
     linkedin_webhook,
     meta_webhook,
-    snapchat_webhook,
     telegram_webhook,
 )
 from apps.channels.views import (
@@ -34,6 +33,7 @@ from apps.tenants.invitations import (
     InvitationDetailView,
     InvitationListView,
 )
+from apps.tenants.profile import ProfilePhotoView
 from apps.tenants.recovery import PasswordResetConfirmView, PasswordResetRequestView
 from apps.tenants.verification import ResendVerificationView, VerifyEmailView
 from apps.tenants.views import (
@@ -58,7 +58,6 @@ urlpatterns = [
     path("", include("config.feature_urls")),
     path("webhooks/telegram/<uuid:connection_id>/", telegram_webhook),
     path("webhooks/linkedin/", linkedin_webhook),
-    path("webhooks/snapchat/", snapchat_webhook),
     path("webhooks/<str:provider>/", meta_webhook),
     path("health/live/", live),
     path("health/ready/", ready),
@@ -72,6 +71,7 @@ urlpatterns = [
     path("api/auth/verify-email/resend/", ResendVerificationView.as_view()),
     path("api/auth/logout/", LogoutView.as_view()),
     path("api/auth/me/", MeView.as_view()),
+    path("api/auth/photo/", ProfilePhotoView.as_view()),
     path("api/auth/token/", JWTLoginView.as_view()),
     path("api/auth/token/refresh/", JWTRefreshView.as_view()),
     path("api/auth/token/revoke/", JWTRevokeView.as_view()),

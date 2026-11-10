@@ -66,7 +66,7 @@ test("campaigns keep the saved draft after a failed launch and retry without dup
     .getByRole("button", { name: "Send campaign", exact: true })
     .click();
   await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
-    "Temporary launch failure",
+    "We couldn’t complete this request. Please try again in a moment.",
   );
   await expect(page.getByText("Saved draft", { exact: true })).toBeVisible();
   await page
