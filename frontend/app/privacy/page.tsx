@@ -75,9 +75,10 @@ export default function PrivacyPage() {
           </li>
           <li>
             When you connect other tools (for example Google Calendar or Sheets,
-            Gmail, Outlook, Slack, Stripe, Mailchimp, Klaviyo, HubSpot-style
-            CRMs, voice or video providers): the credentials or tokens you
-            provide, encrypted, and the settings you choose.
+            Gmail, Outlook, Slack, Stripe, Mailchimp, Klaviyo, CRMs such as
+            GoHighLevel, Attio, Airtable or Notion,, voice or video providers):
+            the credentials or tokens you provide, encrypted, and the settings
+            you choose.
           </li>
         </ul>
 
