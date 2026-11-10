@@ -25,6 +25,14 @@ def backfill_sequences(apps, schema_editor):
         manager.bulk_update(batch, ["sequence"])
 
 
+def run_deferred_checks(apps, schema_editor):
+    """The backfill queues the deferred tenant-isolation trigger checks
+    (tenants/isolation.py); PostgreSQL refuses to ALTER a table with pending trigger
+    events, so fire them now, before the constraint is added."""
+    if schema_editor.connection.vendor == "postgresql":
+        schema_editor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("channels", "0006_delivery_provider_receipts"),
@@ -44,6 +52,7 @@ class Migration(migrations.Migration):
             field=models.PositiveBigIntegerField(editable=False, null=True),
         ),
         migrations.RunPython(backfill_sequences, migrations.RunPython.noop),
+        migrations.RunPython(run_deferred_checks, migrations.RunPython.noop),
         migrations.AddConstraint(
             model_name="message",
             constraint=models.UniqueConstraint(
