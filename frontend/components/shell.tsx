@@ -50,6 +50,7 @@ import { ErrorNotice } from "./ui";
 import { UpgradePrompt } from "./plans";
 import { MetaAccountSwitcher } from "./meta-switcher";
 import { BrandIcon, type BrandName } from "@/lib/brand-icons";
+import { LanguageSwitcher, useT, type MessageKey } from "@/lib/i18n";
 
 export const initials = (name: string) =>
   name.trim().slice(0, 2).toUpperCase() || "N";
@@ -205,6 +206,23 @@ const TOOLS: NavItem[] = [
   { id: "activity", label: "Activity", icon: Activity },
 ];
 
+const NAV_KEYS: Record<string, MessageKey> = {
+  overview: "nav.overview",
+  inbox: "nav.inbox",
+  crm: "nav.crm",
+  automations: "nav.automations",
+  channels: "nav.channels",
+  integrations: "nav.integrations",
+  agent: "nav.agent",
+  analytics: "nav.analytics",
+  templates: "nav.templates",
+  payments: "nav.payments",
+  team: "nav.team",
+  activity: "nav.activity",
+  support: "nav.help",
+  settings: "nav.settings",
+};
+
 /** Nav item -> access section (tenants/access.py). Unlisted items are never limited. */
 const ACCESS_SECTION: Record<string, string> = {
   inbox: "inbox",
@@ -241,6 +259,10 @@ const AGENT_SECTIONS = [
 export function Shell({ children }: { children: ReactNode }) {
   const { user, workspace, workspaces, manager, prefix, refresh } =
     useWorkspace();
+  const t = useT();
+  // Built-in sections use translated names; pinned apps keep their own labels.
+  const navLabel = (item: NavItem) =>
+    NAV_KEYS[item.id] ? t(NAV_KEYS[item.id]) : item.label;
   const router = useRouter();
   const pathname = usePathname();
   const tab = useSearchParams().get("tab");
@@ -359,8 +381,8 @@ export function Shell({ children }: { children: ReactNode }) {
         href={`/w/${workspace.id}/${item.id === "channels" ? "integrations?tab=channels" : item.id}`}
         className={`boosend-nav-link ${active ? "active" : ""} ${isSub ? "sub-item" : ""}`}
         aria-current={active ? "page" : undefined}
-        aria-label={item.label}
-        title={item.label}
+        aria-label={navLabel(item)}
+        title={navLabel(item)}
       >
         <span
           className="nav-icon-wrap"
@@ -372,7 +394,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <Icon size={18} />
           )}
         </span>
-        <span className="nav-label-text">{item.label}</span>
+        <span className="nav-label-text">{navLabel(item)}</span>
         {item.badge && <span className="nav-badge-pill">{item.badge}</span>}
       </Link>
     );
@@ -558,6 +580,7 @@ export function Shell({ children }: { children: ReactNode }) {
             label: "Settings",
             icon: Settings,
           })}
+          <LanguageSwitcher className="sidebar-language" />
         </nav>
 
         {/* 4. Bottom User Profile Card */}

@@ -3,6 +3,7 @@
 import { useRef, useState, type PointerEvent } from "react";
 import type { FormAnswer, FormField } from "@/lib/portal-tools";
 import { ValidatedInput } from "./validated-form";
+import { useT } from "@/lib/i18n";
 
 export function FormFileQuestion({
   field,
@@ -13,6 +14,7 @@ export function FormFileQuestion({
   value?: FormAnswer;
   onChange: (value: FormAnswer) => void;
 }) {
+  const t = useT();
   const [error, setError] = useState("");
   const canvas = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
@@ -61,16 +63,18 @@ export function FormFileQuestion({
                   reader.onerror = () => reject(new Error("Read failed"));
                   reader.readAsDataURL(file);
                 });
-                if (version === selectionVersion.current) onChange({ name: file.name, data });
+                if (version === selectionVersion.current)
+                  onChange({ name: file.name, data });
               } catch {
-                if (version === selectionVersion.current) setError("The file could not be read. Choose it again.");
+                if (version === selectionVersion.current)
+                  setError("The file could not be read. Choose it again.");
               }
             }}
           />
         </label>
       ) : (
         <>
-          <p>Draw your signature in the box, or upload a signature image.</p>
+          <p>{t("form.signatureHelp")}</p>
           <canvas
             ref={canvas}
             width={600}

@@ -127,3 +127,15 @@
     transition: none;
   }
 }
+
+/* Language picker under the sidebar navigation. */
+.sidebar-language {
+  margin: 8px 12px 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}

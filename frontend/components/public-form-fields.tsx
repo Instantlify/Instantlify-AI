@@ -8,6 +8,7 @@ import {
   ValidatedSelect,
   ValidatedTextarea,
 } from "./validated-form";
+import { useT } from "@/lib/i18n";
 
 export function PublicFormFields({
   fields,
@@ -18,6 +19,7 @@ export function PublicFormFields({
   answers: Record<string, FormAnswer>;
   onChange: (id: string, value: FormAnswer) => void;
 }) {
+  const t = useT();
   return fields.map((field) => {
     const name = `answer:${field.id}`;
     const raw = answers[field.id];
@@ -104,8 +106,8 @@ export function PublicFormFields({
     const choices =
       field.type === "yes_no"
         ? [
-            { value: "yes", label: "Yes" },
-            { value: "no", label: "No" },
+            { value: "yes", label: t("form.yes") },
+            { value: "no", label: t("form.no") },
           ]
         : field.type === "rating" || field.type === "opinion_scale"
           ? Array.from(
@@ -148,7 +150,7 @@ export function PublicFormFields({
             value={value}
             onChange={(e) => onChange(field.id, e.target.value)}
           >
-            <option value="">Choose an option</option>
+            <option value="">{t("form.choose")}</option>
             {choices?.map((choice) => (
               <option key={choice.value} value={choice.value}>
                 {choice.label}

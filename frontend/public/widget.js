@@ -30,6 +30,17 @@
     logo_url: "",
     quick_replies: [],
   };
+  // Visitor-facing text; the embed can force a language with data-lang="es".
+  var STRINGS = {
+    en: { open: "Open chat", close: "Close chat", placeholder: "Write a message", message: "Message", send: "Send", ai: "AI assistant and team", team: "Our team replies here" },
+    es: { open: "Abrir chat", close: "Cerrar chat", placeholder: "Escribe un mensaje", message: "Mensaje", send: "Enviar", ai: "Asistente de IA y equipo", team: "Nuestro equipo responde aquí" },
+    de: { open: "Chat öffnen", close: "Chat schließen", placeholder: "Nachricht schreiben", message: "Nachricht", send: "Senden", ai: "KI-Assistent und Team", team: "Unser Team antwortet hier" },
+    fr: { open: "Ouvrir le chat", close: "Fermer le chat", placeholder: "Écrivez un message", message: "Message", send: "Envoyer", ai: "Assistant IA et équipe", team: "Notre équipe vous répond ici" },
+    ru: { open: "Открыть чат", close: "Закрыть чат", placeholder: "Напишите сообщение", message: "Сообщение", send: "Отправить", ai: "ИИ-ассистент и команда", team: "Наша команда ответит здесь" },
+    sr: { open: "Otvori čet", close: "Zatvori čet", placeholder: "Napišite poruku", message: "Poruka", send: "Pošalji", ai: "AI asistent i tim", team: "Naš tim odgovara ovde" },
+  };
+  var lang = (script.getAttribute("data-lang") || navigator.language || "en").slice(0, 2).toLowerCase();
+  var text = STRINGS[lang] || STRINGS.en;
   var open = false;
   var seen = {};
   var timer = null;
@@ -57,7 +68,7 @@
   var button = document.createElement("button");
   button.className = "nemio-chat-button";
   button.type = "button";
-  button.setAttribute("aria-label", "Open chat");
+  button.setAttribute("aria-label", text.open);
   button.textContent = config.launcher_label;
   var panel = document.createElement("div");
   panel.className = "nemio-chat-panel";
@@ -65,7 +76,7 @@
   panel.innerHTML =
     '<div class="nemio-chat-head"><img alt="" hidden><div><span></span><small></small></div></div>' +
     '<div class="nemio-chat-log" aria-live="polite"></div>' +
-    '<form class="nemio-chat-form"><input type="text" maxlength="2000" placeholder="Write a message" aria-label="Message" required><button type="submit">Send</button></form>';
+    '<form class="nemio-chat-form"><input type="text" maxlength="2000" placeholder="' + text.placeholder + '" aria-label="' + text.message + '" required><button type="submit">' + text.send + "</button></form>";
   document.body.appendChild(panel);
   document.body.appendChild(button);
   var head = panel.querySelector(".nemio-chat-head");
@@ -110,7 +121,7 @@
     button.textContent = open ? "×" : config.launcher_label || "Chat";
     head.style.background = config.color;
     head.querySelector("span").textContent = config.title;
-    head.querySelector("small").textContent = config.bot_enabled ? "AI assistant and team" : "Our team replies here";
+    head.querySelector("small").textContent = config.bot_enabled ? text.ai : text.team;
     if (config.logo_url && /^https:\/\//.test(config.logo_url)) {
       logo.src = config.logo_url;
       logo.hidden = false;
@@ -187,7 +198,7 @@
   button.addEventListener("click", function () {
     open = !open;
     panel.classList.toggle("open", open);
-    button.setAttribute("aria-label", open ? "Close chat" : "Open chat");
+    button.setAttribute("aria-label", open ? text.close : text.open);
     paint();
     clearInterval(timer);
     if (open) {

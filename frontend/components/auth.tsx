@@ -20,6 +20,7 @@ import { lastWorkspaceId, loadWorkspaces } from "@/lib/workspace";
 import { Brand, WorkspaceForm } from "@/components/shell";
 import { ErrorNotice } from "@/components/ui";
 import { TrackVisit } from "@/components/growth";
+import { useT } from "@/lib/i18n";
 
 export default function AuthPage({ signup = false }: { signup?: boolean }) {
   const router = useRouter();
@@ -252,6 +253,7 @@ function Auth({
   branding: Branding | null;
   signupInitially: boolean;
 }) {
+  const t = useT();
   const [signup, setSignup] = useState(signupInitially);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
@@ -424,20 +426,24 @@ function Auth({
               />
             </label>
             <button className="button primary full" disabled={busy}>
-              {busy ? "Please wait…" : signup ? "Create account" : "Sign in"}
+              {busy
+                ? t("auth.wait")
+                : signup
+                  ? t("auth.createAccount")
+                  : t("auth.signIn")}
               <ArrowRight size={17} />
             </button>
           </ValidatedForm>
           {googleEnabled && (
             <a className="button secondary full" href="/api/auth/google/start/">
-              Continue with Google
+              {t("auth.google")}
             </a>
           )}
           {!signup && (
             <p>
-              <Link href="/auth/reset/">Forgot your password?</Link>
+              <Link href="/auth/reset/">{t("auth.forgot")}</Link>
               {" · "}
-              <Link href="/auth/magic/">Email me a sign-in link</Link>
+              <Link href="/auth/magic/">{t("auth.magicLink")}</Link>
             </p>
           )}
           <div className="secure-note">

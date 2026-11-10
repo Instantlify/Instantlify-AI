@@ -1,4 +1,5 @@
 import { SupportWidget } from "@/components/support-center";
+import { LanguageProvider } from "@/lib/i18n";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -42,8 +43,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${body.variable} ${display.variable}`}>
       <body>
-        {children}
-        <SupportWidget />
+        <LanguageProvider>
+          {children}
+          <SupportWidget />
+        </LanguageProvider>
       </body>
     </html>
   );

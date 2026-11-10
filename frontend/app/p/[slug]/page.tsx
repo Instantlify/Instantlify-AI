@@ -4,8 +4,10 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, ApiError, message, type PublicBio } from "@/lib/api";
 import { BioRenderer } from "@/components/bio-renderer";
+import { useT } from "@/lib/i18n";
 
 export default function PublicBioPage() {
+  const t = useT();
   const { slug } = useParams<{ slug: string }>();
   const [page, setPage] = useState<PublicBio | null>(null);
   const [state, setState] = useState<"loading" | "missing" | "ready">(
@@ -51,7 +53,7 @@ export default function PublicBioPage() {
   async function subscribe(block: number, email: string, name: string) {
     try {
       await api(`/api/public/bio/${slug}/`, "POST", { block, email, name });
-      return "Thanks, you're on the list.";
+      return t("bio.subscribed");
     } catch (err) {
       return message(err);
     }
@@ -77,7 +79,7 @@ export default function PublicBioPage() {
         footer={
           !page.branding.hide_platform_branding && (
             <p style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-              Made with {page.branding.brand_name}
+              {t("bio.madeWith")} {page.branding.brand_name}
             </p>
           )
         }

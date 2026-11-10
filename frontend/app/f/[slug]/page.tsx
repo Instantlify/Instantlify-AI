@@ -10,8 +10,10 @@ import { api, message } from "@/lib/api";
 import { PublicFormFields } from "@/components/public-form-fields";
 import { visibleFormFields, NON_INPUT_TYPES } from "@/lib/form-path";
 import type { FormAnswer, LeadForm } from "@/lib/portal-tools";
+import { useT } from "@/lib/i18n";
 
 export default function PublicFormPage() {
+  const t = useT();
   const { slug } = useParams<{ slug: string }>();
   const [form, setForm] = useState<LeadForm | null>(null);
   const [answers, setAnswers] = useState<Record<string, FormAnswer>>({});
@@ -40,9 +42,9 @@ export default function PublicFormPage() {
   return (
     <main style={{ maxWidth: 620, margin: "48px auto", padding: "0 24px" }}>
       {loading ? (
-        <p>Loading form…</p>
+        <p>{t("form.loading")}</p>
       ) : !form ? (
-        <p role="alert">This form is unavailable.</p>
+        <p role="alert">{t("form.unavailable")}</p>
       ) : (
         <section
           className="card public-lead-form"
@@ -166,7 +168,7 @@ export default function PublicFormPage() {
                         : "start",
                 }}
               >
-                {busy ? "Submitting…" : "Send response"}
+                {busy ? t("form.submitting") : t("form.submit")}
               </button>
             </ValidatedForm>
           )}

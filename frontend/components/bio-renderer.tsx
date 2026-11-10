@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties, type FormEvent } from "react";
 import type { BioBlock } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 export const BIO_THEMES: { id: string; label: string }[] = [
   { id: "light", label: "Light" },
@@ -123,6 +124,7 @@ function Signup({
   accent: string;
   onSubscribe?: (email: string, name: string) => Promise<string>;
 }) {
+  const t = useT();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [status, setStatus] = useState("");
@@ -145,7 +147,7 @@ function Signup({
       <strong style={{ color: pal.text }}>{block.title}</strong>
       <input
         aria-label="Your name"
-        placeholder="Your name (optional)"
+        placeholder={t("bio.name")}
         maxLength={150}
         value={name}
         onChange={(event) => setName(event.target.value)}
@@ -155,7 +157,7 @@ function Signup({
         aria-label="Your email"
         type="email"
         required
-        placeholder="you@example.com"
+        placeholder={t("bio.email")}
         maxLength={254}
         value={email}
         onChange={(event) => setEmail(event.target.value)}
