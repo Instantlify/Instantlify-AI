@@ -25,6 +25,10 @@ export default function WebChatPage() {
   const [color, setColor] = useState("#347359");
   const [botEnabled, setBotEnabled] = useState(true);
   const [allowedDomains, setAllowedDomains] = useState("");
+  const [position, setPosition] = useState<"left" | "right">("right");
+  const [launcherLabel, setLauncherLabel] = useState("Chat");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [quickReplies, setQuickReplies] = useState("");
   const [copied, setCopied] = useState(false);
   const feedback = useFeedback();
 
@@ -43,6 +47,10 @@ export default function WebChatPage() {
           setColor(saved.color);
           setBotEnabled(saved.bot_enabled);
           setAllowedDomains(saved.allowed_domains.join(", "));
+          setPosition(saved.position || "right");
+          setLauncherLabel(saved.launcher_label || "Chat");
+          setLogoUrl(saved.logo_url || "");
+          setQuickReplies((saved.quick_replies || []).join("\n"));
         })
         .catch((err) => {
           if (!controller.signal.aborted) feedback.setError(message(err));
@@ -68,6 +76,13 @@ export default function WebChatPage() {
         greeting: greeting.trim(),
         color,
         bot_enabled: botEnabled,
+        position,
+        launcher_label: launcherLabel.trim() || "Chat",
+        logo_url: logoUrl.trim(),
+        quick_replies: quickReplies
+          .split("\n")
+          .map((item) => item.trim())
+          .filter(Boolean),
         allowed_domains: allowedDomains
           .split(",")
           .map((host) => host.trim())
@@ -121,6 +136,60 @@ export default function WebChatPage() {
                   onChange={(e) => setGreeting(e.target.value)}
                   rows={3}
                   required
+                />
+              </label>
+
+              <label>
+                Quick replies (one per line, up to 5)
+                <ValidatedTextarea
+                  value={quickReplies}
+                  onChange={(e) => setQuickReplies(e.target.value)}
+                  rows={3}
+                  placeholder={"What are your prices?\nBook a call"}
+                />
+                <span className="hint">
+                  Shown as buttons under the greeting until the visitor writes.
+                </span>
+              </label>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "14px",
+                }}
+              >
+                <label>
+                  Launcher label
+                  <ValidatedInput
+                    value={launcherLabel}
+                    maxLength={20}
+                    onChange={(e) => setLauncherLabel(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Position
+                  <select
+                    aria-label="Widget position"
+                    value={position}
+                    onChange={(e) =>
+                      setPosition(e.target.value as "left" | "right")
+                    }
+                  >
+                    <option value="right">Bottom right</option>
+                    <option value="left">Bottom left</option>
+                  </select>
+                </label>
+              </div>
+
+              <label>
+                Logo URL (optional)
+                <ValidatedInput
+                  type="url"
+                  pattern="https://.*"
+                  value={logoUrl}
+                  placeholder="https://…/logo.png"
+                  onChange={(e) => setLogoUrl(e.target.value)}
                 />
               </label>
 

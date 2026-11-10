@@ -137,6 +137,11 @@ class WebChatSettings(TenantModel):
     greeting = models.CharField(max_length=500, default="Hi there! How can we help you today?")
     color = models.CharField(max_length=7, default="#347359")
     bot_enabled = models.BooleanField(default=True)
+    position = models.CharField(max_length=5, default="right")
+    launcher_label = models.CharField(max_length=20, default="Chat")
+    logo_url = models.URLField(max_length=2000, blank=True)
+    # Suggested first messages shown as buttons under the greeting.
+    quick_replies = models.JSONField(default=list, blank=True)
     # Hostnames allowed to embed the widget; empty allows any site.
     allowed_domains = models.JSONField(default=list)
     updated_at = models.DateTimeField(auto_now=True)

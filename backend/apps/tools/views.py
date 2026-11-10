@@ -300,8 +300,45 @@ class ShieldEventList(generics.ListAPIView):
 class WebChatSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = WebChatSettings
-        fields = ["title", "greeting", "color", "bot_enabled", "allowed_domains", "updated_at"]
+        fields = [
+            "title",
+            "greeting",
+            "color",
+            "bot_enabled",
+            "position",
+            "launcher_label",
+            "logo_url",
+            "quick_replies",
+            "allowed_domains",
+            "updated_at",
+        ]
         read_only_fields = ["updated_at"]
+
+    def validate_position(self, value):
+        if value not in {"left", "right"}:
+            raise serializers.ValidationError("Choose left or right.")
+        return value
+
+    def validate_launcher_label(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Enter a launcher label.")
+        return value.strip()
+
+    def validate_logo_url(self, value):
+        if value and not value.startswith("https://"):
+            raise serializers.ValidationError("The logo must be served over HTTPS.")
+        return value
+
+    def validate_quick_replies(self, value):
+        if not isinstance(value, list) or len(value) > 5:
+            raise serializers.ValidationError("Add up to 5 quick replies.")
+        cleaned = []
+        for item in value:
+            if not isinstance(item, str) or not 1 <= len(item.strip()) <= 40:
+                raise serializers.ValidationError("Quick replies need 1–40 characters.")
+            if item.strip() not in cleaned:
+                cleaned.append(item.strip())
+        return cleaned
 
     def validate_color(self, value):
         if not re.fullmatch(r"#[0-9a-fA-F]{6}", value):
@@ -320,6 +357,25 @@ class WebChatSettingsSerializer(serializers.ModelSerializer):
             if host and host not in cleaned:
                 cleaned.append(host)
         return cleaned
+
+
+def webchat_buttons(message):
+    """Buttons an automation attached to an outbound message, in a widget-safe shape."""
+    if message.direction != "outbound" or not message.delivery_id:
+        return []
+    try:
+        payload = json.loads(message.delivery.payload)
+    except (ValueError, TypeError, AttributeError):
+        return []
+    buttons = []
+    for button in payload.get("buttons") or []:
+        if not isinstance(button, dict) or not isinstance(button.get("title"), str):
+            continue
+        if button.get("type") == "web_url" and str(button.get("url", "")).startswith("https://"):
+            buttons.append({"title": button["title"][:20], "url": button["url"]})
+        elif button.get("type") == "postback" and isinstance(button.get("payload"), str):
+            buttons.append({"title": button["title"][:20], "payload": button["payload"][:64]})
+    return buttons[:3]
 
 
 def webchat_defaults(workspace):
@@ -411,6 +467,7 @@ class PublicWebChatView(APIView):
                 recent = list(
                     Message.objects.for_workspace(workspace.pk)
                     .filter(conversation=conversation)
+                    .select_related("delivery")
                     .order_by("-created_at", "-sequence", "-id")[:200]
                 )
                 messages = [
@@ -419,6 +476,7 @@ class PublicWebChatView(APIView):
                         "direction": message.direction,
                         "text": message.text,
                         "created_at": message.created_at.isoformat(),
+                        "buttons": webchat_buttons(message),
                     }
                     for message in reversed(recent)
                 ]
@@ -428,6 +486,10 @@ class PublicWebChatView(APIView):
                 "greeting": item.greeting,
                 "color": item.color,
                 "bot_enabled": item.bot_enabled,
+                "position": item.position,
+                "launcher_label": item.launcher_label,
+                "logo_url": item.logo_url,
+                "quick_replies": item.quick_replies,
                 "messages": messages,
             }
         )

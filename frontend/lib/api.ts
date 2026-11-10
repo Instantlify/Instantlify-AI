@@ -547,6 +547,10 @@ export type WebChatSettings = {
   greeting: string;
   color: string;
   bot_enabled: boolean;
+  position?: "left" | "right";
+  launcher_label?: string;
+  logo_url?: string;
+  quick_replies?: string[];
   allowed_domains: string[];
   updated_at?: string;
 };
