@@ -506,6 +506,10 @@ export type ShieldRule = {
   id: string;
   name: string;
   keywords: string[];
+  /** AI rule description; blank for a keyword rule. */
+  prompt: string;
+  /** Public reply posted when the rule matches; blank for none. */
+  reply_text: string;
   action: "hide" | "delete" | "flag";
   enabled: boolean;
   created_at: string;

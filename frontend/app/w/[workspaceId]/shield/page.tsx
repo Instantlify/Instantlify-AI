@@ -33,6 +33,9 @@ const ACTION_LABELS: Record<string, string> = {
   deleted: "Deleted automatically",
   flagged: "Flagged for review",
   failed: "Could not be hidden",
+  "hidden+replied": "Hidden and replied",
+  "flagged+replied": "Replied publicly",
+  "failed+replied": "Replied; could not hide",
 };
 
 export default function CommentShieldPage() {
@@ -42,6 +45,9 @@ export default function CommentShieldPage() {
   const [newRuleName, setNewRuleName] = useState("");
   const [newKeywords, setNewKeywords] = useState("");
   const [newAction, setNewAction] = useState<ShieldRule["action"]>("hide");
+  const [ruleMode, setRuleMode] = useState<"keyword" | "ai">("keyword");
+  const [newPrompt, setNewPrompt] = useState("");
+  const [newReply, setNewReply] = useState("");
   const feedback = useFeedback();
 
   useEffect(() => {
@@ -82,7 +88,9 @@ export default function CommentShieldPage() {
     const done = await feedback.run(async () => {
       const created = await api<ShieldRule>(`${prefix}/shield/rules/`, "POST", {
         name: newRuleName.trim(),
-        keywords,
+        keywords: ruleMode === "keyword" ? keywords : [],
+        prompt: ruleMode === "ai" ? newPrompt.trim() : "",
+        reply_text: newAction === "delete" ? "" : newReply.trim(),
         action: newAction,
       });
       setRules((list) => [...list, created]);
@@ -91,6 +99,8 @@ export default function CommentShieldPage() {
     if (done) {
       setNewRuleName("");
       setNewKeywords("");
+      setNewPrompt("");
+      setNewReply("");
     }
   }
 
@@ -133,10 +143,10 @@ export default function CommentShieldPage() {
             <span className="stat-icon">
               <ShieldCheck size={18} />
             </span>
-            <span>Clean reputation rate</span>
+            <span>AI rules</span>
           </div>
-          <strong>99.4%</strong>
-          <p>Of comments analyzed remain safe</p>
+          <strong>{rules.filter((r) => r.enabled && r.prompt).length}</strong>
+          <p>Rules checked by your AI model</p>
         </article>
         <article className="stat-card">
           <div className="stat-top">
@@ -205,7 +215,10 @@ export default function CommentShieldPage() {
                       marginTop: "4px",
                     }}
                   >
-                    Matches: {rule.keywords.join(", ")}
+                    {rule.prompt
+                      ? `AI: ${rule.prompt}`
+                      : `Matches: ${rule.keywords.join(", ")}`}
+                    {rule.reply_text ? ` · Replies: “${rule.reply_text}”` : ""}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: "6px" }}>
@@ -246,14 +259,44 @@ export default function CommentShieldPage() {
               />
             </label>
             <label>
-              Trigger Keywords (comma separated)
-              <ValidatedInput
-                required
-                placeholder="e.g. scam, liar, fraud, refund now"
-                value={newKeywords}
-                onChange={(e) => setNewKeywords(e.target.value)}
-              />
+              Detect by
+              <ValidatedSelect
+                value={ruleMode}
+                onChange={(e) =>
+                  setRuleMode(e.target.value as "keyword" | "ai")
+                }
+              >
+                <option value="keyword">Keywords</option>
+                <option value="ai">AI description (uses AI credits)</option>
+              </ValidatedSelect>
             </label>
+            {ruleMode === "keyword" ? (
+              <label>
+                Trigger Keywords (comma separated)
+                <ValidatedInput
+                  required
+                  placeholder="e.g. scam, liar, fraud, refund now"
+                  value={newKeywords}
+                  onChange={(e) => setNewKeywords(e.target.value)}
+                />
+              </label>
+            ) : (
+              <label>
+                What should the AI catch?
+                <ValidatedInput
+                  required
+                  minLength={5}
+                  maxLength={500}
+                  placeholder="e.g. insults, harassment, hate speech or spam links"
+                  value={newPrompt}
+                  onChange={(e) => setNewPrompt(e.target.value)}
+                />
+                <span className="hint">
+                  Checked only when no keyword rule matches. If the AI is
+                  unavailable, the comment is left alone.
+                </span>
+              </label>
+            )}
             <label>
               Action on Match
               <ValidatedSelect
@@ -269,6 +312,17 @@ export default function CommentShieldPage() {
                 <option value="flag">Flag in Inbox for human review</option>
               </ValidatedSelect>
             </label>
+            {newAction !== "delete" && (
+              <label>
+                Public reply (optional)
+                <ValidatedInput
+                  maxLength={300}
+                  placeholder="e.g. Please DM us so we can help."
+                  value={newReply}
+                  onChange={(e) => setNewReply(e.target.value)}
+                />
+              </label>
+            )}
             <button
               type="submit"
               className="button primary small"

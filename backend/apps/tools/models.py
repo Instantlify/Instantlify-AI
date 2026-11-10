@@ -97,10 +97,15 @@ class CreatorKit(TenantModel):
 
 
 class ShieldRule(TenantModel):
-    """Comments containing any of `keywords` are hidden, deleted or flagged."""
+    """Comments containing any of `keywords` (or, for an AI rule, matching the plain
+    language `prompt`) are hidden, deleted or flagged, optionally with a public reply."""
 
     name = models.CharField(max_length=80)
     keywords = models.JSONField(default=list)
+    # AI rule: what to catch, e.g. "insults, harassment or spam links". Blank = keyword rule.
+    prompt = models.CharField(max_length=500, blank=True)
+    # Posted publicly under the comment when the rule matches (not with "delete").
+    reply_text = models.CharField(max_length=300, blank=True)
     action = models.CharField(max_length=10, default="hide")
     enabled = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)

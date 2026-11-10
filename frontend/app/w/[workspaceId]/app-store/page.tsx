@@ -258,7 +258,7 @@ export default function AppStorePage() {
     {
       id: "shield",
       name: "Hate Detection",
-      description: "Hide or delete comments that match your keyword rules.",
+      description: "Hide or reply to abusive comments with keyword or AI rules.",
       section: "shield",
       icon: <ShieldAlert size={18} color="#ffffff" />,
       banner: (

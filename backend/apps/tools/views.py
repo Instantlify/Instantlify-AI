@@ -192,8 +192,35 @@ class LinkStatsView(APIView):
 class ShieldRuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShieldRule
-        fields = ["id", "name", "keywords", "action", "enabled", "created_at"]
+        fields = [
+            "id",
+            "name",
+            "keywords",
+            "prompt",
+            "reply_text",
+            "action",
+            "enabled",
+            "created_at",
+        ]
         read_only_fields = ["id", "created_at"]
+
+    def validate(self, attrs):
+        keywords = attrs.get("keywords", getattr(self.instance, "keywords", []))
+        prompt = attrs.get("prompt", getattr(self.instance, "prompt", "")).strip()
+        attrs["prompt"] = prompt
+        if prompt and len(prompt) < 5:
+            raise serializers.ValidationError("Describe what the AI rule should catch.")
+        if not prompt and not 1 <= len(keywords) <= 50:
+            raise serializers.ValidationError("Add 1–50 keywords, or describe an AI rule.")
+        attrs["reply_text"] = attrs.get(
+            "reply_text", getattr(self.instance, "reply_text", "")
+        ).strip()
+        if (
+            attrs["reply_text"]
+            and attrs.get("action", getattr(self.instance, "action", "hide")) == "delete"
+        ):
+            raise serializers.ValidationError("A deleted comment cannot be replied to.")
+        return attrs
 
     def validate_keywords(self, value):
         if not isinstance(value, list):
@@ -205,8 +232,8 @@ class ShieldRuleSerializer(serializers.ModelSerializer):
             keyword = keyword.strip().lower()[:60]
             if keyword and keyword not in cleaned:
                 cleaned.append(keyword)
-        if not 1 <= len(cleaned) <= 50:
-            raise serializers.ValidationError("Add 1–50 keywords.")
+        if len(cleaned) > 50:
+            raise serializers.ValidationError("Add at most 50 keywords.")
         return cleaned
 
     def validate_action(self, value):

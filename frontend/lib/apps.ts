@@ -75,8 +75,8 @@ export const APPS: AppEntry[] = [
     label: "Comment shield",
     icon: ShieldBan,
     description:
-      "Hide or delete comments on your Meta posts that match your keyword rules, with a log of every action.",
-    highlights: ["Keyword rules", "Hide, delete or flag"],
+      "Hide, delete or reply to comments on your Meta posts using keyword rules or AI rules written in plain words.",
+    highlights: ["Keyword and AI rules", "Hide, delete, flag or reply"],
     section: "shield",
     agents: false,
   },
