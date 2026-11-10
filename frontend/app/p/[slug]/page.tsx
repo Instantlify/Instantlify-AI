@@ -2,7 +2,8 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, ApiError, type PublicBio } from "@/lib/api";
+import { api, ApiError, message, type PublicBio } from "@/lib/api";
+import { BioRenderer } from "@/components/bio-renderer";
 
 export default function PublicBioPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -33,16 +34,26 @@ export default function PublicBioPage() {
       });
     return () => controller.abort();
   }, [slug]);
-  async function open(index: number, fallback: string) {
+  async function open(block: number, item?: number) {
+    // Negative numbers address legacy links (pages saved before blocks existed).
+    const body = block < 0 ? { index: -1 - block } : { block, item };
     try {
       const { url } = await api<{ url: string }>(
         `/api/public/bio/${slug}/`,
         "POST",
-        { index },
+        body,
       );
       window.location.assign(url);
     } catch {
-      window.location.assign(fallback);
+      // The server validates every target; without it there is nowhere safe to go.
+    }
+  }
+  async function subscribe(block: number, email: string, name: string) {
+    try {
+      await api(`/api/public/bio/${slug}/`, "POST", { block, email, name });
+      return "Thanks, you're on the list.";
+    } catch (err) {
+      return message(err);
     }
   }
   if (state === "loading")
@@ -58,33 +69,19 @@ export default function PublicBioPage() {
       </div>
     );
   return (
-    <main
-      className="setup-screen"
-      style={{ ["--green" as string]: page.accent }}
-    >
-      <div className="bio-preview">
-        {page.avatar_url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={page.avatar_url} alt="" />
-        )}
-        <h1 style={{ fontSize: 24 }}>{page.title}</h1>
-        {page.bio && <p>{page.bio}</p>}
-        {page.links.map((link) => (
-          <button
-            key={link.index}
-            className="bio-link"
-            style={{ background: page.accent }}
-            onClick={() => open(link.index, link.url)}
-          >
-            {link.title}
-          </button>
-        ))}
-        {!page.branding.hide_platform_branding && (
-          <p className="muted-text" style={{ marginTop: 10 }}>
-            Made with {page.branding.brand_name}
-          </p>
-        )}
-      </div>
+    <main style={{ minHeight: "100vh" }}>
+      <BioRenderer
+        page={page}
+        onOpen={open}
+        onSubscribe={subscribe}
+        footer={
+          !page.branding.hide_platform_branding && (
+            <p style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
+              Made with {page.branding.brand_name}
+            </p>
+          )
+        }
+      />
     </main>
   );
 }

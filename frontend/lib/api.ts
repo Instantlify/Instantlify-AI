@@ -550,6 +550,28 @@ export type WebChatSettings = {
   allowed_domains: string[];
   updated_at?: string;
 };
+export type BioBlock = {
+  type:
+    | "link"
+    | "heading"
+    | "text"
+    | "image"
+    | "video"
+    | "social"
+    | "email_capture"
+    | "divider";
+  index?: number;
+  title?: string;
+  url?: string;
+  highlight?: boolean;
+  text?: string;
+  alt?: string;
+  link?: string;
+  embed?: string;
+  items?: { platform: string; url: string }[];
+  button?: string;
+  tag?: string;
+};
 export type BioPage = {
   id?: string;
   slug: string;
@@ -558,6 +580,8 @@ export type BioPage = {
   avatar_url: string;
   accent: string;
   links: BioLink[];
+  blocks: BioBlock[];
+  theme: string;
   published: boolean;
 };
 export type PublicBio = Omit<BioPage, "links" | "id"> & {
