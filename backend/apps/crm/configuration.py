@@ -1,4 +1,5 @@
-"""Local setup checks only; saving credentials does not verify provider access."""
+"""Local setup checks only. Saving does not contact the provider; use the integration
+"Test connection" action (crm/connection_test.py) to verify credentials."""
 
 from rest_framework import serializers
 

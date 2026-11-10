@@ -223,6 +223,19 @@ export default function IntegrationsPage() {
     });
   }
 
+  async function testIntegration(integrationId: string) {
+    const result = await feedback.run(() =>
+      api<{ ok: boolean | null; detail: string }>(
+        `${prefix}/integrations/${integrationId}/test/`,
+        "POST",
+        {},
+      ),
+    );
+    if (!result) return;
+    if (result.ok === false) feedback.setError(result.detail);
+    else feedback.setNotice(result.detail);
+  }
+
   async function disconnectIntegration(providerKey: string) {
     const current = integrations.find((i) => i.provider === providerKey);
     if (!current) return;
@@ -814,6 +827,27 @@ export default function IntegrationsPage() {
       <div className="boosend-integrations-page">
         <ErrorNotice error={feedback.error} />
         <SuccessNotice notice={feedback.notice} />
+        {(() => {
+          const existing = integrations.find(
+            (i) => i.provider === configuredApp.providerKey && i.configured,
+          );
+          return existing ? (
+            <div
+              className="row"
+              style={{ justifyContent: "flex-end", marginBottom: 8 }}
+            >
+              <button
+                type="button"
+                className="button secondary small"
+                disabled={feedback.busy}
+                onClick={() => void testIntegration(existing.id)}
+                title="Check that the provider accepts the saved credentials (read-only; nothing is sent)"
+              >
+                Test connection
+              </button>
+            </div>
+          ) : null;
+        })()}
         <IntegrationConfigureView
           app={configuredApp}
           existingIntegration={integrations.find(
