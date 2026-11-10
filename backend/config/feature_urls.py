@@ -65,6 +65,7 @@ from apps.crm.lead_import import LeadImportView
 from apps.crm.notifications import AssignmentNotificationsView
 from apps.crm.oauth import IntegrationOAuthCallbackView, IntegrationOAuthStartView
 from apps.crm.segments import SegmentDetail, SegmentList
+from apps.crm.stages import PipelineStagesView
 from apps.crm.summary import ContactSummaryView
 from apps.crm.views import (
     ConversationDetail,
@@ -179,6 +180,7 @@ urlpatterns = [
     path(P + "leads/", LeadList.as_view()),
     path(P + "leads/bulk/", LeadBulkView.as_view()),
     path(P + "leads/import/", LeadImportView.as_view()),
+    path(P + "pipeline-stages/", PipelineStagesView.as_view()),
     path(P + "leads/<uuid:pk>/summary/", ContactSummaryView.as_view()),
     path(P + "leads/broadcast/", LeadBroadcastView.as_view()),
     path(P + "campaigns/", CampaignList.as_view()),

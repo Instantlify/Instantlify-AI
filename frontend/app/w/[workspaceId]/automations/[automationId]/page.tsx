@@ -62,6 +62,7 @@ import { TourMarker } from "@/components/growth";
 import { firstReplyStep } from "@/lib/growth";
 import { useGraphHistory } from "@/lib/use-graph-history";
 import { FlowTools } from "@/components/flow-tools";
+import { usePipelineStages } from "@/lib/stages";
 import {
   ConditionRulesEditor,
   DurationInput,
@@ -430,6 +431,7 @@ function toGraph(
 
 export default function BuilderPage() {
   const { workspace, prefix } = useWorkspace();
+  const pipeline = usePipelineStages(prefix);
   const { automationId } = useParams<{ automationId: string }>();
   const [automation, setAutomation] = useState<Automation | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
@@ -2198,16 +2200,9 @@ export default function BuilderPage() {
                       updateSelected({ stage: event.target.value })
                     }
                   >
-                    {[
-                      "new",
-                      "qualified",
-                      "interested",
-                      "booked",
-                      "won",
-                      "lost",
-                    ].map((stage) => (
-                      <option key={stage} value={stage}>
-                        {stage[0].toUpperCase() + stage.slice(1)}
+                    {pipeline.map((stage) => (
+                      <option key={stage.id} value={stage.id}>
+                        {stage.label}
                       </option>
                     ))}
                   </select>

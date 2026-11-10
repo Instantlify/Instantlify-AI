@@ -29,15 +29,10 @@ import {
 import { ChannelBadge, channelLabel } from "@/lib/channels";
 import { ContactAvatar } from "@/components/contact-avatar";
 import { ErrorNotice, Pill, SuccessNotice, useFeedback } from "@/components/ui";
+import { DEFAULT_STAGES, usePipelineStages } from "@/lib/stages";
 
-export const STAGES = [
-  { id: "new", label: "No stage" },
-  { id: "qualified", label: "Qualified" },
-  { id: "interested", label: "Interested" },
-  { id: "booked", label: "Booked" },
-  { id: "won", label: "Won" },
-  { id: "lost", label: "Lost" },
-];
+/** Built-in stages; screens use the workspace's own list via usePipelineStages. */
+export const STAGES = DEFAULT_STAGES;
 
 const CRM_SYNC_TARGETS: Record<string, string> = {
   airtable: "Airtable",
@@ -202,6 +197,8 @@ export function ContactPanel({
     );
     if (updated) onChange(updated);
   };
+
+  const pipeline = usePipelineStages(prefix);
 
   const summarize = async () => {
     const result = await feedback.run(
@@ -500,7 +497,7 @@ export function ContactPanel({
               value={lead.stage || "new"}
               onChange={(event) => patch({ stage: event.target.value })}
             >
-              {STAGES.map((stage) => (
+              {pipeline.map((stage) => (
                 <option key={stage.id} value={stage.id}>
                   {stage.label}
                 </option>

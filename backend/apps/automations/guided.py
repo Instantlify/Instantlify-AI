@@ -112,7 +112,7 @@ def validate_action(data):
             )
     if kind == "set_stage" and (
         not isinstance(data.get("stage"), str)
-        or data["stage"] not in {"new", "qualified", "interested", "booked", "won", "lost"}
+        or not re.fullmatch(r"[a-z][a-z0-9_]{0,19}", data["stage"])
     ):
         raise ValidationError("Choose a valid contact stage.")
     if kind == "set_field":
@@ -151,9 +151,14 @@ def validate_action(data):
 
 def validate_workspace_references(graph, workspace_id, automation_id):
     from apps.channels.models import ChannelConnection
+    from apps.crm.stages import stage_ids
 
     from .models import Automation
 
+    stages = stage_ids(workspace_id)
+    for node in graph["nodes"]:
+        if node["data"]["kind"] == "set_stage" and node["data"]["stage"] not in stages:
+            raise ValidationError("Choose a stage from this workspace's pipeline.")
     connection_id = graph.get("connection_id")
     if connection_id:
         try:

@@ -58,6 +58,8 @@ class Workspace(models.Model):
     )
     # App Store apps shown in the sidebar dock, in order. Shared by every member.
     pinned_apps = models.JSONField(default=default_pinned_apps, blank=True)
+    # Ordered CRM stages [{id, label, color}]; empty means the built-in six.
+    pipeline_stages = models.JSONField(default=list, blank=True)
     checkout_pending = models.BooleanField(default=False)
 
     class Meta:

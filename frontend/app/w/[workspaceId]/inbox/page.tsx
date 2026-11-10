@@ -51,6 +51,7 @@ import {
 import { useSearchParams } from "next/navigation";
 import { useWorkspace } from "@/lib/workspace";
 import { useWorkspaceSocket } from "@/lib/ws";
+import { usePipelineStages } from "@/lib/stages";
 import { ChannelBadge, ChannelIcon, META_CHANNELS } from "@/lib/channels";
 import { initials } from "@/components/shell";
 import { ContactAvatar } from "@/components/contact-avatar";
@@ -64,7 +65,6 @@ import {
 import { TourMarker } from "@/components/growth";
 import { WhatsAppTemplateComposer } from "@/components/whatsapp-template-composer";
 
-const STAGES = ["new", "qualified", "interested", "booked", "won", "lost"];
 const TABS = [
   { id: "", label: "All channels" },
   { id: "instagram", label: "Instagram Direct" },
@@ -188,6 +188,7 @@ export default function InboxPage() {
   // Wall clock for the 24-hour window countdown; ticks every 30 seconds.
   const [now, setNow] = useState(() => Date.now());
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const pipeline = usePipelineStages(prefix);
   const [showChannelDropdown, setShowChannelDropdown] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const feedback = useFeedback();
@@ -207,9 +208,18 @@ export default function InboxPage() {
         signal,
       );
       const list = page.results;
-      if (linked && !activeAccount && !search && !channel && !list.some((item) => item.id === linked)) {
+      if (
+        linked &&
+        !activeAccount &&
+        !search &&
+        !channel &&
+        !list.some((item) => item.id === linked)
+      ) {
         const conversation = await api<Conversation>(
-          `${prefix}/conversations/${encodeURIComponent(linked)}/`, "GET", undefined, signal,
+          `${prefix}/conversations/${encodeURIComponent(linked)}/`,
+          "GET",
+          undefined,
+          signal,
         );
         list.push(conversation);
       }
@@ -297,12 +307,20 @@ export default function InboxPage() {
     api<Page<Offer>>(`${prefix}/offers/`, "GET", undefined, controller.signal)
       .then((page) => setOffers(page.results.filter((offer) => offer.active)))
       .catch(() => undefined);
-    api<{ replies: string[] }>(`${prefix}/saved-replies/`, "GET", undefined, controller.signal)
+    api<{ replies: string[] }>(
+      `${prefix}/saved-replies/`,
+      "GET",
+      undefined,
+      controller.signal,
+    )
       .then(async ({ replies: shared }) => {
         const legacy = takeLegacyReplies(workspace.id);
         if (!shared.length && legacy?.length) {
           const moved = await api<{ replies: string[] }>(
-            `${prefix}/saved-replies/`, "PUT", { replies: legacy }, controller.signal,
+            `${prefix}/saved-replies/`,
+            "PUT",
+            { replies: legacy },
+            controller.signal,
           );
           forgetLegacyReplies(workspace.id);
           setReplies(moved.replies);
@@ -469,7 +487,9 @@ export default function InboxPage() {
     const previous = replies;
     setReplies(next);
     const saved = await feedback.run(() =>
-      api<{ replies: string[] }>(`${prefix}/saved-replies/`, "PUT", { replies: next }),
+      api<{ replies: string[] }>(`${prefix}/saved-replies/`, "PUT", {
+        replies: next,
+      }),
     );
     setReplies(saved ? saved.replies : previous);
   }
@@ -502,7 +522,9 @@ export default function InboxPage() {
     : "No customer messages yet";
 
   return (
-    <div className={`boosend-inbox-layout${mobileThread && current ? " mobile-thread-open" : ""}`}>
+    <div
+      className={`boosend-inbox-layout${mobileThread && current ? " mobile-thread-open" : ""}`}
+    >
       <TourMarker workspaceId={workspace.id} step="crm" />
       {/* Left Column: Conversations Sidebar (Screenshot 9) */}
       <aside className="boosend-inbox-sidebar">
@@ -694,8 +716,11 @@ export default function InboxPage() {
           <>
             {/* Header bar */}
             <div className="boosend-chat-header">
-              <button type="button" className="button secondary small inbox-back"
-                onClick={() => setMobileThread(false)}>
+              <button
+                type="button"
+                className="button secondary small inbox-back"
+                onClick={() => setMobileThread(false)}
+              >
                 Back to conversations
               </button>
               <div className="boosend-chat-user-head">
@@ -766,7 +791,8 @@ export default function InboxPage() {
                       </option>
                     ))}
                 </ValidatedSelect>
-                <ValidatedSelect name="status"
+                <ValidatedSelect
+                  name="status"
                   className="inbox-head-select"
                   aria-label="Status"
                   value={current.status}
@@ -874,7 +900,8 @@ export default function InboxPage() {
                         patch({ ai_enabled: true, status: "open" })
                       }
                     >
-                      <Bot size={14} /> {current.ai_enabled ? "AI active" : "Return to AI"}
+                      <Bot size={14} />{" "}
+                      {current.ai_enabled ? "AI active" : "Return to AI"}
                     </button>
                     <button
                       type="button"
@@ -882,11 +909,19 @@ export default function InboxPage() {
                       aria-pressed={!current.ai_enabled}
                       disabled={feedback.busy}
                       onClick={() =>
-                        (current.ai_enabled || current.assigned_to !== user.id) &&
-                        patch({ ai_enabled: false, assigned_to: user.id, status: "open" })
+                        (current.ai_enabled ||
+                          current.assigned_to !== user.id) &&
+                        patch({
+                          ai_enabled: false,
+                          assigned_to: user.id,
+                          status: "open",
+                        })
                       }
                     >
-                      <Hand size={14} /> {current.assigned_to === user.id && !current.ai_enabled ? "Handling" : "Take over"}
+                      <Hand size={14} />{" "}
+                      {current.assigned_to === user.id && !current.ai_enabled
+                        ? "Handling"
+                        : "Take over"}
                     </button>
                     <span className="muted-text">
                       {current.ai_enabled
@@ -917,7 +952,15 @@ export default function InboxPage() {
                     </p>
                   )}
                   {current.provider === "whatsapp" && !current.is_test && (
-                    <WhatsAppTemplateComposer key={`${prefix}:${current.id}`} prefix={prefix} conversation={current} onSent={async () => { await loadThread(current.id); await loadList(); }} />
+                    <WhatsAppTemplateComposer
+                      key={`${prefix}:${current.id}`}
+                      prefix={prefix}
+                      conversation={current}
+                      onSent={async () => {
+                        await loadThread(current.id);
+                        await loadList();
+                      }}
+                    />
                   )}
                   {attachedFile && (
                     <div className="inbox-attachment">
@@ -936,7 +979,10 @@ export default function InboxPage() {
                       </button>
                     </div>
                   )}
-                  <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
+                  <ValidatedForm
+                    fieldErrors={feedback.fieldErrors}
+                    validationTarget={feedback.validationTarget}
+                    onEdit={() => feedback.setError("")}
                     onSubmit={(e) => {
                       e.preventDefault();
                       send();
@@ -964,7 +1010,9 @@ export default function InboxPage() {
                           e.target.value = "";
                           if (!file) return;
                           if (file.size > 5 * 1024 * 1024) {
-                            feedback.setError("Attachments must be 5 MB or smaller.");
+                            feedback.setError(
+                              "Attachments must be 5 MB or smaller.",
+                            );
                             return;
                           }
                           setAttachedFile(file);
@@ -1207,14 +1255,15 @@ export default function InboxPage() {
             </dd>
             <dt>Stage</dt>
             <dd>
-              <ValidatedSelect name="stage"
+              <ValidatedSelect
+                name="stage"
                 value={current.lead.stage}
                 aria-label="Lead stage"
                 onChange={(event) => updateLead({ stage: event.target.value })}
               >
-                {STAGES.map((stage) => (
-                  <option key={stage} value={stage}>
-                    {stage}
+                {pipeline.map((stage) => (
+                  <option key={stage.id} value={stage.id}>
+                    {stage.label}
                   </option>
                 ))}
               </ValidatedSelect>
@@ -1306,7 +1355,9 @@ function MessageBubble({ message }: { message: Message }) {
           hour: "2-digit",
           minute: "2-digit",
         })}
-        {message.provider_status || message.delivery_status ? ` · ${message.provider_status || message.delivery_status}` : ""}
+        {message.provider_status || message.delivery_status
+          ? ` · ${message.provider_status || message.delivery_status}`
+          : ""}
       </time>
     </div>
   );

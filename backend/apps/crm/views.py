@@ -470,9 +470,10 @@ class LeadSerializer(serializers.ModelSerializer):
         return value
 
     def validate_stage(self, value):
-        if value not in {"new", "qualified", "interested", "booked", "won", "lost"}:
-            raise serializers.ValidationError("Invalid stage.")
-        return value
+        from .stages import validate_stage_for
+
+        view = self.context.get("view")
+        return validate_stage_for(view.kwargs["workspace_id"] if view else None, value)
 
     def validate_tags(self, value):
         if not isinstance(value, list) or len(value) > 50:
@@ -683,7 +684,9 @@ class LeadBulkView(APIView):
         if action == "stage":
             if not isinstance(value, str):
                 raise serializers.ValidationError("Invalid stage.")
-            value = LeadSerializer().validate_stage(value)
+            from .stages import validate_stage_for
+
+            value = validate_stage_for(workspace_id, value)
         elif action in {"tag", "untag"}:
             if not isinstance(value, str) or not 1 <= len(value.strip()) <= 40:
                 raise serializers.ValidationError("A tag needs 1–40 characters.")
