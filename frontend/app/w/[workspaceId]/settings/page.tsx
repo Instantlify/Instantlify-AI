@@ -153,7 +153,9 @@ export default function SettingsPage() {
   const [latestInviteLink, setLatestInviteLink] = useState("");
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"admin" | "agent">("admin");
+  const [inviteRole, setInviteRole] = useState<"admin" | "agent" | "viewer">(
+    "admin",
+  );
 
   // Subscription state (real billing & credits)
   const [billing, setBilling] = useState<Billing | null>(null);
@@ -2192,7 +2194,9 @@ export default function SettingsPage() {
                     id="settings-role"
                     value={inviteRole}
                     onChange={(e) =>
-                      setInviteRole(e.target.value as "admin" | "agent")
+                      setInviteRole(
+                        e.target.value as "admin" | "agent" | "viewer",
+                      )
                     }
                     className="native-page-select"
                   >
@@ -2200,6 +2204,7 @@ export default function SettingsPage() {
                     <option value="agent">
                       Agent (conversations & CRM only)
                     </option>
+                    <option value="viewer">Viewer (read-only)</option>
                   </ValidatedSelect>
                   <ChevronDown size={15} className="select-dropdown-chevron" />
                 </div>

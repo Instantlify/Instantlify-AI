@@ -28,8 +28,8 @@ from .models import (
 from .services import notify, queue_reply
 
 
-def conversations_for(request, workspace_id):
-    member = workspace_membership(request, workspace_id)
+def conversations_for(request, workspace_id, *, allow_viewer_write=False):
+    member = workspace_membership(request, workspace_id, allow_viewer_write=allow_viewer_write)
     query = Conversation.objects.for_workspace(workspace_id)
     if member.role == "agent":
         query = query.filter(Q(assigned_to=request.user) | Q(assigned_to__isnull=True))
@@ -184,7 +184,9 @@ class ConversationReadView(APIView):
     def post(self, request, workspace_id, pk):
         from .models import ConversationRead
 
-        conversation = get_object_or_404(conversations_for(request, workspace_id), pk=pk)
+        conversation = get_object_or_404(
+            conversations_for(request, workspace_id, allow_viewer_write=True), pk=pk
+        )
         ConversationRead.objects.for_workspace(workspace_id).update_or_create(
             conversation=conversation,
             user=request.user,

@@ -30,7 +30,7 @@ export type Workspace = {
   checkout_pending?: boolean;
   id: string;
   name: string;
-  role: "owner" | "admin" | "agent";
+  role: "owner" | "admin" | "agent" | "viewer";
   created_at: string;
   parent: string | null;
   branding: Branding;
@@ -47,7 +47,7 @@ export type Member = {
 export type Invitation = {
   id: string;
   email: string;
-  role: "admin" | "agent";
+  role: "admin" | "agent" | "viewer";
   expires_at: string;
   accept_url?: string;
   email_sent?: boolean;

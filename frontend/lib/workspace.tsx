@@ -99,14 +99,21 @@ export function WorkspaceProvider({
             user: currentUser,
             workspace,
             workspaces,
-            manager: workspace.role !== "agent",
+            manager: workspace.role === "owner" || workspace.role === "admin",
             prefix: `/api/workspaces/${workspace.id}`,
             refresh,
             activeAccount,
             setActiveAccount,
           }
         : null,
-    [currentUser, workspace, workspaces, refresh, activeAccount, setActiveAccount],
+    [
+      currentUser,
+      workspace,
+      workspaces,
+      refresh,
+      activeAccount,
+      setActiveAccount,
+    ],
   );
   if (!value) return null;
   return (

@@ -146,6 +146,7 @@ class Membership(TenantModel):
         OWNER = "owner", "Owner"
         ADMIN = "admin", "Admin"
         AGENT = "agent", "Agent"
+        VIEWER = "viewer", "Viewer"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.AGENT)
@@ -157,7 +158,7 @@ class Membership(TenantModel):
                 fields=["workspace"], condition=models.Q(role="owner"), name="one_workspace_owner"
             ),
             models.CheckConstraint(
-                condition=models.Q(role__in=["owner", "admin", "agent"]),
+                condition=models.Q(role__in=["owner", "admin", "agent", "viewer"]),
                 name="valid_membership_role",
             ),
         ]
@@ -211,7 +212,9 @@ class Invitation(TenantModel):
     """Single-use, email-bound invite. Only the token's SHA-256 digest is stored."""
 
     email = models.EmailField()
-    role = models.CharField(max_length=10, choices=[("admin", "Admin"), ("agent", "Agent")])
+    role = models.CharField(
+        max_length=10, choices=[("admin", "Admin"), ("agent", "Agent"), ("viewer", "Viewer")]
+    )
     token_hash = models.CharField(max_length=64, unique=True)
     invited_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+"
@@ -224,7 +227,8 @@ class Invitation(TenantModel):
         ordering = ["-created_at", "-id"]
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(role__in=["admin", "agent"]), name="valid_invitation_role"
+                condition=models.Q(role__in=["admin", "agent", "viewer"]),
+                name="valid_invitation_role",
             )
         ]
 
