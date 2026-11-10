@@ -32,6 +32,7 @@ import {
   Sparkles,
   User,
   Users,
+  ShieldCheck,
 } from "lucide-react";
 import {
   api,
@@ -51,6 +52,7 @@ import {
 import { BrandIcon } from "@/lib/brand-icons";
 import { creditMoney } from "@/lib/credit-money";
 import { loadWorkspaces, useWorkspace } from "@/lib/workspace";
+import { DataPrivacyPanel } from "@/components/data-privacy-panel";
 import {
   ErrorNotice,
   SuccessNotice,
@@ -67,7 +69,8 @@ import {
   isThemeColor,
 } from "@/lib/workspace-theme";
 
-type SettingsTab = "profile" | "meta" | "team" | "subscription" | "workspaces";
+type SettingsTab =
+  "profile" | "meta" | "team" | "subscription" | "workspaces" | "data";
 
 const QUICK_COLORS = [
   "#10244a",
@@ -129,7 +132,12 @@ export default function SettingsPage() {
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState("");
   const photoObjectUrl = useRef("");
-  useEffect(() => () => { if (photoObjectUrl.current) URL.revokeObjectURL(photoObjectUrl.current); }, []);
+  useEffect(
+    () => () => {
+      if (photoObjectUrl.current) URL.revokeObjectURL(photoObjectUrl.current);
+    },
+    [],
+  );
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -408,11 +416,21 @@ export default function SettingsPage() {
     e.preventDefault();
     await feedback.run(async () => {
       const form = new FormData();
-      form.set("name", fullName); form.set("email", emailAddress);
+      form.set("name", fullName);
+      form.set("email", emailAddress);
       if (profilePhoto) form.set("photo", profilePhoto);
-      const updated = profilePhoto ? await upload<ApiUser>("/api/auth/me/", form, "PATCH") : await api<ApiUser>("/api/auth/me/", "PATCH", { name: fullName, email: emailAddress });
-      setProfilePhoto(null); setPhotoPreview("");
-      if (photoObjectUrl.current) { URL.revokeObjectURL(photoObjectUrl.current); photoObjectUrl.current = ""; }
+      const updated = profilePhoto
+        ? await upload<ApiUser>("/api/auth/me/", form, "PATCH")
+        : await api<ApiUser>("/api/auth/me/", "PATCH", {
+            name: fullName,
+            email: emailAddress,
+          });
+      setProfilePhoto(null);
+      setPhotoPreview("");
+      if (photoObjectUrl.current) {
+        URL.revokeObjectURL(photoObjectUrl.current);
+        photoObjectUrl.current = "";
+      }
       setCurrentUser(updated);
       await refresh();
     }, "Profile details updated successfully!");
@@ -715,7 +733,22 @@ export default function SettingsPage() {
           <Briefcase size={15} />
           Workspaces
         </button>
+
+        {workspace.role === "owner" && (
+          <button
+            type="button"
+            className={`settings-nav-tab ${activeTab === "data" ? "active" : ""}`}
+            onClick={() => setActiveTab("data")}
+          >
+            <ShieldCheck size={15} />
+            Data &amp; privacy
+          </button>
+        )}
       </div>
+
+      {activeTab === "data" && workspace.role === "owner" && (
+        <DataPrivacyPanel prefix={prefix} workspaceName={workspace.name} />
+      )}
 
       {/* =========================================================================
           TAB 1: PROFILE
@@ -747,7 +780,23 @@ export default function SettingsPage() {
                 {/* Left column: Avatar */}
                 <div className="profile-avatar-col">
                   <div className="profile-avatar-circle">
-                    {photoPreview || currentUser?.photo_url ? <Image unoptimized width={88} height={88} src={photoPreview || currentUser?.photo_url || ""} alt="Your profile photo" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : <span>{userInitial}</span>}
+                    {photoPreview || currentUser?.photo_url ? (
+                      <Image
+                        unoptimized
+                        width={88}
+                        height={88}
+                        src={photoPreview || currentUser?.photo_url || ""}
+                        alt="Your profile photo"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      <span>{userInitial}</span>
+                    )}
                   </div>
                   <div className="avatar-user-name">
                     {fullName || currentUser?.name || "User"}
@@ -759,15 +808,50 @@ export default function SettingsPage() {
                       accept="image/png,image/jpeg,image/gif,image/webp"
                       style={{ display: "none" }}
                       onChange={(event) => {
-                        const file = event.target.files?.[0]; if (!file) return;
-                        if (file.size > 2 * 1024 * 1024 || !["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.type)) { feedback.setError("Choose a PNG, JPG, GIF or WebP image up to 2 MB."); return; }
-                        if (photoObjectUrl.current) URL.revokeObjectURL(photoObjectUrl.current);
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        if (
+                          file.size > 2 * 1024 * 1024 ||
+                          ![
+                            "image/png",
+                            "image/jpeg",
+                            "image/gif",
+                            "image/webp",
+                          ].includes(file.type)
+                        ) {
+                          feedback.setError(
+                            "Choose a PNG, JPG, GIF or WebP image up to 2 MB.",
+                          );
+                          return;
+                        }
+                        if (photoObjectUrl.current)
+                          URL.revokeObjectURL(photoObjectUrl.current);
                         photoObjectUrl.current = URL.createObjectURL(file);
-                        setProfilePhoto(file); setPhotoPreview(photoObjectUrl.current);
+                        setProfilePhoto(file);
+                        setPhotoPreview(photoObjectUrl.current);
                       }}
                     />
                   </label>
-                  {(profilePhoto || currentUser?.photo_url) && <button type="button" className="text-button" disabled={feedback.busy} onClick={() => void feedback.run(async () => { await api("/api/auth/photo/", "DELETE"); setProfilePhoto(null); setPhotoPreview(""); setCurrentUser((current) => current ? { ...current, photo_url: "" } : current); await refresh(); }, "Profile photo removed.")}>Remove photo</button>}
+                  {(profilePhoto || currentUser?.photo_url) && (
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={feedback.busy}
+                      onClick={() =>
+                        void feedback.run(async () => {
+                          await api("/api/auth/photo/", "DELETE");
+                          setProfilePhoto(null);
+                          setPhotoPreview("");
+                          setCurrentUser((current) =>
+                            current ? { ...current, photo_url: "" } : current,
+                          );
+                          await refresh();
+                        }, "Profile photo removed.")
+                      }
+                    >
+                      Remove photo
+                    </button>
+                  )}
                 </div>
 
                 {/* Right column: Form fields */}
