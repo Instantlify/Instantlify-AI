@@ -1,13 +1,13 @@
 # Connectors
 
-Packages that plug Nemio into Zapier, n8n and Make. All three sit on the public API (`docs/PUBLIC_API.md`): a workspace API key sent as `X-API-Key`, REST-hook subscriptions on `/api/v1/webhooks/`, and signed outbound deliveries. Nothing here has privileged access; anything a connector can do, the key it holds could do with `curl`.
+Packages that plug Instantlify into Zapier, n8n and Make. All three sit on the public API (`docs/PUBLIC_API.md`): a workspace API key sent as `X-API-Key`, REST-hook subscriptions on `/api/v1/webhooks/`, and signed outbound deliveries. Nothing here has privileged access; anything a connector can do, the key it holds could do with `curl`.
 
-Every connector needs two inputs: the **Nemio URL** of your deployment and an **API key** from Integrations → API keys. Instant triggers need the `write` scope so the connector can create and delete its subscription; the connection test calls `GET /api/v1/me/`.
+Every connector needs two inputs: the **Instantlify URL** of your deployment and an **API key** from Integrations → API keys. Instant triggers need the `write` scope so the connector can create and delete its subscription; the connection test calls `GET /api/v1/me/`.
 
 | Connector | Path | Triggers | Actions | Signature check |
 | --- | --- | --- | --- | --- |
 | Zapier (Platform CLI) | `connectors/zapier` | One REST-hook trigger per event | Send message, update lead, find lead | HMAC verified in `perform`, 5-minute tolerance |
-| n8n (community node) | `connectors/n8n` | `Nemio Trigger` (multi-event) | Lead get/list/update, conversation list, message list/send | HMAC verified with the stored secret; 401 otherwise |
+| n8n (community node) | `connectors/n8n` | `Instantlify Trigger` (multi-event) | Lead get/list/update, conversation list, message list/send | HMAC verified with the stored secret; 401 otherwise |
 | Make (custom app) | `connectors/make` | `Watch Events` instant trigger | Send message, update lead, search leads | Shared `X-Nemio-Token` compared to the value saved at attach; requests without it get 401 |
 
 ## Zapier
@@ -17,7 +17,7 @@ cd connectors/zapier
 npm install
 npm test             # unit tests with mocked HTTP
 npx zapier login     # once
-npx zapier register "Nemio"   # first time only; writes .zapierapprc
+npx zapier register "Instantlify"   # first time only; writes .zapierapprc
 npx zapier push
 ```
 
@@ -56,7 +56,7 @@ python connectors/scripts/publish.py make                        # writes connec
 
 Without `--publish` / `--push` nothing leaves the machine. Pushing a tag `connectors-vX.Y.Z` runs the release job: n8n goes to npm, Zapier gets a new *private* version, and the Make bundle is attached to the GitHub release. Three steps stay manual on purpose:
 
-- **Zapier**: run `zapier register "Nemio"` once and commit `.zapierapprc`; after each push, `zapier promote X.Y.Z` moves users over. The public App Directory listing goes through Zapier's review.
+- **Zapier**: run `zapier register "Instantlify"` once and commit `.zapierapprc`; after each push, `zapier promote X.Y.Z` moves users over. The public App Directory listing goes through Zapier's review.
 - **n8n**: the npm package installs by name immediately; the "verified" badge is n8n's own review.
 - **Make**: there is no publishing CLI. Upload the bundle in Make's developer platform, then request review for public listing.
 

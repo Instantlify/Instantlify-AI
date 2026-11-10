@@ -376,7 +376,7 @@ function WhatsAppSetup({
             <p>
               Use a Meta app configured for WhatsApp and Facebook Login for
               Business. Add the app credentials and signup configuration to the
-              local environment. A public HTTPS tunnel is needed while Nemio
+              local environment. A public HTTPS tunnel is needed while Instantlify
               runs locally.
             </p>
             <CopyField label="WhatsApp notification address" value={webhook} />

@@ -1,6 +1,6 @@
-# Nemio landing page: reference review and implementation
+# Instantlify landing page: reference review and implementation
 
-Reviewed 14 October 2026. The reference was used to identify product categories and visitor interactions. All new page copy, layout, colour choices, illustrative conversations and styling were written for Nemio. No reference artwork, photographs, customer endorsements, branded assets or source code were copied. This reduces copying risk; it is not a guarantee against legal claims.
+Reviewed 14 October 2026. The reference was used to identify product categories and visitor interactions. All new page copy, layout, colour choices, illustrative conversations and styling were written for Instantlify. No reference artwork, photographs, customer endorsements, branded assets or source code were copied. This reduces copying risk; it is not a guarantee against legal claims.
 
 ## Public pages reviewed
 
@@ -25,9 +25,9 @@ The reference's Pricing navigation resolves to its homepage. Its robots.txt and 
 
 ## Landing-page behaviour delivered
 
-| Area | Nemio implementation |
+| Area | Instantlify implementation |
 | --- | --- |
-| Brand and visual direction | Original orange, cream and olive design; existing Nemio brand |
+| Brand and visual direction | Original orange, cream and olive design; existing Instantlify brand |
 | Navigation | Twelve-link, four-category product menu; section links; mobile menu; login and signup |
 | Hero | Original positioning and a clickable example conversation |
 | Product demos | Comment-to-DM, story reply, WhatsApp qualification and Telegram handoff; simulated reply, action and replay |
@@ -37,7 +37,7 @@ The reference's Pricing navigation resolves to its homepage. Its robots.txt and 
 | Solutions | Switchable creator, service business and agency workflows |
 | Integrations | Seventeen entries; search and category filters; native versus API connections labelled |
 | Toolkit | Available and planned capabilities distinguished explicitly |
-| Comparison | Workflows versus AI assistant, using Nemio's own capabilities rather than unsupported competitor claims |
+| Comparison | Workflows versus AI assistant, using Instantlify's own capabilities rather than unsupported competitor claims |
 | Onboarding | Three-step explanation linked to the existing account flow |
 | Pricing | Existing backend plan catalogue; monthly/annual toggle; real limits, savings and trial period; selected plan preserved into signup |
 | FAQ | Eight expandable answers about channels, setup, handoff, voice, agencies, plans and data |
@@ -49,7 +49,7 @@ The reference's Pricing navigation resolves to its homepage. Its robots.txt and 
 
 “Existing” means code exists in this repository, not that a production service was connected or end-to-end verified during this landing-page task. Live services require credentials and configuration. The browser conversation demos send no messages, create no bookings and collect no leads.
 
-| Capability identified | Nemio status and evidence / requirement |
+| Capability identified | Instantlify status and evidence / requirement |
 | --- | --- |
 | Instagram comments, DMs, story and live-comment keyword triggers | Existing channel/automation adapters and workspace flow builder |
 | WhatsApp and Telegram messages | Existing channel adapters; live accounts need provider configuration |
@@ -79,9 +79,9 @@ The reference's Pricing navigation resolves to its homepage. Its robots.txt and 
 | Natural-language flow generation | Not established by this review; must not be marketed as delivered |
 | Follow-status gating/new-follower triggers | Not established as equivalent; provider support and trigger implementation need verification |
 | Multilingual marketing site | English only; reference language selector was not reproduced as a nonfunctional control |
-| Customer testimonials and case studies | Omitted until authentic Nemio material is supplied |
-| Provider certification, customer counts and conversion claims | Omitted because no Nemio evidence was supplied |
-| Unlimited contacts/fixed pricing on all plans | Not claimed. Existing Nemio catalogue controls displayed limits and prices |
+| Customer testimonials and case studies | Omitted until authentic Instantlify material is supplied |
+| Provider certification, customer counts and conversion claims | Omitted because no Instantlify evidence was supplied |
+| Unlimited contacts/fixed pricing on all plans | Not claimed. Existing Instantlify catalogue controls displayed limits and prices |
 | Legal policies | Existing server-configured HTTPS policy links retained; business-specific policies still need supplied URLs |
 
 ## Running the result

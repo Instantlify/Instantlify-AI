@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
 
 import {
@@ -128,6 +130,7 @@ export default function IntegrationsPage() {
   const [newSecret, setNewSecret] = useState("");
   const [newToken, setNewToken] = useState("");
   const [loading, setLoading] = useState(true);
+  const confirm = useConfirmation();
   const feedback = useFeedback();
 
   const load = useCallback(
@@ -241,7 +244,7 @@ export default function IntegrationsPage() {
     const current = integrations.find((i) => i.provider === providerKey);
     if (!current) return;
     if (
-      !window.confirm(
+      !await confirm(
         "Disconnect integration? Stored credentials will be removed.",
       )
     )
@@ -268,7 +271,7 @@ export default function IntegrationsPage() {
   }
 
   async function revokeKey(key: APIKey) {
-    if (!window.confirm(`Revoke ${key.name}?`)) return;
+    if (!await confirm(`Revoke ${key.name}?`)) return;
     await feedback.run(async () => {
       await api(`${prefix}/api-keys/${key.id}/`, "DELETE");
       setKeys((list) => list.filter((i) => i.id !== key.id));
@@ -296,7 +299,7 @@ export default function IntegrationsPage() {
   }
 
   async function removeSubscription(subscription: WebhookSubscription) {
-    if (!window.confirm("Remove this webhook subscription?")) return;
+    if (!await confirm("Remove this webhook subscription?")) return;
     await feedback.run(async () => {
       await api(`${prefix}/webhooks/${subscription.id}/`, "DELETE");
       setSubscriptions((list) =>
@@ -498,7 +501,7 @@ export default function IntegrationsPage() {
       explainer: {
         stepType: "Automation builder step",
         description:
-          "Add an N8N step to your automation to trigger one of your n8n workflows from a conversation. Nemio sends the conversation data over, your workflow runs its custom logic, and the result comes back into the chat.",
+          "Add an N8N step to your automation to trigger one of your n8n workflows from a conversation. Instantlify sends the conversation data over, your workflow runs its custom logic, and the result comes back into the chat.",
         trigger: "Message Received (any message)",
         action: "Run Workflow: N8N",
       },
@@ -582,7 +585,7 @@ export default function IntegrationsPage() {
       name: "Notavo",
       category: ["Knowledge Base"],
       description:
-        "Connect your Notavo knowledge bases to power AI automations in Nemio.",
+        "Connect your Notavo knowledge bases to power AI automations in Instantlify.",
       providerKey: "notavo",
       status: "coming_soon",
       iconBg: "#faf5ff",
@@ -591,7 +594,7 @@ export default function IntegrationsPage() {
       explainer: {
         stepType: "Knowledge Base step",
         description:
-          "Sync knowledge bases, product documentation, FAQs, and company policies into Nemio AI so the agent answers with verified facts.",
+          "Sync knowledge bases, product documentation, FAQs, and company policies into Instantlify AI so the agent answers with verified facts.",
         trigger: "Customer asks technical question",
         action: "Retrieve Context from Notavo",
       },
@@ -690,7 +693,7 @@ export default function IntegrationsPage() {
       name: "Stripe",
       category: ["Payments"],
       description:
-        "Connect your Stripe account to use Stripe-powered features across Nemio.",
+        "Connect your Stripe account to use Stripe-powered features across Instantlify.",
       providerKey: "stripe",
       iconBg: "#eef2ff",
       iconColor: "#4338ca",
@@ -779,7 +782,7 @@ export default function IntegrationsPage() {
       name: "Airtable",
       category: ["Data & Records", "Knowledge Base"],
       description:
-        "Connect Airtable to your Nemio Account as a knowledgebase and database for your automations!",
+        "Connect Airtable to your Instantlify Account as a knowledgebase and database for your automations!",
       providerKey: "airtable",
       iconBg: "#fffbeb",
       iconColor: "#d97706",
@@ -1651,7 +1654,7 @@ export default function IntegrationsPage() {
             <div className="boosend-modal-body">
               <p className="boosend-modal-desc">
                 {explainingApp.explainer?.description ||
-                  `Add a ${explainingApp.name} step to your automation to trigger one of your ${explainingApp.name} workflows from a conversation. Nemio sends the conversation data over, your workflow runs its custom logic, and the result comes back into the chat.`}
+                  `Add a ${explainingApp.name} step to your automation to trigger one of your ${explainingApp.name} workflows from a conversation. Instantlify sends the conversation data over, your workflow runs its custom logic, and the result comes back into the chat.`}
               </p>
 
               {/* Two-Frame Interactive Animated Storyboard (Builder Step ➔ Live Execution) */}

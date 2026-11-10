@@ -2,7 +2,7 @@
 
 Discovery (RFC 9728 protected-resource metadata, RFC 8414 server metadata), dynamic
 client registration (RFC 7591) for public clients, authorization code with mandatory
-PKCE S256, and refresh-token rotation. Consent happens in the Nemio app: the signed-in
+PKCE S256, and refresh-token rotation. Consent happens in the Instantlify app: the signed-in
 user picks a workspace they own or administer and the scopes to grant. Every approved
 grant creates a workspace API key; access tokens resolve to it, so revoking that key
 ends the connection and the MCP tools behave exactly as with a pasted key.
@@ -60,7 +60,7 @@ def protected_resource_metadata(request, *args):
             "authorization_servers": [base_url()],
             "scopes_supported": list(SCOPES),
             "bearer_methods_supported": ["header"],
-            "resource_name": "Nemio",
+            "resource_name": "Instantlify",
         }
     )
 

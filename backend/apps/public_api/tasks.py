@@ -83,7 +83,7 @@ def deliver_webhook(workspace_id, hook_id):
             content=body,
             headers={
                 "Content-Type": "application/json",
-                "User-Agent": "Nemio-Webhooks/1.0",
+                "User-Agent": "Instantlify-Webhooks/1.0",
                 "X-Nemio-Event": hook.event,
                 "X-Nemio-Delivery": str(hook.id),
                 "X-Nemio-Signature": sign(subscription.secret, timestamp, body),

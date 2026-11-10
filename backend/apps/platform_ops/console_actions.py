@@ -1,7 +1,7 @@
 """Mutating console endpoints for the growth sections.
 
 Every view here is `@protected(...)`, POST-only, and writes an audit row: the console
-is the one place where a person can change Nemio's own content and billing state, so
+is the one place where a person can change Instantlify's own content and billing state, so
 nothing may change without a name attached to it.
 """
 

@@ -1,4 +1,4 @@
-# BooSend functional parity — Nemio
+# BooSend functional parity — Instantlify
 
 Started 23 October 2026 (Asia/Karachi). This is a behavior checklist, not a claim of full parity.
 
@@ -13,14 +13,14 @@ cancellation now pass through the local forwarder; no deployed backend is requir
 Full parity is not claimed: other live delivery/billing checks, further creator metrics, arbitrary
 conversation-canvas runs for form-only contacts, universal browser escape and the Notavo/Poppy
 adapters remain outstanding. Detailed supported scope is in the current worklog.
-The authorized BooSend account is a reference for read-only inspection. Nemio keeps its own
+The authorized BooSend account is a reference for read-only inspection. Instantlify keeps its own
 white/olive design. No customer contacts, account credentials, messages or vendor source code
-are copied into Nemio.
+are copied into Instantlify.
 
 ## Evidence and delivery rules
 
 - **Observed** means a control or workflow was inspected in the signed-in reference portal.
-- **Source exists** means Nemio has code for it, but parity has not been established.
+- **Source exists** means Instantlify has code for it, but parity has not been established.
 - **Verified locally** requires passing behavior tests, not just a working-looking control.
 - **Live verification pending** means real provider delivery still needs its own evidence.
 - Empty controls, preview-only switches and marketing claims do not count as functionality.
@@ -28,7 +28,7 @@ are copied into Nemio.
 
 ## Inventory
 
-| Area | Reference behavior observed | Nemio status / remaining audit |
+| Area | Reference behavior observed | Instantlify status / remaining audit |
 |---|---|---|
 | Navigation | Workspace/account switching, Home, Automation, Integrations, Conversations, CRM, Apps, WhatsApp, Telegram, Settings | Source exists; account/channel views still need comparison |
 | Home | Conversation/contact/AI-cost monthly charts, templates, search, bulk import, voice flow generation, Claude MCP | Source exists; real metrics versus illustrative data and bulk operations need audit |
@@ -49,7 +49,7 @@ are copied into Nemio.
 | Settings: profile | Name/email/photo, password, API key generation and documentation | Source exists; profile photo and connected identity behavior need audit |
 | Settings: workspace | Create/switch, account and billing tabs, workspace name/color, sidebar colors, logo and brand name | Source exists; persistence of every branding field needs verification |
 | Settings: team/subscription | Tabs observed | Existing billing work preserved; inspect and compare after that work is stable |
-| Bundled Apps | Public reference describes forms, bio pages, calendar, tracking links, deep links, moderation, creator kits and website chat | Nemio has bio/calendar/deep links/moderation/web chat; forms, attribution links and creator kits need independent investigation and implementation |
+| Bundled Apps | Public reference describes forms, bio pages, calendar, tracking links, deep links, moderation, creator kits and website chat | Instantlify has bio/calendar/deep links/moderation/web chat; forms, attribution links and creator kits need independent investigation and implementation |
 
 ## Increment 1: guided automations
 
@@ -92,7 +92,7 @@ The action picker was opened on an existing automation. No action was added and 
 automation was saved, tested, enabled, disabled or deleted. Mounted configuration panels
 were inspected only as UI definitions; they are not evidence that every provider action works.
 
-| Category | Observed choices | Nemio follow-up |
+| Category | Observed choices | Instantlify follow-up |
 |---|---|---|
 | Instagram | DM, voice, photo, video, generated avatar video | Text/buttons exist; media and generated-video graph steps need implementation |
 | Condition | If/then, random path, continuation to automation, delay, wait for reply | Weighted binary random paths added, deterministic across retries; existing conditions/delay/wait/continuation retained |

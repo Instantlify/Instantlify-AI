@@ -17,7 +17,7 @@ export const META_TEMPLATES: MetaTemplate[] = [
     name: "Comment → lead magnet",
     channel: "instagram",
     summary:
-      "Someone comments a keyword on a post or reel; Nemio DMs them, asks for an email and sends your guide.",
+      "Someone comments a keyword on a post or reel; Instantlify DMs them, asks for an email and sends your guide.",
     steps: ["Comment “SEND”", "Private reply asks for email", "DM the guide"],
     graph: {
       start: "ask_email",

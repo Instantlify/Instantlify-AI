@@ -7,6 +7,7 @@ from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -163,15 +164,18 @@ class SimulateView(APIView):
 class DeliveryList(APIView):
     def get(self, request, workspace_id):
         workspace_membership(request, workspace_id, ["owner", "admin"])
-        return Response(
-            list(
-                Delivery.objects.for_workspace(workspace_id)
-                .order_by("-created_at")
-                .values("id", "recipient_id", "status", "attempts", "error_code", "created_at")[
-                    :100
-                ]
-            )
+        rows = (
+            Delivery.objects.for_workspace(workspace_id)
+            .order_by("-created_at", "-id")
+            .values("id", "recipient_id", "status", "attempts", "error_code", "created_at")
         )
+        if "page" in request.query_params:
+            pagination = PageNumberPagination()
+            pagination.page_size = 5
+            page = pagination.paginate_queryset(rows, request, view=self)
+            return pagination.get_paginated_response(page)
+        # Preserve the existing array contract for clients that do not request pages.
+        return Response(list(rows[:100]))
 
 
 class DisconnectView(APIView):

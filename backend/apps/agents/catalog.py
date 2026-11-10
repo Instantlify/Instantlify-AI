@@ -61,7 +61,7 @@ def get_platform_models():
                     "provider": provider,
                     "label": model,
                     "badge": "Platform configured",
-                    "description": "The model configured for this provider on your Nemio server.",
+                    "description": "The model configured for this provider on your Instantlify server.",
                 }
             )
     for entry in entries:

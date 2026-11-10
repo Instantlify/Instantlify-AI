@@ -1,13 +1,13 @@
 {
   "type": "apikey",
-  "label": "Nemio",
+  "label": "Instantlify",
   "parameters": [
     {
       "name": "baseUrl",
       "type": "url",
-      "label": "Nemio URL",
+      "label": "Instantlify URL",
       "required": true,
-      "help": "Address of your Nemio deployment, e.g. https://app.example.com (no trailing slash)."
+      "help": "Address of your Instantlify deployment, e.g. https://app.example.com (no trailing slash)."
     },
     {
       "name": "apiKey",

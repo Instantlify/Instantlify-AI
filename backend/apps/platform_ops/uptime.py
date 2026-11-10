@@ -98,7 +98,7 @@ CHECKS = {
 def notify(check, problem, *, resolved=False):
     """Deliver to every configured channel. Delivery failures are logged, never raised:
     a broken pager must not stop the next probe."""
-    title = f"[Nemio] {'RESOLVED' if resolved else 'DOWN'} {check}"
+    title = f"[Instantlify] {'RESOLVED' if resolved else 'DOWN'} {check}"
     summary = f"{title}: {problem}" if problem else title
     if settings.ALERT_WEBHOOK_URL:
         try:

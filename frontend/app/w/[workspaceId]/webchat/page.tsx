@@ -60,7 +60,7 @@ export default function WebChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefix]);
 
-  const embedScript = `<script\n  src="${typeof window !== "undefined" ? window.location.origin : "https://app.nemio.ai"}/widget.js"\n  data-workspace="${workspace.id}"\n  async>\n</script>`;
+  const embedScript = `<script\n  src="${typeof window !== "undefined" ? window.location.origin : "https://instantlify.com"}/widget.js"\n  data-workspace="${workspace.id}"\n  async>\n</script>`;
 
   function copyCode() {
     navigator.clipboard.writeText(embedScript);
@@ -97,7 +97,7 @@ export default function WebChatPage() {
       <PageHeading
         eyebrow="Web Chat Widget"
         title="Embeddable Omnichannel Live Chat"
-        text="Install a live chat widget on your marketing site, shop, or portal. Inbound conversations sync instantly into your Nemio Inbox alongside Instagram, Messenger, and WhatsApp."
+        text="Install a live chat widget on your marketing site, shop, or portal. Inbound conversations sync instantly into your Instantlify Inbox alongside Instagram, Messenger, and WhatsApp."
       />
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
@@ -413,7 +413,7 @@ export default function WebChatPage() {
                     gap: "5px",
                   }}
                 >
-                  <Sparkles size={12} /> Powered by Nemio AI
+                  <Sparkles size={12} /> Powered by Instantlify AI
                 </div>
               )}
             </div>

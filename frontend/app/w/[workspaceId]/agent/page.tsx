@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import {
   ValidatedForm,
   ValidatedInput,
@@ -323,8 +325,8 @@ export default function AgentPage() {
                   Select AI Model & Rate
                 </span>
                 <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
-                  All models are hosted and executed by Nemio. Usage is charged
-                  per token directly to your prepaid Nemio credit balance. No
+                  All models are hosted and executed by Instantlify. Usage is charged
+                  per token directly to your prepaid Instantlify credit balance. No
                   API keys or external developer accounts required.
                 </p>
                 <div
@@ -656,6 +658,7 @@ function Knowledge({ config }: { config: AgentConfig | null }) {
   const [baseFilter, setBaseFilter] = useState("");
   const [newBase, setNewBase] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
+  const confirm = useConfirmation();
   const feedback = useFeedback();
 
   const loadBases = useCallback(
@@ -706,7 +709,7 @@ function Knowledge({ config }: { config: AgentConfig | null }) {
 
   async function removeBase(base: KnowledgeBase) {
     if (
-      !window.confirm(
+      !await confirm(
         `Delete the knowledge base “${base.name}”? Its documents move to General knowledge.`,
       )
     )
@@ -796,7 +799,7 @@ function Knowledge({ config }: { config: AgentConfig | null }) {
   }
 
   async function remove(doc: KnowledgeDocument) {
-    if (!window.confirm(`Remove “${doc.title}” from the knowledge base?`))
+    if (!await confirm(`Remove “${doc.title}” from the knowledge base?`))
       return;
     await feedback.run(async () => {
       await api(`${prefix}/documents/${doc.id}/`, "DELETE");

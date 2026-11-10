@@ -71,7 +71,7 @@ export default function AppStorePage() {
     {
       id: "forum",
       name: "Community",
-      description: "Share questions and answers with Nemio members.",
+      description: "Share questions and answers with Instantlify members.",
       section: "forum",
       status: "available",
       icon: <MessageSquare size={18} />,
@@ -428,7 +428,7 @@ export default function AppStorePage() {
               boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             }}
           >
-            <span style={{ color: "#0f172a" }}>nemio.ai/offer</span>
+            <span style={{ color: "#0f172a" }}>instantlify.com/offer</span>
             <span
               style={{
                 background: "#f0fdf4",
@@ -455,7 +455,7 @@ export default function AppStorePage() {
               boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             }}
           >
-            <span style={{ color: "#0f172a" }}>nemio.ai/community</span>
+            <span style={{ color: "#0f172a" }}>instantlify.com/community</span>
             <span
               style={{
                 background: "#f0fdf4",

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import AuthPage from "@/components/auth";
 
 export const metadata: Metadata = {
-  title: "Sign in or get started · Nemio",
+  title: "Sign in or get started · Instantlify",
   robots: { index: false, follow: true },
 };
 

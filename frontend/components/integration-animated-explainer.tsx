@@ -359,7 +359,7 @@ export function IntegrationAnimatedExplainer({
                         </div>
                         <div className="slack-msg-body">
                           <div className="slack-msg-author">
-                            Nemio Lead Bot{" "}
+                            Instantlify Lead Bot{" "}
                             <span className="slack-time">Just now</span>
                           </div>
                           <div className="slack-card-embed">

@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import {
   ValidatedForm,
   ValidatedInput,
@@ -68,6 +70,7 @@ const sleep = (ms: number) =>
 export default function TemplatesPage() {
   const { prefix, manager, workspace } = useWorkspace();
   const owner = workspace.role === "owner";
+  const confirm = useConfirmation();
   const feedback = useFeedback();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -320,7 +323,7 @@ export default function TemplatesPage() {
   }
 
   async function unlist(template: Template) {
-    if (!window.confirm(`Unlist “${template.title}” from the marketplace?`))
+    if (!await confirm(`Unlist “${template.title}” from the marketplace?`))
       return;
     await feedback.run(
       () => api(`${prefix}/templates/${template.id}/`, "DELETE"),
@@ -357,7 +360,7 @@ export default function TemplatesPage() {
     try {
       parsed = JSON.parse(pasted);
     } catch {
-      feedback.setError("We couldn’t read this template file. Choose an exported Nemio template and try again.");
+      feedback.setError("We couldn’t read this template file. Choose an exported Instantlify template and try again.");
       return;
     }
     const result = await feedback.run(
@@ -509,7 +512,7 @@ export default function TemplatesPage() {
               {!seller?.connected ? (
                 <div className="form-grid">
                   <p className="small">
-                    Paid templates are sold through Nemio and paid out to your
+                    Paid templates are sold through Instantlify and paid out to your
                     own Stripe account. Set up payouts once; buyers never see
                     your account.
                   </p>
@@ -642,7 +645,7 @@ export default function TemplatesPage() {
                     />
                     <span className="hint">
                       {canSell
-                        ? "0 = free. Paid templates cost at least $1; Nemio keeps a platform fee and the rest is paid out to your Stripe account."
+                        ? "0 = free. Paid templates cost at least $1; Instantlify keeps a platform fee and the rest is paid out to your Stripe account."
                         : "0 = free. Set up payouts above before publishing a paid template."}
                     </span>
                   </label>

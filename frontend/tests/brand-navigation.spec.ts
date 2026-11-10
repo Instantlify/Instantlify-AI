@@ -15,10 +15,10 @@ test("the transparent brand mark renders and the landing header logo returns to 
   await page.goto("/");
   const home = page
     .locator(".nm-nav")
-    .getByRole("link", { name: "Nemio home", exact: true });
-  const mark = home.locator(".nemio-mark-image");
+    .getByRole("link", { name: "Instantlify home", exact: true });
+  const mark = home.locator(".instantlify-mark-image");
   await expect(mark).toBeVisible();
-  await expect(home.locator(".nemio-mark")).toHaveCSS(
+  await expect(home.locator(".instantlify-mark")).toHaveCSS(
     "background-color",
     "rgba(0, 0, 0, 0)",
   );
@@ -29,7 +29,7 @@ test("the transparent brand mark renders and the landing header logo returns to 
   await home.click();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   await expect(page).toHaveURL(/\/$/);
-  await page.screenshot({ path: "test-results/nemio-animated-logo.png" });
+  await page.screenshot({ path: "test-results/instantlify-animated-logo.png" });
 });
 
 test("the footer logo also returns to the top with reduced motion", async ({
@@ -40,7 +40,7 @@ test("the footer logo also returns to the top with reduced motion", async ({
   await page.goto("/");
   const home = page
     .locator("footer")
-    .getByRole("link", { name: "Nemio home", exact: true });
+    .getByRole("link", { name: "Instantlify home", exact: true });
   await home.scrollIntoViewIfNeeded();
   await expect
     .poll(() => page.evaluate(() => window.scrollY))
@@ -57,9 +57,9 @@ test("the portal rail uses the transparent brand mark and remains usable when ex
   await page.goto(`/w/${id}/overview/`);
   const sidebar = page.locator("#workspace-sidebar");
   await page.mouse.move(900, 100);
-  await expect(sidebar.locator(".nemio-mark")).toBeVisible();
-  await expect(sidebar.locator(".nemio-mark-image")).toBeVisible();
-  await expect(sidebar.locator(".nemio-mark")).toHaveCSS(
+  await expect(sidebar.locator(".instantlify-mark")).toBeVisible();
+  await expect(sidebar.locator(".instantlify-mark-image")).toBeVisible();
+  await expect(sidebar.locator(".instantlify-mark")).toHaveCSS(
     "background-color",
     "rgba(0, 0, 0, 0)",
   );

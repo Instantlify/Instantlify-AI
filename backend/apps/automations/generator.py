@@ -8,7 +8,7 @@ from rest_framework.exceptions import ValidationError
 from .services import validate_graph
 
 # FakeLLMProvider recognises this marker; keep the first line stable.
-SYSTEM_PROMPT = """You are the Nemio flow designer.
+SYSTEM_PROMPT = """You are the Instantlify flow designer.
 Design one messaging automation for Instagram, Facebook Messenger or WhatsApp from the
 user's request. Answer with a single JSON object and nothing else:
 {"name": str, "start": node id, "triggers": [...], "nodes": [...], "edges": [...]}

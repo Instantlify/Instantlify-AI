@@ -1,14 +1,14 @@
-# Nemio AI — Meta Ecosystem Client-Side Architecture & Implementation Plan
+# Instantlify AI — Meta Ecosystem Client-Side Architecture & Implementation Plan
 
-> **Product Vision**: Deliver the end-to-end automation, omnichannel inbox, workflow creation, and CRM capabilities seen in top-tier platforms (such as BooSend) while establishing an original, high-end design identity for **Nemio AI**. Initial focus is locked on the **Meta ecosystem**: **Instagram**, **Facebook**, and **WhatsApp**.
+> **Product Vision**: Deliver the end-to-end automation, omnichannel inbox, workflow creation, and CRM capabilities seen in top-tier platforms (such as BooSend) while establishing an original, high-end design identity for **Instantlify AI**. Initial focus is locked on the **Meta ecosystem**: **Instagram**, **Facebook**, and **WhatsApp**.
 
 ---
 
 ## 1. Design Identity & Visual System
 
-Nemio AI avoids derivative copycat styling (such as generic dark modes or cartoon mascots) in favor of an **elevated, editorial SaaS aesthetic**:
+Instantlify AI avoids derivative copycat styling (such as generic dark modes or cartoon mascots) in favor of an **elevated, editorial SaaS aesthetic**:
 
-| Token / Element | Nemio AI Specification | Contrast / Purpose |
+| Token / Element | Instantlify AI Specification | Contrast / Purpose |
 | :--- | :--- | :--- |
 | **Primary Canvas** | Warm Alabaster (`#F6F7F2` to `#FAFBF7`) | Reduces eye strain; feels bespoke rather than stark white. |
 | **Sidebar Theme** | Deep Forest Charcoal (`#1B221D` / `#202721`) | Premium obsidian-olive tone with high-contrast content hierarchy. |
@@ -29,7 +29,7 @@ Nemio AI avoids derivative copycat styling (such as generic dark modes or cartoo
                                                  │ Webhooks & OAuth
                                                  ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                Nemio Backend Services                                  │
+│                                Instantlify Backend Services                                  │
 │  ┌───────────────────────┬─────────────────────────┬────────────────────────────────┐  │
 │  │ InstagramAdapter      │ MessengerAdapter        │ WhatsAppAdapter                │  │
 │  │ - IG DMs & Comments   │ - FB Page DMs & Feed    │ - Cloud API Business Messages  │  │
@@ -38,7 +38,7 @@ Nemio AI avoids derivative copycat styling (such as generic dark modes or cartoo
                                          │ REST & SSE / WebSockets
                                          ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                              Nemio Client-Side (Next.js)                               │
+│                              Instantlify Client-Side (Next.js)                               │
 │                                                                                        │
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
 │  │ Shell & Navigation: Multi-Account Switcher (IG Handles, FB Pages, WhatsApp No.)  │  │
@@ -93,7 +93,7 @@ Nemio AI avoids derivative copycat styling (such as generic dark modes or cartoo
 ### 3.3 Meta Automations Hub (`/w/[id]/automations`)
 1. **Views**: `List View` and `Folders View` (e.g. "Instagram Comment Leads", "WhatsApp Inbound", "Seasonal Promos").
 2. **Meta Trigger Types**:
-   - `Instagram Post/Reel Comment`: User comments keyword (e.g. "SEND") → Nemio auto-replies to comment + sends private DM with lead magnet.
+   - `Instagram Post/Reel Comment`: User comments keyword (e.g. "SEND") → Instantlify auto-replies to comment + sends private DM with lead magnet.
    - `Facebook Post Comment`: Auto-replies under post + initiates Messenger DM.
    - `Instagram Story Mention / Reply`: Automatically thanks user and delivers voucher or enters quiz.
    - `WhatsApp Inbound Keyword`: Direct navigation tree or AI assistant greeting.

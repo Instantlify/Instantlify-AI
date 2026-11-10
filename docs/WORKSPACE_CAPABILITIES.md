@@ -15,7 +15,7 @@ No plan or customer-facing API can grant these approvals. A grant also does not 
 | `meta_analytics` | Connecting live follower statistics to a creator kit, refreshing them in the background, and displaying saved live statistics. Revocation suppresses saved statistics immediately and prevents new refresh requests; results from a fetch revoked during execution are discarded. Clearing the selected accounts remains allowed. |
 | `meta_publishing` | Creating/editing scheduled posts, running queued publishing jobs, and each live Instagram publishing adapter operation. Revoked queued jobs fail with `capability_approval_required`; they are not automatically republished after reapproval. Cancellation remains allowed. |
 
-Account connection, token refresh, comment replies, DM replies, and Nemio's internal message/funnel analytics retain their existing access rules. This change does not introduce Meta reach/impressions, Ads, or additional business reporting endpoints.
+Account connection, token refresh, comment replies, DM replies, and Instantlify's internal message/funnel analytics retain their existing access rules. This change does not introduce Meta reach/impressions, Ads, or additional business reporting endpoints.
 
 `GET /api/workspaces/{workspace_id}/status/` includes a `capabilities` map after checking workspace membership. Clients can use it to display approval states. Restricted API operations return HTTP 403 with `code: capability_approval_required` and the capability key. Existing role/membership checks still apply.
 

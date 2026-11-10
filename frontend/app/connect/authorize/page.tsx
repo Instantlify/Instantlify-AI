@@ -86,7 +86,7 @@ export default function ConnectAuthorizePage() {
           </>
         ) : (
           <>
-            <h1>Allow {consent.client_name} to use Nemio?</h1>
+            <h1>Allow {consent.client_name} to use Instantlify?</h1>
             <p className="muted-text">
               It will connect from <strong>{consent.redirect_host}</strong>.
               Only continue if you started this from that app.

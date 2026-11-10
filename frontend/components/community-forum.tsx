@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import { useCallback, useEffect, useState } from "react";
 import { api, message, when } from "@/lib/api";
 import {
@@ -42,6 +44,7 @@ type Source = { post_id: string; excerpt: string };
 type Feed = { count: number; results: Post[] };
 
 export function CommunityForum() {
+  const confirm = useConfirmation();
   const feedback = useFeedback();
   const [feed, setFeed] = useState<Feed>({ count: 0, results: [] });
   const [page, setPage] = useState(1);
@@ -104,7 +107,7 @@ export function CommunityForum() {
       <PageHeading
         eyebrow="Apps / Community"
         title="Learn together"
-        text="Posts and replies are shared with all signed-in Nemio members, across workspaces."
+        text="Posts and replies are shared with all signed-in Instantlify members, across workspaces."
       />
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
@@ -270,8 +273,8 @@ export function CommunityForum() {
               <button
                 className="text-button"
                 disabled={feedback.busy}
-                onClick={() => {
-                  if (window.confirm("Delete this discussion and its replies?"))
+                onClick={async () => {
+                  if (await confirm("Delete this discussion and its replies?"))
                     void feedback.run(async () => {
                       await api(`/api/community/${post.id}/`, "DELETE");
                       await load();
@@ -356,8 +359,8 @@ export function CommunityForum() {
                 <button
                   className="text-button"
                   disabled={feedback.busy}
-                  onClick={() => {
-                    if (window.confirm("Delete this reply?"))
+                  onClick={async () => {
+                    if (await confirm("Delete this reply?"))
                       void feedback.run(async () => {
                         await api(
                           `/api/community/${thread.id}/replies/${reply.id}/`,

@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import {
   ValidatedForm,
   ValidatedInput,
@@ -48,6 +50,7 @@ export default function CommentShieldPage() {
   const [ruleMode, setRuleMode] = useState<"keyword" | "ai">("keyword");
   const [newPrompt, setNewPrompt] = useState("");
   const [newReply, setNewReply] = useState("");
+  const confirm = useConfirmation();
   const feedback = useFeedback();
 
   useEffect(() => {
@@ -120,7 +123,7 @@ export default function CommentShieldPage() {
   }
 
   async function deleteRule(rule: ShieldRule) {
-    if (!window.confirm(`Delete the rule "${rule.name}"?`)) return;
+    if (!await confirm(`Delete the rule "${rule.name}"?`)) return;
     await feedback.run(async () => {
       await api(`${prefix}/shield/rules/${rule.id}/`, "DELETE");
       setRules((list) => list.filter((item) => item.id !== rule.id));

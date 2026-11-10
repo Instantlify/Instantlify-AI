@@ -9,7 +9,6 @@ import { workspaceTheme } from "@/lib/workspace-theme";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   useEffect,
-  useId,
   useRef,
   useState,
   type FormEvent,
@@ -56,99 +55,22 @@ export const initials = (name: string) =>
   name.trim().slice(0, 2).toUpperCase() || "N";
 
 export function Brand({
-  name = "Nemio",
+  name = "Instantlify",
   logo = "",
 }: {
   name?: string;
   logo?: string;
 }) {
-  const logoFilter = `nemio-logo-${useId().replace(/:/g, "")}`;
-  const defaultBrand = !logo && /^nemio(?:\s*ai)?$/i.test(name.trim());
+  const defaultBrand = !logo && /^(?:instantlify|nemio)(?:\s*ai)?$/i.test(name.trim());
   return (
     <div
-      className={`brand-logo-container${defaultBrand ? " nemio-original-brand" : ""}`}
+      className={`brand-logo-container${defaultBrand ? " instantlify-original-brand" : ""}`}
     >
       {defaultBrand ? (
-        <span className="nemio-mark" aria-hidden="true">
-          <svg
-            width="0"
-            height="0"
-            aria-hidden="true"
-            className="nemio-logo-filter"
-          >
-            <defs>
-              <filter
-                id={logoFilter}
-                x="0"
-                y="0"
-                width="100%"
-                height="100%"
-                colorInterpolationFilters="sRGB"
-              >
-                {/* Separate saturated icons from neutral umbrella/text pixels. */}
-                <feColorMatrix
-                  in="SourceGraphic"
-                  type="saturate"
-                  values="0"
-                  result="gray"
-                />
-                <feBlend
-                  in="SourceGraphic"
-                  in2="gray"
-                  mode="difference"
-                  result="chroma"
-                />
-                <feColorMatrix
-                  in="chroma"
-                  type="matrix"
-                  values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  8 8 8 0 0"
-                  result="colorMask"
-                />
-                <feComposite
-                  in="SourceGraphic"
-                  in2="colorMask"
-                  operator="in"
-                  result="originalIcons"
-                />
-                {/* Key out white while retaining smooth animated ink edges. */}
-                <feColorMatrix
-                  in="SourceGraphic"
-                  type="matrix"
-                  values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -0.2126 -0.7152 -0.0722 0 1"
-                />
-                <feComponentTransfer result="ink">
-                  <feFuncA type="linear" slope="1.1" intercept="-0.1" />
-                </feComponentTransfer>
-                <feFlood floodColor="currentColor" />
-                <feComposite in2="ink" operator="in" result="limeInk" />
-                <feComposite
-                  in="limeInk"
-                  in2="colorMask"
-                  operator="out"
-                  result="neutralInk"
-                />
-                <feMerge result="recoloredLogo">
-                  <feMergeNode in="neutralInk" />
-                  <feMergeNode in="originalIcons" />
-                </feMerge>
-                <feComposite
-                  in="recoloredLogo"
-                  in2="SourceAlpha"
-                  operator="in"
-                />
-              </filter>
-            </defs>
+        <span className="instantlify-mark" aria-hidden="true">
+          <svg className="instantlify-mark-image" width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <path d="M18 2 6 18h9l-1 12L27 12h-9l0-10Z" fill="currentColor" />
           </svg>
-          {/* Keep all original GIF frames, timing, and looping. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/nemio-ai-logo.gif"
-            alt=""
-            width={900}
-            height={600}
-            className="nemio-mark-image"
-            style={{ filter: `url(#${logoFilter})` }}
-          />
         </span>
       ) : logo ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -402,7 +324,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="app-shell-root"
+      className={`app-shell-root${section === "inbox" ? " inbox-shell" : ""}`}
       data-workspace-theme={workspace.id}
       style={workspaceTheme(branding)}
     >
@@ -417,10 +339,10 @@ export function Shell({ children }: { children: ReactNode }) {
           <Link
             href={`/w/${workspace.id}/overview`}
             className="brand-link"
-            aria-label={`${branding.brand_name || "Nemio"} Home`}
+            aria-label={`${branding.brand_name || "Instantlify"} Home`}
           >
             <Brand
-              name={branding.brand_name || "Nemio"}
+              name={branding.brand_name || "Instantlify"}
               logo={branding.logo_url}
             />
           </Link>

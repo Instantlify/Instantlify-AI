@@ -54,6 +54,6 @@ class DownloadExportView(APIView):
             status="complete",
         )
         response = Response(json.loads(job.result))
-        response["Content-Disposition"] = 'attachment; filename="nemio-export.json"'
+        response["Content-Disposition"] = 'attachment; filename="instantlify-export.json"'
         response["Cache-Control"] = "private, no-store"
         return response

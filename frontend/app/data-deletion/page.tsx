@@ -48,7 +48,7 @@ export default function DataDeletionPage() {
         <ul>
           <li>
             <strong>Removing the app from Instagram or Facebook</strong>{" "}
-            disconnects your account in Nemio and deletes its access tokens
+            disconnects your account in Instantlify and deletes its access tokens
             automatically.
           </li>
           <li>
@@ -57,7 +57,7 @@ export default function DataDeletionPage() {
           </li>
           <li>
             <strong>Customers of a business</strong> who messaged it through
-            Nemio can ask that business to delete their conversation and contact
+            Instantlify can ask that business to delete their conversation and contact
             record.
           </li>
         </ul>

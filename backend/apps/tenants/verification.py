@@ -36,7 +36,7 @@ def send_verification(user):
         return
     url = f"{settings.PUBLIC_APP_URL}/auth/verify/#token={make_token(user)}"
     send_mail(
-        "Confirm your Nemio email address",
+        "Confirm your Instantlify email address",
         f"Confirm this address to finish setting up your account:\n\n{url}\n\n"
         "The link expires in three days. If you did not sign up, you can ignore this email.",
         settings.DEFAULT_FROM_EMAIL,

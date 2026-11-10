@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import {
   ValidatedForm,
   ValidatedInput,
@@ -30,6 +32,7 @@ export default function TeamPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [inviteLink, setInviteLink] = useState("");
   const [loading, setLoading] = useState(true);
+  const confirm = useConfirmation();
   const feedback = useFeedback();
 
   useEffect(() => {
@@ -114,7 +117,7 @@ export default function TeamPage() {
   async function removeMember(member: Member) {
     const leaving = member.email === user.email;
     if (
-      !window.confirm(
+      !await confirm(
         leaving
           ? "Leave this workspace? You will lose access immediately."
           : `Remove ${member.email} from this workspace?`,

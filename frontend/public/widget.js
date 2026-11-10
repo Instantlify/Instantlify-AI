@@ -1,4 +1,4 @@
-/* Nemio website chat widget. Embed with:
+/* Instantlify website chat widget. Embed with:
    <script src="https://<your nemio host>/widget.js" data-workspace="<workspace id>" async></script>
    Messages land in the workspace inbox; replies from the team or the AI agent show here. */
 (function () {

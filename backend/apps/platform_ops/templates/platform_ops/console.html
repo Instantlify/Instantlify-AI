@@ -4,14 +4,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nemio · Admin Panel</title>
+<title>Instantlify · Admin Panel</title>
 <meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ==========================================================================
-   Nemio AI Operations & Intelligence Console Design System
+   Instantlify AI Operations & Intelligence Console Design System
    Modern Executive Slate UI with Electric Indigo, Emerald AI & Vibrant Accents.
    ========================================================================== */
 :root {
@@ -1367,7 +1367,7 @@ table.modern-table td strong { color: var(--text-primary); }
   background: var(--green-soft); border: 1px solid #D2E0D2; color: var(--green-deep);
   border-radius: var(--radius-md); padding: 10px 14px; font-size: 12.5px; font-weight: 600; margin-bottom: 16px;
 }
-/* Shared Nemio visual identity. Keep operational state colors semantic. */
+/* Shared Instantlify visual identity. Keep operational state colors semantic. */
 :root {
   --ink: #20263f; --text-primary: #20263f; --text-secondary: #505c77;
   --text-muted: #68738b; --text-faint: #758099;
@@ -1466,6 +1466,14 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 .tier-create .tier-form { max-width:1000px; }
 @media(max-width:1100px) { .tier-grid { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:600px) { .tier-fields,.tier-checks,.tier-card:has(.tier-editor[open]) .tier-form { grid-template-columns:minmax(0,1fr); } .tier-card-body,.tier-form,.tier-create > summary { padding:20px; } .tier-editor > summary { padding:16px 20px; } }
+
+.console-confirmation { width: min(480px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: 18px; padding: 28px; background: var(--card-bg); color: var(--ink); box-shadow: 0 24px 80px #0005; }
+.console-confirmation::backdrop { background: #050b16a6; backdrop-filter: blur(3px); }
+.console-confirmation h2 { margin: 12px 0; }
+.console-confirmation p { line-height: 1.65; overflow-wrap: anywhere; }
+.console-confirmation-brand { color: var(--text-muted); font-size: 13px; font-weight: 600; }
+.console-confirmation-actions { display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; margin-top: 24px; }
+
 </style>
 </head>
 <body>
@@ -1481,7 +1489,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
         </svg>
       </div>
       <div class="brand-text">
-        <h1>Nemio</h1>
+        <h1>Instantlify</h1>
         <p>Operations Console</p>
       </div>
     </div>
@@ -1504,7 +1512,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
     {% if secret %}
     <p>Add a time-based account to your authenticator using this setup key:</p>
     <code class="secret-key-box">{{ secret }}</code>
-    <p style="font-size:11px; color:var(--text-muted); text-align:center;">Nemio Platform · 6 digits · 30s · SHA1</p>
+    <p style="font-size:11px; color:var(--text-muted); text-align:center;">Instantlify Platform · 6 digits · 30s · SHA1</p>
     {% else %}
     <p>Enter the 6-digit verification code from your authenticator application.</p>
     {% endif %}
@@ -1516,7 +1524,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 
     {% if screen == 'accept' %}
     <h2>Accept Invitation</h2>
-    <p>Use your existing Nemio account to claim staff privileges.</p>
+    <p>Use your existing Instantlify account to claim staff privileges.</p>
     <form method="post" style="display:grid; gap:12px;">{% csrf_token %}
       <label class="auth-form-group">Invitation token <input class="input-control" name="token" type="password" required></label>
       <label class="auth-form-group">Username <input class="input-control" name="username" required></label>
@@ -1540,7 +1548,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
         </svg>
       </div>
       <div class="brand-text">
-        <h1>Nemio</h1>
+        <h1>Instantlify</h1>
         <p>Operations Console</p>
       </div>
     </div>
@@ -1751,7 +1759,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
       <div class="funnel-visual-card" style="max-width:580px;">
         <h3 style="margin-bottom:8px;">Staff Invitation Token</h3>
         <code class="secret-key-box">{{ token }}</code>
-        <p style="font-size:12px; color:var(--text-muted);">Recipient accepts it at <strong style="color:var(--ink);">/ops/accept/</strong> using an existing Nemio account whose email matches.</p>
+        <p style="font-size:12px; color:var(--text-muted);">Recipient accepts it at <strong style="color:var(--ink);">/ops/accept/</strong> using an existing Instantlify account whose email matches.</p>
         <div style="margin-top:16px;"><a class="btn-secondary" href="/ops/?tab=team">Back to platform team</a></div>
       </div>
       {% endif %}
@@ -2805,7 +2813,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
             <summary>Edit {% if row.plan.is_custom %}plan{% else %}billing settings{% endif %}<span aria-hidden="true">+</span></summary>
             <form class="tier-form" method="post" action="/ops/tiers/{{ row.plan.pk }}/">{% csrf_token %}
               {% include "platform_ops/tier_fields.html" with plan=row.plan limits=row.limits prices=row.prices editable=row.plan.is_custom %}
-              <div class="tier-form-actions"><button class="btn-primary" type="submit">Save changes</button>{% if row.plan.is_custom %}<button type="submit" class="btn-danger" name="action" value="delete" formnovalidate onclick="return confirm('Delete this tier?')">Delete tier</button>{% endif %}</div>
+              <div class="tier-form-actions"><button class="btn-primary" type="submit">Save changes</button>{% if row.plan.is_custom %}<button type="submit" class="btn-danger" name="action" value="delete" formnovalidate data-confirm="Delete this tier?">Delete tier</button>{% endif %}</div>
             </form>
           </details>
         </article>
@@ -3912,7 +3920,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
       <div class="view-header">
         <div class="view-title-group">
           <h1>Blog posts</h1>
-          <p>Nemio's own marketing blog — separate from anything a tenant publishes.</p>
+          <p>Instantlify's own marketing blog — separate from anything a tenant publishes.</p>
         </div>
         <div class="view-controls">
           <a class="btn-secondary" href="/ops/?tab=blog&amp;sub=categories">Categories</a>
@@ -3948,7 +3956,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
                   <form method="post" action="/ops/blog/{{ post.id }}/" class="list-actions" style="justify-content:flex-end;">{% csrf_token %}
                     <a class="btn-secondary" href="/ops/?tab=blog&amp;sub=edit-{{ post.id }}#new-post">Edit</a>
                     {% if post.status != 'archived' %}<button class="btn-secondary" name="action" value="archive" type="submit">Archive</button>{% endif %}
-                    <button class="btn-danger" name="action" value="delete" type="submit" onclick="return confirm('Delete this post permanently?')">Delete</button>
+                    <button class="btn-danger" name="action" value="delete" type="submit" data-confirm="Delete this post permanently?">Delete</button>
                   </form>
                 </td>
               </tr>
@@ -4104,11 +4112,11 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
         <div>
           <span class="eyebrow">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M9 4h6"/></svg>
-            Nemio's own support bot
+            Instantlify's own support bot
           </span>
           <h1>AI agent config</h1>
           <p>Knowledge base and system prompt for the assistant that answers questions
-             about Nemio. Separate from any tenant's agent — neither can read the other.</p>
+             about Instantlify. Separate from any tenant's agent — neither can read the other.</p>
         </div>
         <div class="banner-controls">
           <span class="dropdown-pill">{{ agent.document_count }} docs · {{ agent.section_count }} sections</span>
@@ -4464,7 +4472,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
                 <td style="text-align:right;">
                   <form method="post" action="/ops/notices/{{ item.id }}/" class="list-actions" style="justify-content:flex-end;">{% csrf_token %}
                     <a class="btn-secondary" href="/ops/?tab=notifications&amp;edit={{ item.id }}#new-notice">Edit</a>
-                    <button class="btn-danger" name="action" value="delete" type="submit" onclick="return confirm('Delete this announcement?')">Delete</button>
+                    <button class="btn-danger" name="action" value="delete" type="submit" data-confirm="Delete this announcement?">Delete</button>
                   </form>
                 </td>
               </tr>
@@ -4720,6 +4728,59 @@ Content-Type: application/json
   </div>
 </div>
 {% endif %}
+
+
+<dialog id="console-confirmation" class="console-confirmation" role="alertdialog" aria-labelledby="console-confirmation-title" aria-describedby="console-confirmation-message">
+  <span class="console-confirmation-brand">Instantlify</span>
+  <h2 id="console-confirmation-title">Confirm deletion</h2>
+  <p id="console-confirmation-message"></p>
+  <div class="console-confirmation-actions">
+    <button type="button" class="btn-secondary" id="console-confirmation-cancel" autofocus>Cancel</button>
+    <button type="button" class="btn-danger" id="console-confirmation-approve">Delete</button>
+  </div>
+</dialog>
+<script nonce="{{ request.console_script_nonce }}">
+(() => {
+  const dialog = document.getElementById('console-confirmation');
+  const message = document.getElementById('console-confirmation-message');
+  const cancel = document.getElementById('console-confirmation-cancel');
+  const approve = document.getElementById('console-confirmation-approve');
+  const approved = new WeakSet();
+  let pending = null;
+  let overflow = '';
+  let opener = null;
+  document.addEventListener('submit', (event) => {
+    const button = event.submitter;
+    if (!button || !button.dataset.confirm) return;
+    if (approved.has(button)) { approved.delete(button); return; }
+    event.preventDefault();
+    if (pending) return;
+    pending = {form: event.target, button};
+    opener = document.activeElement;
+    message.textContent = button.dataset.confirm;
+    overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialog.showModal();
+    cancel.focus();
+  }, true);
+  cancel.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('close', () => {
+    pending = null;
+    document.body.style.overflow = overflow;
+    if (opener && opener.isConnected) opener.focus();
+  });
+  approve.addEventListener('click', () => {
+    const request = pending;
+    if (!request) return;
+    pending = null;
+    dialog.close();
+    if (request.form.isConnected && request.button.isConnected) {
+      approved.add(request.button);
+      request.form.requestSubmit(request.button);
+    }
+  });
+})();
+</script>
 
 </body>
 </html>

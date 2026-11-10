@@ -121,7 +121,7 @@
   ) {
   color: var(--brand-link);
 }
-[data-workspace-theme] .boosend-sidebar .nemio-mark {
+[data-workspace-theme] .boosend-sidebar .instantlify-mark {
   mix-blend-mode: normal;
   background: #fff;
   border-radius: 6px;

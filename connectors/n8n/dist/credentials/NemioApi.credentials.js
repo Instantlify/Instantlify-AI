@@ -4,7 +4,7 @@ exports.NemioApi = void 0;
 class NemioApi {
     constructor() {
         this.name = "nemioApi";
-        this.displayName = "Nemio API";
+        this.displayName = "Instantlify API";
         this.documentationUrl = "https://github.com/nemio/nemio/blob/main/docs/PUBLIC_API.md";
         this.properties = [
             {
@@ -13,7 +13,7 @@ class NemioApi {
                 type: "string",
                 default: "",
                 placeholder: "https://app.example.com",
-                description: "Address of your Nemio deployment, without a trailing slash",
+                description: "Address of your Instantlify deployment, without a trailing slash",
                 required: true,
             },
             {

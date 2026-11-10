@@ -1,6 +1,6 @@
 # Meta App Review checklist
 
-What Meta asks for, and where Nemio provides it. Fill in the bracketed items before
+What Meta asks for, and where Instantlify provides it. Fill in the bracketed items before
 submitting.
 
 ## URLs to enter in the Meta app dashboard
@@ -23,7 +23,7 @@ deletion does the same and returns a confirmation code with a public status page
 
 ## Permissions and the use case to describe
 
-| Permission | Why Nemio needs it | What to show in the screencast |
+| Permission | Why Instantlify needs it | What to show in the screencast |
 |---|---|---|
 | `instagram_business_basic` | Identify the connected professional account | Connecting an account in Integrations → Channels |
 | `instagram_business_manage_messages` | Receive and reply to DMs in the shared inbox and automations | A customer DM arriving in the inbox and a reply being sent |
@@ -35,14 +35,14 @@ Request only the permissions the launch actually uses, and keep `META_SCOPES` in
 
 ## Screencast script (one per permission)
 
-1. Sign in to Nemio and open Integrations → Channels.
+1. Sign in to Instantlify and open Integrations → Channels.
 2. Connect the test Instagram professional account through Meta's dialog.
 3. From a separate Instagram account, send a DM; show it arriving in the inbox.
 4. Reply from the inbox; show the reply on the phone.
 5. For comments: publish a comment-to-DM automation, comment the keyword, show the
    private reply.
 6. Show disconnecting the account, then removing the app in Instagram settings and the
-   account showing as disconnected in Nemio.
+   account showing as disconnected in Instantlify.
 
 ## Before submitting
 

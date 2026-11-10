@@ -54,8 +54,8 @@ class AgentSerializer(serializers.ModelSerializer):
             if not current("fallback_model", "").strip():
                 raise serializers.ValidationError("Choose a model for the fallback provider.")
             if current("billing_mode", "platform_credits") != "platform_credits":
-                # A BYO key covers one vendor; a fallback would run on Nemio's key.
-                raise serializers.ValidationError("A fallback provider needs Nemio credits.")
+                # A BYO key covers one vendor; a fallback would run on Instantlify's key.
+                raise serializers.ValidationError("A fallback provider needs Instantlify credits.")
         if attrs.get("is_test") and settings.CHANNEL_ADAPTER_MODE != "fake":
             raise serializers.ValidationError("Test providers are disabled.")
         if any(name not in SCHEMAS for name in attrs.get("allowed_tools", [])):

@@ -121,7 +121,7 @@ export function FlowGenerator({
         </span>
         <h2 id="flow-generator-title">Describe the automation you want.</h2>
         <p>
-          Nemio drafts the triggers and steps with your AI model. You review the
+          Instantlify drafts the triggers and steps with your AI model. You review the
           draft in the builder before anything goes live.
         </p>
       </div>

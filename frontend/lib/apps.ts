@@ -38,7 +38,7 @@ export const APPS: AppEntry[] = [
     id: "forum",
     label: "Community",
     icon: MessageSquareText,
-    description: "Share questions and answers with Nemio members.",
+    description: "Share questions and answers with Instantlify members.",
     highlights: ["Discussions and replies", "Community search assistant"],
     section: "forum",
     agents: true,
@@ -76,7 +76,7 @@ export const APPS: AppEntry[] = [
     label: "Content calendar",
     icon: CalendarDays,
     description:
-      "Plan and schedule Instagram posts, then let Nemio publish them on time.",
+      "Plan and schedule Instagram posts, then let Instantlify publish them on time.",
     highlights: ["Scheduled publishing", "Retry and status per post"],
     section: "calendar",
     agents: true,

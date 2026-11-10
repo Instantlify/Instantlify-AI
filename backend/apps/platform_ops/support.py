@@ -102,9 +102,9 @@ def notify_reply(ticket, body):
 
     try:
         send_mail(
-            f"Nemio support {ticket.ticket_number}: {ticket.subject}",
-            f"Nemio support replied to your request:\n\n{body}\n\n"
-            "If you have a Nemio account, open Help & support to continue this conversation.",
+            f"Instantlify support {ticket.ticket_number}: {ticket.subject}",
+            f"Instantlify support replied to your request:\n\n{body}\n\n"
+            "If you have an Instantlify account, open Help & support to continue this conversation.",
             settings.DEFAULT_FROM_EMAIL,
             [ticket.reporter_email],
         )

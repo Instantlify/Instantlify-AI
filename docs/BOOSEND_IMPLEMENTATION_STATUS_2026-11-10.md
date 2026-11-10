@@ -1,8 +1,8 @@
-# Boosend → Nemio implementation status
+# Boosend → Instantlify implementation status
 
 Updated 10 November 2026. This is the current implementation checkpoint. The comparison document records the earlier baseline. **Full functional parity and production replacement acceptance are not complete.** No completion percentage is justified by the current evidence.
 
-The reference is `C:/Users/Jawad/Desktop/Boosend`; it was read without changes. Nemio changes are local and uncommitted. No deployment, customer messages, provider enrollments, payments or production database changes were performed. The source ledger inventories 496 screens, HTTP routes, edge functions and canvas nodes; these are source surfaces, not 496 independently verified features.
+The reference is `C:/Users/Jawad/Desktop/Boosend`; it was read without changes. Instantlify changes are local and uncommitted. No deployment, customer messages, provider enrollments, payments or production database changes were performed. The source ledger inventories 496 screens, HTTP routes, edge functions and canvas nodes; these are source surfaces, not 496 independently verified features.
 
 ## Implemented and exercised locally
 
@@ -63,4 +63,4 @@ Affiliate settings are documented in `.env.example`: FirstPromoter API key, acco
 9. Live channel connect → inbound → automation → delivered reply across supported channels, provider error/retry scenarios, live billing and AI/media execution.
 10. PostgreSQL/Redis/worker checks, migration rehearsal, load/capacity checks, backup/restore validation and production deployment acceptance.
 
-There is no basis yet to declare Nemio better overall than the running Boosend service. The changes improve specific tested behaviors; the remaining comparison and operational evidence must be completed before replacement.
+There is no basis yet to declare Instantlify better overall than the running Boosend service. The changes improve specific tested behaviors; the remaining comparison and operational evidence must be completed before replacement.

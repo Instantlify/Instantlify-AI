@@ -95,7 +95,7 @@ def test_chat_outage_offers_ticket_without_claiming_success():
     with patch("apps.platform_ops.support_agent.answer", side_effect=ProviderError("offline")):
         response = Client().post(
             "/api/growth/support-chat/",
-            {"message": "What does Nemio do?"},
+            {"message": "What does Instantlify do?"},
             content_type="application/json",
         )
     assert response.status_code == 200

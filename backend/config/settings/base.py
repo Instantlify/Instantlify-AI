@@ -134,7 +134,7 @@ PLATFORM_ADMIN_NETWORKS = [
 # apps.tenants.client_ip, and DRF throttles read it as NUM_PROXIES below.
 TRUSTED_PROXY_DEPTH = int(os.environ.get("TRUSTED_PROXY_DEPTH", "0"))
 # Welcome AI credits, in cents, granted once per workspace when its owner confirms
-# their email address. Nemio pays the provider for these, so the confirmation is what
+# their email address. Instantlify pays the provider for these, so the confirmation is what
 # keeps the grant from funding throwaway signups. 0 disables it.
 SIGNUP_CREDIT_CENTS = int(os.environ.get("SIGNUP_CREDIT_CENTS", "200"))
 # How long an unconfirmed signup may hold an email address before it is released.
@@ -252,7 +252,7 @@ EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() != "false"
 EMAIL_TIMEOUT = 10
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Nemio <no-reply@localhost>")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Instantlify <support@instantlify.com>")
 
 # Every password and session check goes through the ban-aware backend, so a banned
 # user cannot sign in and an open session of theirs resolves as anonymous.
@@ -318,7 +318,7 @@ STRIPE_PRICES = json.loads(os.environ.get("STRIPE_PRICES", "{}"))
 DEFAULT_PLAN_SLUG = os.environ.get("DEFAULT_PLAN_SLUG", "free")
 # Free trial on a workspace's first subscription, any interval. 0 disables.
 STRIPE_TRIAL_DAYS = int(os.environ.get("STRIPE_TRIAL_DAYS", "3"))
-# Nemio's own provider key for workspaces on prepaid credits (2.10).
+# Instantlify's own provider key for workspaces on prepaid credits (2.10).
 PLATFORM_OPENAI_API_KEY = os.environ.get("PLATFORM_OPENAI_API_KEY", "")
 PLATFORM_AI_MODEL = os.environ.get("PLATFORM_AI_MODEL", "gpt-5")
 PLATFORM_ANTHROPIC_API_KEY = os.environ.get("PLATFORM_ANTHROPIC_API_KEY", "")
@@ -431,3 +431,7 @@ LOGGING = {
 
 # Password recovery links expire after one hour.
 PASSWORD_RESET_TIMEOUT = 3600
+
+# Confirmed production identity; local PUBLIC_APP_URL remains independently configurable.
+APP_DOMAIN = os.environ.get("APP_DOMAIN", "instantlify.com").lower()
+CUSTOM_DOMAIN_CNAME_TARGET = os.environ.get("CUSTOM_DOMAIN_CNAME_TARGET", APP_DOMAIN).lower()

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LEGAL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Terms of service · Nemio" };
+export const metadata: Metadata = { title: "Terms of service · Instantlify" };
 
 const ARTICLE = { maxWidth: 760, margin: "0 auto", padding: 24 } as const;
 
@@ -20,15 +20,15 @@ export default function TermsPage() {
 
         <h2>1. Accepting these terms</h2>
         <p>
-          By creating an account or using Nemio you agree to these terms and to
-          our <Link href="/privacy/">privacy policy</Link>. If you use Nemio for
+          By creating an account or using Instantlify you agree to these terms and to
+          our <Link href="/privacy/">privacy policy</Link>. If you use Instantlify for
           a company, you confirm you can bind that company, and
           &ldquo;you&rdquo; means the company.
         </p>
 
         <h2>2. The service</h2>
         <p>
-          Nemio lets you manage conversations from Instagram, Facebook
+          Instantlify lets you manage conversations from Instagram, Facebook
           Messenger, WhatsApp, Telegram and your website in one inbox, build
           automations (including AI replies and AI agents), keep contacts in a
           CRM, run broadcasts, and publish forms, link-in-bio pages, tracking
@@ -63,7 +63,7 @@ export default function TermsPage() {
           </li>
           <li>
             Get the consent the law requires before you message people, add them
-            to email lists or call them, and honor opt-outs. Nemio respects
+            to email lists or call them, and honor opt-outs. Instantlify respects
             opt-outs and platform messaging windows, but you remain responsible
             for your messages and lists.
           </li>
@@ -80,7 +80,7 @@ export default function TermsPage() {
         </ul>
 
         <h2>5. Acceptable use</h2>
-        <p>You must not use Nemio to:</p>
+        <p>You must not use Instantlify to:</p>
         <ul>
           <li>
             send spam, unsolicited bulk messages or messages to people who opted
@@ -148,7 +148,7 @@ export default function TermsPage() {
 
         <h2>8. Third-party services</h2>
         <p>
-          Nemio works with platforms and tools we do not control, such as Meta,
+          Instantlify works with platforms and tools we do not control, such as Meta,
           WhatsApp, Telegram, Stripe, Google, Microsoft, AI providers and the
           integrations you connect. Your use of them is governed by their terms.
           They may change, limit or stop access, which can affect features, and
@@ -166,14 +166,14 @@ export default function TermsPage() {
 
         <h2>10. Our property</h2>
         <p>
-          Nemio, its software, design and brand belong to {LEGAL.company} and
+          Instantlify, its software, design and brand belong to {LEGAL.company} and
           its licensors. These terms do not give you rights to them beyond using
           the service as permitted.
         </p>
 
         <h2>11. Suspension and termination</h2>
         <p>
-          You can stop using Nemio and delete your workspace at any time. We may
+          You can stop using Instantlify and delete your workspace at any time. We may
           suspend or end access if you breach these terms, fail to pay, or if
           required by law or a platform. Where we can, we will give notice and a
           chance to export your data. Sections that by their nature should
@@ -211,7 +211,7 @@ export default function TermsPage() {
         <p>
           We may update these terms. We will post the new version here and, for
           material changes, notify account holders in advance. Continuing to use
-          Nemio after changes take effect means you accept them.
+          Instantlify after changes take effect means you accept them.
         </p>
 
         <h2>16. Governing law</h2>

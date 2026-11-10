@@ -65,3 +65,19 @@ def test_slack_ok_false_and_unsupported_and_test_mode(client, workspace, setting
     with patch("apps.crm.connection_test.request") as call:
         assert client.post(endpoint(workspace, fake)).json()["ok"] is True
     call.assert_not_called()
+
+
+@pytest.mark.parametrize("granted", [False, True])
+def test_gmail_checks_send_permission_even_with_local_channel_adapters(
+    client, workspace, settings, granted
+):
+    settings.CHANNEL_ADAPTER_MODE = "fake"
+    item = integration(workspace, "gmail", {"access_token": "private-token"})
+    scope = "openid email" + (" https://www.googleapis.com/auth/gmail.send" if granted else "")
+    with patch("apps.crm.connection_test.request", return_value={"scope": scope}) as call:
+        response = client.post(endpoint(workspace, item))
+    assert response.json()["ok"] is granted
+    assert call.call_args.args == ("GET", "https://oauth2.googleapis.com/tokeninfo")
+    assert "private-token" not in response.content.decode()
+    if not granted:
+        assert "send permission is missing" in response.json()["detail"]

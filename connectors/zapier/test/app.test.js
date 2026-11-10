@@ -139,7 +139,7 @@ describe("hook triggers", () => {
     expect(results[0]).toMatchObject({ resource_id: "lead-1", event: "lead.hot", stage: "new" });
   });
 
-  it("defines one trigger per Nemio event", () => {
+  it("defines one trigger per Instantlify event", () => {
     expect(Object.keys(App.triggers).sort()).toEqual([
       "call_booked",
       "conversation_handoff",

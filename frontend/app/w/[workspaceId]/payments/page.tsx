@@ -271,7 +271,7 @@ export default function PaymentsPage() {
 
           {owner && (
             <p className="muted-text">
-              Your Nemio plan and AI credits are under{" "}
+              Your Instantlify plan and AI credits are under{" "}
               <Link href={`/w/${workspace.id}/settings?tab=subscription`}>
                 Settings → Subscription
               </Link>

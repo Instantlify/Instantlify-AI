@@ -119,13 +119,13 @@ class DeepLinkRedirect(APIView):
             response = HttpResponse(
                 '<!doctype html><html lang="en"><head><meta charset="utf-8">'
                 '<meta name="viewport" content="width=device-width,initial-scale=1">'
-                "<title>Link unavailable | Nemio</title><style>"
+                "<title>Link unavailable | Instantlify</title><style>"
                 "body{margin:0;background:#f4f7f5;color:#183c2c;font:18px system-ui;"
                 "min-height:100dvh;display:grid;place-items:center}"
                 "main{max-width:32rem;padding:2rem}a{color:inherit}</style></head>"
-                "<body><main><p>Nemio</p><h1>This link is unavailable</h1>"
+                "<body><main><p>Instantlify</p><h1>This link is unavailable</h1>"
                 "<p>This link may be paused or no longer available. Contact the person "
-                'who shared it for an updated link.</p><a href="/">Visit Nemio</a>'
+                'who shared it for an updated link.</p><a href="/">Visit Instantlify</a>'
                 "</main></body></html>",
                 status=404,
                 content_type="text/html",

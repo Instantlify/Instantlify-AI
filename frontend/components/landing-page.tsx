@@ -178,8 +178,8 @@ const integrations = [
 
 const faqs = [
   [
-    "What does Nemio do?",
-    "Nemio connects sales conversations, visual automations, an AI assistant, your CRM, bookings and payment links in one workspace. Start with one workflow and expand as your business needs grow.",
+    "What does Instantlify do?",
+    "Instantlify connects sales conversations, visual automations, an AI assistant, your CRM, bookings and payment links in one workspace. Start with one workflow and expand as your business needs grow.",
   ],
   [
     "Which channels can I connect?",
@@ -203,11 +203,11 @@ const faqs = [
   ],
   [
     "Are all tools included in every plan?",
-    "Features and limits depend on the plan. The pricing section loads the current catalogue from Nemio, including AI usage, contacts, connected accounts, voice and integration availability. External providers may charge separately.",
+    "Features and limits depend on the plan. The pricing section loads the current catalogue from Instantlify, including AI usage, contacts, connected accounts, voice and integration availability. External providers may charge separately.",
   ],
   [
     "What about privacy and customer data?",
-    "Nemio includes tenant-scoped access, encrypted provider credentials, audit records and customer data export and deletion tools. Configure retention and connected providers to suit your business requirements.",
+    "Instantlify includes tenant-scoped access, encrypted provider credentials, audit records and customer data export and deletion tools. Configure retention and connected providers to suit your business requirements.",
   ],
 ];
 
@@ -248,7 +248,7 @@ function Demo({
           {item.incoming}
         </div>
         <div className="nm-agent">
-          <Sparkles size={12} /> Nemio assistant
+          <Sparkles size={12} /> Instantlify assistant
         </div>
         <div className="nm-bubble outgoing" key={`${scenario}-outgoing`}>
           {item.reply}
@@ -502,7 +502,7 @@ export function LandingPage({
           focusable="false"
         >
           <defs>
-            <linearGradient id="nemio-journey-ink" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="instantlify-journey-ink" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#b4f277" stopOpacity="0.06" />
               <stop offset="15%" stopColor="#b4f277" stopOpacity="0.95" />
               <stop offset="85%" stopColor="#b4f277" stopOpacity="0.85" />
@@ -529,7 +529,7 @@ export function LandingPage({
             className="nm-journey-stroke"
             d={landingJourney}
             fill="none"
-            stroke="url(#nemio-journey-ink)"
+            stroke="url(#instantlify-journey-ink)"
             strokeWidth="1.5"
             vectorEffect="non-scaling-stroke"
           />
@@ -554,7 +554,7 @@ export function LandingPage({
           }
         }}
       >
-        <Link href="/" aria-label="Nemio home" onClick={returnToTop}>
+        <Link href="/" aria-label="Instantlify home" onClick={returnToTop}>
           <Brand />
         </Link>
         <nav
@@ -1194,7 +1194,7 @@ export function LandingPage({
                   {
                     icon: ShieldCheck,
                     title: "Comment moderation",
-                    copy: "Automatic abuse filtering and deletion are not yet available in Nemio.",
+                    copy: "Automatic abuse filtering and deletion are not yet available in Instantlify.",
                     status: "Planned",
                     link: false,
                   },
@@ -1274,7 +1274,7 @@ export function LandingPage({
                 <table>
                   <caption>
                     Compare visual workflows and AI-assisted conversations in
-                    Nemio
+                    Instantlify
                   </caption>
                   <thead>
                     <tr>
@@ -1480,7 +1480,7 @@ export function LandingPage({
           </div>
           <div>
             {faqs.map(([question, answer]) => (
-              <details key={question} name="nemio-faq">
+              <details key={question} name="instantlify-faq">
                 <summary>
                   <span>{question}</span>
                   <span aria-hidden="true">+</span>
@@ -1500,10 +1500,10 @@ export function LandingPage({
             starts with a hello.
           </h2>
           <p>
-            Make room for the work you love. Let Nemio help with the follow-up.
+            Make room for the work you love. Let Instantlify help with the follow-up.
           </p>
           <Link className="nm-button" href="/auth?mode=signup">
-            Get started with Nemio <ArrowUpRight size={18} />
+            Get started with Instantlify <ArrowUpRight size={18} />
           </Link>
           <span className="nm-closing-star" aria-hidden="true">
             ✳
@@ -1512,7 +1512,7 @@ export function LandingPage({
       </main>
       <footer className="nm-footer">
         <div>
-          <Link href="/" aria-label="Nemio home" onClick={returnToTop}>
+          <Link href="/" aria-label="Instantlify home" onClick={returnToTop}>
             <Brand />
           </Link>
           <p>
@@ -1542,7 +1542,7 @@ export function LandingPage({
           <Link href="/auth/reset">Reset password</Link>
         </nav>
         <div className="nm-footer-bottom">
-          <span>© {new Date().getFullYear()} Nemio. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} Instantlify. All rights reserved.</span>
           <span>
             <ShieldCheck size={13} /> Your business. Your team. Your workspace.
           </span>

@@ -116,7 +116,7 @@ export function AgencyPanel({
   const status = branding?.custom_domain_status || "pending";
   const appHost =
     typeof window === "undefined"
-      ? "your Nemio app domain"
+      ? "your Instantlify app domain"
       : window.location.hostname;
 
   return (
@@ -179,11 +179,11 @@ export function AgencyPanel({
                 </p>
                 <CopyField
                   label="TXT record name"
-                  value={`_nemio-challenge.${savedDomain}`}
+                  value={`_instantlify-challenge.${savedDomain}`}
                 />
                 <CopyField
                   label="TXT record value"
-                  value={`nemio-verify=${branding?.verification_token || ""}`}
+                  value={`instantlify-verify=${branding?.verification_token || ""}`}
                 />
                 <CopyField label={`CNAME for ${savedDomain}`} value={appHost} />
                 <button

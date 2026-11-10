@@ -50,7 +50,7 @@ def platform_key(provider):
 
 
 def api_key_for(config, provider=None):
-    """BYO workspaces use their own key; everyone else uses Nemio's platform key for the
+    """BYO workspaces use their own key; everyone else uses Instantlify's platform key for the
     provider and is debited from their prepaid balance."""
     provider = provider or config.provider
     if provider not in PLATFORM_KEYS:
@@ -540,7 +540,7 @@ class FakeLLMProvider:
                 None,
             )
             return Completion(json.dumps({"match": match}), [], 5, 5)
-        if str(first.get("content", "")).startswith("You are the Nemio flow designer"):
+        if str(first.get("content", "")).startswith("You are the Instantlify flow designer"):
             return Completion(FAKE_FLOW, [], 40, 120)
         return Completion(
             "[Local test] Thanks for reaching out. What would you like to know?", [], 20, 15

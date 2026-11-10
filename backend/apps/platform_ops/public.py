@@ -212,7 +212,7 @@ class SupportTicketView(APIView):
 
 
 class SupportChatView(PublicWrite):
-    """One turn with Nemio's own support assistant.
+    """One turn with Instantlify's own support assistant.
 
     The reply may be a sentinel token (`[[REQUEST_NAME_CARD]]` / `[[REQUEST_EMAIL_CARD]]`)
     rather than prose: the client renders those as a real input field, which beats

@@ -189,7 +189,7 @@ class PlatformSetting(models.Model):
 
 
 # ======================================================================== growth
-# Platform-owned tables behind the admin console. These describe Nemio's own
+# Platform-owned tables behind the admin console. These describe Instantlify's own
 # business (who signed up, what the marketing site does, who filed a ticket) and
 # are deliberately not tenant-scoped: nothing here is a `TenantModel`, and no
 # tenant API reads any of it.
@@ -389,7 +389,7 @@ class SupportTicketMessage(models.Model):
 
 
 class PlatformKnowledgeDocument(models.Model):
-    """Nemio's OWN support bot knowledge base. Deliberately a separate table from
+    """Instantlify's OWN support bot knowledge base. Deliberately a separate table from
     `agents.KnowledgeDocument`: that one holds a tenant's content and answers a
     tenant's leads. These must never retrieve into each other's context."""
 

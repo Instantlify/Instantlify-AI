@@ -11,7 +11,7 @@ const sendMessage = {
   display: {
     label: "Send Message",
     description:
-      "Queues a reply into a conversation through Nemio's normal delivery pipeline (opt-out and messaging-window rules apply).",
+      "Queues a reply into a conversation through Instantlify's normal delivery pipeline (opt-out and messaging-window rules apply).",
   },
   operation: {
     inputFields: [
@@ -19,7 +19,7 @@ const sendMessage = {
         key: "conversation_id",
         label: "Conversation ID",
         required: true,
-        helpText: "From a Nemio trigger (`conversation_id`) or the inbox URL.",
+        helpText: "From a Instantlify trigger (`conversation_id`) or the inbox URL.",
       },
       { key: "text", label: "Text", required: true, type: "text" },
     ],

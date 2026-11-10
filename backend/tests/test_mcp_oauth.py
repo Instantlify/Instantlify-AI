@@ -148,7 +148,7 @@ def test_full_flow_tokens_work_rotate_and_revoke(client, workspace):
     )
     assert reuse.status_code == 400
 
-    # Revoking the backing API key in Nemio ends the connection.
+    # Revoking the backing API key in Instantlify ends the connection.
     APIKey.objects.for_workspace(workspace).update(revoked_at="2026-01-01T00:00:00Z")
     assert mcp(refreshed["access_token"]).status_code == 401
 

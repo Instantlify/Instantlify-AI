@@ -15,7 +15,7 @@ pytestmark = pytest.mark.django_db
 def section():
     document = PlatformKnowledgeDocument.objects.create(title="Support")
     return PlatformKnowledgeSection.objects.create(
-        document=document, title="About", body_markdown="Nemio support"
+        document=document, title="About", body_markdown="Instantlify support"
     )
 
 
@@ -30,7 +30,7 @@ def test_provider_failure_is_visible_without_losing_sections():
     assert "text-embedding-3-small" in status()["message"]
     item.refresh_from_db()
     assert item.embedding is None
-    assert item.body_markdown == "Nemio support"
+    assert item.body_markdown == "Instantlify support"
 
 
 def test_success_updates_status_and_sections():

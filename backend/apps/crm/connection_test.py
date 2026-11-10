@@ -8,7 +8,6 @@ saved credentials; secrets and provider response bodies never leave the server.
 import json
 from urllib.parse import quote
 
-from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -27,6 +26,8 @@ def _bearer(token):
 def probe(provider, credentials, options):
     """(method, url, kwargs) for the provider's identity check, or None if unsupported."""
     token = credentials.get("api_key") or credentials.get("access_token") or ""
+    if provider == "gmail":
+        return "GET", "https://oauth2.googleapis.com/tokeninfo", {"params": {"access_token": token}}
     if provider == "slack":
         return "POST", "https://slack.com/api/auth.test", {"headers": _bearer(token)}
     if provider == "airtable":
@@ -90,7 +91,7 @@ def probe(provider, credentials, options):
 
 
 def run_test(config):
-    if config.is_test or settings.CHANNEL_ADAPTER_MODE == "fake":
+    if config.is_test:
         return {"ok": True, "detail": "Test mode: no provider was contacted."}
     from .integrations import credentials_for
 
@@ -114,6 +115,14 @@ def run_test(config):
         return {"ok": False, "detail": _explain(exc.code)}
     if config.provider == "slack" and isinstance(body, dict) and body.get("ok") is False:
         return {"ok": False, "detail": "Slack rejected the token."}
+    if (
+        config.provider == "gmail"
+        and "https://www.googleapis.com/auth/gmail.send" not in str(body.get("scope", "")).split()
+    ):
+        return {
+            "ok": False,
+            "detail": "Gmail send permission is missing. Reconnect Gmail and approve sending email on your behalf.",
+        }
     return {"ok": True, "detail": "Connected: the provider accepted these credentials."}
 
 

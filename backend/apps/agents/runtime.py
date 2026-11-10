@@ -407,7 +407,7 @@ def hand_off(conversation, *, reason):
                 "payload": json.dumps(
                     {
                         "text": f"Human needed: {conversation.identity.lead.name} ({reason}). "
-                        "Open the Nemio inbox to take over."
+                        "Open the Instantlify inbox to take over."
                     }
                 ),
                 "available_at": timezone.now(),

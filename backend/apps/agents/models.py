@@ -37,7 +37,7 @@ class AgentConfig(TenantModel):
     # Seconds to wait after a customer's last message before replying, so several quick
     # messages get one answer instead of one answer each. 0 replies at once.
     reply_delay_seconds = models.PositiveSmallIntegerField(default=0)
-    # platform_credits: Nemio's provider key, prepaid balance debited per call.
+    # platform_credits: Instantlify's provider key, prepaid balance debited per call.
     # byo_key: the workspace's own key, nothing debited. Explicit per workspace (2.10).
     billing_mode = models.CharField(max_length=20, default="platform_credits")
     # agent: LangGraph sales agent with tools and stages. simple: one grounded

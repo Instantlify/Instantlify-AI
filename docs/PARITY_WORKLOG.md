@@ -4,7 +4,7 @@
   and message accents. Saved sidebar background/text colors are persisted in branding and
   applied only inside that workspace; switching workspaces restores the selected theme.
   Light accents choose readable action text, and low-contrast sidebar combinations receive
-  an inline validation message. Public pages keep the default Nemio palette.
+  an inline validation message. Public pages keep the default Instantlify palette.
 - Settings saves workspace name and branding together in one transaction. Sidebar values
   are included in saves and reloads, color inputs have field validation and labelled swatches,
   and only owners can edit appearance. Existing agency branding inheritance is preserved.
@@ -98,7 +98,7 @@
   API errors translate slug to public address, explain missing values and invalid choices,
   and avoid raw server failures or technical nested object output.
 - Copied the owner's supplied nemio_ai_logo_v2.gif unchanged into public/brand. The shared
-  default Nemio mark uses the full animation with readable brand text; custom workspace
+  default Instantlify mark uses the full animation with readable brand text; custom workspace
   branding is preserved. Landing header/footer logo clicks return to the top without a reload,
   respect modified-click navigation and use instant scrolling for reduced-motion preferences.
 - Production build/TypeScript and focused shared-component lint passed. All 51 production
@@ -204,7 +204,7 @@ Automation UI regression correction:
 The user resumed implementation and authorized the GitHub push previously requested.
 BooSend is strictly read-only: no records, drafts, settings, messages or automations were
 created, removed or saved there. Opening the CRM segmentation dialog exposed named
-segments with a name and prompt; Nemio now implements this rather than only fixed intent tags.
+segments with a name and prompt; Instantlify now implements this rather than only fixed intent tags.
 
 Current additions (source; release verification in progress):
 
@@ -254,7 +254,7 @@ Known scope limits, which must not be represented as completed parity:
 
 - Live provider credentials/delivery and billing-provider callbacks are not verified by mocks.
 - Notavo and Poppy still need usable official API contracts. ZorroMail now has a native adapter.
-- Reusable call agents can now be authored in Nemio. Per-call transient agent definitions are not implemented.
+- Reusable call agents can now be authored in Instantlify. Per-call transient agent definitions are not implemented.
 - Knowledge sources now support opt-in scheduled refreshes; live provider validation remains.
 - Connected Instagram follower counts are provider-sourced; additional creator metrics remain manual.
 - Tracking links use HTTPS redirects; automatic escape from every in-app browser is not implemented.
@@ -265,11 +265,11 @@ Known scope limits, which must not be represented as completed parity:
 
 # Active parity implementation
 
-User scope: finish the remaining BooSend functionality in Nemio, independently designed UI.
+User scope: finish the remaining BooSend functionality in Instantlify, independently designed UI.
 Do not stop at another partial milestone. Continue implementation and verification; distinguish
 mock/provider-free checks from live provider verification. Keep reference inspection read-only.
 Latest explicit instruction: continue until complete, then push ALL project code to GitHub.
-Remote is https://github.com/JawadTarar33/Nemio-AI.git, current branch main. No push yet.
+Remote is https://github.com/JawadTarar33/Instantlify-AI.git, current branch main. No push yet.
 Do not end the task after another partial batch; the user explicitly objected to that.
 
 ## Active continuation (23 October, current source)

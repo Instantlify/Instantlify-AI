@@ -1,6 +1,6 @@
 {
   "type": "web",
-  "label": "Nemio event",
+  "label": "Instantlify event",
   "connection": "nemio",
   "parameters": [
     {

@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import {
   ValidatedForm,
   ValidatedInput,
@@ -125,6 +127,7 @@ const SIDEBAR_TEXT_COLORS = [
 
 export default function SettingsPage() {
   const { workspace, user: workspaceUser, prefix, refresh } = useWorkspace();
+  const confirm = useConfirmation();
   const feedback = useFeedback();
   const router = useRouter();
 
@@ -190,7 +193,7 @@ export default function SettingsPage() {
     workspace.branding?.sidebar_text_color || DEFAULT_SIDEBAR_TEXT,
   );
   const [brandName, setBrandName] = useState(
-    workspace.branding?.brand_name || "Nemio",
+    workspace.branding?.brand_name || "Instantlify",
   );
   const [logoUrl, setLogoUrl] = useState(workspace.branding?.logo_url || "");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -491,7 +494,7 @@ export default function SettingsPage() {
     connectionId: string,
     name: string,
   ) => {
-    if (!confirm(`Are you sure you want to disconnect ${name}?`)) return;
+    if (!await confirm(`Are you sure you want to disconnect ${name}?`)) return;
     await feedback.run(async () => {
       await api(`${prefix}/channels/${connectionId}/disconnect/`, "POST");
       await loadConnections();
@@ -521,7 +524,7 @@ export default function SettingsPage() {
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
-    if (!confirm(`Remove ${memberName} from this workspace?`)) return;
+    if (!await confirm(`Remove ${memberName} from this workspace?`)) return;
     await feedback.run(async () => {
       await api(`${prefix}/members/${memberId}/`, "DELETE");
       await loadTeam();
@@ -2152,7 +2155,7 @@ export default function SettingsPage() {
                     className="settings-text-input"
                   />
                   <span className="field-helper-note">
-                    Shown in the sidebar instead of &ldquo;Nemio&rdquo;.
+                    Shown in the sidebar instead of &ldquo;Instantlify&rdquo;.
                   </span>
                 </div>
 

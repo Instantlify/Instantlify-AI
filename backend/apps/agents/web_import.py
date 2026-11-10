@@ -64,7 +64,7 @@ def _get(parsed):
         connection.request(
             "GET",
             target,
-            headers={"User-Agent": "Nemio-Knowledge/1.0", "Accept": "text/html,text/plain"},
+            headers={"User-Agent": "Instantlify-Knowledge/1.0", "Accept": "text/html,text/plain"},
         )
         response = connection.getresponse()
         if response.status in {301, 302, 303, 307, 308}:

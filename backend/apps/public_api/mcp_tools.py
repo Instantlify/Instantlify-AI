@@ -88,7 +88,7 @@ def set_automation_enabled(workspace_id, args):
     if not automation:
         raise ToolError("No automation with that ID in this workspace.")
     if args["enabled"] and not automation.published:
-        raise ToolError("Publish the automation in Nemio before turning it on.")
+        raise ToolError("Publish the automation in Instantlify before turning it on.")
     automation.enabled = args["enabled"]
     automation.save(update_fields=["enabled", "updated_at"])
     return {"id": str(automation.pk), "name": automation.name, "enabled": automation.enabled}

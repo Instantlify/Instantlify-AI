@@ -62,7 +62,7 @@ class MagicLinkRequestView(SignupView):
         if user:
             url = f"{settings.PUBLIC_APP_URL}/auth/magic/#token={make_token(user)}"
             send_mail(
-                "Your Nemio sign-in link",
+                "Your Instantlify sign-in link",
                 f"Use this link within 15 minutes to sign in:\n\n{url}\n\n"
                 "It works once. If you did not ask for it, you can ignore this email.",
                 settings.DEFAULT_FROM_EMAIL,

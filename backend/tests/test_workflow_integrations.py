@@ -234,3 +234,17 @@ def test_gmail_oauth_resolves_the_verified_sender_identity(settings):
         credentials, options = exchange("gmail", "code")
     assert credentials["access_token"] == "token"
     assert options == {"sender_email": "team@example.com"}
+
+
+def test_gmail_oauth_rejects_partial_consent(settings):
+    from apps.channels.transport import ProviderError
+    from apps.crm.oauth import exchange
+
+    settings.GOOGLE_CLIENT_ID = "client"
+    settings.GOOGLE_CLIENT_SECRET = "secret"
+    with patch(
+        "apps.crm.oauth.request", return_value={"access_token": "token", "scope": "openid email"}
+    ) as call:
+        with pytest.raises(ProviderError, match="gmail_send_permission_missing"):
+            exchange("gmail", "code")
+    assert call.call_count == 1

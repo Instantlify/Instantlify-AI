@@ -23,10 +23,10 @@ module.exports = {
     fields: [
       {
         key: "base_url",
-        label: "Nemio URL",
+        label: "Instantlify URL",
         required: true,
         helpText:
-          "The address of your Nemio app, for example `https://app.example.com` (no trailing slash).",
+          "The address of your Instantlify app, for example `https://app.example.com` (no trailing slash).",
       },
       {
         key: "api_key",

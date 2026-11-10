@@ -4,11 +4,11 @@ import { LandingPage } from "@/components/landing-page";
 import { PublicHelpLinks } from "@/components/public-help-links";
 
 export const metadata: Metadata = {
-  title: "Nemio · Turn conversations into customers",
+  title: "Instantlify · Turn conversations into customers",
   description:
-    "Grow your business with Nemio: AI sales agents, messaging automation, a unified inbox, CRM, bookings and payments. Explore plans and get started.",
+    "Grow your business with Instantlify: AI sales agents, messaging automation, a unified inbox, CRM, bookings and payments. Explore plans and get started.",
   openGraph: {
-    title: "Nemio · Turn conversations into customers",
+    title: "Instantlify · Turn conversations into customers",
     description:
       "Your conversations, team and sales automations. One connected workspace.",
     type: "website",

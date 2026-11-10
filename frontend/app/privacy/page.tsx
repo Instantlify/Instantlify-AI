@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LEGAL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Privacy policy · Nemio" };
+export const metadata: Metadata = { title: "Privacy policy · Instantlify" };
 
 const ARTICLE = { maxWidth: 760, margin: "0 auto", padding: 24 } as const;
 
-// Describes what Nemio actually collects and does. Company details live in
+// Describes what Instantlify actually collects and does. Company details live in
 // lib/legal.ts. Have this reviewed by a lawyer for your jurisdiction before launch.
 export default function PrivacyPage() {
   return (
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
         </p>
 
         <p>
-          Nemio is a platform businesses use to manage customer conversations on
+          Instantlify is a platform businesses use to manage customer conversations on
           Instagram, Facebook Messenger, WhatsApp, Telegram and their own
           website, to automate replies (including with AI), and to keep a
           contact list, forms, link-in-bio pages and related tools. This policy
@@ -30,14 +30,14 @@ export default function PrivacyPage() {
         <ul>
           <li>
             <strong>For account holders</strong> (people who sign up and use
-            Nemio for a business), we decide how account data is used: we are
+            Instantlify for a business), we decide how account data is used: we are
             the controller of that data.
           </li>
           <li>
             <strong>For a business&rsquo;s customers</strong> (people who
             message a business, fill in its form, sign up on its link-in-bio
             page or use its website chat), the business decides what it collects
-            and why. The business is the controller and Nemio processes that
+            and why. The business is the controller and Instantlify processes that
             data on its behalf and on its instructions. If you are one of those
             customers, please contact the business directly about your data; we
             will help it respond.
@@ -82,7 +82,7 @@ export default function PrivacyPage() {
           </li>
         </ul>
 
-        <h3>Content a business keeps in Nemio</h3>
+        <h3>Content a business keeps in Instantlify</h3>
         <ul>
           <li>
             Contacts: names, social handles, profile photos, email addresses,
@@ -207,7 +207,7 @@ export default function PrivacyPage() {
           about those people. We use this solely to show conversations to the
           business, reply on its behalf and run the automations it sets up. We
           do not sell this data or use it for advertising. When someone removes
-          Nemio from their Instagram or Facebook settings, we disconnect the
+          Instantlify from their Instagram or Facebook settings, we disconnect the
           account and delete its access tokens; see{" "}
           <Link href="/data-deletion/">data deletion</Link>.
         </p>
@@ -298,7 +298,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Connected accounts:</strong> disconnect a channel or
-            integration at any time, or remove Nemio from your Instagram or
+            integration at any time, or remove Instantlify from your Instagram or
             Facebook settings.
           </li>
           <li>
@@ -309,7 +309,7 @@ export default function PrivacyPage() {
         </ul>
         <p>
           To make a request, email <strong>{LEGAL.privacyEmail}</strong>. If you
-          are a customer of a business that uses Nemio, contact that business
+          are a customer of a business that uses Instantlify, contact that business
           first; we will help it respond.
         </p>
 
@@ -332,7 +332,7 @@ export default function PrivacyPage() {
 
         <h2>11. Children</h2>
         <p>
-          Nemio is a business tool and is not directed at children. Account
+          Instantlify is a business tool and is not directed at children. Account
           holders must be at least 16 years old (or the age of digital consent
           where they live).
         </p>

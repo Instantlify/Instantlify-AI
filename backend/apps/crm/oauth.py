@@ -108,6 +108,11 @@ def exchange(provider, code):
         if body.get("refresh_token"):
             credentials["refresh_token"] = body["refresh_token"]
         if provider == "gmail":
+            if (
+                "scope" in body
+                and "https://www.googleapis.com/auth/gmail.send" not in str(body["scope"]).split()
+            ):
+                raise ProviderError("gmail_send_permission_missing")
             profile = request(
                 "GET",
                 "https://openidconnect.googleapis.com/v1/userinfo",

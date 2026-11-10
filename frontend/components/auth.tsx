@@ -171,10 +171,10 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
           <h1>Join your team.</h1>
           <ErrorNotice error={error} />
           <p>
-            You are signed into Nemio as <strong>{user.email}</strong>.
+            You are signed into Instantlify as <strong>{user.email}</strong>.
           </p>
           <p>
-            Opening an email does not change your Nemio account. Sign in or
+            Opening an email does not change your Instantlify account. Sign in or
             create an account using the email address that received this
             invitation. Your invitation link will be kept while you switch
             accounts.
@@ -259,7 +259,7 @@ function Auth({
   const [error, setError] = useState(initialError);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [googleEnabled, setGoogleEnabled] = useState(false);
-  const name = branding?.brand_name || "Nemio";
+  const name = branding?.brand_name || "Instantlify";
   useEffect(() => {
     const controller = new AbortController();
     api<{ enabled: boolean }>(
@@ -354,7 +354,7 @@ function Auth({
         <div className="story-footer">
           Built for teams. Designed for connection.
           {!branding?.hide_platform_branding && (
-            <span>© {new Date().getFullYear()} Nemio</span>
+            <span>© {new Date().getFullYear()} Instantlify</span>
           )}
         </div>
       </section>

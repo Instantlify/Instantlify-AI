@@ -131,7 +131,7 @@ now read their own tables, and the tenant-facing surfaces that produce those row
 - ✅ Customer support (2.5.10): `SupportTicket` with inline assignee/resolution in the list,
       fed by both the in-app form and the platform agent's `create_ticket`.
 - ✅ AI agent config (2.5.11): `PlatformKnowledgeDocument` / `PlatformKnowledgeSection` and
-      Nemio's own support agent — separate tables, separate retrieval, separate key from the
+      Instantlify's own support agent — separate tables, separate retrieval, separate key from the
       tenant agent. Sentinel tokens (`[[REQUEST_NAME_CARD]]`, `[[REQUEST_EMAIL_CARD]]`) with
       the ticket gate enforced in code, not only in the prompt. Editing a section clears its
       embedding; re-embedding is an explicit operator action, never per keystroke.

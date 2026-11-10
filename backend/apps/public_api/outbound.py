@@ -56,7 +56,7 @@ def post_public_json(url, payload, *, authorization="", delivery_id=""):
     try:
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": "Nemio-Workflows/1.0",
+            "User-Agent": "Instantlify-Workflows/1.0",
             "Idempotency-Key": delivery_id,
         }
         if authorization:

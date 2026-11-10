@@ -242,7 +242,7 @@ export function TrackVisit({ page }: { page: string }) {
 
 type Line = { from: "you" | "bot"; text: string };
 
-/** Nemio's support assistant. A sentinel reply renders a real input field instead
+/** Instantlify's support assistant. A sentinel reply renders a real input field instead
  * of the bot asking in prose and hoping the answer comes back parseable. */
 export function SupportChat({
   defaultName = "",
@@ -256,7 +256,7 @@ export function SupportChat({
   const [lines, setLines] = useState<Line[]>([
     {
       from: "bot",
-      text: "Hi! Ask me anything about Nemio, or ask for a ticket and a teammate will follow up.",
+      text: "Hi! Ask me anything about Instantlify, or ask for a ticket and a teammate will follow up.",
     },
   ]);
   const [name, setName] = useState(defaultName);
@@ -308,7 +308,7 @@ export function SupportChat({
           body: [
             ...lines.map(
               (line) =>
-                `${line.from === "you" ? "Client" : "Nemio assistant"}: ${line.text}`,
+                `${line.from === "you" ? "Client" : "Instantlify assistant"}: ${line.text}`,
             ),
             `Client request: ${text}`,
           ]
@@ -378,7 +378,7 @@ export function SupportChat({
   return (
     <section className="support-chat" aria-label="Support chat">
       <header>
-        <MessageCircle size={17} /> Nemio support
+        <MessageCircle size={17} /> Instantlify support
       </header>
       <ol
         ref={chatLog}

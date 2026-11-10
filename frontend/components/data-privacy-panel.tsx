@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirmation } from "@/components/confirmation-provider";
+
 import { Download, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, message, when } from "@/lib/api";
@@ -32,6 +34,7 @@ export function DataPrivacyPanel({
   const [exportPassword, setExportPassword] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const confirm = useConfirmation();
   const feedback = useFeedback();
 
   const load = useCallback(
@@ -90,7 +93,7 @@ export function DataPrivacyPanel({
       });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `nemio-export-${op.created_at.slice(0, 10)}.json`;
+      link.download = `instantlify-export-${op.created_at.slice(0, 10)}.json`;
       link.click();
       URL.revokeObjectURL(link.href);
     });
@@ -99,7 +102,7 @@ export function DataPrivacyPanel({
   async function requestDelete(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (
-      !window.confirm(
+      !await confirm(
         `Permanently delete “${workspaceName}” and all of its contacts, conversations and automations? This cannot be undone.`,
       )
     )

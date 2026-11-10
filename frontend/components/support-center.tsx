@@ -167,11 +167,11 @@ export function SupportWidget({
         hidden={!open}
         className="support-widget-panel"
         role="dialog"
-        aria-label="Nemio help and support"
+        aria-label="Instantlify help and support"
       >
         <header className="support-widget-header">
           <div>
-            <strong>Nemio support</strong>
+            <strong>Instantlify support</strong>
             <p>Questions, answers and a little help.</p>
           </div>
           <button
@@ -376,7 +376,7 @@ export function MyTickets({ workspaceId }: { workspaceId: string }) {
                     key={m.id}
                     className={`support-thread-message ${m.from_staff ? "staff" : ""}`}
                   >
-                    <strong>{m.from_staff ? "Nemio support" : "You"}</strong>
+                    <strong>{m.from_staff ? "Instantlify support" : "You"}</strong>
                     <small>{new Date(m.created_at).toLocaleString()}</small>
                     <p>{m.body}</p>
                   </article>

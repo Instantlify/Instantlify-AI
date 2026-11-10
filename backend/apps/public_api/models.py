@@ -123,7 +123,7 @@ class OAuthAuthorization(models.Model):
 class OAuthToken(models.Model):
     """Access and refresh token pair. Each grant is backed by a workspace API key, so
     MCP tools, throttles and auditing treat OAuth and key callers the same, and revoking
-    that key in Nemio ends the connection."""
+    that key in Instantlify ends the connection."""
 
     client = models.ForeignKey(OAuthClient, on_delete=models.CASCADE)
     authorization = models.ForeignKey(OAuthAuthorization, null=True, on_delete=models.SET_NULL)
