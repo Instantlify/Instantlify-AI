@@ -1,4 +1,4 @@
-from django.urls import include, path
+from django.urls import include, path, re_path
 
 from apps.channels.ingress import (
     linkedin_webhook,
@@ -34,6 +34,7 @@ from apps.platform_ops.public import (
     WizardProgressView,
 )
 from apps.platform_ops.support import MyTicketReplyView, MyTicketsView
+from apps.public_api import oauth
 from apps.tenants.google_login import (
     GoogleLoginCallbackView,
     GoogleLoginStartView,
@@ -79,6 +80,14 @@ urlpatterns = [
     path("api/auth/csrf/", CSRFView.as_view()),
     path("api/auth/signup/", SignupView.as_view()),
     path("api/auth/login/", LoginView.as_view()),
+    path(".well-known/oauth-protected-resource", oauth.protected_resource_metadata),
+    re_path(r"^\.well-known/oauth-protected-resource/.+$", oauth.protected_resource_metadata),
+    path(".well-known/oauth-authorization-server", oauth.authorization_server_metadata),
+    re_path(r"^\.well-known/oauth-authorization-server/.+$", oauth.authorization_server_metadata),
+    path("api/oauth/register/", oauth.RegisterView.as_view()),
+    path("api/oauth/authorize/", oauth.authorize),
+    path("api/oauth/token/", oauth.token),
+    path("api/oauth/requests/<uuid:pk>/", oauth.ConsentView.as_view()),
     path("api/auth/magic-link/", MagicLinkRequestView.as_view()),
     path("api/auth/magic-link/verify/", MagicLinkVerifyView.as_view()),
     path("api/auth/google/", GoogleLoginStatusView.as_view()),

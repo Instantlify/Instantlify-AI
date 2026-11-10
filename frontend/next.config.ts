@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         destination: `${backend}/webhooks/:path*/`,
       },
       { source: "/health/:path*/", destination: `${backend}/health/:path*/` },
+      // OAuth discovery for the MCP connector (claude.ai), served by the backend.
+      {
+        source: "/.well-known/:path*",
+        destination: `${backend}/.well-known/:path*`,
+      },
       { source: "/go/:code/", destination: `${backend}/go/:code/` },
       { source: "/r/:code/", destination: `${backend}/r/:code/` },
     ];

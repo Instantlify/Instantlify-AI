@@ -48,10 +48,25 @@ class MCPKeyAuthentication(APIKeyAuthentication):
         bearer = request.headers.get("Authorization", "")
         if bearer.startswith("Bearer " + PREFIX):
             return self.verify(bearer.removeprefix("Bearer ").strip())
+        from .oauth import ACCESS_PREFIX, token_principal
+
+        if bearer.startswith("Bearer " + ACCESS_PREFIX):
+            # Tokens issued by the OAuth flow (the claude.ai connector).
+            result = token_principal(bearer.removeprefix("Bearer ").strip())
+            if result is None:
+                raise exceptions.AuthenticationFailed("Invalid or expired access token.")
+            from apps.platform_ops.security import blocked
+
+            if blocked(result[1].workspace_id):
+                raise exceptions.AuthenticationFailed("Workspace access is suspended.")
+            return result
         return super().authenticate(request)
 
     def authenticate_header(self, request):
-        return 'Bearer realm="nemio-mcp"'
+        # Points MCP clients at OAuth discovery (RFC 9728) when no token was sent.
+        from .oauth import resource_metadata_url
+
+        return f'Bearer realm="nemio-mcp", resource_metadata="{resource_metadata_url()}"'
 
 
 # ------------------------------------------------------------------------ tools
@@ -340,7 +355,9 @@ class MCPView(APIView):
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
         if not isinstance(request.user, APIKeyPrincipal):
-            raise exceptions.NotAuthenticated("Send a Nemio API key as a Bearer token.")
+            raise exceptions.NotAuthenticated(
+                "Connect through OAuth or send a Nemio API key as a Bearer token."
+            )
 
     def get(self, request):
         # No server-initiated stream: the spec's answer is 405 on GET.

@@ -55,6 +55,13 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
   // Once signed in: accept a pending invite, then go to the last (or first) workspace.
   useEffect(() => {
     if (!user) return;
+    // Return to an in-app flow that sent the visitor here to sign in (only the
+    // connector consent screen is allowed, never an arbitrary or external URL).
+    const next = new URLSearchParams(window.location.search).get("next") || "";
+    if (/^\/connect\/authorize\/\?request=[0-9a-f-]{36}$/.test(next)) {
+      router.replace(next);
+      return;
+    }
     const controller = new AbortController();
     (async () => {
       try {
