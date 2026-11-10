@@ -118,3 +118,63 @@ def test_saved_replies_are_shared_and_replaced_as_a_list(client, workspace):
     assert client.get(url).json() == {"replies": ["Price is $20"]}
     assert client.put(url, {"replies": [""]}, format="json").status_code == 400
     assert client.put(url, {"replies": ["x"] * 51}, format="json").status_code == 400
+
+
+WEBM = bytes([0x1A, 0x45, 0xDF, 0xA3]) + b"\x00" * 64
+M4A = b"\x00\x00\x00\x18ftypM4A " + b"\x00" * 64
+
+
+def fake_ffmpeg(args, **kwargs):
+    from pathlib import Path
+
+    Path(args[-1]).write_bytes(M4A)
+
+
+def test_browser_voice_recording_is_converted_to_m4a(client, workspace, settings):
+    from unittest.mock import patch
+
+    settings.PUBLIC_APP_URL = "https://app.example.com"
+    conversation = _conversation(workspace)
+    with (
+        patch("apps.crm.attachments.shutil.which", return_value="/usr/bin/ffmpeg"),
+        patch("apps.crm.attachments.subprocess.run", side_effect=fake_ffmpeg) as run,
+    ):
+        res = client.post(
+            _url(workspace, conversation),
+            {
+                "file": SimpleUploadedFile(
+                    "voice-note.webm", WEBM, content_type="audio/webm;codecs=opus"
+                )
+            },
+            format="multipart",
+            HTTP_IDEMPOTENCY_KEY="v1",
+        )
+    assert res.status_code == 202, res.content
+    attachment = MessageAttachment.objects.for_workspace(workspace).get()
+    assert (attachment.content_type, attachment.filename) == ("audio/mp4", "voice-note.m4a")
+    assert "-c:a" in run.call_args.args[0] and "aac" in run.call_args.args[0]
+    payload = json.loads(Delivery.objects.for_workspace(workspace).get().payload)
+    assert payload["media_type"] == "audio"
+
+
+def test_without_ffmpeg_webm_is_refused_and_ogg_kept(client, workspace, settings):
+    from unittest.mock import patch
+
+    settings.PUBLIC_APP_URL = "https://app.example.com"
+    conversation = _conversation(workspace)
+    with patch("apps.crm.attachments.shutil.which", return_value=None):
+        refused = client.post(
+            _url(workspace, conversation),
+            {"file": SimpleUploadedFile("v.webm", WEBM, content_type="audio/webm")},
+            format="multipart",
+            HTTP_IDEMPOTENCY_KEY="w1",
+        )
+        kept = client.post(
+            _url(workspace, conversation),
+            {"file": SimpleUploadedFile("v.ogg", b"OggS" + b"\x00" * 64, content_type="audio/ogg")},
+            format="multipart",
+            HTTP_IDEMPOTENCY_KEY="w2",
+        )
+    assert refused.status_code == 400 and "ffmpeg" in refused.content.decode()
+    assert kept.status_code == 202
+    assert MessageAttachment.objects.for_workspace(workspace).get().content_type == "audio/ogg"

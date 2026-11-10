@@ -52,6 +52,7 @@ import { useSearchParams } from "next/navigation";
 import { useWorkspace } from "@/lib/workspace";
 import { useWorkspaceSocket } from "@/lib/ws";
 import { usePipelineStages } from "@/lib/stages";
+import { VoiceRecorder } from "@/components/voice-recorder";
 import { ChannelBadge, ChannelIcon, META_CHANNELS } from "@/lib/channels";
 import { initials } from "@/components/shell";
 import { ContactAvatar } from "@/components/contact-avatar";
@@ -1043,7 +1044,7 @@ export default function InboxPage() {
                         type="file"
                         ref={fileInputRef}
                         style={{ display: "none" }}
-                        accept="image/jpeg,image/png,video/mp4,audio/mpeg,audio/mp4,audio/x-m4a,audio/aac,audio/ogg"
+                        accept="image/jpeg,image/png,video/mp4,audio/mpeg,audio/mp4,audio/x-m4a,audio/aac,audio/ogg,audio/webm"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           e.target.value = "";
@@ -1056,6 +1057,11 @@ export default function InboxPage() {
                           }
                           setAttachedFile(file);
                         }}
+                      />
+                      <VoiceRecorder
+                        disabled={windowClosed || feedback.busy}
+                        onRecorded={setAttachedFile}
+                        onError={feedback.setError}
                       />
 
                       <ValidatedTextarea
