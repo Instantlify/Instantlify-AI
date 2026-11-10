@@ -159,6 +159,12 @@ def validate_workspace_references(graph, workspace_id, automation_id):
     for node in graph["nodes"]:
         if node["data"]["kind"] == "set_stage" and node["data"]["stage"] not in stages:
             raise ValidationError("Choose a stage from this workspace's pipeline.")
+        base = node["data"].get("knowledge_base_id") if node["data"]["kind"] == "ai_agent" else ""
+        if base:
+            from apps.agents.models import KnowledgeBase
+
+            if not KnowledgeBase.objects.for_workspace(workspace_id).filter(pk=base).exists():
+                raise ValidationError("Choose a knowledge base from this workspace.")
     connection_id = graph.get("connection_id")
     if connection_id:
         try:

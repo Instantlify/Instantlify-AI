@@ -68,6 +68,7 @@ NODE_FIELDS = {
     "persona",
     "max_turns",
     "use_knowledge",
+    "knowledge_base_id",
     "seconds_max",
     "timeout_seconds",
     "field",

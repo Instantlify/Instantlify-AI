@@ -45,6 +45,14 @@ def validate_agent(data):
         raise ValidationError(f"An AI agent can reply 1–{MAX_TURNS} times before moving on.")
     if not isinstance(data.get("use_knowledge", True), bool):
         raise ValidationError("Choose whether the agent uses the knowledge base.")
+    base = data.get("knowledge_base_id", "")
+    if base:
+        import uuid
+
+        try:
+            uuid.UUID(str(base))
+        except ValueError:
+            raise ValidationError("Choose a valid knowledge base.") from None
     # Provider and model follow the same catalogue rules as the other AI steps.
     validate_ai({**data, "kind": "ai_generate", "variable": "ai_result"})
 
@@ -101,6 +109,7 @@ def agent_step(state, data):
                     "prompt": _prompt(state, data),
                     "question": str(state.variables.get("last_text", ""))[:2000],
                     "use_knowledge": data.get("use_knowledge", True),
+                    "knowledge_base_id": data.get("knowledge_base_id", ""),
                 }
             ),
             "available_at": timezone.now(),
@@ -131,7 +140,7 @@ def parse_agent_output(text):
     return {"reply": value["reply"].strip(), "done": value["done"]}
 
 
-def knowledge_for(config, question, key):
+def knowledge_for(config, question, key, knowledge_base_id=None):
     """Workspace knowledge for the agent's reply; empty when there is none or retrieval
     fails (the agent then says it does not know rather than stalling the flow)."""
     if not question.strip():
@@ -139,7 +148,7 @@ def knowledge_for(config, question, key):
     try:
         from apps.agents.rag import retrieve
 
-        chunks = retrieve(config, question, key)
+        chunks = retrieve(config, question, key, knowledge_base_id or None)
     except Exception:  # noqa: BLE001
         return ""
     return "\n\n".join(chunk.text[:1500] for chunk in chunks)

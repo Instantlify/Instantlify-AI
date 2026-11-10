@@ -48,7 +48,21 @@ class AgentConfig(TenantModel):
         constraints = [models.UniqueConstraint(fields=["workspace"], name="one_workspace_agent")]
 
 
+class KnowledgeBase(TenantModel):
+    """A named collection of documents an AI agent step can answer from. Documents
+    without a base form the workspace's General knowledge."""
+
+    name = models.CharField(max_length=80)
+    description = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+
 class KnowledgeDocument(TenantModel):
+    knowledge_base = models.ForeignKey(
+        KnowledgeBase, null=True, blank=True, on_delete=models.SET_NULL, related_name="documents"
+    )
     title = models.CharField(max_length=200)
     source = EncryptedTextField()
     source_revision = models.PositiveIntegerField(default=0)

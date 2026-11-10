@@ -11,7 +11,14 @@ from apps.billing.gating import check_feature
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
 
-from .models import AgentConfig, AgentRun, KnowledgeDocument, ToolCall, UsageRecord
+from .models import (
+    AgentConfig,
+    AgentRun,
+    KnowledgeBase,
+    KnowledgeDocument,
+    ToolCall,
+    UsageRecord,
+)
 from .tools import SCHEMAS
 
 
@@ -147,7 +154,66 @@ class AgentModelsView(APIView):
 class DocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = KnowledgeDocument
-        fields = ["id", "title", "status", "error_code", "embedding_model", "created_at"]
+        fields = [
+            "id",
+            "title",
+            "status",
+            "error_code",
+            "embedding_model",
+            "created_at",
+            "knowledge_base",
+            "file_type",
+        ]
+
+
+class KnowledgeBaseSerializer(serializers.ModelSerializer):
+    document_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = KnowledgeBase
+        fields = ["id", "name", "description", "document_count", "created_at"]
+        read_only_fields = ["id", "document_count", "created_at"]
+
+    def get_document_count(self, obj):
+        return (
+            KnowledgeDocument.objects.for_workspace(obj.workspace_id)
+            .filter(knowledge_base=obj)
+            .count()
+        )
+
+    def validate_name(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Name the knowledge base.")
+        return value.strip()
+
+
+class KnowledgeBaseList(generics.ListCreateAPIView):
+    serializer_class = KnowledgeBaseSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+
+        workspace_membership(self.request, self.kwargs["workspace_id"], ["owner", "admin"])
+        return KnowledgeBase.objects.for_workspace(self.kwargs["workspace_id"])
+
+    def perform_create(self, serializer):
+
+        member = workspace_membership(self.request, self.kwargs["workspace_id"], ["owner", "admin"])
+        if KnowledgeBase.objects.for_workspace(member.workspace_id).count() >= 20:
+            raise serializers.ValidationError("A workspace can have up to 20 knowledge bases.")
+        base = serializer.save(workspace=member.workspace)
+        audit(member.workspace, self.request.user, "knowledge_base.created", base.id)
+
+
+class KnowledgeBaseDetail(generics.RetrieveUpdateDestroyAPIView):
+    """Deleting a base keeps its documents; they return to General knowledge."""
+
+    serializer_class = KnowledgeBaseSerializer
+
+    def get_queryset(self):
+
+        workspace_membership(self.request, self.kwargs["workspace_id"], ["owner", "admin"])
+        return KnowledgeBase.objects.for_workspace(self.kwargs["workspace_id"])
 
 
 class DocumentList(generics.ListAPIView):
@@ -166,25 +232,59 @@ class DocumentList(generics.ListAPIView):
         uploaded = request.FILES.get("file")
         title = str(request.data.get("title", "Knowledge document"))[:200]
         kind = "text"
-        if uploaded:
+        base = None
+        if request.data.get("knowledge_base"):
+            from .models import KnowledgeBase
+
+            base = (
+                KnowledgeBase.objects.for_workspace(workspace_id)
+                .filter(pk=str(request.data["knowledge_base"])[:64])
+                .first()
+                if _uuid(request.data["knowledge_base"])
+                else None
+            )
+            if base is None:
+                raise serializers.ValidationError("Choose a knowledge base from this workspace.")
+        url = request.data.get("url")
+        if url and not uploaded:
+            from .web_import import ImportError_, validate_page_url
+
+            try:
+                validate_page_url(str(url))
+            except ImportError_:
+                raise serializers.ValidationError("Enter a full https:// page address.") from None
+            source, kind = str(url), "url"
+            if title == "Knowledge document":
+                title = str(url)[:200]
+            uploaded = None
+        if kind == "url":
+            pass
+        elif uploaded:
             if uploaded.size > 2 * 1024 * 1024:
                 raise serializers.ValidationError("Upload a document up to 2 MB.")
             if uploaded.name.lower().endswith(".pdf"):
                 source = base64.b64encode(uploaded.read()).decode()
                 kind = "pdf"
+            elif uploaded.name.lower().endswith(".docx"):
+                source = base64.b64encode(uploaded.read()).decode()
+                kind = "docx"
             elif uploaded.name.lower().endswith((".txt", ".md")):
                 try:
                     source = uploaded.read().decode("utf-8")
                 except UnicodeDecodeError:
                     raise serializers.ValidationError("Text documents must be UTF-8.") from None
             else:
-                raise serializers.ValidationError("Upload PDF, TXT or Markdown.")
+                raise serializers.ValidationError("Upload PDF, DOCX, TXT or Markdown.")
         else:
             source = request.data.get("source", "")
             if not isinstance(source, str) or not 1 <= len(source) <= 250000:
                 raise serializers.ValidationError("Provide text up to 250,000 characters.")
         document = KnowledgeDocument.objects.for_workspace(workspace_id).create(
-            workspace=member.workspace, title=title, source=source, file_type=kind
+            workspace=member.workspace,
+            title=title,
+            source=source,
+            file_type=kind,
+            knowledge_base=base,
         )
         audit(member.workspace, request.user, "knowledge.uploaded", document.id)
         return Response(DocumentSerializer(document).data, status=202)
@@ -236,3 +336,13 @@ class AgentAuditView(APIView):
                 ),
             }
         )
+
+
+def _uuid(value):
+    import uuid
+
+    try:
+        uuid.UUID(str(value))
+    except ValueError:
+        return False
+    return True

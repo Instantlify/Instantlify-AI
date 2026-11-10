@@ -51,6 +51,7 @@ import {
   type PlatformModel,
   type FlowButton,
   type FlowGraph,
+  type KnowledgeBase,
   type FlowNodeData,
   type NodeKind,
 } from "@/lib/api";
@@ -432,6 +433,19 @@ function toGraph(
 export default function BuilderPage() {
   const { workspace, prefix } = useWorkspace();
   const pipeline = usePipelineStages(prefix);
+  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
+  useEffect(() => {
+    const controller = new AbortController();
+    api<KnowledgeBase[]>(
+      `${prefix}/knowledge-bases/`,
+      "GET",
+      undefined,
+      controller.signal,
+    )
+      .then(setKnowledgeBases)
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [prefix]);
   const { automationId } = useParams<{ automationId: string }>();
   const [automation, setAutomation] = useState<Automation | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
@@ -1865,6 +1879,27 @@ export default function BuilderPage() {
                     />
                     Answer from the workspace knowledge base
                   </label>
+                  {(selected.data.use_knowledge ?? true) && (
+                    <label>
+                      Knowledge base
+                      <select
+                        aria-label="AI agent knowledge base"
+                        value={selected.data.knowledge_base_id || ""}
+                        onChange={(event) =>
+                          updateSelected({
+                            knowledge_base_id: event.target.value || undefined,
+                          })
+                        }
+                      >
+                        <option value="">All workspace knowledge</option>
+                        {knowledgeBases.map((base) => (
+                          <option key={base.id} value={base.id}>
+                            {base.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                   <label>
                     AI model
                     <select

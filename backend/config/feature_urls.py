@@ -10,6 +10,8 @@ from apps.agents.views import (
     AgentView,
     DocumentDetail,
     DocumentList,
+    KnowledgeBaseDetail,
+    KnowledgeBaseList,
 )
 from apps.agents.voice import voice_asset
 from apps.analytics.views import ExperimentDetail, ExperimentList, FunnelView
@@ -205,6 +207,8 @@ urlpatterns = [
     path(P + "agent/models/", AgentModelsView.as_view()),
     path(P + "agent-audit/", AgentAuditView.as_view()),
     path(P + "documents/", DocumentList.as_view()),
+    path(P + "knowledge-bases/", KnowledgeBaseList.as_view()),
+    path(P + "knowledge-bases/<uuid:pk>/", KnowledgeBaseDetail.as_view()),
     path(P + "segments/", SegmentList.as_view()),
     path(P + "segments/<uuid:pk>/", SegmentDetail.as_view()),
     path(P + "integrations/<uuid:pk>/knowledge/", ImportKnowledgeView.as_view()),

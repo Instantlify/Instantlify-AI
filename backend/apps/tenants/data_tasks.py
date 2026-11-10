@@ -39,6 +39,7 @@ def export_tables():
     Adding a model that stores tenant data means adding it here (see the export test)."""
     from apps.agents.models import (
         AgentConfig,
+        KnowledgeBase,
         KnowledgeDocument,
         KnowledgeSourceSync,
         ToolCall,
@@ -313,7 +314,11 @@ def export_tables():
                 "handoff_keywords",
             ],
         ),
-        "knowledge": (KnowledgeDocument, ["id", "title", "source", "file_type", "source_revision"]),
+        "knowledge": (
+            KnowledgeDocument,
+            ["id", "title", "source", "file_type", "source_revision", "knowledge_base_id"],
+        ),
+        "knowledge_bases": (KnowledgeBase, ["id", "name", "description", "created_at"]),
         "knowledge_syncs": (
             KnowledgeSourceSync,
             [

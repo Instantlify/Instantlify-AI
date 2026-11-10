@@ -237,6 +237,7 @@ export type FlowNodeData = {
   persona?: string;
   max_turns?: number;
   use_knowledge?: boolean;
+  knowledge_base_id?: string;
   match?: "all" | "any";
   seconds_max?: number;
   timeout_seconds?: number;
@@ -380,6 +381,15 @@ export type KnowledgeDocument = {
   status: string;
   error_code: string;
   embedding_model: string;
+  created_at: string;
+  knowledge_base?: string | null;
+  file_type?: string;
+};
+export type KnowledgeBase = {
+  id: string;
+  name: string;
+  description: string;
+  document_count: number;
   created_at: string;
 };
 export type AgentAudit = {

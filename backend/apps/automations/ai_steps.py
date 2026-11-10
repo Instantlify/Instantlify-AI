@@ -174,7 +174,10 @@ def execute_ai(workspace_id, job_id):
             instruction = INSTRUCTION
             if data.get("use_knowledge", True):
                 knowledge = knowledge_for(
-                    config, data.get("question", ""), f"workflow-rag:{job.pk}"
+                    config,
+                    data.get("question", ""),
+                    f"workflow-rag:{job.pk}",
+                    data.get("knowledge_base_id") or None,
                 )
                 if knowledge:
                     prompt += "\n\nKnowledge:\n" + knowledge

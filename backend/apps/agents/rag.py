@@ -25,6 +25,14 @@ def ingest(document, config):
         if len(reader.pages) > 100:
             raise ValueError("document_page_limit")
         source = "\n".join(page.extract_text() or "" for page in reader.pages)
+    elif document.file_type == "docx":
+        from .web_import import docx_text
+
+        source = docx_text(base64.b64decode(source))
+    elif document.file_type == "url":
+        from .web_import import fetch_page
+
+        _, source = fetch_page(source)
     if not source.strip() or len(source) > 250000:
         raise ValueError("document_size_or_empty")
     chunks = split_text(source)
@@ -68,10 +76,12 @@ def ingest(document, config):
             charge_embedding(config, record, tokens)
 
 
-def retrieve(config, question, key):
+def retrieve(config, question, key, knowledge_base_id=None):
     chunks = KnowledgeChunk.objects.for_workspace(config.workspace_id).filter(
         document__status="ready", document__embedding_model=config.embedding_model
     )
+    if knowledge_base_id:
+        chunks = chunks.filter(document__knowledge_base_id=knowledge_base_id)
     if not chunks.exists():
         return []
     vectors, tokens = embedder_for(config).embed([question[:10000]])

@@ -25,6 +25,7 @@ import {
   when,
   type AgentAudit,
   type AgentConfig,
+  type KnowledgeBase,
   type KnowledgeDocument,
   type Page,
   type PlatformModel,
@@ -279,10 +280,17 @@ export default function AgentPage() {
             title="Agent settings"
             aside={configured ? "Configured" : "Not configured yet"}
           >
-            <ValidatedForm fieldErrors={settings.fieldErrors} validationTarget={settings.validationTarget} onEdit={() => settings.setError("")} className="form-grid" onSubmit={save}>
+            <ValidatedForm
+              fieldErrors={settings.fieldErrors}
+              validationTarget={settings.validationTarget}
+              onEdit={() => settings.setError("")}
+              className="form-grid"
+              onSubmit={save}
+            >
               <label>
                 Agent name
-                <ValidatedInput name="name"
+                <ValidatedInput
+                  name="name"
                   value={form.name}
                   maxLength={100}
                   required
@@ -292,7 +300,8 @@ export default function AgentPage() {
               </label>
               <label>
                 System prompt
-                <ValidatedTextarea name="system_prompt"
+                <ValidatedTextarea
+                  name="system_prompt"
                   value={form.system_prompt}
                   required
                   disabled={!manager}
@@ -431,7 +440,8 @@ export default function AgentPage() {
               <div className="two-col" style={{ marginTop: 10 }}>
                 <label>
                   Fallback model (optional)
-                  <ValidatedSelect name="fallback_model"
+                  <ValidatedSelect
+                    name="fallback_model"
                     value={form.fallback_model}
                     disabled={!manager}
                     onChange={(e) => {
@@ -461,7 +471,8 @@ export default function AgentPage() {
                 </label>
                 <label>
                   Reply mode
-                  <ValidatedSelect name="mode"
+                  <ValidatedSelect
+                    name="mode"
                     value={form.mode}
                     disabled={!manager}
                     onChange={(e) =>
@@ -537,7 +548,8 @@ export default function AgentPage() {
               <div className="two-col">
                 <label>
                   Handoff keywords
-                  <ValidatedInput name="handoff_keywords"
+                  <ValidatedInput
+                    name="handoff_keywords"
                     value={form.handoff_keywords}
                     placeholder="human, refund, lawyer, complaint"
                     disabled={!manager}
@@ -550,7 +562,8 @@ export default function AgentPage() {
                 </label>
                 <label>
                   Max tool rounds per reply
-                  <ValidatedInput name="max_tool_rounds"
+                  <ValidatedInput
+                    name="max_tool_rounds"
                     type="number"
                     min={1}
                     max={8}
@@ -563,7 +576,8 @@ export default function AgentPage() {
                 </label>
                 <label>
                   Wait before replying (seconds)
-                  <ValidatedInput name="reply_delay_seconds"
+                  <ValidatedInput
+                    name="reply_delay_seconds"
                     type="number"
                     min={0}
                     max={30}
@@ -575,8 +589,8 @@ export default function AgentPage() {
                   />
                   <span className="hint">
                     When a customer sends several messages in a row, the agent
-                    waits this long after the last one and answers them together.
-                    0 replies to each message at once.
+                    waits this long after the last one and answers them
+                    together. 0 replies to each message at once.
                   </span>
                 </label>
               </div>
@@ -635,8 +649,71 @@ function Knowledge({ config }: { config: AgentConfig | null }) {
   const [title, setTitle] = useState("");
   const [source, setSource] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [pageUrl, setPageUrl] = useState("");
+  const [bases, setBases] = useState<KnowledgeBase[]>([]);
+  // "" shows every document; "general" the ones outside any base.
+  const [baseFilter, setBaseFilter] = useState("");
+  const [newBase, setNewBase] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
   const feedback = useFeedback();
+
+  const loadBases = useCallback(
+    async (signal?: AbortSignal) =>
+      setBases(
+        await api<KnowledgeBase[]>(
+          `${prefix}/knowledge-bases/`,
+          "GET",
+          undefined,
+          signal,
+        ),
+      ),
+    [prefix],
+  );
+  useEffect(() => {
+    const controller = new AbortController();
+    queueMicrotask(() => {
+      loadBases(controller.signal).catch(() => undefined);
+    });
+    return () => controller.abort();
+  }, [loadBases]);
+  const targetBase =
+    baseFilter && baseFilter !== "general" ? baseFilter : undefined;
+  const shown = documents.filter((doc) =>
+    !baseFilter
+      ? true
+      : baseFilter === "general"
+        ? !doc.knowledge_base
+        : doc.knowledge_base === baseFilter,
+  );
+
+  async function createBase(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = newBase.trim();
+    if (!name) return;
+    const created = await feedback.run(
+      () => api<KnowledgeBase>(`${prefix}/knowledge-bases/`, "POST", { name }),
+      "Knowledge base created.",
+    );
+    if (created) {
+      setNewBase("");
+      setBaseFilter(created.id);
+      await loadBases();
+    }
+  }
+
+  async function removeBase(base: KnowledgeBase) {
+    if (
+      !window.confirm(
+        `Delete the knowledge base “${base.name}”? Its documents move to General knowledge.`,
+      )
+    )
+      return;
+    await feedback.run(async () => {
+      await api(`${prefix}/knowledge-bases/${base.id}/`, "DELETE");
+      setBaseFilter("");
+      await Promise.all([loadBases(), load()]);
+    }, "Knowledge base deleted.");
+  }
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
@@ -689,17 +766,26 @@ function Knowledge({ config }: { config: AgentConfig | null }) {
         const form = new FormData();
         form.append("title", title || file.name);
         form.append("file", file);
+        if (targetBase) form.append("knowledge_base", targetBase);
         await upload(`${prefix}/documents/`, form);
+      } else if (pageUrl.trim()) {
+        await api(`${prefix}/documents/`, "POST", {
+          title: title || pageUrl.trim(),
+          url: pageUrl.trim(),
+          ...(targetBase ? { knowledge_base: targetBase } : {}),
+        });
       } else {
         if (!source.trim())
           throw new Error("Paste some text or choose a file.");
         await api(`${prefix}/documents/`, "POST", {
           title: title || "Knowledge document",
           source,
+          ...(targetBase ? { knowledge_base: targetBase } : {}),
         });
       }
       setTitle("");
       setSource("");
+      setPageUrl("");
       setFile(null);
       if (fileInput.current) fileInput.current.value = "";
       await load();
@@ -719,94 +805,180 @@ function Knowledge({ config }: { config: AgentConfig | null }) {
     <>
       <Panel title="Agent readiness">
         <ul>
-          <li>{config?.enabled ? "Agent enabled" : "Enable the agent and save settings"}</li>
-          <li>{config?.is_test
-            ? "Local test provider selected"
-            : config?.billing_mode === "platform_credits"
-              ? "Platform credits selected"
-              : config?.has_key
-                ? "Provider key saved"
-                : "Save a provider key or select platform credits"}</li>
-          <li>{documents.some((doc) => doc.status === "ready" && doc.embedding_model === config?.embedding_model)
-            ? "Knowledge is indexed"
-            : busyDocs ? "Knowledge indexing is in progress" : "Add a knowledge document for grounded replies"}</li>
-          <li>Use Agent preview to check a sample response, then enable AI in a conversation.</li>
+          <li>
+            {config?.enabled
+              ? "Agent enabled"
+              : "Enable the agent and save settings"}
+          </li>
+          <li>
+            {config?.is_test
+              ? "Local test provider selected"
+              : config?.billing_mode === "platform_credits"
+                ? "Platform credits selected"
+                : config?.has_key
+                  ? "Provider key saved"
+                  : "Save a provider key or select platform credits"}
+          </li>
+          <li>
+            {documents.some(
+              (doc) =>
+                doc.status === "ready" &&
+                doc.embedding_model === config?.embedding_model,
+            )
+              ? "Knowledge is indexed"
+              : busyDocs
+                ? "Knowledge indexing is in progress"
+                : "Add a knowledge document for grounded replies"}
+          </li>
+          <li>
+            Use Agent preview to check a sample response, then enable AI in a
+            conversation.
+          </li>
         </ul>
       </Panel>
       <Panel title="Knowledge base" aside={`${documents.length} document(s)`}>
-      <ErrorNotice error={feedback.error} />
-      <SuccessNotice notice={feedback.notice} />
-      <p className="muted-text" style={{ marginBottom: 14 }}>
-        FAQs, pricing and policies are chunked, embedded and retrieved on every
-        reply. Documents index in the background after you add them.
-      </p>
-      {manager && (
-        <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={add}>
-          <div className="two-col">
-            <label>
-              Title
-              <ValidatedInput
-                value={title}
-                maxLength={200}
-                placeholder="Pricing FAQ"
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </label>
-            <label>
-              Upload a file (PDF, TXT or Markdown, up to 2 MB)
-              <ValidatedInput
-                ref={fileInput}
-                type="file"
-                accept=".pdf,.txt,.md"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-              />
-            </label>
-          </div>
-          <label>
-            Paste FAQ text
-            <ValidatedTextarea
-              value={source}
-              maxLength={250000}
-              placeholder="Or paste the text directly…"
-              disabled={!!file}
-              onChange={(e) => setSource(e.target.value)}
-            />
-          </label>
-          <div className="form-actions">
-            <button className="button primary small" disabled={feedback.busy}>
-              {feedback.busy ? "Adding…" : "Add to knowledge base"}
-              <Upload size={14} />
+        <ErrorNotice error={feedback.error} />
+        <SuccessNotice notice={feedback.notice} />
+        <p className="muted-text" style={{ marginBottom: 14 }}>
+          FAQs, pricing and policies are chunked, embedded and retrieved on
+          every reply. Documents index in the background after you add them.
+          Group documents into knowledge bases so each flow AI agent answers
+          from the right one; the workspace assistant uses all of them.
+        </p>
+        <div className="row wrap" style={{ gap: 8, marginBottom: 14 }}>
+          <select
+            aria-label="Knowledge base"
+            value={baseFilter}
+            onChange={(event) => setBaseFilter(event.target.value)}
+          >
+            <option value="">All documents</option>
+            <option value="general">General knowledge</option>
+            {bases.map((base) => (
+              <option key={base.id} value={base.id}>
+                {base.name} ({base.document_count})
+              </option>
+            ))}
+          </select>
+          {manager && targetBase && (
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                const base = bases.find((item) => item.id === targetBase);
+                if (base) void removeBase(base);
+              }}
+            >
+              <Trash2 size={14} /> Delete this base
             </button>
-          </div>
-        </ValidatedForm>
-      )}
-      <div className="card-list" style={{ marginTop: 18 }}>
-        {documents.length === 0 ? (
-          <Empty>No documents yet. Add your FAQ to ground the agent.</Empty>
-        ) : (
-          documents.map((doc) => (
-            <div className="list-row" key={doc.id}>
-              <FileText size={16} className="subtle" />
-              <strong>{doc.title}</strong>
-              <Pill tone={statusTone(doc.status)}>{doc.status}</Pill>
-              {doc.error_code && (
-                <span className="muted-text mono">{doc.error_code}</span>
-              )}
-              <span className="spacer" />
-              <span className="muted-text">{when(doc.created_at)}</span>
-              {manager && (
-                <button
-                  className="text-button"
-                  disabled={feedback.busy}
-                  onClick={() => remove(doc)}
-                >
-                  <Trash2 size={14} /> Remove
-                </button>
-              )}
-            </div>
-          ))
+          )}
+          {manager && (
+            <form className="row" style={{ gap: 6 }} onSubmit={createBase}>
+              <input
+                aria-label="New knowledge base name"
+                placeholder="New knowledge base"
+                maxLength={80}
+                value={newBase}
+                onChange={(event) => setNewBase(event.target.value)}
+              />
+              <button type="submit" className="button small secondary">
+                Create
+              </button>
+            </form>
+          )}
+        </div>
+        {manager && targetBase && (
+          <p className="muted-text small">
+            New documents are added to{" "}
+            <strong>
+              {bases.find((base) => base.id === targetBase)?.name}
+            </strong>
+            .
+          </p>
         )}
-      </div>
+        {manager && (
+          <ValidatedForm
+            fieldErrors={feedback.fieldErrors}
+            validationTarget={feedback.validationTarget}
+            onEdit={() => feedback.setError("")}
+            className="form-grid"
+            onSubmit={add}
+          >
+            <div className="two-col">
+              <label>
+                Title
+                <ValidatedInput
+                  value={title}
+                  maxLength={200}
+                  placeholder="Pricing FAQ"
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </label>
+              <label>
+                Upload a file (PDF, DOCX, TXT or Markdown, up to 2 MB)
+                <ValidatedInput
+                  ref={fileInput}
+                  type="file"
+                  accept=".pdf,.docx,.txt,.md"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                />
+              </label>
+            </div>
+            <label>
+              Or import a web page
+              <ValidatedInput
+                type="url"
+                value={pageUrl}
+                maxLength={2000}
+                placeholder="https://yoursite.com/faq"
+                disabled={!!file}
+                onChange={(e) => setPageUrl(e.target.value)}
+              />
+            </label>
+            <label>
+              Paste FAQ text
+              <ValidatedTextarea
+                value={source}
+                maxLength={250000}
+                placeholder="Or paste the text directly…"
+                disabled={!!file || !!pageUrl.trim()}
+                onChange={(e) => setSource(e.target.value)}
+              />
+            </label>
+            <div className="form-actions">
+              <button className="button primary small" disabled={feedback.busy}>
+                {feedback.busy ? "Adding…" : "Add to knowledge base"}
+                <Upload size={14} />
+              </button>
+            </div>
+          </ValidatedForm>
+        )}
+        <div className="card-list" style={{ marginTop: 18 }}>
+          {shown.length === 0 ? (
+            <Empty>No documents yet. Add your FAQ to ground the agent.</Empty>
+          ) : (
+            shown.map((doc) => (
+              <div className="list-row" key={doc.id}>
+                <FileText size={16} className="subtle" />
+                <strong>{doc.title}</strong>
+                <Pill tone={statusTone(doc.status)}>{doc.status}</Pill>
+                {doc.error_code && (
+                  <span className="muted-text mono">{doc.error_code}</span>
+                )}
+                <span className="spacer" />
+                <span className="muted-text">{when(doc.created_at)}</span>
+                {manager && (
+                  <button
+                    className="text-button"
+                    disabled={feedback.busy}
+                    onClick={() => remove(doc)}
+                  >
+                    <Trash2 size={14} /> Remove
+                  </button>
+                )}
+              </div>
+            ))
+          )}
+        </div>
       </Panel>
     </>
   );
