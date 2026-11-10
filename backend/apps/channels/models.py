@@ -77,3 +77,13 @@ class Delivery(TenantModel):
             )
         ]
         indexes = [models.Index(fields=["status", "available_at"])]
+
+
+class MetaDataDeletion(models.Model):
+    """A Meta data-deletion callback we completed; its code is shown on a public status
+    page. Only a hash of the Meta user ID is kept."""
+
+    code = models.CharField(max_length=40, unique=True)
+    user_hash = models.CharField(max_length=64)
+    connections_cleared = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)

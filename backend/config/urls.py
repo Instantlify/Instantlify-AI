@@ -5,6 +5,11 @@ from apps.channels.ingress import (
     meta_webhook,
     telegram_webhook,
 )
+from apps.channels.meta_callbacks import (
+    data_deletion_status,
+    meta_data_deletion,
+    meta_deauthorize,
+)
 from apps.channels.views import (
     ConnectionListView,
     ConnectionRefreshView,
@@ -65,6 +70,9 @@ urlpatterns = [
     path("", include("config.feature_urls")),
     path("webhooks/telegram/<uuid:connection_id>/", telegram_webhook),
     path("webhooks/linkedin/", linkedin_webhook),
+    path("webhooks/meta/deauthorize/", meta_deauthorize),
+    path("webhooks/meta/data-deletion/", meta_data_deletion),
+    path("api/public/data-deletion/<str:code>/", data_deletion_status),
     path("webhooks/<str:provider>/", meta_webhook),
     path("health/live/", live),
     path("health/ready/", ready),
