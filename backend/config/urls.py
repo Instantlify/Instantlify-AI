@@ -28,6 +28,11 @@ from apps.platform_ops.public import (
     WizardProgressView,
 )
 from apps.platform_ops.support import MyTicketReplyView, MyTicketsView
+from apps.tenants.google_login import (
+    GoogleLoginCallbackView,
+    GoogleLoginStartView,
+    GoogleLoginStatusView,
+)
 from apps.tenants.invitations import (
     AcceptInvitationView,
     InvitationDetailView,
@@ -67,6 +72,9 @@ urlpatterns = [
     path("api/auth/login/", LoginView.as_view()),
     path("api/auth/magic-link/", MagicLinkRequestView.as_view()),
     path("api/auth/magic-link/verify/", MagicLinkVerifyView.as_view()),
+    path("api/auth/google/", GoogleLoginStatusView.as_view()),
+    path("api/auth/google/start/", GoogleLoginStartView.as_view()),
+    path("api/auth/google/callback/", GoogleLoginCallbackView.as_view()),
     path("api/auth/password/", PasswordChangeView.as_view()),
     path("api/auth/password-reset/", PasswordResetRequestView.as_view()),
     path("api/auth/password-reset/confirm/", PasswordResetConfirmView.as_view()),

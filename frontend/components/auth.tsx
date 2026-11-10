@@ -226,6 +226,14 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
   );
 }
 
+const GOOGLE_ERRORS: Record<string, string> = {
+  not_configured: "Google sign-in is not available yet.",
+  invalid_state: "That Google sign-in attempt expired. Please try again.",
+  google_rejected: "Google could not complete the sign-in. Please try again.",
+  email_not_verified: "Your Google account's email is not verified.",
+  account_unavailable: "This account cannot sign in. Contact support.",
+};
+
 function Auth({
   onSuccess,
   initialError,
@@ -241,7 +249,27 @@ function Auth({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [googleEnabled, setGoogleEnabled] = useState(false);
   const name = branding?.brand_name || "Nemio";
+  useEffect(() => {
+    const controller = new AbortController();
+    api<{ enabled: boolean }>(
+      "/api/auth/google/",
+      "GET",
+      undefined,
+      controller.signal,
+    )
+      .then((result) => setGoogleEnabled(result.enabled))
+      .catch(() => undefined);
+    const code = new URLSearchParams(window.location.search).get(
+      "google_error",
+    );
+    if (code)
+      queueMicrotask(() =>
+        setError(GOOGLE_ERRORS[code] || GOOGLE_ERRORS.google_rejected),
+      );
+    return () => controller.abort();
+  }, []);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -393,6 +421,11 @@ function Auth({
               <ArrowRight size={17} />
             </button>
           </ValidatedForm>
+          {googleEnabled && (
+            <a className="button secondary full" href="/api/auth/google/start/">
+              Continue with Google
+            </a>
+          )}
           {!signup && (
             <p>
               <Link href="/auth/reset/">Forgot your password?</Link>
