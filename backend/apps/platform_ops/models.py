@@ -7,6 +7,54 @@ from pgvector.django import VectorField
 from apps.tenants.crypto import EncryptedTextField
 
 
+class CommunityPost(models.Model):
+    """Intentionally shared with all authenticated members, independent of tenants."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    body = EncryptedTextField()
+    pinned = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-pinned", "-created_at", "-id"]
+
+
+class CommunityReply(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    post = models.ForeignKey(CommunityPost, related_name="replies", on_delete=models.CASCADE)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    body = EncryptedTextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+
+class CommunityVote(models.Model):
+    post = models.ForeignKey(CommunityPost, related_name="votes", on_delete=models.CASCADE)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    value = models.SmallIntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["post", "author"], name="one_community_vote"),
+            models.CheckConstraint(
+                condition=models.Q(value__in=[-1, 1]), name="valid_community_vote"
+            ),
+        ]
+
+
+class AffiliateAccount(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    promoter_id = models.PositiveBigIntegerField(null=True, unique=True)
+    status = models.CharField(max_length=20, default="new")
+    last_error = models.CharField(max_length=80, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class PlatformRole(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     role = models.CharField(
@@ -45,9 +93,7 @@ class WorkspaceCapability(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(
-                fields=["workspace", "key"], name="unique_workspace_capability"
-            )
+            models.UniqueConstraint(fields=["workspace", "key"], name="unique_workspace_capability")
         ]
 
 

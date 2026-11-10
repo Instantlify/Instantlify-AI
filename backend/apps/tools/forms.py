@@ -3,7 +3,7 @@ import re
 import uuid
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.core.validators import validate_email
+from django.core.validators import URLValidator
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
@@ -17,6 +17,9 @@ from apps.crm.models import IntegrationJob, Lead
 from apps.tenants.permissions import workspace_membership
 from apps.tenants.services import audit
 
+from .form_contacts import contact_values
+from .form_files import answer_metadata
+from .form_schema import clean_answers, validate_branching, validate_fields
 from .models import DeepLink, FormSubmission, LeadForm
 
 
@@ -33,6 +36,13 @@ class FormSerializer(serializers.ModelSerializer):
             "description",
             "fields",
             "submission_actions",
+            "branching",
+            "theme",
+            "redirect_url",
+            "submission_tags",
+            "button_align",
+            "closed",
+            "capture_contacts",
             "consent_text",
             "success_text",
             "published",
@@ -61,57 +71,72 @@ class FormSerializer(serializers.ModelSerializer):
         return validate_actions(value, workspace_id)
 
     def validate_fields(self, value):
-        if not isinstance(value, list) or not 1 <= len(value) <= 20:
-            raise serializers.ValidationError(
-                "Add 1–20 fields, including an email field with ID email."
+        return validate_fields(value, require_email=False)
+
+    def validate_theme(self, value):
+        if not isinstance(value, dict) or set(value) - {"primary", "background", "text"}:
+            raise serializers.ValidationError("Choose a primary, background and text color.")
+        if any(
+            not isinstance(color, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", color)
+            for color in value.values()
+        ):
+            raise serializers.ValidationError("Use six-digit hex colors.")
+
+        def luminance(color):
+            channels = [int(color[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+            linear = [v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in channels]
+            return sum(
+                v * weight for v, weight in zip(linear, [0.2126, 0.7152, 0.0722], strict=True)
             )
-        seen = set()
-        for field in value:
-            if not isinstance(field, dict) or set(field) - {
-                "id",
-                "label",
-                "type",
-                "required",
-                "options",
-            }:
-                raise serializers.ValidationError("Invalid field configuration.")
-            key = field.get("id")
-            if (
-                not isinstance(key, str)
-                or not re.fullmatch(r"[a-z][a-z0-9_]{0,39}", key)
-                or key in seen
-            ):
-                raise serializers.ValidationError(
-                    "Use unique lowercase field IDs up to 40 characters."
-                )
-            seen.add(key)
-            if (
-                not isinstance(field.get("label"), str)
-                or not 1 <= len(field["label"].strip()) <= 120
-            ):
-                raise serializers.ValidationError("Each field needs a label up to 120 characters.")
-            if field.get("type") not in {
-                "text",
-                "textarea",
-                "email",
-                "tel",
-                "select",
-            } or not isinstance(field.get("required", False), bool):
-                raise serializers.ValidationError("Unsupported field type or required setting.")
-            if field["type"] == "select":
-                options = field.get("options")
-                if (
-                    not isinstance(options, list)
-                    or not 1 <= len(options) <= 30
-                    or any(not isinstance(v, str) or not 1 <= len(v) <= 120 for v in options)
-                ):
-                    raise serializers.ValidationError("Select fields need 1–30 text options.")
-        email = next((f for f in value if f["id"] == "email"), None)
-        if not email or email["type"] != "email" or email.get("required") is not True:
+
+        light, dark = sorted(
+            [
+                luminance(value.get("background", "#ffffff")),
+                luminance(value.get("text", "#0c1b3a")),
+            ],
+            reverse=True,
+        )
+        if (light + 0.05) / (dark + 0.05) < 4.5:
             raise serializers.ValidationError(
-                "Include a required email field with ID email for CRM capture."
+                "Choose text and background colors with readable contrast."
             )
         return value
+
+    def validate_button_align(self, value):
+        if value not in {"left", "center", "right"}:
+            raise serializers.ValidationError("Choose left, center or right.")
+        return value
+
+    def validate_submission_tags(self, value):
+        if (
+            not isinstance(value, list)
+            or len(value) > 20
+            or any(not isinstance(tag, str) or not 1 <= len(tag.strip()) <= 50 for tag in value)
+        ):
+            raise serializers.ValidationError("Use up to 20 tags of 1–50 characters.")
+        return list(dict.fromkeys(tag.strip() for tag in value))
+
+    def validate_redirect_url(self, value):
+        if value:
+            try:
+                URLValidator(schemes=["https"])(value)
+            except DjangoValidationError:
+                raise serializers.ValidationError(
+                    "Use a complete HTTPS redirect address."
+                ) from None
+        return value
+
+    def validate(self, attrs):
+        fields = attrs.get("fields", self.instance.fields if self.instance else [])
+        rules = attrs.get("branching", self.instance.branching if self.instance else [])
+        validate_fields(
+            fields,
+            require_email=attrs.get(
+                "capture_contacts", self.instance.capture_contacts if self.instance else True
+            ),
+        )
+        validate_branching(rules, fields)
+        return attrs
 
 
 class FormList(generics.ListCreateAPIView):
@@ -161,7 +186,10 @@ class SubmissionList(APIView):
                     "id": row.pk,
                     "lead_id": row.lead_id,
                     "created_at": row.created_at,
-                    "answers": json.loads(row.answers),
+                    "answers": answer_metadata(
+                        json.loads(row.answers),
+                        download_prefix=f"/api/workspaces/{workspace_id}/forms/{pk}/submissions/{row.pk}/",
+                    ),
                     "consent_text": row.consent_text,
                     "link_id": row.link_id,
                     "action_errors": row.action_errors,
@@ -199,18 +227,27 @@ class PublicFormView(APIView):
     throttle_classes = [FormThrottle]
 
     def get(self, request, slug):
-        form = get_object_or_404(LeadForm.all_objects, slug=slug, published=True)
+        form = get_object_or_404(LeadForm.all_objects, slug=slug, published=True, closed=False)
         return Response(
             {
                 key: getattr(form, key)
-                for key in ["title", "description", "fields", "consent_text", "success_text"]
+                for key in [
+                    "title",
+                    "description",
+                    "fields",
+                    "branching",
+                    "theme",
+                    "button_align",
+                    "consent_text",
+                    "success_text",
+                ]
             }
         )
 
     def post(self, request, slug):
         with transaction.atomic():
             form = get_object_or_404(
-                LeadForm.all_objects.select_for_update(), slug=slug, published=True
+                LeadForm.all_objects.select_for_update(), slug=slug, published=True, closed=False
             )
             from apps.tenants.models import Workspace
 
@@ -227,36 +264,21 @@ class PublicFormView(APIView):
                 .first()
             )
             if old:
-                return Response({"received": True, "message": form.success_text})
-            values = request.data.get("answers")
-            if not isinstance(values, dict) or set(values) - {f["id"] for f in form.fields}:
-                raise serializers.ValidationError("Submit only the fields in this form.")
-            answers = {}
-            for field in form.fields:
-                value = values.get(field["id"], "")
-                if not isinstance(value, str) or len(value) > 2000:
-                    raise serializers.ValidationError(
-                        {field["id"]: "Use up to 2000 text characters."}
-                    )
-                value = value.strip()
-                if field.get("required") and not value:
-                    raise serializers.ValidationError({field["id"]: "This field is required."})
-                if value and field["type"] == "select" and value not in field["options"]:
-                    raise serializers.ValidationError(
-                        {field["id"]: "Choose one of the listed options."}
-                    )
-                if value and field["type"] == "email":
-                    try:
-                        validate_email(value)
-                    except DjangoValidationError:
-                        raise serializers.ValidationError(
-                            {field["id"]: "Enter a valid email address."}
-                        ) from None
-                    if len(value) > 254:
-                        raise serializers.ValidationError("Email address is too long.")
-                answers[field["id"]] = value
-            email = answers["email"].lower()
-            lead = Lead.objects.for_workspace(form.workspace_id).filter(email__iexact=email).first()
+                return Response(
+                    {
+                        "received": True,
+                        "message": form.success_text,
+                        "redirect_url": form.redirect_url,
+                    }
+                )
+            answers = clean_answers(form.fields, form.branching, request.data.get("answers"))
+            contact = contact_values(form.fields, answers)
+            email = contact["email"]
+            lead = (
+                Lead.objects.for_workspace(form.workspace_id).filter(email__iexact=email).first()
+                if form.capture_contacts and email
+                else None
+            )
             link = (
                 DeepLink.objects.for_workspace(form.workspace_id)
                 .filter(code=request.data.get("ref", ""), active=True)
@@ -264,14 +286,16 @@ class PublicFormView(APIView):
                 if isinstance(request.data.get("ref", ""), str)
                 else None
             )
-            if not lead:
+            if form.capture_contacts and email and not lead:
                 from apps.billing.gating import check_within_limit
 
                 check_within_limit(form.workspace_id, "max_contacts")
                 lead = Lead.objects.for_workspace(form.workspace_id).create(
                     workspace_id=form.workspace_id,
                     email=email,
-                    name=answers.get("name", "")[:150],
+                    name=(
+                        answers.get("name", "") if isinstance(answers.get("name", ""), str) else ""
+                    )[:150],
                     fields={
                         "source": "form",
                         "form": str(form.pk),
@@ -286,6 +310,14 @@ class PublicFormView(APIView):
                         ),
                     },
                 )
+            if lead:
+                if contact["name"]:
+                    lead.name = contact["name"]
+                lead.fields = {**lead.fields, **contact["fields"]}
+                lead.save(update_fields=["name", "fields"])
+            if lead and form.submission_tags:
+                lead.tags = sorted(set(lead.tags) | set(form.submission_tags))
+                lead.save(update_fields=["tags"])
             submission = FormSubmission.objects.for_workspace(form.workspace_id).create(
                 workspace_id=form.workspace_id,
                 form=form,
@@ -299,16 +331,21 @@ class PublicFormView(APIView):
 
             from .form_actions import queue_submission_actions
 
-            queue_submission_actions(submission, form, lead, answers)
+            queue_submission_actions(
+                submission, form, lead, {**answers, "email": email, "name": contact["name"]}
+            )
             emit(
                 form.workspace_id,
                 "form.submitted",
                 {
                     "form_id": str(form.pk),
                     "submission_id": str(submission.pk),
-                    "lead_id": str(lead.pk),
-                    "answers": answers,
+                    "lead_id": str(lead.pk) if lead else None,
+                    "answers": answer_metadata(answers),
                 },
             )
             # Existing opt-outs remain opted out; workers recheck before performing any action.
-        return Response({"received": True, "message": form.success_text}, status=201)
+        return Response(
+            {"received": True, "message": form.success_text, "redirect_url": form.redirect_url},
+            status=201,
+        )

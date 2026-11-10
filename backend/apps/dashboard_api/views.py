@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
 from django.http import JsonResponse
@@ -56,6 +57,11 @@ class WorkspaceStatusView(APIView):
                 "checks": dependency_status(),
                 "capabilities": capabilities_for(member.workspace_id),
                 "test_channels_enabled": test_channels_enabled(),
+                # LinkedIn messaging needs a separate grant; hide the connect button
+                # until it is confirmed rather than letting connects fail later.
+                "linkedin_available": bool(
+                    settings.LINKEDIN_MESSAGING_APPROVED or settings.CHANNEL_ADAPTER_MODE != "live"
+                ),
                 "pending_jobs": OutboxEvent.objects.for_workspace(member.workspace)
                 .filter(processed_at__isnull=True)
                 .count(),

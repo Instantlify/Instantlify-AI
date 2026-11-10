@@ -72,10 +72,11 @@ def receive(event, payload):
 
             emit(event.workspace_id, "lead.created", lead_payload(lead))
     conversation, _ = Conversation.objects.for_workspace(event.workspace_id).get_or_create(
-        identity=identity, defaults={
+        identity=identity,
+        defaults={
             "workspace_id": event.workspace_id,
             "assigned_to_id": identity.lead.assigned_to_id,
-        }
+        },
     )
     conversation = (
         Conversation.objects.for_workspace(event.workspace_id)

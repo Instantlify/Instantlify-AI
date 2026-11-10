@@ -8,10 +8,7 @@ import {
 
 import { useEffect, useState } from "react";
 import {
-  AlertTriangle,
   CheckCircle,
-  Eye,
-  EyeOff,
   Plus,
   ShieldAlert,
   ShieldCheck,
@@ -39,7 +36,7 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export default function CommentShieldPage() {
-  const { prefix, manager } = useWorkspace();
+  const { prefix } = useWorkspace();
   const [rules, setRules] = useState<ShieldRule[]>([]);
   const [logs, setLogs] = useState<ShieldEvent[]>([]);
   const [newRuleName, setNewRuleName] = useState("");
@@ -51,8 +48,18 @@ export default function CommentShieldPage() {
     const controller = new AbortController();
     queueMicrotask(() =>
       Promise.all([
-        api<ShieldRule[]>(`${prefix}/shield/rules/`, "GET", undefined, controller.signal),
-        api<ShieldEvent[]>(`${prefix}/shield/events/`, "GET", undefined, controller.signal),
+        api<ShieldRule[]>(
+          `${prefix}/shield/rules/`,
+          "GET",
+          undefined,
+          controller.signal,
+        ),
+        api<ShieldEvent[]>(
+          `${prefix}/shield/events/`,
+          "GET",
+          undefined,
+          controller.signal,
+        ),
       ])
         .then(([ruleList, events]) => {
           setRules(ruleList);
@@ -89,10 +96,16 @@ export default function CommentShieldPage() {
 
   async function toggleRule(rule: ShieldRule) {
     await feedback.run(async () => {
-      const updated = await api<ShieldRule>(`${prefix}/shield/rules/${rule.id}/`, "PATCH", {
-        enabled: !rule.enabled,
-      });
-      setRules((list) => list.map((item) => (item.id === rule.id ? updated : item)));
+      const updated = await api<ShieldRule>(
+        `${prefix}/shield/rules/${rule.id}/`,
+        "PATCH",
+        {
+          enabled: !rule.enabled,
+        },
+      );
+      setRules((list) =>
+        list.map((item) => (item.id === rule.id ? updated : item)),
+      );
     });
   }
 
@@ -109,7 +122,7 @@ export default function CommentShieldPage() {
       <PageHeading
         eyebrow="Comment Shield"
         title="Automated Moderation & Spam Defense"
-        text="Protect your brand reputation on Meta posts & reels. Toxic comments, competitor links, and bot spam are filtered automatically before your followers see them."
+        text="Protect your brand on Meta posts and reels. Comments containing words or phrases from your rules are hidden, deleted or flagged automatically."
       />
       <ErrorNotice error={feedback.error} />
       <SuccessNotice notice={feedback.notice} />
@@ -117,7 +130,9 @@ export default function CommentShieldPage() {
       <div className="stats-grid" style={{ marginBottom: "20px" }}>
         <article className="stat-card">
           <div className="stat-top">
-            <span className="stat-icon"><ShieldCheck size={18} /></span>
+            <span className="stat-icon">
+              <ShieldCheck size={18} />
+            </span>
             <span>Clean reputation rate</span>
           </div>
           <strong>99.4%</strong>
@@ -125,7 +140,9 @@ export default function CommentShieldPage() {
         </article>
         <article className="stat-card">
           <div className="stat-top">
-            <span className="stat-icon"><ShieldAlert size={18} /></span>
+            <span className="stat-icon">
+              <ShieldAlert size={18} />
+            </span>
             <span>Spam intercepted</span>
           </div>
           <strong>{logs.length}</strong>
@@ -133,7 +150,9 @@ export default function CommentShieldPage() {
         </article>
         <article className="stat-card">
           <div className="stat-top">
-            <span className="stat-icon"><CheckCircle size={18} /></span>
+            <span className="stat-icon">
+              <CheckCircle size={18} />
+            </span>
             <span>Active filters</span>
           </div>
           <strong>{rules.filter((r) => r.enabled).length}</strong>
@@ -141,9 +160,18 @@ export default function CommentShieldPage() {
         </article>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "20px",
+          marginBottom: "20px",
+        }}
+      >
         <Panel title="Active Moderation Rules" aside="Real-time Webhook Filter">
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+          >
             {rules.map((rule) => (
               <div
                 key={rule.id}
@@ -158,13 +186,25 @@ export default function CommentShieldPage() {
                 }}
               >
                 <div>
-                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "8px",
+                      alignItems: "center",
+                    }}
+                  >
                     <strong>{rule.name}</strong>
                     <Pill tone={rule.action === "delete" ? "bad" : "warn"}>
                       {rule.action.toUpperCase()}
                     </Pill>
                   </div>
-                  <div style={{ fontSize: "12px", color: "var(--brand-muted)", marginTop: "4px" }}>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--brand-muted)",
+                      marginTop: "4px",
+                    }}
+                  >
                     Matches: {rule.keywords.join(", ")}
                   </div>
                 </div>
@@ -189,7 +229,13 @@ export default function CommentShieldPage() {
         </Panel>
 
         <Panel title="Add Custom Shield Rule">
-          <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} onSubmit={addRule} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <ValidatedForm
+            fieldErrors={feedback.fieldErrors}
+            validationTarget={feedback.validationTarget}
+            onEdit={() => feedback.setError("")}
+            onSubmit={addRule}
+            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+          >
             <label>
               Rule Label
               <ValidatedInput
@@ -212,14 +258,22 @@ export default function CommentShieldPage() {
               Action on Match
               <ValidatedSelect
                 value={newAction}
-                onChange={(e) => setNewAction(e.target.value as ShieldRule["action"])}
+                onChange={(e) =>
+                  setNewAction(e.target.value as ShieldRule["action"])
+                }
               >
-                <option value="hide">Hide from post (Only commenter sees it)</option>
+                <option value="hide">
+                  Hide from post (Only commenter sees it)
+                </option>
                 <option value="delete">Delete comment permanently</option>
                 <option value="flag">Flag in Inbox for human review</option>
               </ValidatedSelect>
             </label>
-            <button type="submit" className="button primary small" style={{ alignSelf: "flex-start" }}>
+            <button
+              type="submit"
+              className="button primary small"
+              style={{ alignSelf: "flex-start" }}
+            >
               <Plus size={14} /> Add shield rule
             </button>
           </ValidatedForm>
@@ -228,7 +282,15 @@ export default function CommentShieldPage() {
 
       <Panel title="Recent Intercepted Activity" aside="Live Feed Audit">
         {logs.length > 0 ? (
-          <Table head={["Author", "Comment Content", "Matched Rule", "Action", "Timestamp"]}>
+          <Table
+            head={[
+              "Author",
+              "Comment Content",
+              "Matched Rule",
+              "Action",
+              "Timestamp",
+            ]}
+          >
             {logs.map((log) => (
               <tr key={log.id}>
                 <td>
@@ -247,7 +309,9 @@ export default function CommentShieldPage() {
                   </div>
                 </td>
                 <td>
-                  <span style={{ fontStyle: "italic", color: "var(--brand-ink)" }}>
+                  <span
+                    style={{ fontStyle: "italic", color: "var(--brand-ink)" }}
+                  >
                     &ldquo;{log.text}&rdquo;
                   </span>
                 </td>
@@ -255,7 +319,13 @@ export default function CommentShieldPage() {
                   <Pill tone="warn">{log.rule_name}</Pill>
                 </td>
                 <td>
-                  <span style={{ fontSize: "12px", color: "#10b981", fontWeight: 600 }}>
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#10b981",
+                      fontWeight: 600,
+                    }}
+                  >
                     {ACTION_LABELS[log.action_taken] ?? log.action_taken}
                   </span>
                 </td>
@@ -266,7 +336,9 @@ export default function CommentShieldPage() {
             ))}
           </Table>
         ) : (
-          <Empty>No toxic comments detected. Your comment feeds are clean.</Empty>
+          <Empty>
+            No toxic comments detected. Your comment feeds are clean.
+          </Empty>
         )}
       </Panel>
     </>

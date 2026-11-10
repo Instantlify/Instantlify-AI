@@ -24,6 +24,15 @@ export type AppEntry = {
 
 export const APPS: AppEntry[] = [
   {
+    id: "forum",
+    label: "Community",
+    icon: MessageSquareText,
+    description: "Share questions and answers with Nemio members.",
+    highlights: ["Discussions and replies", "Community search assistant"],
+    section: "forum",
+    agents: true,
+  },
+  {
     id: "forms",
     label: "Forms",
     icon: FileText,
@@ -66,8 +75,8 @@ export const APPS: AppEntry[] = [
     label: "Comment shield",
     icon: ShieldBan,
     description:
-      "Hide spam and abusive comments on your Meta posts automatically and alert your team.",
-    highlights: ["Keyword and toxicity rules", "Team alerts"],
+      "Hide or delete comments on your Meta posts that match your keyword rules, with a log of every action.",
+    highlights: ["Keyword rules", "Hide, delete or flag"],
     section: "shield",
     agents: false,
   },

@@ -228,7 +228,12 @@ def ping(env):
         "OPENAI": (
             "https://api.openai.com/v1/responses",
             {"Authorization": f"Bearer {key}"},
-            {"model": settings.PLATFORM_AI_MODEL, "input": "ok", "max_output_tokens": 16, "store": False},
+            {
+                "model": settings.PLATFORM_AI_MODEL,
+                "input": "ok",
+                "max_output_tokens": 16,
+                "store": False,
+            },
         ),
         "ANTHROPIC": (
             "https://api.anthropic.com/v1/messages",

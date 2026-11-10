@@ -78,10 +78,16 @@ def process_integration(workspace_id, job_id):
         if job.form_submission_id:
             from apps.tools.models import FormSubmission
 
+            submission = (
+                FormSubmission.objects.for_workspace(workspace_id)
+                .filter(pk=job.form_submission_id, form__published=True)
+                .select_related("lead")
+                .first()
+            )
             if (
-                not FormSubmission.objects.for_workspace(workspace_id)
-                .filter(pk=job.form_submission_id, form__published=True, lead__opted_out=False)
-                .exists()
+                not submission
+                or (submission.lead and submission.lead.opted_out)
+                or (not submission.lead and job.operation not in {"notify", "webhook"})
             ):
                 job.status = "needs_review"
                 job.result = json.dumps({"error": "form_or_contact_unavailable"})

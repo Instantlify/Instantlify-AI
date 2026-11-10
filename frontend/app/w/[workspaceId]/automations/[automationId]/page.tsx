@@ -62,6 +62,12 @@ import { TourMarker } from "@/components/growth";
 import { firstReplyStep } from "@/lib/growth";
 import { useGraphHistory } from "@/lib/use-graph-history";
 import { FlowTools } from "@/components/flow-tools";
+import {
+  ConditionRulesEditor,
+  DurationInput,
+  describeCondition,
+  formatDuration,
+} from "@/components/flow-step-settings";
 
 type FlowNode = Node<
   FlowNodeData & { isStart?: boolean; label?: string },
@@ -180,13 +186,13 @@ const KINDS: {
     kind: "condition",
     label: "Condition",
     icon: GitFork,
-    hint: "Branch on a saved answer",
+    hint: "Branch on answers, tags, fields or stage",
   },
   {
     kind: "delay",
     label: "Delay",
     icon: Clock,
-    hint: "Wait a number of seconds",
+    hint: "Wait up to 30 days, fixed or random",
   },
   {
     kind: "capture_email",
@@ -256,12 +262,18 @@ function summary(data: FlowNodeData) {
     case "transfer":
       return "Continue in the selected automation";
     case "wait":
-      return `Saves the reply as {{${data.variable || "reply"}}}`;
+      return `Saves the reply as {{${data.variable || "reply"}}}${
+        data.timeout_seconds
+          ? ` · timeout after ${formatDuration(data.timeout_seconds)}`
+          : ""
+      }`;
     case "condition":
     case "branch":
-      return `{{${data.variable || "last_text"}}} equals “${data.equals ?? ""}”`;
+      return describeCondition(data);
     case "delay":
-      return `${data.seconds || 0} seconds`;
+      return data.seconds_max
+        ? `Random ${formatDuration(data.seconds || 1)} – ${formatDuration(data.seconds_max)}`
+        : formatDuration(data.seconds || 1);
     default:
       return "Flow ends here";
   }
@@ -307,6 +319,26 @@ function FlowNodeView({ data, selected }: NodeProps<FlowNode>) {
             {data.kind === "randomizer" ? "B" : "no"}
           </span>
         </>
+      ) : data.kind === "wait" && data.timeout_seconds ? (
+        <>
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            style={{ left: "30%" }}
+          />
+          <span className="handle-label" style={{ left: "20%", bottom: -14 }}>
+            reply
+          </span>
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="timeout"
+            style={{ left: "70%" }}
+          />
+          <span className="handle-label" style={{ left: "60%", bottom: -14 }}>
+            timeout
+          </span>
+        </>
       ) : (
         data.kind !== "end" &&
         data.kind !== "transfer" &&
@@ -347,7 +379,9 @@ function toFlow(graph: Partial<FlowGraph>) {
         ? "yes"
         : edge.sourceHandle === "false"
           ? "no"
-          : undefined,
+          : edge.sourceHandle === "timeout"
+            ? "timeout"
+            : undefined,
   }));
   return { nodes, edges };
 }
@@ -619,7 +653,9 @@ export default function BuilderPage() {
                 ? "yes"
                 : connection.sourceHandle === "false"
                   ? "no"
-                  : undefined,
+                  : connection.sourceHandle === "timeout"
+                    ? "timeout"
+                    : undefined,
           },
           filtered,
         );
@@ -717,8 +753,15 @@ export default function BuilderPage() {
                                         : kind === "condition"
                                           ? {
                                               kind,
-                                              variable: "reply",
-                                              equals: "yes",
+                                              match: "all",
+                                              rules: [
+                                                {
+                                                  subject: "variable",
+                                                  name: "reply",
+                                                  operator: "equals",
+                                                  value: "yes",
+                                                },
+                                              ],
                                             }
                                           : kind === "delay"
                                             ? { kind, seconds: 60 }
@@ -906,7 +949,11 @@ export default function BuilderPage() {
             <li key={index}>
               {TRIGGER_LABELS[trigger.kind] ?? trigger.kind} ·{" "}
               {trigger.channel ? channelLabel(trigger.channel) : "Any supported channel"} ·{" "}
-              {trigger.keyword === "*" ? "Any text" : `Keyword “${trigger.keyword}”`}
+              {trigger.match === "intent"
+                ? `Means “${trigger.keyword}” (AI)`
+                : trigger.keyword === "*"
+                  ? "Any text"
+                  : `Keyword “${trigger.keyword}”`}
             </li>
           ))}
         </ul>
@@ -1041,10 +1088,30 @@ export default function BuilderPage() {
                     </option>
                   )}
               </select>
+              <select
+                aria-label="Match by"
+                value={trigger.match || "keyword"}
+                onChange={(event) => {
+                  const next = [...triggers];
+                  next[index] = {
+                    ...trigger,
+                    match: event.target.value as "keyword" | "intent",
+                  };
+                  setTriggers(next);
+                  setDirty(true);
+                }}
+              >
+                <option value="keyword">Contains keyword</option>
+                <option value="intent">Means something (AI)</option>
+              </select>
               <div className="row" style={{ flexWrap: "nowrap" }}>
                 <input
-                  aria-label="Keyword"
-                  placeholder="keyword"
+                  aria-label={trigger.match === "intent" ? "Intent" : "Keyword"}
+                  placeholder={
+                    trigger.match === "intent"
+                      ? "e.g. asks about price or delivery"
+                      : "keyword"
+                  }
                   maxLength={100}
                   value={trigger.keyword}
                   onChange={(event) => {
@@ -1085,6 +1152,8 @@ export default function BuilderPage() {
             </button>
           )}
           <p className="muted-text">
+            AI intent triggers run only when no keyword trigger matches, use
+            your workspace AI model and spend AI credits.
             Keywords match whole words, case-insensitively. Comment triggers on
             Instagram posts and Facebook Page posts reply privately to the
             comment first. WhatsApp supports message triggers only.
@@ -1628,6 +1697,53 @@ export default function BuilderPage() {
                 </label>
               )}
               {selected.data.kind === "wait" && (
+                <div className="field">
+                  <label className="inline">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(selected.data.timeout_seconds)}
+                      onChange={(event) => {
+                        if (!event.target.checked) {
+                          // The timeout path goes with the timeout.
+                          setEdges((list) =>
+                            list.filter(
+                              (edge) =>
+                                !(
+                                  edge.source === selected.id &&
+                                  edge.sourceHandle === "timeout"
+                                ),
+                            ),
+                          );
+                        }
+                        updateSelected({
+                          timeout_seconds: event.target.checked
+                            ? 86400
+                            : undefined,
+                        });
+                      }}
+                    />
+                    Give up if there is no reply
+                  </label>
+                  {Boolean(selected.data.timeout_seconds) && (
+                    <>
+                      <DurationInput
+                        label="Timeout"
+                        seconds={selected.data.timeout_seconds || 86400}
+                        min={60}
+                        onChange={(seconds) =>
+                          updateSelected({ timeout_seconds: Math.max(60, seconds) })
+                        }
+                      />
+                      <span className="hint">
+                        Connect the step’s “timeout” handle to what should
+                        happen when the lead does not answer in time (1 minute
+                        to 30 days).
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+              {selected.data.kind === "wait" && (
                 <label className="field">
                   Required reply payload (optional)
                   <input
@@ -2052,45 +2168,56 @@ export default function BuilderPage() {
               )}
               {(selected.data.kind === "condition" ||
                 selected.data.kind === "branch") && (
-                <>
-                  <label className="field">
-                    Variable to check
-                    <input
-                      value={selected.data.variable || ""}
-                      maxLength={40}
-                      onChange={(event) =>
-                        updateSelected({ variable: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label className="field">
-                    Equals{" "}
-                    <span className="hint">
-                      case-insensitive; “yes” edge when it matches
-                    </span>
-                    <input
-                      value={selected.data.equals || ""}
-                      maxLength={200}
-                      onChange={(event) =>
-                        updateSelected({ equals: event.target.value })
-                      }
-                    />
-                  </label>
-                </>
+                <ConditionRulesEditor
+                  data={selected.data}
+                  onChange={updateSelected}
+                />
               )}
               {selected.data.kind === "delay" && (
-                <label className="field">
-                  Seconds <span className="hint">1–86400</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={86400}
-                    value={selected.data.seconds || 0}
-                    onChange={(event) =>
-                      updateSelected({ seconds: Number(event.target.value) })
-                    }
+                <div className="field">
+                  Wait{" "}
+                  <span className="hint">1 second to 30 days</span>
+                  <DurationInput
+                    label="Delay"
+                    seconds={selected.data.seconds || 60}
+                    onChange={(seconds) => {
+                      const max = selected.data.seconds_max;
+                      updateSelected({
+                        seconds,
+                        seconds_max: max && max > seconds ? max : undefined,
+                      });
+                    }}
                   />
-                </label>
+                  <label className="inline">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(selected.data.seconds_max)}
+                      onChange={(event) =>
+                        updateSelected({
+                          seconds_max: event.target.checked
+                            ? Math.min(
+                                30 * 86400,
+                                (selected.data.seconds || 60) * 2,
+                              )
+                            : undefined,
+                        })
+                      }
+                    />
+                    Random time, up to
+                  </label>
+                  {Boolean(selected.data.seconds_max) && (
+                    <DurationInput
+                      label="Random delay maximum"
+                      seconds={selected.data.seconds_max || 120}
+                      onChange={(seconds) =>
+                        updateSelected({ seconds_max: seconds })
+                      }
+                    />
+                  )}
+                  <span className="hint">
+                    A random wait makes follow-ups feel less automated.
+                  </span>
+                </div>
               )}
               <p className="muted-text">
                 Step ID: <span className="mono">{selected.id}</span>

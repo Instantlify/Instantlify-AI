@@ -57,9 +57,11 @@ export function WorkspaceProvider({
   initialWorkspaces: Workspace[];
   children: ReactNode;
 }) {
+  const [currentUser, setCurrentUser] = useState(user);
   const [workspaces, setWorkspaces] = useState(initialWorkspaces);
   const refresh = useCallback(async () => {
     setWorkspaces(await loadWorkspaces());
+    setCurrentUser(await api<User>("/api/auth/me/"));
   }, []);
   // The selection is per workspace and per browser: a convenience, not shared state.
   const [selection, setSelection] = useState(() => ({
@@ -94,7 +96,7 @@ export function WorkspaceProvider({
     () =>
       workspace
         ? {
-            user,
+            user: currentUser,
             workspace,
             workspaces,
             manager: workspace.role !== "agent",
@@ -104,7 +106,7 @@ export function WorkspaceProvider({
             setActiveAccount,
           }
         : null,
-    [user, workspace, workspaces, refresh, activeAccount, setActiveAccount],
+    [currentUser, workspace, workspaces, refresh, activeAccount, setActiveAccount],
   );
   if (!value) return null;
   return (

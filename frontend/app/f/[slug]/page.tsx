@@ -1,20 +1,20 @@
 "use client";
 
-import {
-  ValidatedForm,
-  ValidatedInput,
-  ValidatedSelect,
-  ValidatedTextarea,
-} from "@/components/validated-form";
+import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
 
 import { useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import "@/components/public-form.css";
+import { colorContrast } from "@/lib/workspace-theme";
 import { api, message } from "@/lib/api";
-import type { LeadForm } from "@/lib/portal-tools";
+import { PublicFormFields } from "@/components/public-form-fields";
+import { visibleFormFields, NON_INPUT_TYPES } from "@/lib/form-path";
+import type { FormAnswer, LeadForm } from "@/lib/portal-tools";
 
 export default function PublicFormPage() {
   const { slug } = useParams<{ slug: string }>();
   const [form, setForm] = useState<LeadForm | null>(null);
+  const [answers, setAnswers] = useState<Record<string, FormAnswer>>({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -44,7 +44,27 @@ export default function PublicFormPage() {
       ) : !form ? (
         <p role="alert">This form is unavailable.</p>
       ) : (
-        <section className="card" style={{ padding: 28 }}>
+        <section
+          className="card public-lead-form"
+          style={
+            {
+              padding: 28,
+              "--form-background": form.theme?.background || "#ffffff",
+              "--form-text": form.theme?.text || "#0c1b3a",
+              "--form-primary": form.theme?.primary || "#10244a",
+              "--form-button-text":
+                colorContrast(form.theme?.primary || "#10244a", "#0c1b3a") >=
+                4.5
+                  ? "#0c1b3a"
+                  : colorContrast(
+                        form.theme?.primary || "#10244a",
+                        "#ffffff",
+                      ) >= 4.5
+                    ? "#ffffff"
+                    : "#000000",
+            } as CSSProperties
+          }
+        >
           <span className="eyebrow">Get in touch</span>
           <h1>{form.title}</h1>
           <p style={{ whiteSpace: "pre-wrap" }}>{form.description}</p>
@@ -61,26 +81,27 @@ export default function PublicFormPage() {
                 setBusy(true);
                 setError("");
                 try {
-                  const response = await api<{ message: string }>(
-                    `/api/public/forms/${slug}/`,
-                    "POST",
-                    {
-                      request_id: requestId.current,
-                      answers: Object.fromEntries(
-                        form.fields.map((field) => [
-                          field.id,
-                          values.get(`answer:${field.id}`) || "",
-                        ]),
-                      ),
-                      consent: values.get("consent") === "on",
-                      website: values.get("website"),
-                      ref:
-                        new URLSearchParams(window.location.search).get(
-                          "ref",
-                        ) || "",
-                    },
-                  );
+                  const response = await api<{
+                    message: string;
+                    redirect_url?: string;
+                  }>(`/api/public/forms/${slug}/`, "POST", {
+                    request_id: requestId.current,
+                    answers: Object.fromEntries(
+                      visibleFormFields(form, answers)
+                        .filter(
+                          (field) => !NON_INPUT_TYPES.includes(field.type),
+                        )
+                        .map((field) => [field.id, answers[field.id] ?? ""]),
+                    ),
+                    consent: values.get("consent") === "on",
+                    website: values.get("website"),
+                    ref:
+                      new URLSearchParams(window.location.search).get("ref") ||
+                      "",
+                  });
                   setSuccess(response.message);
+                  if (response.redirect_url?.startsWith("https://"))
+                    window.location.assign(response.redirect_url);
                 } catch (err) {
                   setError(message(err));
                 } finally {
@@ -88,37 +109,21 @@ export default function PublicFormPage() {
                 }
               }}
             >
-              {form.fields.map((field) => (
-                <label key={field.id}>
-                  {field.label}
-                  {field.required ? " *" : ""}
-                  {field.type === "textarea" ? (
-                    <ValidatedTextarea
-                      name={`answer:${field.id}`}
-                      required={field.required}
-                      maxLength={2000}
-                      rows={4}
-                    />
-                  ) : field.type === "select" ? (
-                    <ValidatedSelect
-                      name={`answer:${field.id}`}
-                      required={field.required}
-                    >
-                      <option value="">Choose an option</option>
-                      {field.options?.map((option) => (
-                        <option key={option}>{option}</option>
-                      ))}
-                    </ValidatedSelect>
-                  ) : (
-                    <ValidatedInput
-                      name={`answer:${field.id}`}
-                      type={field.type}
-                      required={field.required}
-                      maxLength={field.type === "email" ? 254 : 2000}
-                    />
-                  )}
-                </label>
-              ))}
+              <PublicFormFields
+                fields={visibleFormFields(form, answers)}
+                answers={answers}
+                onChange={(id, value) =>
+                  setAnswers((current) => {
+                    const next = { ...current, [id]: value };
+                    const visible = new Set(
+                      visibleFormFields(form, next).map((field) => field.id),
+                    );
+                    return Object.fromEntries(
+                      Object.entries(next).filter(([key]) => visible.has(key)),
+                    );
+                  })
+                }
+              />
               <div
                 style={{
                   position: "absolute",
@@ -131,7 +136,11 @@ export default function PublicFormPage() {
               >
                 <label>
                   Website
-                  <ValidatedInput name="website" tabIndex={-1} autoComplete="off" />
+                  <ValidatedInput
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                  />
                 </label>
               </div>
               <label className="inline" style={{ alignItems: "flex-start" }}>
@@ -144,7 +153,19 @@ export default function PublicFormPage() {
                 {form.consent_text}
               </label>
               {error && <p role="alert">{error}</p>}
-              <button className="button primary" disabled={busy}>
+              <button
+                className="button primary"
+                disabled={busy}
+                style={{
+                  background: form.theme?.primary,
+                  justifySelf:
+                    form.button_align === "right"
+                      ? "end"
+                      : form.button_align === "center"
+                        ? "center"
+                        : "start",
+                }}
+              >
                 {busy ? "Submitting…" : "Send response"}
               </button>
             </ValidatedForm>

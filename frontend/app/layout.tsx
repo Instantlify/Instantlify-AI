@@ -1,6 +1,6 @@
 import { SupportWidget } from "@/components/support-center";
 import type { Metadata } from "next";
-import { DM_Sans, Manrope } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import "./features.css";
 import "./refresh.css";
@@ -17,9 +17,19 @@ import "./workspace-theme.css";
 import "./mission-control.css";
 import "./support.css";
 
-// Self-hosted at build time; meta.css points the shared font tokens at these.
-const body = DM_Sans({ subsets: ["latin"], variable: "--font-body" });
-const display = Manrope({ subsets: ["latin"], variable: "--font-display" });
+// Official variable fonts and their licenses are bundled for offline builds.
+const body = localFont({
+  src: "./fonts/dm-sans-variable.ttf",
+  weight: "100 1000",
+  variable: "--font-body",
+  display: "swap",
+});
+const display = localFont({
+  src: "./fonts/manrope-variable.ttf",
+  weight: "200 800",
+  variable: "--font-display",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Nemio · Your workspace",

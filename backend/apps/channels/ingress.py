@@ -257,29 +257,52 @@ def telegram_webhook(request, connection_id):
     return HttpResponse(status=200)
 
 
+def _linkedin_hmac(message):
+    secret = settings.LINKEDIN_CLIENT_SECRET
+    return hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
+
+
 @csrf_exempt
 def linkedin_webhook(request):
+    """LinkedIn signs both the validation challenge and every event with the app's
+    client secret. Without a configured secret nothing is accepted: an unsigned
+    endpoint would let anyone inject conversations into a connected workspace."""
+    if not settings.LINKEDIN_CLIENT_SECRET:
+        return HttpResponse(status=404)
     if request.method == "GET":
         challenge = request.GET.get("challengeCode", "")
-        if challenge:
-            return HttpResponse(challenge, content_type="text/plain")
-        return HttpResponse(status=200)
+        if not challenge or len(challenge) > 200:
+            return HttpResponse(status=400)
+        return JsonResponse(
+            {
+                "challengeCode": challenge,
+                "challengeResponse": _linkedin_hmac(challenge.encode()),
+            }
+        )
     if request.method != "POST":
         return HttpResponse(status=405)
+    body = request.body
+    signature = request.headers.get("X-LI-Signature", "").strip()
+    if signature.lower().startswith("hmacsha256="):
+        signature = signature.split("=", 1)[1]
+    if not signature or not hmac.compare_digest(signature.lower(), _linkedin_hmac(body)):
+        return HttpResponse(status=403)
     try:
-        payload = json.loads(request.body)
+        payload = json.loads(body)
+        if not isinstance(payload, dict):
+            raise ValueError()
         events = []
         elements = (
             payload.get("elements") if isinstance(payload.get("elements"), list) else [payload]
         )
         for entry in elements:
-            account_id = str(
-                entry.get("organization") or entry.get("recipient") or "urn:li:organization:123456"
-            )
-            event_id = str(
-                entry.get("id") or entry.get("eventId") or entry.get("timestamp") or "li-ev-1"
-            )
-            sender = str(entry.get("sender") or entry.get("actor") or "urn:li:person:lead")
+            account_id = str(entry.get("organization") or entry.get("recipient") or "")
+            event_id = str(entry.get("id") or entry.get("eventId") or "")
+            sender = str(entry.get("sender") or entry.get("actor") or "")
+            # Never invent routing or dedupe keys: a placeholder would merge unrelated
+            # events or route them to whichever workspace owns the placeholder.
+            if not (account_id and event_id and sender):
+                continue
             text = str(
                 entry.get("text")
                 or entry.get("message", {}).get("text")
@@ -302,91 +325,5 @@ def linkedin_webhook(request):
         if events:
             persist_events("linkedin", events)
     except (ValueError, KeyError, TypeError, AttributeError):
-        return HttpResponse(status=400)
-    return HttpResponse(status=200)
-
-
-@csrf_exempt
-def snapchat_webhook(request):
-    from datetime import timedelta
-
-    from apps.crm.models import ChannelIdentity, Conversation, Lead, Message
-    from apps.tenants.models import Workspace
-
-    if request.method == "GET":
-        challenge = request.GET.get("challenge", "")
-        if challenge:
-            return HttpResponse(challenge, content_type="text/plain")
-        return HttpResponse(status=200)
-    if request.method != "POST":
-        return HttpResponse(status=405)
-    try:
-        payload = json.loads(request.body)
-        workspace_id = request.GET.get("workspace_id")
-        workspace = None
-        if workspace_id:
-            workspace = Workspace.objects.filter(pk=workspace_id).first()
-        if not workspace:
-            workspace = Workspace.objects.first()
-        if not workspace:
-            return HttpResponse(status=404)
-
-        lead_data = payload.get("form_data") or payload.get("data") or payload
-        email = str(lead_data.get("email") or lead_data.get("email_address") or "").strip()
-        name = str(lead_data.get("name") or lead_data.get("full_name") or "Snapchat Lead").strip()
-        phone = str(lead_data.get("phone") or lead_data.get("phone_number") or "").strip()
-        sender_id = str(
-            payload.get("lead_id") or payload.get("submission_id") or email or phone or "snap_user"
-        )
-
-        with transaction.atomic():
-            connection, _ = ChannelConnection.objects.for_workspace(workspace).get_or_create(
-                workspace=workspace,
-                provider="snapchat",
-                external_account_id="snapchat-lead-ads",
-                defaults={
-                    "display_name": "Snapchat Lead Ads",
-                    "access_token": "snapchat-lead-token",
-                    "expires_at": timezone.now() + timedelta(days=3650),
-                    "status": "active",
-                    "is_test": False,
-                },
-            )
-            lead = (
-                Lead.objects.for_workspace(workspace).filter(email=email).first() if email else None
-            )
-            if not lead:
-                from apps.billing.gating import check_within_limit
-                from apps.tenants.models import Workspace
-
-                Workspace.objects.select_for_update().get(pk=workspace.pk)
-                check_within_limit(workspace.pk, "max_contacts")
-                lead = Lead.objects.for_workspace(workspace).create(
-                    workspace=workspace,
-                    name=name,
-                    email=email,
-                    stage="new",
-                    tags=["snapchat", "lead_ad"],
-                    fields={"phone": phone} if phone else {},
-                )
-            identity, _ = ChannelIdentity.objects.for_workspace(workspace).get_or_create(
-                workspace=workspace,
-                connection=connection,
-                external_id=sender_id,
-                defaults={"lead": lead},
-            )
-            conv, _ = Conversation.objects.for_workspace(workspace).get_or_create(
-                workspace=workspace,
-                identity=identity,
-                defaults={"status": "open"},
-            )
-            Message.objects.for_workspace(workspace).create(
-                workspace=workspace,
-                conversation=conv,
-                direction="inbound",
-                kind="dm",
-                text=f"[Snapchat Lead Ad submission] Name: {name}, Email: {email}, Phone: {phone}",
-            )
-    except Exception:
         return HttpResponse(status=400)
     return HttpResponse(status=200)

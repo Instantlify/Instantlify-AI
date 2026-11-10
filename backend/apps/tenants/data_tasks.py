@@ -66,6 +66,8 @@ def export_tables():
         InternalNote,
         Lead,
         Message,
+        MessageAttachment,
+        SavedReply,
     )
     from apps.marketplace.models import Template, TemplateInstall, TemplatePurchase
     from apps.public_api.models import APIKey, MCPClient, WebhookSubscription
@@ -109,6 +111,13 @@ def export_tables():
                 "description",
                 "fields",
                 "submission_actions",
+                "branching",
+                "theme",
+                "redirect_url",
+                "submission_tags",
+                "button_align",
+                "closed",
+                "capture_contacts",
                 "consent_text",
                 "success_text",
                 "published",
@@ -221,10 +230,19 @@ def export_tables():
         ),
         "messages": (
             Message,
-            ["id", "conversation_id", "direction", "text", "kind", "created_at"],
+            ["id", "conversation_id", "direction", "text", "kind", "created_at", "sequence"],
         ),
         "notes": (InternalNote, ["id", "conversation_id", "author_id", "text", "created_at"]),
-        "assignment_notifications": (AssignmentNotification, ["id", "recipient_id", "actor_id", "lead_id", "read_at", "created_at"]),
+        # File bytes stay out of the export; the record shows what was sent and when.
+        "message_attachments": (
+            MessageAttachment,
+            ["id", "conversation_id", "filename", "content_type", "size", "created_at"],
+        ),
+        "saved_replies": (SavedReply, ["id", "text", "position", "created_at"]),
+        "assignment_notifications": (
+            AssignmentNotification,
+            ["id", "recipient_id", "actor_id", "lead_id", "read_at", "created_at"],
+        ),
         "automations": (
             Automation,
             ["id", "name", "draft", "published", "revision", "enabled"],
@@ -491,11 +509,12 @@ def retention_policy():
     """Payload stores scrubbed after RETENTION_DAYS. Rows stay as dedupe/audit tombstones;
     only the customer-bearing field is blanked. Pending work is never scrubbed."""
     from apps.agents.models import AgentRun, ToolCall
-    from apps.automations.models import WorkflowActionJob
+    from apps.automations.models import IntentMatch, WorkflowActionJob
     from apps.billing.models import BillingEvent, Payment
     from apps.channels.models import Delivery, WebhookEvent
     from apps.crm.models import IntegrationJob, InternalNote, Message
     from apps.marketplace.models import TemplatePurchase
+    from apps.platform_ops.models import CommunityPost, CommunityReply
     from apps.public_api.models import OutboundWebhook
     from apps.tools.models import FormSubmission
 
@@ -505,6 +524,7 @@ def retention_policy():
         (Delivery, {"payload": "{}"}, open_work),
         (ToolCall, {"input": "{}", "output": "{}"}, open_work),
         (AgentRun, {"checkpoint": "{}"}, ["pending", "running"]),
+        (IntentMatch, {"payload": {}}, ["pending", "executing"]),
         (Message, {"text": "", "attachments": "[]"}, []),
         (InternalNote, {"text": ""}, []),
         (IntegrationJob, {"payload": "{}", "result": "{}"}, open_work),
@@ -514,6 +534,8 @@ def retention_policy():
             [*open_work, "rendering", "polling"],
         ),
         (FormSubmission, {"answers": "{}"}, []),
+        (CommunityPost, {"body": "[Removed by retention policy]"}, []),
+        (CommunityReply, {"body": "[Removed by retention policy]"}, []),
         (OutboundWebhook, {"payload": "{}"}, open_work),
         (BillingEvent, {"payload": "{}"}, open_work),
         # Checkout links expire long before retention; drop them rather than keep dead URLs.
@@ -526,14 +548,18 @@ def retention_policy():
 def apply_retention():
     from apps.agents.models import VoiceAsset
     from apps.channels.models import OAuthState
+    from apps.crm.models import MessageAttachment
 
     cutoff = timezone.now() - timedelta(days=settings.RETENTION_DAYS)
     for model, blanks, skip_statuses in retention_policy():
-        rows = model.all_objects.filter(created_at__lt=cutoff)
+        manager = model.all_objects if hasattr(model, "all_objects") else model.objects
+        rows = manager.filter(created_at__lt=cutoff)
         if skip_statuses:
             rows = rows.exclude(status__in=skip_statuses)
         rows.update(**blanks)
     VoiceAsset.all_objects.filter(created_at__lt=timezone.now() - timedelta(hours=2)).delete()
+    # Inbox file bytes follow the same retention window as message text.
+    MessageAttachment.all_objects.filter(created_at__lt=cutoff).delete()
     OAuthState.all_objects.filter(expires_at__lt=timezone.now() - timedelta(days=1)).delete()
     DataOperation.all_objects.filter(
         created_at__lt=timezone.now() - timedelta(days=1), kind="export"

@@ -30,7 +30,6 @@ import {
 const CHANNEL_PROVIDERS = [
   { id: "whatsapp", label: "WhatsApp Business", account: "Phone number ID" },
   { id: "telegram", label: "Telegram Bot", account: "Bot user ID" },
-  { id: "snapchat", label: "Snapchat Lead Ads", account: "Ad Account or Form ID" },
   { id: "linkedin", label: "LinkedIn Company Page", account: "Organization URN" },
   { id: "instagram", label: "Instagram", account: "Instagram account ID" },
   { id: "messenger", label: "Facebook Messenger", account: "Facebook Page ID" },
@@ -47,6 +46,7 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
   const feedback = useFeedback();
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const [testChannelsEnabled, setTestChannelsEnabled] = useState(false);
+  const [linkedinAvailable, setLinkedinAvailable] = useState(false);
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
@@ -58,8 +58,9 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
       ]);
       setConnections(channels.results);
       setDeliveries(sent);
-      const status = await api<{ test_channels_enabled?: boolean }>(`${prefix}/status/`, "GET", undefined, signal);
+      const status = await api<{ test_channels_enabled?: boolean; linkedin_available?: boolean }>(`${prefix}/status/`, "GET", undefined, signal);
       setTestChannelsEnabled(status.test_channels_enabled === true);
+      setLinkedinAvailable(status.linkedin_available === true);
     },
     [prefix, manager],
   );
@@ -285,14 +286,16 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                 >
                   <Plug size={16} /> Connect Instagram &amp; Messenger
                 </button>
-                <button
-                  type="button"
-                  className="button secondary"
-                  disabled={feedback.busy}
-                  onClick={() => connectOAuth("linkedin")}
-                >
-                  <Plug size={16} /> Connect LinkedIn Page
-                </button>
+                {linkedinAvailable && (
+                  <button
+                    type="button"
+                    className="button secondary"
+                    disabled={feedback.busy}
+                    onClick={() => connectOAuth("linkedin")}
+                  >
+                    <Plug size={16} /> Connect LinkedIn Page
+                  </button>
+                )}
               </div>
               <details className="channel-advanced">
                 <summary>Advanced: manual credentials and test channels</summary>
@@ -357,7 +360,7 @@ export function ChannelsPanel({ prefix, manager }: { prefix: string; manager: bo
                     Webhook URLs for custom apps. Telegram registers its webhook
                     automatically. LinkedIn webhook registration is not automatic.
                   </p>
-                  {["instagram", "whatsapp", "messenger", "linkedin", "snapchat"].map(
+                  {["instagram", "whatsapp", "messenger", ...(linkedinAvailable ? ["linkedin"] : [])].map(
                     (provider) => (
                       <CopyField
                         key={provider}

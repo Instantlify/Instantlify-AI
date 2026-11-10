@@ -124,6 +124,7 @@ type FormState = {
   triage_enabled: boolean;
   handoff_keywords: string;
   max_tool_rounds: number;
+  reply_delay_seconds: number;
   mode: "agent" | "simple";
   billing_mode: "platform_credits" | "byo_key";
   input_cost_per_million: string;
@@ -148,6 +149,7 @@ const DEFAULTS: FormState = {
   triage_enabled: true,
   handoff_keywords: "",
   max_tool_rounds: 4,
+  reply_delay_seconds: 5,
   mode: "agent",
   billing_mode: "platform_credits",
   input_cost_per_million: "0",
@@ -172,6 +174,7 @@ function toForm(config: AgentConfig): FormState {
     triage_enabled: config.triage_enabled,
     handoff_keywords: config.handoff_keywords.join(", "),
     max_tool_rounds: config.max_tool_rounds,
+    reply_delay_seconds: config.reply_delay_seconds ?? 0,
     mode: config.mode || "agent",
     billing_mode: config.billing_mode || "platform_credits",
     input_cost_per_million: config.input_cost_per_million,
@@ -239,6 +242,7 @@ export default function AgentPage() {
           .map((item) => item.trim())
           .filter(Boolean),
         max_tool_rounds: Number(form.max_tool_rounds),
+        reply_delay_seconds: Number(form.reply_delay_seconds),
         mode: form.mode,
         billing_mode: form.billing_mode,
         input_cost_per_million: form.input_cost_per_million || "0",
@@ -556,6 +560,24 @@ export default function AgentPage() {
                       set("max_tool_rounds", Number(e.target.value))
                     }
                   />
+                </label>
+                <label>
+                  Wait before replying (seconds)
+                  <ValidatedInput name="reply_delay_seconds"
+                    type="number"
+                    min={0}
+                    max={30}
+                    value={form.reply_delay_seconds}
+                    disabled={!manager}
+                    onChange={(e) =>
+                      set("reply_delay_seconds", Number(e.target.value))
+                    }
+                  />
+                  <span className="hint">
+                    When a customer sends several messages in a row, the agent
+                    waits this long after the last one and answers them together.
+                    0 replies to each message at once.
+                  </span>
                 </label>
               </div>
 

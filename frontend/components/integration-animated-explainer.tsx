@@ -10,9 +10,7 @@ import {
   ChevronLeft,
   Phone,
   Video,
-  CheckCircle2,
   Zap,
-  Users,
 } from "lucide-react";
 import { BrandIcon } from "@/lib/brand-icons";
 
@@ -31,7 +29,11 @@ export interface IntegrationAppInfo {
   };
 }
 
-export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo }) {
+export function IntegrationAnimatedExplainer({
+  app,
+}: {
+  app: IntegrationAppInfo;
+}) {
   // Loop cycle:
   // Phase 1 (Builder): 0ms -> 3800ms
   //   0ms: reset / start
@@ -49,7 +51,9 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
   //   9200ms: Loop resets to Phase 1!
 
   const [tick, setTick] = useState(0);
-  const [activeTab, setActiveTab] = useState<"auto" | "builder" | "execution">("auto");
+  const [activeTab, setActiveTab] = useState<"auto" | "builder" | "execution">(
+    "auto",
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -58,7 +62,8 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
     return () => clearInterval(interval);
   }, []);
 
-  const effectiveTime = activeTab === "builder" ? 2800 : activeTab === "execution" ? 7000 : tick;
+  const effectiveTime =
+    activeTab === "builder" ? 2800 : activeTab === "execution" ? 7000 : tick;
 
   const isPhase1 = effectiveTime < 3800;
   const box1Visible = effectiveTime >= 300;
@@ -97,13 +102,9 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
     pk.includes("teams");
 
   const isEmail =
-    pk.includes("gmail") ||
-    pk.includes("outlook") ||
-    pk.includes("mail");
+    pk.includes("gmail") || pk.includes("outlook") || pk.includes("mail");
 
-  const isScheduling =
-    pk.includes("calendly") ||
-    pk.includes("cal");
+  const isScheduling = pk.includes("calendly") || pk.includes("cal");
 
   return (
     <div className="explainer-interactive-wrapper">
@@ -112,7 +113,9 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
         <button
           type="button"
           className={`phase-tab-btn ${isPhase1 ? "active" : ""}`}
-          onClick={() => setActiveTab(activeTab === "builder" ? "auto" : "builder")}
+          onClick={() =>
+            setActiveTab(activeTab === "builder" ? "auto" : "builder")
+          }
         >
           <span className="step-num">1</span>
           <span>Flow Setup</span>
@@ -121,7 +124,9 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
         <button
           type="button"
           className={`phase-tab-btn ${isPhase2 ? "active" : ""}`}
-          onClick={() => setActiveTab(activeTab === "execution" ? "auto" : "execution")}
+          onClick={() =>
+            setActiveTab(activeTab === "execution" ? "auto" : "execution")
+          }
         >
           <span className="step-num">2</span>
           <span>Live Action</span>
@@ -198,7 +203,13 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                   >
                     {app.name.slice(0, 2).toUpperCase()}
                   </div>
-                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <span
+                    style={{
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
                     {app.name}
                   </span>
                 </div>
@@ -209,7 +220,10 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
             </div>
 
             <div className="explainer-frame-caption">
-              <span>Step 1: In your automation, link the conversation trigger to <strong>{app.name}</strong></span>
+              <span>
+                Step 1: In your automation, link the conversation trigger to{" "}
+                <strong>{app.name}</strong>
+              </span>
             </div>
           </div>
         )}
@@ -249,7 +263,9 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                         <span className="explainer-app-mark">{app.logo}</span>
                       </div>
                       <span className="sheet-doc-title">Leads</span>
-                      <span className="sheet-menubar">File Edit View Insert Format</span>
+                      <span className="sheet-menubar">
+                        File Edit View Insert Format
+                      </span>
                     </div>
 
                     <table className="sheet-table">
@@ -293,12 +309,17 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                 {isWorkflow && (
                   <div className="mock-workflow-panel">
                     <div className="mock-workflow-header">
-                      <div className="wf-node-icon" style={{ background: app.iconBg, color: app.iconColor }}>
+                      <div
+                        className="wf-node-icon"
+                        style={{ background: app.iconBg, color: app.iconColor }}
+                      >
                         <Zap size={14} />
                       </div>
                       <div>
                         <strong>{app.name} Execution</strong>
-                        <div style={{ fontSize: "11px", color: "#64748b" }}>POST /webhook/lead</div>
+                        <div style={{ fontSize: "11px", color: "#64748b" }}>
+                          POST /webhook/lead
+                        </div>
                       </div>
                       {destPopulated && (
                         <span className="wf-badge-success">
@@ -321,26 +342,46 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                   <div className="mock-slack-panel">
                     <div className="mock-slack-header">
                       <strong># new-leads</strong>
-                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>channel</span>
+                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                        channel
+                      </span>
                     </div>
                     {destPopulated ? (
                       <div className="mock-slack-msg animate-pop">
-                        <div className="slack-bot-avatar" style={{ background: app.iconBg, color: app.iconColor }}>
+                        <div
+                          className="slack-bot-avatar"
+                          style={{
+                            background: app.iconBg,
+                            color: app.iconColor,
+                          }}
+                        >
                           {app.name.slice(0, 1)}
                         </div>
                         <div className="slack-msg-body">
                           <div className="slack-msg-author">
-                            Nemio Lead Bot <span className="slack-time">Just now</span>
+                            Nemio Lead Bot{" "}
+                            <span className="slack-time">Just now</span>
                           </div>
                           <div className="slack-card-embed">
                             <strong>🎯 New Lead from Instagram</strong>
-                            <div>Name: <b>Jamie Doe</b></div>
-                            <div>Email: <b>jamie@mail.com</b></div>
+                            <div>
+                              Name: <b>Jamie Doe</b>
+                            </div>
+                            <div>
+                              Email: <b>jamie@mail.com</b>
+                            </div>
                           </div>
                         </div>
                       </div>
                     ) : (
-                      <div style={{ fontSize: "12px", color: "#94a3b8", padding: "16px 0", textAlign: "center" }}>
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "#94a3b8",
+                          padding: "16px 0",
+                          textAlign: "center",
+                        }}
+                      >
                         Waiting for new conversation lead…
                       </div>
                     )}
@@ -356,14 +397,26 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                     </div>
                     {destPopulated ? (
                       <div className="email-preview-card animate-pop">
-                        <div className="email-row"><b>To:</b> jamie@mail.com</div>
-                        <div className="email-row"><b>Subject:</b> Here is your free guide! 🎁</div>
+                        <div className="email-row">
+                          <b>To:</b> jamie@mail.com
+                        </div>
+                        <div className="email-row">
+                          <b>Subject:</b> Here is your free guide! 🎁
+                        </div>
                         <div className="email-snippet">
-                          Hi Jamie, thank you for reaching out via Instagram! Here is the direct link you requested…
+                          Hi Jamie, thank you for reaching out via Instagram!
+                          Here is the direct link you requested…
                         </div>
                       </div>
                     ) : (
-                      <div style={{ fontSize: "12px", color: "#94a3b8", padding: "16px 0", textAlign: "center" }}>
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "#94a3b8",
+                          padding: "16px 0",
+                          textAlign: "center",
+                        }}
+                      >
                         Email queue ready…
                       </div>
                     )}
@@ -379,12 +432,37 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                     </div>
                     {destPopulated ? (
                       <div className="cal-event-card animate-pop">
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>Strategy Call w/ Jamie Doe</div>
-                        <div style={{ fontSize: "12px", color: "#0284c7", marginTop: "2px" }}>Thursday @ 2:30 PM (30 min)</div>
-                        <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>Confirmed automatically via DM</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                          Strategy Call w/ Jamie Doe
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "#0284c7",
+                            marginTop: "2px",
+                          }}
+                        >
+                          Thursday @ 2:30 PM (30 min)
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            color: "#64748b",
+                            marginTop: "4px",
+                          }}
+                        >
+                          Confirmed automatically via DM
+                        </div>
                       </div>
                     ) : (
-                      <div style={{ fontSize: "12px", color: "#94a3b8", padding: "16px 0", textAlign: "center" }}>
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "#94a3b8",
+                          padding: "16px 0",
+                          textAlign: "center",
+                        }}
+                      >
                         Slot reserved…
                       </div>
                     )}
@@ -392,28 +470,41 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                 )}
 
                 {/* Variant F: Default CRM Record */}
-                {!isSpreadsheet && !isWorkflow && !isCommunication && !isEmail && !isScheduling && (
-                  <div className="mock-crm-card">
-                    <div className="mock-crm-header">
-                      <div className="crm-avatar">JD</div>
-                      <div>
-                        <strong>{destPopulated ? "Jamie Doe" : "Awaiting Lead..."}</strong>
-                        <div style={{ fontSize: "11px", color: "#64748b" }}>
-                          {destPopulated ? "jamie@mail.com" : "Synced via automation"}
+                {!isSpreadsheet &&
+                  !isWorkflow &&
+                  !isCommunication &&
+                  !isEmail &&
+                  !isScheduling && (
+                    <div className="mock-crm-card">
+                      <div className="mock-crm-header">
+                        <div className="crm-avatar">JD</div>
+                        <div>
+                          <strong>
+                            {destPopulated ? "Jamie Doe" : "Awaiting Lead..."}
+                          </strong>
+                          <div style={{ fontSize: "11px", color: "#64748b" }}>
+                            {destPopulated
+                              ? "jamie@mail.com"
+                              : "Synced via automation"}
+                          </div>
                         </div>
+                        {destPopulated && (
+                          <span className="crm-tag-badge">Lead Captured</span>
+                        )}
                       </div>
                       {destPopulated && (
-                        <span className="crm-tag-badge">Lead Captured</span>
+                        <div className="crm-sub-details">
+                          <div>
+                            Source: <b>Instagram DM</b>
+                          </div>
+                          <div>
+                            Status:{" "}
+                            <b style={{ color: "#10b981" }}>New Active Lead</b>
+                          </div>
+                        </div>
                       )}
                     </div>
-                    {destPopulated && (
-                      <div className="crm-sub-details">
-                        <div>Source: <b>Instagram DM</b></div>
-                        <div>Status: <b style={{ color: "#10b981" }}>New Active Lead</b></div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
               </div>
 
               {/* RIGHT SIDE: Mobile Chat Mockup (Matches Screenshot 2) */}
@@ -440,7 +531,8 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                 <div className="phone-chat-body">
                   {/* Bot Prompt Message (Blue Bubble) */}
                   <div className="chat-bubble bot-bubble">
-                    What&apos;s your name &amp; email? I&apos;ll send the guide 🎁
+                    What&apos;s your name &amp; email? I&apos;ll send the guide
+                    🎁
                   </div>
 
                   {/* User Reply Bubble (Gray Bubble) */}
@@ -466,7 +558,9 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
                   <span className="input-placeholder-text">
                     {chatTyping ? "Jamie Doe| " : "Message..."}
                   </span>
-                  <div className={`input-send-icon ${chatTyping ? "active-send" : ""}`}>
+                  <div
+                    className={`input-send-icon ${chatTyping ? "active-send" : ""}`}
+                  >
                     <Send size={12} />
                   </div>
                 </div>
@@ -474,7 +568,10 @@ export function IntegrationAnimatedExplainer({ app }: { app: IntegrationAppInfo 
             </div>
 
             <div className="explainer-frame-caption">
-              <span>Step 2: Customer messages in chat ➔ Data is instantly dropped into <strong>{app.name}</strong></span>
+              <span>
+                Step 2: Customer messages in chat ➔ Data is instantly dropped
+                into <strong>{app.name}</strong>
+              </span>
             </div>
           </div>
         )}

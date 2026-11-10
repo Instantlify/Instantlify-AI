@@ -1,0 +1,45 @@
+.public-lead-form {
+  --brand-action: var(--form-primary);
+  --brand-action-hover: var(--form-primary);
+  --brand-primary: var(--form-primary);
+  --brand-on-primary: var(--form-button-text);
+  --green: var(--form-primary);
+  --text-primary: var(--form-text);
+  --text-secondary: var(--form-text);
+  --text-muted: var(--form-text);
+  --bg-surface: var(--form-background);
+  --bg-subtle: var(--form-background);
+  background: var(--form-background);
+  color: var(--form-text);
+}
+.public-lead-form :is(h1, h2, p, label, legend, .eyebrow) {
+  color: inherit;
+}
+.public-lead-form
+  :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: var(--form-background);
+  color: var(--form-text);
+  border: 1px solid #8a96a8;
+}
+.public-lead-form fieldset {
+  min-width: 0;
+  border: 1px solid #8a96a8;
+  border-radius: 8px;
+  padding: 12px;
+}
+.public-lead-form input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--form-primary);
+}
+.public-lead-form .button.primary {
+  background: var(--form-primary);
+  color: var(--form-button-text);
+}
+.public-lead-form a {
+  color: var(--form-text);
+  text-decoration: underline;
+}
+.public-lead-form .field-error {
+  color: var(--form-text);
+  font-weight: 700;
+}

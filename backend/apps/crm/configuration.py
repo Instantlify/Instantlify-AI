@@ -6,14 +6,23 @@ from rest_framework import serializers
 def validate_live_configuration(provider, credentials, options):
     webhook_providers = {"n8n", "make", "discord", "webhook"}
     token_fields = (
-        ("webhook_url",) if provider in webhook_providers
-        else ("secret_key",) if provider == "stripe"
-        else ("access_token",) if provider in {"gmail", "google_calendar", "google_sheets", "outlook", "slack"}
+        ("webhook_url",)
+        if provider in webhook_providers
+        else ("secret_key",)
+        if provider == "stripe"
+        else ("access_token",)
+        if provider in {"gmail", "google_calendar", "google_sheets", "outlook"}
         else ("api_key", "access_token")
     )
-    if not any(isinstance(credentials.get(key), str) and credentials[key].strip() for key in token_fields):
+    if not any(
+        isinstance(credentials.get(key), str) and credentials[key].strip() for key in token_fields
+    ):
         raise serializers.ValidationError(
-            {"credentials": "Enter the provider's " + " or ".join(key.replace("_", " ") for key in token_fields) + "."}
+            {
+                "credentials": "Enter the provider's "
+                + " or ".join(key.replace("_", " ") for key in token_fields)
+                + "."
+            }
         )
     required_options = {
         "google_sheets": ("spreadsheet_id",),
@@ -24,6 +33,8 @@ def validate_live_configuration(provider, credentials, options):
         "gohighlevel": ("location_id",),
         "calcom": ("event_type_id",),
     }.get(provider, ())
-    missing = [key.replace("_", " ") for key in required_options if not str(options.get(key) or "").strip()]
+    missing = [
+        key.replace("_", " ") for key in required_options if not str(options.get(key) or "").strip()
+    ]
     if missing:
         raise serializers.ValidationError({"options": "Enter " + ", ".join(missing) + "."})

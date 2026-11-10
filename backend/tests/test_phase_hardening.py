@@ -243,7 +243,7 @@ def test_export_covers_every_tenant_table_and_omits_secrets(workspace, channel):
     from django.apps import apps as django_apps
 
     from apps.agents.models import AgentRun, AgentSession, KnowledgeChunk, VoiceAsset
-    from apps.automations.models import ConversationState, Edge, Node, Trigger
+    from apps.automations.models import ConversationState, Edge, IntentMatch, Node, Trigger
     from apps.billing.models import BillingAccount, BillingJob
     from apps.marketplace.models import SellerAccount
     from apps.public_api.models import APIKey, OutboundWebhook
@@ -255,7 +255,7 @@ def test_export_covers_every_tenant_table_and_omits_secrets(workspace, channel):
         OAuthState, WebhookEvent, Delivery, BillingAccount, BillingEvent, BillingJob,
         KnowledgeChunk, AgentSession, AgentRun, VoiceAsset, Trigger, Node, Edge,
         ConversationState, Invitation, OutboxEvent, DataOperation, OutboundWebhook,
-        SellerAccount,
+        SellerAccount, IntentMatch,
     }  # fmt: skip
     tenant_models = {
         model

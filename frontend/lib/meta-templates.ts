@@ -196,7 +196,7 @@ export function triggerChannels(
 
 /** Meta channels each trigger kind can arrive on; mirrors the backend's rules. */
 export const KIND_CHANNELS: Record<string, string[]> = {
-  dm: ["instagram", "messenger", "whatsapp"],
+  dm: ["instagram", "messenger", "whatsapp", "webchat"],
   comment: ["instagram", "messenger"],
   story_reply: ["instagram"],
   live_comment: ["instagram"],

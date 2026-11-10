@@ -31,6 +31,9 @@ test("deep links list the API's links and create new ones through it", async ({
       platform: "whatsapp",
       target: "https://wa.me/15550100200",
       code: "order-chat",
+      campaign: "",
+      source: "",
+      medium: "",
     });
   await expect(page.getByText("/go/order-chat/")).toBeVisible();
 });

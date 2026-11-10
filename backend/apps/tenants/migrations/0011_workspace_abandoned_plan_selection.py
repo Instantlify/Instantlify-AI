@@ -12,9 +12,9 @@ def mark_abandoned_plan_selection(apps, schema_editor):
     reached = payment.filter(status="reached").values("workspace_id")
     completed = payment.filter(status="completed").values("workspace_id")
     subscribed = BillingAccount._base_manager.using(db).exclude(subscription_id="")
-    Workspace.objects.using(db).filter(pk__in=reached).exclude(
-        pk__in=completed
-    ).exclude(pk__in=subscribed.values("workspace_id")).update(checkout_pending=True)
+    Workspace.objects.using(db).filter(pk__in=reached).exclude(pk__in=completed).exclude(
+        pk__in=subscribed.values("workspace_id")
+    ).update(checkout_pending=True)
 
 
 class Migration(migrations.Migration):
