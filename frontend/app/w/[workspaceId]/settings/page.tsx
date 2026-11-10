@@ -33,6 +33,7 @@ import {
   User,
   Users,
   ShieldCheck,
+  Globe,
 } from "lucide-react";
 import {
   api,
@@ -53,6 +54,7 @@ import { BrandIcon } from "@/lib/brand-icons";
 import { creditMoney } from "@/lib/credit-money";
 import { loadWorkspaces, useWorkspace } from "@/lib/workspace";
 import { DataPrivacyPanel } from "@/components/data-privacy-panel";
+import { AgencyPanel } from "@/components/agency-panel";
 import {
   ErrorNotice,
   SuccessNotice,
@@ -70,7 +72,13 @@ import {
 } from "@/lib/workspace-theme";
 
 type SettingsTab =
-  "profile" | "meta" | "team" | "subscription" | "workspaces" | "data";
+  | "profile"
+  | "meta"
+  | "team"
+  | "subscription"
+  | "workspaces"
+  | "data"
+  | "agency";
 
 const QUICK_COLORS = [
   "#10244a",
@@ -736,6 +744,17 @@ export default function SettingsPage() {
           Workspaces
         </button>
 
+        {(workspace.role === "owner" || workspace.role === "admin") && (
+          <button
+            type="button"
+            className={`settings-nav-tab ${activeTab === "agency" ? "active" : ""}`}
+            onClick={() => setActiveTab("agency")}
+          >
+            <Globe size={15} />
+            Domain &amp; clients
+          </button>
+        )}
+
         {workspace.role === "owner" && (
           <button
             type="button"
@@ -747,6 +766,15 @@ export default function SettingsPage() {
           </button>
         )}
       </div>
+
+      {activeTab === "agency" &&
+        (workspace.role === "owner" || workspace.role === "admin") && (
+          <AgencyPanel
+            prefix={prefix}
+            isOwner={workspace.role === "owner"}
+            isClient={Boolean(workspace.parent)}
+          />
+        )}
 
       {activeTab === "data" && workspace.role === "owner" && (
         <DataPrivacyPanel prefix={prefix} workspaceName={workspace.name} />
