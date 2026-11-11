@@ -24,6 +24,9 @@ class CommunityPost(models.Model):
 class CommunityReply(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     post = models.ForeignKey(CommunityPost, related_name="replies", on_delete=models.CASCADE)
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, related_name="children", on_delete=models.SET_NULL
+    )
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     body = EncryptedTextField()
     created_at = models.DateTimeField(auto_now_add=True)

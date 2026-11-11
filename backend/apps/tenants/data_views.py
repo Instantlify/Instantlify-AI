@@ -53,6 +53,28 @@ class DownloadExportView(APIView):
             kind="export",
             status="complete",
         )
+        if request.query_params.get("format", "xlsx") == "xlsx":
+            from django.http import FileResponse
+
+            from .data_tasks import export_tables
+            from .excel_export import MIME, workbook
+
+            snapshot = json.loads(job.result)
+            snapshot.setdefault("manifest", {}).setdefault("workspace_name", job.workspace.name)
+            file = workbook(
+                snapshot, {name: fields for name, (_model, fields) in export_tables().items()}
+            )
+            response = FileResponse(
+                file,
+                as_attachment=True,
+                filename="instantlify-workspace-export.xlsx",
+                content_type=MIME,
+            )
+            response["Cache-Control"] = "private, no-store"
+            response["X-Content-Type-Options"] = "nosniff"
+            return response
+        if request.query_params.get("format") != "json":
+            raise ValidationError("Choose xlsx or json.")
         response = Response(json.loads(job.result))
         response["Content-Disposition"] = 'attachment; filename="instantlify-export.json"'
         response["Cache-Control"] = "private, no-store"

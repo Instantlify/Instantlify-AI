@@ -4,7 +4,7 @@ import { useConfirmation } from "@/components/confirmation-provider";
 
 import { Download, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { api, message, when } from "@/lib/api";
+import { api, apiBlob, message, when } from "@/lib/api";
 import {
   ErrorNotice,
   Pill,
@@ -85,26 +85,25 @@ export function DataPrivacyPanel({
 
   async function download(op: DataOperation) {
     await feedback.run(async () => {
-      const data = await api<unknown>(
-        `${prefix}/data-operations/${op.id}/download/`,
+      const blob = await apiBlob(
+        `${prefix}/data-operations/${op.id}/download/?format=xlsx`,
       );
-      const blob = new Blob([JSON.stringify(data, null, 2)], {
-        type: "application/json",
-      });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `instantlify-export-${op.created_at.slice(0, 10)}.json`;
+      link.download = `instantlify-export-${op.created_at.slice(0, 10)}.xlsx`;
+      document.body.appendChild(link);
       link.click();
-      URL.revokeObjectURL(link.href);
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     });
   }
 
   async function requestDelete(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (
-      !await confirm(
+      !(await confirm(
         `Permanently delete “${workspaceName}” and all of its contacts, conversations and automations? This cannot be undone.`,
-      )
+      ))
     )
       return;
     const done = await feedback.run(async () => {
@@ -129,9 +128,9 @@ export function DataPrivacyPanel({
       <section className="card stack">
         <h3>Export workspace data</h3>
         <p className="muted-text">
-          A JSON file with every contact, conversation, message, automation,
-          form response and setting in this workspace. Passwords, API keys and
-          provider tokens are never included.
+          An Excel workbook with separate sheets for contacts, conversations,
+          messages, automations, form responses and workspace settings.
+          Passwords, API keys and provider tokens are never included.
         </p>
         <form className="row wrap" style={{ gap: 8 }} onSubmit={requestExport}>
           <input
@@ -171,7 +170,7 @@ export function DataPrivacyPanel({
                     disabled={feedback.busy}
                     onClick={() => void download(op)}
                   >
-                    Download
+                    Download Excel
                   </button>
                 )}
               </li>
@@ -190,7 +189,9 @@ export function DataPrivacyPanel({
         </p>
         <form className="stack" style={{ gap: 8 }} onSubmit={requestDelete}>
           <label>
-            Type <strong>{workspaceName}</strong> to confirm
+            <span>
+              Type <strong>{workspaceName}</strong> to confirm
+            </span>
             <input
               aria-label="Workspace name confirmation"
               required

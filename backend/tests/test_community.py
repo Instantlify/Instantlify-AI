@@ -78,6 +78,25 @@ def test_threaded_replies_are_editable_only_by_their_author_or_moderator(client)
     assert other.delete(url + reply["id"] + "/").status_code == 204
 
 
+def test_nested_replies_stay_in_their_discussion_and_survive_parent_deletion(client):
+    first, second = post(client), post(client, "Another discussion")
+    url = f"/api/community/{first['id']}/replies/"
+    parent = client.post(url, {"body": "Parent"}, format="json").json()
+    child = client.post(url, {"body": "Child", "parent_id": parent["id"]}, format="json")
+    assert child.status_code == 201 and child.json()["parent_id"] == parent["id"]
+    assert (
+        client.post(
+            f"/api/community/{second['id']}/replies/",
+            {"body": "Wrong thread", "parent_id": parent["id"]},
+            format="json",
+        ).status_code
+        == 404
+    )
+    assert client.delete(url + parent["id"] + "/").status_code == 204
+    remaining = client.get(url).json()["results"]
+    assert len(remaining) == 1 and remaining[0]["parent_id"] is None
+
+
 def test_assistant_only_uses_shared_discussions_and_reports_sources(client, workspace):
     Lead.objects.for_workspace(workspace).create(
         workspace=workspace, name="Private Saffron Secret", fields={"secret": "never share"}
