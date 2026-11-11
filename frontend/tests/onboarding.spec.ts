@@ -324,23 +324,36 @@ test("analytics, bio page, offers and invitations", async ({ page }) => {
       page.getByRole("cell", { name: "Untitled automation", exact: true }),
     ).toBeVisible();
   await nav(page, "Link in bio");
-  await page.getByLabel("Page address").fill(slug);
-  await page.getByLabel("Title", { exact: true }).fill("E2E Studio");
-  await page.getByLabel("Bio").fill("Book a call with us.");
-  await page.getByLabel("Published (visible to anyone with the link)").check();
+  await page.getByRole("textbox", { name: /^Page address/ }).fill(slug);
+  await page
+    .getByRole("textbox", { name: "Title", exact: true })
+    .fill("E2E Studio");
+  await page
+    .getByRole("textbox", { name: "Bio", exact: true })
+    .fill("Book a call with us.");
+  await page
+    .getByRole("checkbox", {
+      name: "Published (visible to anyone with the link)",
+      exact: true,
+    })
+    .check();
   await page.getByRole("button", { name: "Save page" }).click();
   await expect(
     page.getByRole("status").filter({ hasText: "Page saved." }),
   ).toBeVisible();
   await nav(page, "Payments");
-  await page.getByLabel("Name", { exact: true }).fill("Starter pack");
-  await page.getByLabel("Amount").fill("49");
+  await page
+    .getByRole("textbox", { name: "Name", exact: true })
+    .fill("Starter pack");
+  await page.getByRole("spinbutton", { name: /^Amount/ }).fill("49");
   await page.getByRole("button", { name: "Create offer" }).click();
   await expect(
     page.getByRole("cell", { name: "Starter pack", exact: true }),
   ).toBeVisible();
   await nav(page, "Team");
-  await page.getByLabel("Email address").fill("teammate@example.com");
+  await page
+    .getByRole("textbox", { name: "Email address", exact: true })
+    .fill("teammate@example.com");
   await page.getByRole("button", { name: "Create invite" }).click();
   await expect(page.getByText("One-time invite link")).toBeVisible();
   await page.goto(`/p/${slug}/`);
@@ -359,7 +372,7 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();
   await signIn(page);
-  await expect(page.locator(".workspace-title")).toHaveText(
+  await expect(page.locator(".workspace-crumb")).toHaveText(
     "E2E Studio Updated",
   );
   await nav(page, "Home");
