@@ -110,8 +110,8 @@ test("sign up, create a workspace and connect a test channel", async ({
   await expect(page).toHaveURL(
     new RegExp(`/onboarding/?\\?workspace=${workspaceId}`),
   );
-  // The billing tests cover Stripe activation. Provision this workspace for
-  // the rest of the local product smoke test.
+  // The billing tests cover Stripe activation. Provision this test workspace on
+  // Starter for the remaining journey, including inviting a second team seat.
   execFileSync(
     "docker",
     [
@@ -123,7 +123,7 @@ test("sign up, create a workspace and connect a test channel", async ({
       "manage.py",
       "shell",
       "-c",
-      `from apps.tenants.models import Workspace; Workspace.objects.filter(pk='${workspaceId}').update(checkout_pending=False)`,
+      `from apps.tenants.models import Workspace; from apps.billing.models import PlanPrice; from apps.billing.services import account_for; Workspace.objects.filter(pk='${workspaceId}').update(checkout_pending=False); account = account_for('${workspaceId}'); account.plan_price = PlanPrice.objects.get(plan__slug='starter', billing_interval='monthly'); account.save(update_fields=['plan_price'])`,
     ],
     { cwd: path.resolve(__dirname, "..", "..") },
   );
