@@ -97,7 +97,10 @@ test("community discussions support reactions, replies, edits and source-backed 
     page.getByRole("button", { name: "Like (1)", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Replies (0)", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Discussion replies" });
+  const dialog = page.getByRole("region", { name: "Discussion replies" });
+  await expect(
+    page.getByRole("dialog", { name: "Discussion replies" }),
+  ).toHaveCount(0);
   await dialog
     .getByLabel("Your reply")
     .fill("Match the incoming comment against the published trigger.");
@@ -105,15 +108,21 @@ test("community discussions support reactions, replies, edits and source-backed 
   await expect(
     dialog.getByText("Match the incoming comment", { exact: false }),
   ).toBeVisible();
-  const deleteReply = dialog.getByRole("button", { name: "Delete reply", exact: true });
+  const deleteReply = dialog.getByRole("button", {
+    name: "Delete reply",
+    exact: true,
+  });
   await deleteReply.click();
   const confirmation = page.getByRole("alertdialog");
   await expect(confirmation).toContainText("Delete this reply?");
-  await confirmation.getByRole("button", { name: "Cancel", exact: true }).click();
+  await confirmation
+    .getByRole("button", { name: "Cancel", exact: true })
+    .click();
   await expect(confirmation).toHaveCount(0);
   await expect(dialog).toBeVisible();
   await expect(deleteReply).toBeFocused();
-  await dialog.getByRole("button", { name: "Close" }).click();
+  await dialog.getByRole("button", { name: "Hide replies" }).click();
+  await page.getByLabel("Discussion actions by Alex", { exact: true }).click();
   await page.getByRole("button", { name: "Edit post", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "Edit discussion" });
   await edit.getByLabel("Post text").fill("Updated workflow question");
@@ -121,15 +130,22 @@ test("community discussions support reactions, replies, edits and source-backed 
   await expect(
     page.getByText("Updated workflow question", { exact: true }),
   ).toBeVisible();
+  await page.getByLabel("Discussion actions by Alex", { exact: true }).click();
   await page.getByRole("button", { name: "Pin", exact: true }).click();
-  await expect(page.getByText("Pinned", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Pinned discussion", { exact: true }),
+  ).toBeVisible();
   await page.getByLabel("Ask the community assistant").fill("keyword workflow");
   await page.getByRole("button", { name: "Search discussions" }).click();
   await expect(
     page.getByText("Keyword matching starts a workflow.", { exact: true }),
   ).toBeVisible();
+  await page.getByLabel("Discussion actions by Alex", { exact: true }).click();
   await page.getByRole("button", { name: "Delete post", exact: true }).click();
-  await page.getByRole("alertdialog").getByRole("button", { name: "Delete", exact: true }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
   await expect(page.getByText("No discussions to show.")).toBeVisible();
 });
 

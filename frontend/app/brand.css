@@ -59,3 +59,38 @@
     font-weight: 700;
   }
 }
+
+/* A restrained lift and glow, with a quiet interval between each pulse. */
+@keyframes instantlify-spark {
+  0%,
+  68%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  76% {
+    transform: translateY(-1.5px) rotate(-4deg);
+    filter: drop-shadow(0 0 5px currentColor);
+  }
+  84% {
+    transform: translateY(0) rotate(2deg);
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+  91% {
+    transform: translateY(-0.5px) rotate(0deg);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+}
+.instantlify-mark-image {
+  transform-origin: center;
+  animation: instantlify-spark 6s ease-in-out infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .instantlify-mark-image {
+    animation: none;
+    transform: none;
+    filter: none;
+    will-change: auto;
+  }
+}

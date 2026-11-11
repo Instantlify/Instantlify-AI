@@ -73,6 +73,7 @@ def reply_data(reply, user):
         "body": reply.body,
         "created_at": reply.created_at,
         "can_delete": reply.author_id == user.pk or user.is_superuser,
+        "parent_id": str(reply.parent_id) if reply.parent_id else None,
     }
 
 
@@ -180,8 +181,12 @@ class CommunityReplies(APIView):
 
     def post(self, request, pk):
         post = get_object_or_404(CommunityPost, pk=pk)
+        parent = None
+        if request.data.get("parent_id"):
+            parent_id = serializers.UUIDField().run_validation(request.data["parent_id"])
+            parent = get_object_or_404(CommunityReply, pk=parent_id, post=post)
         reply = CommunityReply.objects.create(
-            post=post, author=request.user, body=clean_body(request.data.get("body"))
+            post=post, parent=parent, author=request.user, body=clean_body(request.data.get("body"))
         )
         return Response(reply_data(reply, request.user), status=201)
 
