@@ -31,7 +31,7 @@ FROM dependencies AS runtime
 USER root
 # Dependency installers are build tools, not application runtime dependencies.
 RUN rm /usr/local/bin/uv \
-    && python -m pip uninstall -y pip
+    && /usr/local/bin/python -m pip uninstall -y pip
 USER app
 
 EXPOSE 8000
