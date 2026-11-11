@@ -10,17 +10,17 @@ jobs:
       postgres:
         image: pgvector/pgvector:pg17
         env:
-          POSTGRES_USER: nemio
+          POSTGRES_USER: instantlify
           POSTGRES_PASSWORD: ci-only-password
-          POSTGRES_DB: nemio
+          POSTGRES_DB: instantlify
         ports: ['5432:5432']
-        options: --health-cmd 'pg_isready -U nemio' --health-interval 5s --health-timeout 5s --health-retries 15
+        options: --health-cmd 'pg_isready -U instantlify' --health-interval 5s --health-timeout 5s --health-retries 15
       redis:
         image: redis:7.4-alpine
         ports: ['6379:6379']
         options: --health-cmd 'redis-cli ping' --health-interval 5s --health-timeout 5s --health-retries 15
     env:
-      DATABASE_URL: postgresql://nemio:ci-only-password@localhost:5432/nemio
+      DATABASE_URL: postgresql://instantlify:ci-only-password@localhost:5432/instantlify
       # Rate-limit tests use a real Redis (Lua scripts); a dedicated DB keeps them isolated.
       REDIS_URL: redis://localhost:6379/15
       DJANGO_SETTINGS_MODULE: config.settings.test

@@ -5,7 +5,7 @@ import { PublicHelpLinks } from "@/components/public-help-links";
 export const metadata = { title: "Help getting started · Instantlify" };
 
 export default function PublicHelp() {
-  const email = process.env.INSTANTLIFY_SUPPORT_EMAIL || process.env.NEMIO_SUPPORT_EMAIL || "support@instantlify.com";
+  const email = process.env.INSTANTLIFY_SUPPORT_EMAIL || "support@instantlify.com";
   const contact =
     email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
   return (
