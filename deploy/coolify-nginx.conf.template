@@ -10,7 +10,7 @@ server {
     server_name ${APP_DOMAIN};
     # Access query strings may contain OAuth credentials; do not log them.
     access_log off;
-    client_max_body_size 1m;
+    client_max_body_size 50m;
 
     location ~ ^/(api/|webhooks/|health/|ws/|media/voice/) {
         proxy_pass http://backend:8000;
@@ -35,7 +35,7 @@ server {
     listen 80;
     server_name ${PLATFORM_ADMIN_HOST};
     access_log off;
-    client_max_body_size 1m;
+    client_max_body_size 50m;
 
     location / {
         proxy_pass http://backend:8000;
