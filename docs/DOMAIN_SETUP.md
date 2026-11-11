@@ -8,20 +8,25 @@ delivery or connect the website to a server.
 ## Hostinger + Contabo + Coolify (selected staging setup)
 
 Use the standalone **`compose.coolify.yaml`**, not `compose.prod.yaml`, in Coolify.
+Name the Coolify environment **dev** and application **instantlify-dev**. Keep its
+Git source branch **staging** and its existing resource/storage identity. Renaming
+the display labels does not require creating a new application or database.
+Enable **Preserve repository during deployment** so the gateway configuration
+and backup scripts mounted from Git remain available.
 Coolify owns the public ports and TLS. The `gateway` service routes HTTP privately
 to Django/Next.js and supports WebSockets; it publishes no host ports. Backend
 services count two proxies: Coolify and the gateway. Keep the gateway reachable
 only through Coolify's private network so forwarded headers remain trusted.
 
-1. In Hostinger DNS, point A records `staging` and `ops.staging` to the Contabo
+1. In Hostinger DNS, point A records `dev` and `ops.dev` to the Contabo
    public IPv4 address. Preserve Hostinger mail MX/TXT records. Do not point the
    bare production domain at staging unless that is an explicit launch decision.
 2. In Coolify, create a Git-based Docker Compose application for
    `Instantlify/Instantlify-AI`, branch `staging`, with Compose file
    `/compose.coolify.yaml`. The file must first be committed and merged into
    staging. Do not select the default local Compose file.
-3. Assign both `https://staging.instantlify.com` and
-   `https://ops.staging.instantlify.com` to `gateway`, container port **80**.
+3. Assign both `https://dev.instantlify.com` and
+   `https://ops.dev.instantlify.com` to `gateway`, container port **80**.
    If Coolify's domain field encodes the target port, use `:80` as its documented
    internal container-port selector, not as a public port. Assign no public domain
    to backend, frontend, Redis, PostgreSQL, workers, migrations or backup services.
@@ -54,11 +59,11 @@ need their own Coolify routing/certificate provisioning before white-label launc
 The following manual Compose instructions apply when running the existing Caddy
 stack directly, outside Coolify. Use the Coolify instructions above for Contabo.
 
-Use `deploy/staging.env.example` for `staging.instantlify.com` and
+Use `deploy/staging.env.example` for `dev.instantlify.com` and
 `deploy/production.env.example` for `instantlify.com`. Each includes the correct
 public URL, allowed hosts, CSRF origins, secure WebSocket URL, callback URLs,
 support and privacy contact, sender, certificate contact, and readiness URL.
-The separate admin hosts are `ops.staging.instantlify.com` and
+The separate admin hosts are `ops.dev.instantlify.com` and
 `ops.instantlify.com`. Local development continues using `.env` and localhost.
 
 On the staging host, copy `deploy/staging.env.example` to `.env.staging` in the
@@ -103,8 +108,8 @@ mail-routing, or hosting settings have been changed by these files.
 | --- | --- |
 | `@` (`instantlify.com`) | Production server address or hosting-provider target |
 | `ops` | Production server address or hosting-provider target |
-| `staging` | Staging server address or hosting-provider target |
-| `ops.staging` | Staging server address or hosting-provider target |
+| `dev` | Staging server address or hosting-provider target |
+| `ops.dev` | Staging server address or hosting-provider target |
 
 For a server with a public IPv4 address, these are A records; only add AAAA records
 if the server has working public IPv6. Managed hosting may require a different
