@@ -45,7 +45,9 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   if (
     !user ||
     !workspaces ||
-    !workspaces.some((item) => item.id === workspaceId && !item.checkout_pending)
+    !workspaces.some(
+      (item) => item.id === workspaceId && !item.checkout_pending,
+    )
   )
     return (
       <div className="loading-screen">

@@ -1,11 +1,15 @@
 "use client";
 
+import "../components/language-switcher.css";
+import { Globe, ChevronDown, Check } from "lucide-react";
+
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useState,
+  useRef,
   type ReactNode,
 } from "react";
 
@@ -338,21 +342,107 @@ export function useT() {
   return useCallback((key: MessageKey) => translate(language, key), [language]);
 }
 
-export function LanguageSwitcher({ className }: { className?: string }) {
+export function LanguageSwitcher({ className = "" }: { className?: string }) {
   const { language, setLanguage } = useLanguage();
   const t = useT();
+  const root = useRef<HTMLDetailsElement>(null);
+  const trigger = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const outside = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !root.current?.contains(event.target) &&
+        root.current
+      )
+        root.current.open = false;
+    };
+    document.addEventListener("pointerdown", outside);
+    return () => document.removeEventListener("pointerdown", outside);
+  }, []);
+  const close = () => {
+    if (root.current) root.current.open = false;
+    trigger.current?.focus();
+  };
   return (
-    <select
-      aria-label={t("nav.language")}
-      className={className}
-      value={language}
-      onChange={(event) => setLanguage(event.target.value as Language)}
+    <details
+      ref={root}
+      className={`language-picker ${className}`}
+      onToggle={(event) => {
+        if (event.currentTarget.open)
+          event.currentTarget
+            .querySelector<HTMLButtonElement>('[aria-checked="true"]')
+            ?.focus();
+      }}
     >
-      {LANGUAGES.map((item) => (
-        <option key={item.code} value={item.code}>
-          {item.label}
-        </option>
-      ))}
-    </select>
+      <summary
+        ref={trigger}
+        aria-label={t("nav.language")}
+        aria-haspopup="menu"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            close();
+          }
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            if (root.current) root.current.open = true;
+          }
+        }}
+      >
+        <Globe size={14} />
+        <span>{LANGUAGES.find((item) => item.code === language)?.label}</span>
+        <ChevronDown size={14} />
+      </summary>
+      <div
+        className="language-picker-menu"
+        role="menu"
+        aria-label={t("nav.language")}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            close();
+          }
+          if (event.key === "Tab") close();
+          if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+            event.preventDefault();
+            const items = Array.from(
+              event.currentTarget.querySelectorAll<HTMLButtonElement>("button"),
+            );
+            const current = items.indexOf(
+              document.activeElement as HTMLButtonElement,
+            );
+            const next =
+              event.key === "Home"
+                ? 0
+                : event.key === "End"
+                  ? items.length - 1
+                  : (current +
+                      (event.key === "ArrowDown" ? 1 : -1) +
+                      items.length) %
+                    items.length;
+            items[next]?.focus();
+          }
+        }}
+      >
+        <span className="language-picker-caption">Language</span>
+        {LANGUAGES.map((item) => (
+          <button
+            type="button"
+            role="menuitemradio"
+            aria-checked={language === item.code}
+            key={item.code}
+            onClick={() => {
+              setLanguage(item.code);
+              close();
+            }}
+          >
+            <span lang={item.code}>{item.label}</span>
+            {language === item.code && <Check size={14} aria-hidden="true" />}
+          </button>
+        ))}
+      </div>
+    </details>
   );
 }

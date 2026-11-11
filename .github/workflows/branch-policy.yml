@@ -1,0 +1,43 @@
+name: Branch policy
+
+# Metadata only: never check out or execute pull-request code here.
+on:
+  pull_request_target:
+    branches: [main, staging]
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  source-branch:
+    name: source-branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce feature to staging to main
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPOSITORY: ${{ github.repository }}
+        shell: node {0}
+        run: |
+          const { BASE_BRANCH: base, HEAD_BRANCH: head,
+            HEAD_REPOSITORY: source, BASE_REPOSITORY: target } = process.env;
+          let error;
+          if (source !== target) {
+            error = 'The source branch must belong to this repository.';
+          } else if (base === 'main') {
+            if (head !== 'staging') error = 'Only staging may open a pull request into main.';
+          } else if (base === 'staging') {
+            if (!head?.startsWith('feature/') || head.length <= 'feature/'.length) {
+              error = 'Only feature/* branches may open a pull request into staging.';
+            }
+          } else {
+            error = 'Unexpected target branch.';
+          }
+          if (error) {
+            console.error('::error::' + error);
+            process.exit(1);
+          }
+          console.log('Source branch policy passed.');

@@ -101,6 +101,9 @@ For frontend hot reload against Compose: stop the frontend container with `docke
 
 ## Deploying
 
+For `instantlify.com`, the confirmed support mailbox, and separate staging and
+production environment files, see [domain setup](docs/DOMAIN_SETUP.md).
+
 `compose.yaml` on its own is the local stack: loopback ports, no edge, no certificates,
 no backups. Production adds those through an overlay:
 
@@ -120,14 +123,14 @@ Set these in the environment before the first deploy, on top of `.env`:
 | `PLATFORM_ADMIN_HOST` | Console hostname; must match Django's setting and differ from the app |
 | `ACME_EMAIL` | Certificate expiry notices |
 | `TRUSTED_PROXY_DEPTH` | Proxies in front of Django. `1` behind this Caddy; production refuses to start at `0` |
-| `NEMIO_PRIVACY_URL`, `NEMIO_TERMS_URL`, `NEMIO_SUPPORT_EMAIL` | Published policies and support contact; the frontend must be rebuilt after a change |
+| `INSTANTLIFY_PRIVACY_URL`, `INSTANTLIFY_TERMS_URL`, `INSTANTLIFY_SUPPORT_EMAIL` | Published policies and support contact; the frontend must be rebuilt after a change |
 
 **A backup you have not restored is not a backup.** Copy dumps off the host, and
 rehearse a restore before you need one:
 
 ```sh
 docker compose -f compose.yaml -f compose.prod.yaml stop backend worker beat
-docker compose -f compose.yaml -f compose.prod.yaml run --rm   -e CONFIRM_RESTORE=yes backup /restore.sh /backups/nemio-<stamp>.sql.gz
+docker compose -f compose.yaml -f compose.prod.yaml run --rm   -e CONFIRM_RESTORE=yes backup /restore.sh /backups/instantlify-<stamp>.sql.gz
 docker compose -f compose.yaml -f compose.prod.yaml up -d
 ```
 

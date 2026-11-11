@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  ValidatedForm,
-  ValidatedInput,
-} from "@/components/validated-form";
+import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
 
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";

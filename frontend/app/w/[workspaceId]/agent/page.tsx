@@ -325,9 +325,9 @@ export default function AgentPage() {
                   Select AI Model & Rate
                 </span>
                 <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
-                  All models are hosted and executed by Instantlify. Usage is charged
-                  per token directly to your prepaid Instantlify credit balance. No
-                  API keys or external developer accounts required.
+                  All models are hosted and executed by Instantlify. Usage is
+                  charged per token directly to your prepaid Instantlify credit
+                  balance. No API keys or external developer accounts required.
                 </p>
                 <div
                   className="card-grid"
@@ -709,9 +709,9 @@ function Knowledge({ config }: { config: AgentConfig | null }) {
 
   async function removeBase(base: KnowledgeBase) {
     if (
-      !await confirm(
+      !(await confirm(
         `Delete the knowledge base “${base.name}”? Its documents move to General knowledge.`,
-      )
+      ))
     )
       return;
     await feedback.run(async () => {
@@ -799,7 +799,7 @@ function Knowledge({ config }: { config: AgentConfig | null }) {
   }
 
   async function remove(doc: KnowledgeDocument) {
-    if (!await confirm(`Remove “${doc.title}” from the knowledge base?`))
+    if (!(await confirm(`Remove “${doc.title}” from the knowledge base?`)))
       return;
     await feedback.run(async () => {
       await api(`${prefix}/documents/${doc.id}/`, "DELETE");

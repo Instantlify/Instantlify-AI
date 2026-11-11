@@ -41,7 +41,7 @@ test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
 });
 
-test("desktop rail expands on hover and collapses without shifting the page", async ({
+test("desktop rail reserves room for page controls while expanded", async ({
   page,
 }) => {
   await mockApi(page);
@@ -59,13 +59,16 @@ test("desktop rail expands on hover and collapses without shifting the page", as
   await expect(label).toBeVisible();
   await expect.poll(async () => (await sidebar.boundingBox())?.width).toBe(250);
   expect((await page.locator(".main-content-canvas").boundingBox())?.x).toBe(
-    canvas?.x,
+    250,
   );
   expect((await home.locator("svg").boundingBox())?.y).toBe(icon?.y);
   await page.screenshot({ path: "test-results/sidebar-expanded.png" });
   await page.mouse.move(900, 100);
   await expect(label).toBeHidden();
   await expect.poll(async () => (await sidebar.boundingBox())?.width).toBe(76);
+  expect((await page.locator(".main-content-canvas").boundingBox())?.x).toBe(
+    canvas?.x,
+  );
   await page.screenshot({ path: "test-results/sidebar-collapsed.png" });
 });
 

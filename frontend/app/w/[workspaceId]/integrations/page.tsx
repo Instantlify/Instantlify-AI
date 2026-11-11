@@ -244,9 +244,9 @@ export default function IntegrationsPage() {
     const current = integrations.find((i) => i.provider === providerKey);
     if (!current) return;
     if (
-      !await confirm(
+      !(await confirm(
         "Disconnect integration? Stored credentials will be removed.",
-      )
+      ))
     )
       return;
     await feedback.run(async () => {
@@ -271,7 +271,7 @@ export default function IntegrationsPage() {
   }
 
   async function revokeKey(key: APIKey) {
-    if (!await confirm(`Revoke ${key.name}?`)) return;
+    if (!(await confirm(`Revoke ${key.name}?`))) return;
     await feedback.run(async () => {
       await api(`${prefix}/api-keys/${key.id}/`, "DELETE");
       setKeys((list) => list.filter((i) => i.id !== key.id));
@@ -299,7 +299,7 @@ export default function IntegrationsPage() {
   }
 
   async function removeSubscription(subscription: WebhookSubscription) {
-    if (!await confirm("Remove this webhook subscription?")) return;
+    if (!(await confirm("Remove this webhook subscription?"))) return;
     await feedback.run(async () => {
       await api(`${prefix}/webhooks/${subscription.id}/`, "DELETE");
       setSubscriptions((list) =>

@@ -135,7 +135,7 @@ export default function DeepLinksPage() {
 
   async function remove(link: DeepLink) {
     if (
-      !await confirm(`Delete "${link.title}"? Its short link stops working.`)
+      !(await confirm(`Delete "${link.title}"? Its short link stops working.`))
     )
       return;
     await feedback.run(async () => {

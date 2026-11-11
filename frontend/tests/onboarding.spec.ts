@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Cookie, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 
@@ -9,12 +9,24 @@ import path from "node:path";
  * local test channel, so no provider is ever contacted whatever the adapter mode.
  */
 test.describe.configure({ mode: "serial" });
-test.skip(!!process.env.E2E_BASE_URL, "Requires the local Compose backend to provision the test workspace.");
+test.skip(
+  !!process.env.E2E_BASE_URL,
+  "Requires the local Compose backend to provision the test workspace.",
+);
 
 const email = `e2e-${Date.now()}@example.com`;
 const password = "River!Saffron42Cloud";
 const slug = `e2e-${Date.now().toString(36)}`;
 let workspaceUrl = "";
+// This serial journey represents one signed-in user. Keep its session across
+// isolated pages instead of repeatedly hitting the real IP-based login limit.
+let sessionCookies: Cookie[] = [];
+test.beforeEach(async ({ context }) => {
+  await context.addCookies(sessionCookies);
+});
+test.afterEach(async ({ context }) => {
+  sessionCookies = await context.cookies();
+});
 /** Live-mode backends refuse local test channels; the steps that need one skip then. */
 let testChannels = true;
 const NO_TEST_CHANNELS =
@@ -65,7 +77,10 @@ test("sign up, create a workspace and connect a test channel", async ({
     .getByRole("link", { name: "Get started", exact: true })
     .first()
     .click();
-  await page.getByLabel("Your name").fill("Alex");
+  await expect(page).toHaveURL(/\/auth\/?\?mode=signup/);
+  await page
+    .getByRole("textbox", { name: "Your name", exact: true })
+    .fill("Alex");
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page
@@ -92,13 +107,26 @@ test("sign up, create a workspace and connect a test channel", async ({
   });
   expect(workspaceId).toMatch(/^[a-f0-9-]{36}$/);
   await page.goto(`/w/${workspaceId}/overview`);
-  await expect(page).toHaveURL(new RegExp(`/onboarding/?\\?workspace=${workspaceId}`));
-  // The billing tests cover Stripe activation. Provision this workspace for
-  // the rest of the local product smoke test.
-  execFileSync("docker", [
-    "compose", "exec", "-T", "backend", "python", "manage.py", "shell", "-c",
-    `from apps.tenants.models import Workspace; Workspace.objects.filter(pk='${workspaceId}').update(checkout_pending=False)`,
-  ], { cwd: path.resolve(__dirname, "..", "..") });
+  await expect(page).toHaveURL(
+    new RegExp(`/onboarding/?\\?workspace=${workspaceId}`),
+  );
+  // The billing tests cover Stripe activation. Provision this test workspace on
+  // Starter for the remaining journey, including inviting a second team seat.
+  execFileSync(
+    "docker",
+    [
+      "compose",
+      "exec",
+      "-T",
+      "backend",
+      "python",
+      "manage.py",
+      "shell",
+      "-c",
+      `from apps.tenants.models import Workspace; from apps.billing.models import PlanPrice; from apps.billing.services import account_for; Workspace.objects.filter(pk='${workspaceId}').update(checkout_pending=False); account = account_for('${workspaceId}'); account.plan_price = PlanPrice.objects.get(plan__slug='starter', billing_interval='monthly'); account.save(update_fields=['plan_price'])`,
+    ],
+    { cwd: path.resolve(__dirname, "..", "..") },
+  );
   await page.goto(`/onboarding?workspace=${workspaceId}&billing=success`);
   await expect(page).toHaveURL(/\/w\/[0-9a-f-]+\/overview/, { timeout: 30000 });
   workspaceUrl = page.url().replace(/\/overview.*$/, "");
@@ -112,13 +140,15 @@ test("sign up, create a workspace and connect a test channel", async ({
   await expect(page).toHaveURL(/integrations\/?\?tab=channels/);
 
   await page
-    .getByText("Manual credentials, WhatsApp, Telegram and test channels")
+    .getByText("Advanced: manual credentials and test channels")
     .click();
   const connect = page.locator(".channel-advanced");
   await connect
     .getByRole("combobox", { name: /^Provider/ })
     .selectOption("instagram");
-  await connect.getByLabel("Account ID", { exact: true }).fill("e2e-instagram");
+  await connect
+    .getByLabel("Account ID", { exact: true })
+    .fill(`e2e-instagram-${workspaceId}`);
   await connect
     .getByLabel("Display name", { exact: true })
     .fill("E2E Test Account");
@@ -199,19 +229,36 @@ test("a simulated comment fires the flow and lands in the inbox", async ({
   await signIn(page);
   await simulate(page, "What is the PRICE?", "comment");
   await nav(page, "Conversations");
-  const row = page.getByRole("button", { name: /lead-one/ });
+  const row = page.getByRole("button", { name: /lead[- .]one/i });
   await expect(row).toBeVisible({ timeout: 30000 });
   await row.click();
-  await expect(page.getByText("What is the PRICE?")).toBeVisible();
+  const messages = page.locator(".bubble-text");
   await expect(
-    page.getByText("Thanks for asking! Here is everything you need."),
+    messages.getByText("What is the PRICE?", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    messages.getByText("Thanks for asking! Here is everything you need.", {
+      exact: true,
+    }),
+  ).toBeVisible({
+    timeout: 30000,
+  });
+  // A comment permits one private automation reply, but does not open the
+  // normal DM window. The customer must message before a teammate can reply.
+  await simulate(page, "Can you help me?");
+  await nav(page, "Conversations");
+  await row.click();
+  await expect(
+    messages.getByText("Can you help me?", { exact: true }),
   ).toBeVisible({
     timeout: 30000,
   });
   // Human reply through the composer.
   await page.getByLabel("Reply").fill("Happy to help!");
   await page.getByRole("button", { name: "Send message" }).click();
-  await expect(page.getByText("Happy to help!")).toBeVisible();
+  await expect(
+    messages.getByText("Happy to help!", { exact: true }),
+  ).toBeVisible();
   await page.getByLabel("Internal note").fill("Warm lead, follow up tomorrow");
   await page.getByRole("button", { name: "Add note" }).click();
   await expect(page.getByText("Warm lead, follow up tomorrow")).toBeVisible();
@@ -237,7 +284,7 @@ test("the AI agent answers with the local test provider", async ({ page }) => {
     timeout: 30000,
   });
   await nav(page, "Conversations");
-  await page.getByRole("button", { name: /lead-one/ }).click();
+  await page.getByRole("button", { name: /lead[- .]one/i }).click();
   const aiActive = page
     .getByRole("group", { name: "Who replies" })
     .getByRole("button", { name: /^(AI active|Return to AI)$/ });
@@ -253,13 +300,15 @@ test("the AI agent answers with the local test provider", async ({ page }) => {
   }
   // Reload so the assertion reflects the server, not the optimistic UI state.
   await page.reload();
-  await page.getByRole("button", { name: /lead-one/ }).click();
+  await page.getByRole("button", { name: /lead[- .]one/i }).click();
   await expect(aiActive).toHaveAttribute("aria-pressed", "true");
   await simulate(page, "Hello there");
   await nav(page, "Conversations");
-  await page.getByRole("button", { name: /lead-one/ }).click();
+  await page.getByRole("button", { name: /lead[- .]one/i }).click();
   await expect(
-    page.getByText("[Local test] Thanks for reaching out."),
+    page.locator(".bubble-text").filter({
+      hasText: "[Local test] Thanks for reaching out.",
+    }),
   ).toBeVisible({
     timeout: 30000,
   });
@@ -272,24 +321,39 @@ test("analytics, bio page, offers and invitations", async ({ page }) => {
   // Automations appear in the funnel once they have fired, which needs a test channel.
   if (testChannels)
     await expect(
-      page.getByRole("cell", { name: "Untitled automation" }),
+      page.getByRole("cell", { name: "Untitled automation", exact: true }),
     ).toBeVisible();
   await nav(page, "Link in bio");
-  await page.getByLabel("Page address").fill(slug);
-  await page.getByLabel("Title", { exact: true }).fill("E2E Studio");
-  await page.getByLabel("Bio").fill("Book a call with us.");
-  await page.getByLabel("Published (visible to anyone with the link)").check();
+  await page.getByRole("textbox", { name: /^Page address/ }).fill(slug);
+  await page
+    .getByRole("textbox", { name: "Title", exact: true })
+    .fill("E2E Studio");
+  await page
+    .getByRole("textbox", { name: "Bio", exact: true })
+    .fill("Book a call with us.");
+  await page
+    .getByRole("checkbox", {
+      name: "Published (visible to anyone with the link)",
+      exact: true,
+    })
+    .check();
   await page.getByRole("button", { name: "Save page" }).click();
   await expect(
     page.getByRole("status").filter({ hasText: "Page saved." }),
   ).toBeVisible();
   await nav(page, "Payments");
-  await page.getByLabel("Name", { exact: true }).fill("Starter pack");
-  await page.getByLabel("Amount").fill("49");
+  await page
+    .getByRole("textbox", { name: "Name", exact: true })
+    .fill("Starter pack");
+  await page.getByRole("spinbutton", { name: /^Amount/ }).fill("49");
   await page.getByRole("button", { name: "Create offer" }).click();
-  await expect(page.getByRole("cell", { name: "Starter pack" })).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "Starter pack", exact: true }),
+  ).toBeVisible();
   await nav(page, "Team");
-  await page.getByLabel("Email address").fill("teammate@example.com");
+  await page
+    .getByRole("textbox", { name: "Email address", exact: true })
+    .fill("teammate@example.com");
   await page.getByRole("button", { name: "Create invite" }).click();
   await expect(page.getByText("One-time invite link")).toBeVisible();
   await page.goto(`/p/${slug}/`);
@@ -298,8 +362,9 @@ test("analytics, bio page, offers and invitations", async ({ page }) => {
 });
 
 test("sign out, sign in, and the mobile layout", async ({ page }) => {
+  test.slow(); // two real sign-ins plus a desktop and a mobile pass
   await signIn(page);
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await signOut(page);
   await page
     .getByRole("link", { name: "Sign in", exact: true })
     .first()
@@ -308,14 +373,36 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();
   await signIn(page);
-  await expect(page.locator(".workspace-title")).toHaveText(
+  await expect(page.locator(".workspace-crumb")).toHaveText(
     "E2E Studio Updated",
   );
   await nav(page, "Home");
-  if (testChannels)
+  await expect(page).toHaveURL(/\/overview/);
+  if (testChannels) {
+    // Ask the server directly first, so a failure says whether the channel is gone
+    // or only the Home page failed to show it.
+    const listed = await page.evaluate(
+      async (prefix) => {
+        const response = await fetch(`${prefix}/connections/`);
+        return { status: response.status, body: await response.json() };
+      },
+      `/api/workspaces/${new URL(page.url()).pathname.split("/")[2]}`,
+    );
+    expect(
+      listed.status,
+      `channel list request: ${JSON.stringify(listed.body)}`,
+    ).toBe(200);
+    const { results } = listed.body as {
+      results: { is_test: boolean; status: string }[];
+    };
+    expect(
+      results.filter((item) => item.is_test && item.status !== "disconnected"),
+      "local test channel after signing back in",
+    ).toHaveLength(1);
     await expect(
       page.getByRole("region", { name: "Channel status" }),
-    ).toContainText("Local test connection");
+    ).toContainText("Local test connection", { timeout: 20000 }); // Home refreshes every 15 s
+  }
   await page.screenshot({
     path: "test-results/dashboard-desktop.png",
     fullPage: true,
@@ -331,8 +418,7 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
     fullPage: true,
   });
   // On phones the sidebar, and its sign-out button, sit in the navigation drawer.
-  await page.getByRole("button", { name: "Open navigation" }).click();
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await signOut(page, true);
   await page
     .getByRole("link", { name: "Sign in", exact: true })
     .first()
@@ -342,14 +428,35 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
   ).toBeVisible();
 });
 
+/** Sign out and wait until the app has really left the workspace. The button is
+ * retried because a click that lands while the shell is still settling is dropped. */
+async function signOut(page: Page, drawer = false) {
+  const button = page.getByRole("button", { name: "Sign out", exact: true });
+  await expect(async () => {
+    if (!page.url().includes("/w/")) return;
+    if (drawer && !(await button.isVisible()))
+      await page.getByRole("button", { name: "Open navigation" }).click();
+    await button.click({ timeout: 5000 });
+    await page.waitForURL((url) => !url.pathname.startsWith("/w/"), {
+      timeout: 5000,
+    });
+  }).toPass({ timeout: 30000 });
+  await expect(
+    page
+      .getByRole("heading", { name: "Welcome back." })
+      .or(page.getByRole("link", { name: "Sign in", exact: true }).first()),
+  ).toBeVisible();
+}
+
 async function signIn(page: Page) {
   await page.goto("/auth");
   // Either the sign-in form appears, or a live session redirects straight into a workspace.
   const heading = page.getByRole("heading", { name: "Welcome back." });
-  const needsLogin = await heading
-    .waitFor({ state: "visible", timeout: 10000 })
-    .then(() => true)
-    .catch(() => false);
+  await Promise.race([
+    heading.waitFor({ state: "visible", timeout: 15000 }),
+    page.waitForURL(/\/w\/[0-9a-f-]+\//, { timeout: 15000 }),
+  ]);
+  const needsLogin = await heading.isVisible();
   if (needsLogin) {
     await page.getByLabel("Email address").fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);

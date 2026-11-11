@@ -1,10 +1,10 @@
-name: nemio
+name: instantlify
 
 x-backend: &backend
   build:
     context: ./backend
     target: runtime
-  env_file: .env
+  env_file: ${INSTANTLIFY_ENV_FILE:-.env}
   init: true
   restart: unless-stopped
 
@@ -14,7 +14,7 @@ services:
       context: ./backend
       target: test
     profiles: [test]
-    env_file: .env
+    env_file: ${INSTANTLIFY_ENV_FILE:-.env}
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.test
       REDIS_URL: redis://redis:6379/15
@@ -63,14 +63,14 @@ services:
     <<: *backend
     command: [uvicorn, config.asgi:application, --host, '0.0.0.0', --port, '8000', --workers, '2', --no-access-log]
     ports:
-      - '127.0.0.1:${NEMIO_BACKEND_PORT:-8000}:8000'
+      - '127.0.0.1:${INSTANTLIFY_BACKEND_PORT:-8000}:8000'
     depends_on:
       migrate:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
     healthcheck:
-      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live/', timeout=3)"]
+      test: [CMD, python, -c, "import os, urllib.request; production = os.environ.get('DJANGO_SETTINGS_MODULE', '').endswith('.production'); request = urllib.request.Request('http://127.0.0.1:8000/health/live/', headers={'Host': os.environ.get('APP_DOMAIN', 'localhost') if production else 'localhost', 'X-Forwarded-Proto': 'https' if production else 'http'}); urllib.request.urlopen(request, timeout=3)"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -119,9 +119,6 @@ services:
         INSTANTLIFY_TERMS_URL: ${INSTANTLIFY_TERMS_URL:-}
         INSTANTLIFY_SUPPORT_EMAIL: ${INSTANTLIFY_SUPPORT_EMAIL:-}
         INSTANTLIFY_PRIVACY_EMAIL: ${INSTANTLIFY_PRIVACY_EMAIL:-}
-        NEMIO_PRIVACY_URL: ${NEMIO_PRIVACY_URL:-}
-        NEMIO_TERMS_URL: ${NEMIO_TERMS_URL:-}
-        NEMIO_SUPPORT_EMAIL: ${NEMIO_SUPPORT_EMAIL:-}
     environment:
       BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:8000}
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:8000}
@@ -129,9 +126,6 @@ services:
       INSTANTLIFY_TERMS_URL: ${INSTANTLIFY_TERMS_URL:-}
       INSTANTLIFY_SUPPORT_EMAIL: ${INSTANTLIFY_SUPPORT_EMAIL:-}
       INSTANTLIFY_PRIVACY_EMAIL: ${INSTANTLIFY_PRIVACY_EMAIL:-}
-      NEMIO_PRIVACY_URL: ${NEMIO_PRIVACY_URL:-}
-      NEMIO_TERMS_URL: ${NEMIO_TERMS_URL:-}
-      NEMIO_SUPPORT_EMAIL: ${NEMIO_SUPPORT_EMAIL:-}
       NODE_ENV: production
     ports:
       - '127.0.0.1:3000:3000'

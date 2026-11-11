@@ -1,7 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { id, mockApi, manualLead } from "./support/meta-mock";
 
-test("mobile conversations open and return to the list with a short viewport", async ({ page }) => {
+test("mobile conversations open and return to the list with a short viewport", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 580 });
   await mockApi(page);
   await page.goto(`/w/${id}/inbox?conversation=v-0`);

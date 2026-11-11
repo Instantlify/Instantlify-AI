@@ -36,7 +36,11 @@ test.beforeEach(async ({ page }) => {
       });
     if (path === "/api/public/branding/")
       return route.fulfill({
-        json: { brand_name: "Instantlify", primary_color: "#347359", logo_url: "" },
+        json: {
+          brand_name: "Instantlify",
+          primary_color: "#347359",
+          logo_url: "",
+        },
       });
     return route.fulfill({ json: {} });
   });
@@ -46,7 +50,9 @@ test("public homepage has metadata, live plan controls and signup navigation", a
   page,
 }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("Instantlify · Turn conversations into customers");
+  await expect(page).toHaveTitle(
+    "Instantlify · Turn conversations into customers",
+  );
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Every conversation.",
   );
@@ -575,6 +581,9 @@ test("workspace navigation remains usable on desktop and mobile", async ({
     .getByRole("navigation", { name: "Workspace navigation" })
     .getByRole("link", { name: "Team", exact: true })
     .click();
+  await expect(page).toHaveURL(/\/w\/design-review\/team\//, {
+    timeout: 15000,
+  });
   await expect(
     page.getByRole("button", { name: "Create invite" }),
   ).toBeVisible();

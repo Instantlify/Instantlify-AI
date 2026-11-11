@@ -943,6 +943,21 @@ export async function upload<T>(
   return payload as T;
 }
 
+export async function apiBlob(path: string): Promise<Blob> {
+  const response = await fetch(path, {
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  if (!response.ok)
+    throw failure(
+      await response
+        .json()
+        .catch(() => ({ detail: "The download could not be completed." })),
+      response.status,
+    );
+  return response.blob();
+}
+
 export const idempotencyKey = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
