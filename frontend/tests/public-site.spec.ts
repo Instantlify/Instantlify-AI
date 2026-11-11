@@ -581,6 +581,9 @@ test("workspace navigation remains usable on desktop and mobile", async ({
     .getByRole("navigation", { name: "Workspace navigation" })
     .getByRole("link", { name: "Team", exact: true })
     .click();
+  await expect(page).toHaveURL(/\/w\/design-review\/team\//, {
+    timeout: 15000,
+  });
   await expect(
     page.getByRole("button", { name: "Create invite" }),
   ).toBeVisible();
