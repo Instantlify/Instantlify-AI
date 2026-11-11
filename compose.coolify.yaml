@@ -262,7 +262,8 @@ services:
       postgres:
         condition: service_healthy
   gateway:
-    image: nginx:1.28-alpine
+    build:
+      context: ./deploy/gateway
     restart: unless-stopped
     expose:
       - '80'
