@@ -3,7 +3,8 @@
 # Set secrets in Coolify; no .env file or public host ports are required.
 services:
   postgres:
-    image: pgvector/pgvector:pg17
+    build: &postgres_build
+      context: ./deploy/postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?Run bootstrap first}
       POSTGRES_USER: ${POSTGRES_USER:?Run bootstrap first}
@@ -19,7 +20,8 @@ services:
       retries: 20
     restart: unless-stopped
   redis:
-    image: redis:7.4-alpine
+    build:
+      context: ./deploy/redis
     command:
       - redis-server
       - '--appendonly'
@@ -242,7 +244,7 @@ services:
       timeout: 5s
       retries: 10
   backup:
-    image: pgvector/pgvector:pg17
+    build: *postgres_build
     restart: unless-stopped
     entrypoint:
       - /bin/sh
