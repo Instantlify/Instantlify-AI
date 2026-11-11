@@ -57,6 +57,10 @@ docker run -d --name "$prefix-beat" --network "$prefix" --env-file "$env_file" \
 docker run -d --name "$prefix-web" --network "$prefix" --env-file "$env_file" "$web_image" >/dev/null
 ready=false
 for attempt in $(seq 1 90); do
+  if [[ "$(docker inspect --format '{{.State.Running}}' "$prefix-web")" != true ]]; then
+    echo 'Web process exited before readiness.' >&2
+    exit 1
+  fi
   if docker exec "$prefix-web" python /app/deploy/health.py 2>/dev/null; then ready=true; break; fi
   sleep 2
 done

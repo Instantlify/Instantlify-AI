@@ -105,3 +105,8 @@ jobs:
       contents: read
       packages: write
     uses: ./.github/workflows/publish-images.yml
+    secrets:
+      COOLIFY_DEV_DEPLOY_WEBHOOK: ${{ github.event_name == 'push' && secrets.COOLIFY_DEV_DEPLOY_WEBHOOK || '' }}
+      COOLIFY_DEV_API_TOKEN: ${{ github.event_name == 'push' && secrets.COOLIFY_DEV_API_TOKEN || '' }}
+      COOLIFY_PRODUCTION_DEPLOY_WEBHOOK: ${{ github.event_name == 'push' && secrets.COOLIFY_PRODUCTION_DEPLOY_WEBHOOK || '' }}
+      COOLIFY_PRODUCTION_API_TOKEN: ${{ github.event_name == 'push' && secrets.COOLIFY_PRODUCTION_API_TOKEN || '' }}

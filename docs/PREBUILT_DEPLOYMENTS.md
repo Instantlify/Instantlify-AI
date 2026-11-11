@@ -37,12 +37,20 @@ unused images, never database volumes.
 4. Same-repository PRs build/test SHA images but never update deployment channel tags
    or call Coolify. After a successful push to staging, the verified web image also
    gets `:dev`; main gets `:production` using production frontend URLs.
-5. In GitHub Settings → Environments, create **dev** and **production**. Each can
-   supply `COOLIFY_DEPLOY_WEBHOOK` and `COOLIFY_API_TOKEN` secrets for the appropriate
-   Docker Image application. Copy the authenticated deploy webhook from Coolify.
-   Configure production approval protection if your GitHub plan supports it.
+5. In GitHub Settings → Secrets and variables → Actions, add repository secrets
+   `COOLIFY_DEV_DEPLOY_WEBHOOK` and `COOLIFY_DEV_API_TOKEN` for the dev Docker Image
+   application. Production uses separate `COOLIFY_PRODUCTION_DEPLOY_WEBHOOK` and
+   `COOLIFY_PRODUCTION_API_TOKEN` secrets. Copy the authenticated deploy webhook from
+   Coolify. PR builds receive empty deployment secrets. This does not depend on paid
+   GitHub environment features. Add production approval protection if supported by
+   your GitHub plan; otherwise merging main is the release authorization.
 6. The workflow calls that webhook only after CI, image builds and image smoke checks
    succeed. With no webhook/token, it publishes images and explicitly skips deployment.
+
+Automatic webhook deployments expect the Coolify image reference to follow `:dev`
+or `:production`. If you pin a SHA/digest instead, update that saved reference to
+the chosen verified release before requesting deployment; the webhook does not
+silently overwrite a pinned reference. Use recorded digests for rollback.
 
 The total CI/build time still exists, but the running application serves traffic
 throughout it. Pull/start/health checks become the deployment work on the VPS.
@@ -104,7 +112,11 @@ Keep the existing application serving while preparing a second Docker Image reso
    Keep the old resource/data services available for rollback. Normal deployments
    *within the new Docker Image resource* use Coolify's rolling replacement sequence.
 8. After the cutover, keep background/data services and backups in the existing Compose
-   resource. Disable its Git auto-deploy trigger so merging app code does not restart
+   resource. Set its `BACKEND_IMAGE` to the immutable backend digest in the release
+   summary and switch that **existing resource** to `/compose.coolify.background.yaml`.
+   This image-only definition retains the existing volume keys and removes the old
+   web containers. Verify Coolify's deployable volume names still match the current
+   volumes before applying it. Disable its Git auto-deploy trigger so merging app code does not restart
    that stack. The new Docker Image app is deployed by the CI webhook after verification.
 
 The new supervisor runs migrations before starting web processes, using a PostgreSQL

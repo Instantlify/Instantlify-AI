@@ -22,7 +22,7 @@ COPY --from=frontend --chown=app:app /web/.next/static /app/web/.next/static
 COPY --from=frontend --chown=app:app /web/public /app/web/public
 COPY --chown=app:app deploy/web/run.py deploy/web/health.py /app/deploy/
 COPY --chown=app:app deploy/coolify-nginx.conf.template /app/deploy/nginx.template
-ENV NODE_ENV=production PORT=3000 HOSTNAME=127.0.0.1 BACKEND_INTERNAL_URL=http://127.0.0.1:8000
+ENV NODE_ENV=production PORT=3000 HOSTNAME=127.0.0.1 BACKEND_INTERNAL_URL=http://127.0.0.1:8000 PYTHONPATH=/app
 USER app
 WORKDIR /app
 EXPOSE 8080
