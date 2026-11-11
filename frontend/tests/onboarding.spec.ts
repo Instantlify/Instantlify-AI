@@ -321,7 +321,7 @@ test("analytics, bio page, offers and invitations", async ({ page }) => {
   // Automations appear in the funnel once they have fired, which needs a test channel.
   if (testChannels)
     await expect(
-      page.getByRole("cell", { name: "Untitled automation" }),
+      page.getByRole("cell", { name: "Untitled automation", exact: true }),
     ).toBeVisible();
   await nav(page, "Link in bio");
   await page.getByLabel("Page address").fill(slug);
@@ -336,7 +336,9 @@ test("analytics, bio page, offers and invitations", async ({ page }) => {
   await page.getByLabel("Name", { exact: true }).fill("Starter pack");
   await page.getByLabel("Amount").fill("49");
   await page.getByRole("button", { name: "Create offer" }).click();
-  await expect(page.getByRole("cell", { name: "Starter pack" })).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "Starter pack", exact: true }),
+  ).toBeVisible();
   await nav(page, "Team");
   await page.getByLabel("Email address").fill("teammate@example.com");
   await page.getByRole("button", { name: "Create invite" }).click();
