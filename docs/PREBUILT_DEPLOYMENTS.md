@@ -20,7 +20,7 @@ The VPS must have room to run two web containers at the same time.
 
 ## GitHub setup
 
-1. Merge the CI repairs in PR #11 first. The release job depends on all three CI jobs.
+1. The release job depends on all three CI jobs; the CI repairs ship with this change.
 2. Allow this repository's Actions token to publish organization packages in GHCR.
    Images remain private; do not change package visibility to work around auth errors.
 3. CI publishes `ghcr.io/instantlify/instantlify-backend:sha-<commit>` and

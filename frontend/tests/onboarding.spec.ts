@@ -131,7 +131,7 @@ test("sign up, create a workspace and connect a test channel", async ({
   await expect(page).toHaveURL(/integrations\/?\?tab=channels/);
 
   await page
-    .getByText("Manual credentials, WhatsApp, Telegram and test channels")
+    .getByText("Advanced: manual credentials and test channels")
     .click();
   const connect = page.locator(".channel-advanced");
   await connect
