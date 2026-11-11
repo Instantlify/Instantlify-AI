@@ -362,6 +362,7 @@ test("analytics, bio page, offers and invitations", async ({ page }) => {
 });
 
 test("sign out, sign in, and the mobile layout", async ({ page }) => {
+  test.slow(); // two real sign-ins plus a desktop and a mobile pass
   await signIn(page);
   await signOut(page);
   await page
@@ -378,19 +379,17 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
   await nav(page, "Home");
   await expect(page).toHaveURL(/\/overview/);
   if (testChannels) {
-    // Load Home fresh in the new session and check the server's answer first, so a
-    // failure says whether the channel list request failed or came back empty.
-    const listed = page.waitForResponse(
-      (response) =>
-        response.request().method() === "GET" &&
-        /\/api\/workspaces\/[0-9a-f-]+\/connections\/$/.test(
-          new URL(response.url()).pathname,
-        ),
+    // Ask the server directly first, so a failure says whether the channel is gone
+    // or only the Home page failed to show it.
+    const listed = await page.evaluate(
+      async (prefix) => {
+        const response = await fetch(`${prefix}/connections/`);
+        return { status: response.status, body: await response.json() };
+      },
+      `/api/workspaces/${new URL(page.url()).pathname.split("/")[2]}`,
     );
-    await page.reload();
-    const response = await listed;
-    expect(response.status(), "channel list request").toBe(200);
-    const { results } = (await response.json()) as {
+    expect(listed.status, "channel list request").toBe(200);
+    const { results } = listed.body as {
       results: { is_test: boolean; status: string }[];
     };
     expect(
@@ -399,7 +398,7 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
     ).toHaveLength(1);
     await expect(
       page.getByRole("region", { name: "Channel status" }),
-    ).toContainText("Local test connection");
+    ).toContainText("Local test connection", { timeout: 20000 }); // Home refreshes every 15 s
   }
   await page.screenshot({
     path: "test-results/dashboard-desktop.png",
