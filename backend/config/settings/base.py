@@ -231,7 +231,13 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],
-    "DEFAULT_THROTTLE_RATES": {"anon": "60/min", "user": "300/min", "auth": "10/min"},
+    # Overridable only so the end-to-end stack, where every browser request shares one
+    # IP and one fast user, is not throttled; deployments keep these defaults.
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": os.environ.get("THROTTLE_RATE_ANON", "60/min"),
+        "user": os.environ.get("THROTTLE_RATE_USER", "300/min"),
+        "auth": os.environ.get("THROTTLE_RATE_AUTH", "10/min"),
+    },
     # Without this DRF keys anonymous throttles on the caller's own X-Forwarded-For
     # header, so a fresh value per request buys an unlimited login/signup/reset rate.
     "NUM_PROXIES": TRUSTED_PROXY_DEPTH,

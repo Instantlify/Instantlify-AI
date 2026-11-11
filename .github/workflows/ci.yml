@@ -76,6 +76,12 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: sh scripts/bootstrap.sh
+      # The browser suite signs up, signs in and files tickets from one IP far faster
+      # than a person; lift the per-minute throttles for this stack only.
+      - run: |
+          echo 'THROTTLE_RATE_ANON=10000/min' >> .env
+          echo 'THROTTLE_RATE_USER=10000/min' >> .env
+          echo 'THROTTLE_RATE_AUTH=10000/min' >> .env
       - run: docker compose up --build -d --wait --wait-timeout 240
       - name: Confirm database, Redis, worker and beat communicate
         run: |

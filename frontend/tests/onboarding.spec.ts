@@ -388,7 +388,10 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
       },
       `/api/workspaces/${new URL(page.url()).pathname.split("/")[2]}`,
     );
-    expect(listed.status, "channel list request").toBe(200);
+    expect(
+      listed.status,
+      `channel list request: ${JSON.stringify(listed.body)}`,
+    ).toBe(200);
     const { results } = listed.body as {
       results: { is_test: boolean; status: string }[];
     };
