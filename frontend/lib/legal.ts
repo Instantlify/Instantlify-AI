@@ -11,7 +11,7 @@ export const LEGAL = {
   /** Contact for privacy requests and data protection questions. */
   privacyEmail: process.env.INSTANTLIFY_PRIVACY_EMAIL || "support@instantlify.com",
   /** General support contact. */
-  supportEmail: process.env.INSTANTLIFY_SUPPORT_EMAIL || process.env.NEMIO_SUPPORT_EMAIL || "support@instantlify.com",
+  supportEmail: process.env.INSTANTLIFY_SUPPORT_EMAIL || "support@instantlify.com",
   /** Country or state whose law governs the terms, and where disputes are heard. */
   governingLaw: "[Country / state]",
   /** Date these versions take effect. */

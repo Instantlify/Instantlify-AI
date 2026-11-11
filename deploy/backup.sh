@@ -17,7 +17,7 @@ mkdir -p "$DIR"
 
 while true; do
 	stamp="$(date -u +%Y%m%dT%H%M%SZ)"
-	target="$DIR/nemio-$stamp.sql.gz"
+	target="$DIR/instantlify-$stamp.sql.gz"
 	# Dump to a partial name and rename on success, so an interrupted dump is never
 	# mistaken for a restorable backup.
 	if pg_dump --format=plain --no-owner --no-privileges | gzip >"$target.partial"; then
@@ -28,7 +28,7 @@ while true; do
 		echo "backup FAILED at $stamp" >&2
 	fi
 	# Prune oldest first, counting only completed dumps.
-	ls -1t "$DIR"/nemio-*.sql.gz 2>/dev/null | tail -n "+$((KEEP + 1))" | while read -r old; do
+	ls -1t "$DIR"/instantlify-*.sql.gz 2>/dev/null | tail -n "+$((KEEP + 1))" | while read -r old; do
 		rm -f "$old" && echo "pruned $old"
 	done
 	sleep "$INTERVAL"

@@ -19,7 +19,7 @@ $template = Get-Content -LiteralPath (Join-Path $projectRoot '.env.example') -Ra
 $template = $template.Replace('DJANGO_SECRET_KEY=GENERATE_WITH_BOOTSTRAP', "DJANGO_SECRET_KEY=$djangoKey")
 $template = $template.Replace('FIELD_ENCRYPTION_KEYS=GENERATE_WITH_BOOTSTRAP', "FIELD_ENCRYPTION_KEYS=$fieldKey")
 $template = $template.Replace('POSTGRES_PASSWORD=GENERATE_WITH_BOOTSTRAP', "POSTGRES_PASSWORD=$databasePassword")
-$template = $template.Replace('nemio:GENERATE_WITH_BOOTSTRAP@postgres', "nemio:${databasePassword}@postgres")
+$template = $template.Replace('instantlify:GENERATE_WITH_BOOTSTRAP@postgres', "instantlify:${databasePassword}@postgres")
 $template = $template.Replace('local:GENERATE_WITH_BOOTSTRAP', "local:$flowerPassword")
 [System.IO.File]::WriteAllText($envTarget, $template, [System.Text.UTF8Encoding]::new($false))
 Write-Host 'Created .env with random local secrets. Run docker compose up --build -d.'

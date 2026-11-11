@@ -11,7 +11,7 @@ Implemented:
 
 ## Deployment configuration
 
-Set `NEMIO_PRIVACY_URL`, `NEMIO_TERMS_URL` and `NEMIO_SUPPORT_EMAIL` in the deployment environment before building the frontend. Compose passes these as build arguments and runtime environment variables. Rebuild when they change: the help page is prerendered, while the homepage is rendered on demand. Use actual published HTTPS policy URLs; no placeholder legal documents have been created.
+Set `INSTANTLIFY_PRIVACY_URL`, `INSTANTLIFY_TERMS_URL` and `INSTANTLIFY_SUPPORT_EMAIL` in the deployment environment before building the frontend. Compose passes these as build arguments and runtime environment variables. Rebuild when they change: the help page is prerendered, while the homepage is rendered on demand. Use actual published HTTPS policy URLs; no placeholder legal documents have been created.
 
 Password recovery uses the existing `EMAIL_*`, `DEFAULT_FROM_EMAIL` and `PUBLIC_APP_URL` settings. Check the app URL is the public HTTPS origin and verify delivery to an actual mailbox. Links expire after one hour. The reset secret is in the URL fragment and is removed from browser history after reading.
 

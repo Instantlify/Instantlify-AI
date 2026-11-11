@@ -5,7 +5,7 @@
 # compose.yaml alone is the local stack: it publishes ports on loopback and has no
 # edge, no certificates and no backups. This file adds the three things that make it
 # a deployment, and nothing here is useful locally.
-name: nemio
+name: instantlify
 
 services:
   # The only service the internet reaches. Terminates TLS, obtains and renews

@@ -17,7 +17,7 @@ replacements = {
     'DJANGO_SECRET_KEY=GENERATE_WITH_BOOTSTRAP': 'DJANGO_SECRET_KEY=' + secrets.token_urlsafe(64),
     'FIELD_ENCRYPTION_KEYS=GENERATE_WITH_BOOTSTRAP': 'FIELD_ENCRYPTION_KEYS=' + base64.urlsafe_b64encode(secrets.token_bytes(32)).decode(),
     'POSTGRES_PASSWORD=GENERATE_WITH_BOOTSTRAP': 'POSTGRES_PASSWORD=' + db,
-    'nemio:GENERATE_WITH_BOOTSTRAP@postgres': f'nemio:{db}@postgres',
+    'instantlify:GENERATE_WITH_BOOTSTRAP@postgres': f'instantlify:{db}@postgres',
     'local:GENERATE_WITH_BOOTSTRAP': 'local:' + secrets.token_urlsafe(24),
 }
 for old, new in replacements.items():

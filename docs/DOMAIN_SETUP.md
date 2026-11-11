@@ -26,7 +26,7 @@ only through Coolify's private network so forwarded headers remain trusted.
    internal container-port selector, not as a public port. Assign no public domain
    to backend, frontend, Redis, PostgreSQL, workers, migrations or backup services.
 4. Set the non-secret settings from `deploy/staging.env.example` in Coolify.
-   `NEMIO_ENV_FILE` and `ACME_EMAIL` are unused by this standalone stack. Backend
+   `INSTANTLIFY_ENV_FILE` and `ACME_EMAIL` are unused by this standalone stack. Backend
    settings use production mode and proxy depth 2. The file explicitly passes
    environment variables into the containers, without requiring a checked-in .env.
 5. Enter fresh `DJANGO_SECRET_KEY`, `FIELD_ENCRYPTION_KEYS`, `POSTGRES_PASSWORD`,
@@ -85,7 +85,7 @@ docker compose --env-file .env.staging -p instantlify-staging -f compose.yaml -f
 ```
 
 For production, use `.env.production` and project name `instantlify-production`.
-NEMIO_ENV_FILE makes the backend, migration job, workers and Compose interpolation
+INSTANTLIFY_ENV_FILE makes the backend, migration job, workers and Compose interpolation
 read the same environment file. Rebuild the frontend when its public values change.
 These commands retain the existing containerized PostgreSQL deployment; RDS needs
 a separate Compose change to remove local database dependencies and backup jobs.

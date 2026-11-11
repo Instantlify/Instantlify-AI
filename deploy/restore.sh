@@ -3,13 +3,13 @@
 # schema, so every row written since that dump is lost.
 #
 #   docker compose -f compose.yaml -f compose.prod.yaml run --rm \
-#     -e CONFIRM_RESTORE=yes backup /restore.sh /backups/nemio-<stamp>.sql.gz
+#     -e CONFIRM_RESTORE=yes backup /restore.sh /backups/instantlify-<stamp>.sql.gz
 #
 # Stop the backend, worker and beat first: restoring underneath a running app leaves
 # it holding rows that no longer exist.
 set -eu
 
-dump="${1:?Pass the dump to restore, e.g. /backups/nemio-20260101T000000Z.sql.gz}"
+dump="${1:?Pass the dump to restore, e.g. /backups/instantlify-20260101T000000Z.sql.gz}"
 [ -f "$dump" ] || { echo "No such dump: $dump" >&2; exit 1; }
 if [ "${CONFIRM_RESTORE:-}" != "yes" ]; then
 	echo "Refusing to restore: this drops the current database." >&2
