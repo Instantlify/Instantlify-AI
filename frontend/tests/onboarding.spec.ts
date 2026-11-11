@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Cookie, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 
@@ -18,6 +18,15 @@ const email = `e2e-${Date.now()}@example.com`;
 const password = "River!Saffron42Cloud";
 const slug = `e2e-${Date.now().toString(36)}`;
 let workspaceUrl = "";
+// This serial journey represents one signed-in user. Keep its session across
+// isolated pages instead of repeatedly hitting the real IP-based login limit.
+let sessionCookies: Cookie[] = [];
+test.beforeEach(async ({ context }) => {
+  await context.addCookies(sessionCookies);
+});
+test.afterEach(async ({ context }) => {
+  sessionCookies = await context.cookies();
+});
 /** Live-mode backends refuse local test channels; the steps that need one skip then. */
 let testChannels = true;
 const NO_TEST_CHANNELS =
@@ -223,9 +232,12 @@ test("a simulated comment fires the flow and lands in the inbox", async ({
   const row = page.getByRole("button", { name: /lead[- .]one/i });
   await expect(row).toBeVisible({ timeout: 30000 });
   await row.click();
-  await expect(page.getByText("What is the PRICE?")).toBeVisible();
+  const messages = page.locator(".bubble-text");
   await expect(
-    page.getByText("Thanks for asking! Here is everything you need.", {
+    messages.getByText("What is the PRICE?", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    messages.getByText("Thanks for asking! Here is everything you need.", {
       exact: true,
     }),
   ).toBeVisible({
@@ -234,7 +246,9 @@ test("a simulated comment fires the flow and lands in the inbox", async ({
   // Human reply through the composer.
   await page.getByLabel("Reply").fill("Happy to help!");
   await page.getByRole("button", { name: "Send message" }).click();
-  await expect(page.getByText("Happy to help!", { exact: true })).toBeVisible();
+  await expect(
+    messages.getByText("Happy to help!", { exact: true }),
+  ).toBeVisible();
   await page.getByLabel("Internal note").fill("Warm lead, follow up tomorrow");
   await page.getByRole("button", { name: "Add note" }).click();
   await expect(page.getByText("Warm lead, follow up tomorrow")).toBeVisible();
