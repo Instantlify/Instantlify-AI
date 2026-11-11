@@ -243,6 +243,16 @@ test("a simulated comment fires the flow and lands in the inbox", async ({
   ).toBeVisible({
     timeout: 30000,
   });
+  // A comment permits one private automation reply, but does not open the
+  // normal DM window. The customer must message before a teammate can reply.
+  await simulate(page, "Can you help me?");
+  await nav(page, "Conversations");
+  await row.click();
+  await expect(
+    messages.getByText("Can you help me?", { exact: true }),
+  ).toBeVisible({
+    timeout: 30000,
+  });
   // Human reply through the composer.
   await page.getByLabel("Reply").fill("Happy to help!");
   await page.getByRole("button", { name: "Send message" }).click();
@@ -404,7 +414,7 @@ test("the support assistant opens a ticket for a signed-in user", async ({
   page,
 }) => {
   await signIn(page);
-  await page.goto(`${workspaceUrl}/help`);
+  await page.goto(`${workspaceUrl}/support`);
   const chat = page.getByRole("region", { name: "Support chat" });
   // Name and email come from the account, so no capture card is needed here.
   await chat

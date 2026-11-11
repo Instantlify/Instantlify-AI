@@ -379,6 +379,11 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         aria-label={t("nav.language")}
         aria-haspopup="menu"
         onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            close();
+          }
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
             event.preventDefault();
             if (root.current) root.current.open = true;
