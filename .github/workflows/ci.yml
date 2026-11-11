@@ -91,7 +91,17 @@ jobs:
           done
           exit 1
       - run: npm ci --prefix frontend
-      - run: npx --prefix frontend playwright install --with-deps chromium
+      # Ubuntu mirrors occasionally fail DNS on hosted runners. Retry, then fall back to
+      # the browser alone: the runner already ships Chromium's system libraries and the
+      # suite has no visual snapshots that would need the extra fonts.
+      - name: Install Playwright Chromium
+        run: |
+          for attempt in 1 2 3; do
+            npx --prefix frontend playwright install --with-deps chromium && exit 0
+            echo "Dependency install failed (attempt $attempt); retrying in 20s"
+            sleep 20
+          done
+          npx --prefix frontend playwright install chromium
       - run: npm --prefix frontend run test:e2e
       - name: Container status
         if: always()
