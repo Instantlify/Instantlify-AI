@@ -363,7 +363,7 @@ test("analytics, bio page, offers and invitations", async ({ page }) => {
 
 test("sign out, sign in, and the mobile layout", async ({ page }) => {
   await signIn(page);
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await signOut(page);
   await page
     .getByRole("link", { name: "Sign in", exact: true })
     .first()
@@ -376,10 +376,31 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
     "E2E Studio Updated",
   );
   await nav(page, "Home");
-  if (testChannels)
+  await expect(page).toHaveURL(/\/overview/);
+  if (testChannels) {
+    // Load Home fresh in the new session and check the server's answer first, so a
+    // failure says whether the channel list request failed or came back empty.
+    const listed = page.waitForResponse(
+      (response) =>
+        response.request().method() === "GET" &&
+        /\/api\/workspaces\/[0-9a-f-]+\/connections\/$/.test(
+          new URL(response.url()).pathname,
+        ),
+    );
+    await page.reload();
+    const response = await listed;
+    expect(response.status(), "channel list request").toBe(200);
+    const { results } = (await response.json()) as {
+      results: { is_test: boolean; status: string }[];
+    };
+    expect(
+      results.filter((item) => item.is_test && item.status !== "disconnected"),
+      "local test channel after signing back in",
+    ).toHaveLength(1);
     await expect(
       page.getByRole("region", { name: "Channel status" }),
     ).toContainText("Local test connection");
+  }
   await page.screenshot({
     path: "test-results/dashboard-desktop.png",
     fullPage: true,
@@ -395,8 +416,7 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
     fullPage: true,
   });
   // On phones the sidebar, and its sign-out button, sit in the navigation drawer.
-  await page.getByRole("button", { name: "Open navigation" }).click();
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await signOut(page, true);
   await page
     .getByRole("link", { name: "Sign in", exact: true })
     .first()
@@ -405,6 +425,26 @@ test("sign out, sign in, and the mobile layout", async ({ page }) => {
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();
 });
+
+/** Sign out and wait until the app has really left the workspace. The button is
+ * retried because a click that lands while the shell is still settling is dropped. */
+async function signOut(page: Page, drawer = false) {
+  const button = page.getByRole("button", { name: "Sign out", exact: true });
+  await expect(async () => {
+    if (!page.url().includes("/w/")) return;
+    if (drawer && !(await button.isVisible()))
+      await page.getByRole("button", { name: "Open navigation" }).click();
+    await button.click({ timeout: 5000 });
+    await page.waitForURL((url) => !url.pathname.startsWith("/w/"), {
+      timeout: 5000,
+    });
+  }).toPass({ timeout: 30000 });
+  await expect(
+    page
+      .getByRole("heading", { name: "Welcome back." })
+      .or(page.getByRole("link", { name: "Sign in", exact: true }).first()),
+  ).toBeVisible();
+}
 
 async function signIn(page: Page) {
   await page.goto("/auth");
