@@ -8,7 +8,9 @@
   background: var(--bg-canvas, #101b20);
   color: var(--text-primary, #e6eef0);
 }
-[data-workspace-theme] .boosend-crm-page :is(.crm-stage-select, .kanban-stage-select) {
+[data-workspace-theme]
+  .boosend-crm-page
+  :is(.crm-stage-select, .kanban-stage-select) {
   min-width: 132px;
   padding: 9px 12px;
   border: 1px solid var(--border-light, #30434b);
@@ -19,10 +21,14 @@
 }
 @supports (appearance: base-select) {
   [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select,
-  [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select::picker(select) {
+  [data-workspace-theme]
+    :is(.boosend-crm-page, .contact-panel)
+    select::picker(select) {
     appearance: base-select;
   }
-  [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select::picker(select) {
+  [data-workspace-theme]
+    :is(.boosend-crm-page, .contact-panel)
+    select::picker(select) {
     margin-top: 6px;
     padding: 6px;
     border: 1px solid var(--border-light, #30434b);
@@ -31,7 +37,9 @@
     color: var(--text-primary, #e6eef0);
     box-shadow: 0 12px 32px #0006;
   }
-  [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select::picker-icon {
+  [data-workspace-theme]
+    :is(.boosend-crm-page, .contact-panel)
+    select::picker-icon {
     margin-inline-start: 12px;
     color: var(--text-muted, #9aadb4);
   }
@@ -42,11 +50,17 @@
     font-size: 12px;
     cursor: pointer;
   }
-  [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select option:is(:hover, :focus, :checked) {
+  [data-workspace-theme]
+    :is(.boosend-crm-page, .contact-panel)
+    select
+    option:is(:hover, :focus, :checked) {
     background: var(--bg-subtle, #18272e);
     color: var(--brand-link, #b4f46d);
   }
-  [data-workspace-theme] :is(.boosend-crm-page, .contact-panel) select option::checkmark {
+  [data-workspace-theme]
+    :is(.boosend-crm-page, .contact-panel)
+    select
+    option::checkmark {
     color: var(--brand-link, #b4f46d);
   }
 }

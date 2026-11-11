@@ -123,7 +123,7 @@ export default function CommentShieldPage() {
   }
 
   async function deleteRule(rule: ShieldRule) {
-    if (!await confirm(`Delete the rule "${rule.name}"?`)) return;
+    if (!(await confirm(`Delete the rule "${rule.name}"?`))) return;
     await feedback.run(async () => {
       await api(`${prefix}/shield/rules/${rule.id}/`, "DELETE");
       setRules((list) => list.filter((item) => item.id !== rule.id));

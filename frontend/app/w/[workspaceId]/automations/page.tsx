@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  ValidatedForm,
-  ValidatedInput,
-} from "@/components/validated-form";
+import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -617,7 +614,10 @@ export default function AutomationsPage() {
               You describe the automation you want to build, and our AI will do
               it!
             </p>
-            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
+            <ValidatedForm
+              fieldErrors={feedback.fieldErrors}
+              validationTarget={feedback.validationTarget}
+              onEdit={() => feedback.setError("")}
               onSubmit={handleVoicePrompt}
               className="voice-prompt-input-row"
             >

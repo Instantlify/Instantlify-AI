@@ -117,8 +117,12 @@ test("short onboarding skips optional setup and shows unique leads", async ({
   await expect(
     page.getByRole("heading", { name: "Choose a plan" }),
   ).toBeVisible();
-  await expect(page.getByText("Checkout is currently unavailable.", { exact: false })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Continue with Free" })).toHaveCount(0);
+  await expect(
+    page.getByText("Checkout is currently unavailable.", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Continue with Free" }),
+  ).toHaveCount(0);
   // Simulate the return from Stripe. The checkout handoff is covered in public-site.spec.ts.
   const checkoutReturn = new URL(page.url());
   checkoutReturn.searchParams.set("billing", "success");

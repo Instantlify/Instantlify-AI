@@ -182,7 +182,13 @@ export default function PaymentsPage() {
             </Panel>
             {manager ? (
               <Panel title="New offer">
-                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={createOffer}>
+                <ValidatedForm
+                  fieldErrors={feedback.fieldErrors}
+                  validationTarget={feedback.validationTarget}
+                  onEdit={() => feedback.setError("")}
+                  className="form-grid"
+                  onSubmit={createOffer}
+                >
                   <label>
                     Name
                     <ValidatedInput name="name" maxLength={100} required />

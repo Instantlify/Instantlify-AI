@@ -1,4 +1,4 @@
-/* Desktop navigation reserves a slim rail; expansion overlays the canvas. */
+/* Reserve room for expanded navigation so it cannot cover page controls. */
 .workspace-pill-header {
   width: 100%;
   text-align: left;
@@ -7,6 +7,15 @@
 @media (min-width: 901px) {
   .app-shell-root {
     padding-left: 76px;
+  }
+
+  .app-shell-root:has(
+    .boosend-sidebar:hover,
+    .boosend-sidebar :focus-visible,
+    .boosend-sidebar .workspace-dropdown-popover,
+    .boosend-sidebar .social-account-menu-popover
+  ) {
+    padding-left: 250px;
   }
 
   .boosend-sidebar {

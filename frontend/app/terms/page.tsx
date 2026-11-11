@@ -20,9 +20,9 @@ export default function TermsPage() {
 
         <h2>1. Accepting these terms</h2>
         <p>
-          By creating an account or using Instantlify you agree to these terms and to
-          our <Link href="/privacy/">privacy policy</Link>. If you use Instantlify for
-          a company, you confirm you can bind that company, and
+          By creating an account or using Instantlify you agree to these terms
+          and to our <Link href="/privacy/">privacy policy</Link>. If you use
+          Instantlify for a company, you confirm you can bind that company, and
           &ldquo;you&rdquo; means the company.
         </p>
 
@@ -63,9 +63,9 @@ export default function TermsPage() {
           </li>
           <li>
             Get the consent the law requires before you message people, add them
-            to email lists or call them, and honor opt-outs. Instantlify respects
-            opt-outs and platform messaging windows, but you remain responsible
-            for your messages and lists.
+            to email lists or call them, and honor opt-outs. Instantlify
+            respects opt-outs and platform messaging windows, but you remain
+            responsible for your messages and lists.
           </li>
           <li>
             Give people any notices the law requires, for example that they are
@@ -148,11 +148,11 @@ export default function TermsPage() {
 
         <h2>8. Third-party services</h2>
         <p>
-          Instantlify works with platforms and tools we do not control, such as Meta,
-          WhatsApp, Telegram, Stripe, Google, Microsoft, AI providers and the
-          integrations you connect. Your use of them is governed by their terms.
-          They may change, limit or stop access, which can affect features, and
-          we are not responsible for their services.
+          Instantlify works with platforms and tools we do not control, such as
+          Meta, WhatsApp, Telegram, Stripe, Google, Microsoft, AI providers and
+          the integrations you connect. Your use of them is governed by their
+          terms. They may change, limit or stop access, which can affect
+          features, and we are not responsible for their services.
         </p>
 
         <h2>9. Your content and data</h2>
@@ -166,17 +166,17 @@ export default function TermsPage() {
 
         <h2>10. Our property</h2>
         <p>
-          Instantlify, its software, design and brand belong to {LEGAL.company} and
-          its licensors. These terms do not give you rights to them beyond using
-          the service as permitted.
+          Instantlify, its software, design and brand belong to {LEGAL.company}{" "}
+          and its licensors. These terms do not give you rights to them beyond
+          using the service as permitted.
         </p>
 
         <h2>11. Suspension and termination</h2>
         <p>
-          You can stop using Instantlify and delete your workspace at any time. We may
-          suspend or end access if you breach these terms, fail to pay, or if
-          required by law or a platform. Where we can, we will give notice and a
-          chance to export your data. Sections that by their nature should
+          You can stop using Instantlify and delete your workspace at any time.
+          We may suspend or end access if you breach these terms, fail to pay,
+          or if required by law or a platform. Where we can, we will give notice
+          and a chance to export your data. Sections that by their nature should
           survive (such as payment obligations, limits of liability and
           indemnity) survive termination.
         </p>

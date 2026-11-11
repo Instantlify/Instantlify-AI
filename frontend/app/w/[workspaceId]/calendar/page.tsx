@@ -188,7 +188,7 @@ export default function CalendarPage() {
   }
 
   async function cancel() {
-    if (!selected || !await confirm("Cancel this scheduled post?")) return;
+    if (!selected || !(await confirm("Cancel this scheduled post?"))) return;
     const id = selected.id;
     const done = await feedback.run(
       () => api(`${prefix}/posts/${id}/`, "DELETE"),
@@ -310,7 +310,13 @@ export default function CalendarPage() {
               ) : !manager ? (
                 <Empty>Owners and admins schedule posts.</Empty>
               ) : (
-                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={schedule}>
+                <ValidatedForm
+                  fieldErrors={feedback.fieldErrors}
+                  validationTarget={feedback.validationTarget}
+                  onEdit={() => feedback.setError("")}
+                  className="form-grid"
+                  onSubmit={schedule}
+                >
                   <label>
                     Account
                     <ValidatedSelect name="connection" required>
@@ -444,7 +450,10 @@ export default function CalendarPage() {
             </dl>
           </div>
           {selected.status === "scheduled" && manager ? (
-            <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
+            <ValidatedForm
+              fieldErrors={feedback.fieldErrors}
+              validationTarget={feedback.validationTarget}
+              onEdit={() => feedback.setError("")}
               className="form-grid"
               onSubmit={edit}
               style={{ marginTop: 18 }}
@@ -469,7 +478,10 @@ export default function CalendarPage() {
               </label>
               <label>
                 Media type
-                <ValidatedSelect name="media_type" defaultValue={selected.media_type}>
+                <ValidatedSelect
+                  name="media_type"
+                  defaultValue={selected.media_type}
+                >
                   <option value="image">Image</option>
                   <option value="video">Video (Reel)</option>
                 </ValidatedSelect>

@@ -1405,8 +1405,8 @@ export default function BuilderPage() {
                   </label>
                   <small>
                     Stores the provider’s final status and summary in the call
-                    result. Calls are created once; Instantlify checks the outcome for
-                    up to two hours.
+                    result. Calls are created once; Instantlify checks the
+                    outcome for up to two hours.
                   </small>
                   <label>
                     Exact customer call request

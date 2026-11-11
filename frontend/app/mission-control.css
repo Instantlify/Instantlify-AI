@@ -513,11 +513,24 @@ body {
 }
 
 /* Instantlify uses a compact vector and a readable wordmark at every motion setting. */
-.instantlify-original-brand .brand-title { display: inline; }
+.instantlify-original-brand .brand-title {
+  display: inline;
+}
 .instantlify-original-brand .instantlify-mark,
-.boosend-sidebar .instantlify-original-brand .instantlify-mark { width: 32px; height: 32px; flex-shrink: 0; }
-.instantlify-original-brand .instantlify-mark-image { display: block; width: 100%; height: 100%; object-fit: contain; }
-.boosend-sidebar .instantlify-original-brand .instantlify-mark::after { content: none; }
+.boosend-sidebar .instantlify-original-brand .instantlify-mark {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+.instantlify-original-brand .instantlify-mark-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.boosend-sidebar .instantlify-original-brand .instantlify-mark::after {
+  content: none;
+}
 
 /* FAQ: separated, padded cards instead of a dense table of dividers. */
 .nm-landing .nm-faq {

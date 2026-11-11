@@ -494,7 +494,8 @@ export default function SettingsPage() {
     connectionId: string,
     name: string,
   ) => {
-    if (!await confirm(`Are you sure you want to disconnect ${name}?`)) return;
+    if (!(await confirm(`Are you sure you want to disconnect ${name}?`)))
+      return;
     await feedback.run(async () => {
       await api(`${prefix}/channels/${connectionId}/disconnect/`, "POST");
       await loadConnections();
@@ -524,7 +525,7 @@ export default function SettingsPage() {
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
-    if (!await confirm(`Remove ${memberName} from this workspace?`)) return;
+    if (!(await confirm(`Remove ${memberName} from this workspace?`))) return;
     await feedback.run(async () => {
       await api(`${prefix}/members/${memberId}/`, "DELETE");
       await loadTeam();

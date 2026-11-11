@@ -1,5 +1,12 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 
@@ -14,11 +21,11 @@ jobs:
           POSTGRES_PASSWORD: ci-only-password
           POSTGRES_DB: instantlify
         ports: ['5432:5432']
-        options: --health-cmd 'pg_isready -U instantlify' --health-interval 5s --health-timeout 5s --health-retries 15
+        options: --health-cmd "pg_isready -U instantlify" --health-interval 5s --health-timeout 5s --health-retries 15
       redis:
         image: redis:7.4-alpine
         ports: ['6379:6379']
-        options: --health-cmd 'redis-cli ping' --health-interval 5s --health-timeout 5s --health-retries 15
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 15
     env:
       DATABASE_URL: postgresql://instantlify:ci-only-password@localhost:5432/instantlify
       # Rate-limit tests use a real Redis (Lua scripts); a dedicated DB keeps them isolated.

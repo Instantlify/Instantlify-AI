@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  ValidatedForm,
-  ValidatedInput,
-} from "@/components/validated-form";
+import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
 
 /** Short setup: connect an account, name the workspace, choose a plan. Team and
  * integrations remain available in the workspace. */
@@ -279,10 +276,7 @@ export default function Onboarding() {
           />
         )}
         {step === "payment" && (
-          <PlanStep
-            workspaceId={workspace.id}
-            setError={setError}
-          />
+          <PlanStep workspaceId={workspace.id} setError={setError} />
         )}
       </section>
     </div>

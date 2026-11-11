@@ -18,29 +18,29 @@ export default function PrivacyPage() {
         </p>
 
         <p>
-          Instantlify is a platform businesses use to manage customer conversations on
-          Instagram, Facebook Messenger, WhatsApp, Telegram and their own
-          website, to automate replies (including with AI), and to keep a
-          contact list, forms, link-in-bio pages and related tools. This policy
-          explains what personal information we handle, why, who we share it
-          with and the choices you have.
+          Instantlify is a platform businesses use to manage customer
+          conversations on Instagram, Facebook Messenger, WhatsApp, Telegram and
+          their own website, to automate replies (including with AI), and to
+          keep a contact list, forms, link-in-bio pages and related tools. This
+          policy explains what personal information we handle, why, who we share
+          it with and the choices you have.
         </p>
 
         <h2>1. Our role</h2>
         <ul>
           <li>
             <strong>For account holders</strong> (people who sign up and use
-            Instantlify for a business), we decide how account data is used: we are
-            the controller of that data.
+            Instantlify for a business), we decide how account data is used: we
+            are the controller of that data.
           </li>
           <li>
             <strong>For a business&rsquo;s customers</strong> (people who
             message a business, fill in its form, sign up on its link-in-bio
             page or use its website chat), the business decides what it collects
-            and why. The business is the controller and Instantlify processes that
-            data on its behalf and on its instructions. If you are one of those
-            customers, please contact the business directly about your data; we
-            will help it respond.
+            and why. The business is the controller and Instantlify processes
+            that data on its behalf and on its instructions. If you are one of
+            those customers, please contact the business directly about your
+            data; we will help it respond.
           </li>
         </ul>
 
@@ -207,8 +207,8 @@ export default function PrivacyPage() {
           about those people. We use this solely to show conversations to the
           business, reply on its behalf and run the automations it sets up. We
           do not sell this data or use it for advertising. When someone removes
-          Instantlify from their Instagram or Facebook settings, we disconnect the
-          account and delete its access tokens; see{" "}
+          Instantlify from their Instagram or Facebook settings, we disconnect
+          the account and delete its access tokens; see{" "}
           <Link href="/data-deletion/">data deletion</Link>.
         </p>
 
@@ -298,8 +298,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Connected accounts:</strong> disconnect a channel or
-            integration at any time, or remove Instantlify from your Instagram or
-            Facebook settings.
+            integration at any time, or remove Instantlify from your Instagram
+            or Facebook settings.
           </li>
           <li>
             Depending on where you live, you may also have the right to object
@@ -309,8 +309,8 @@ export default function PrivacyPage() {
         </ul>
         <p>
           To make a request, email <strong>{LEGAL.privacyEmail}</strong>. If you
-          are a customer of a business that uses Instantlify, contact that business
-          first; we will help it respond.
+          are a customer of a business that uses Instantlify, contact that
+          business first; we will help it respond.
         </p>
 
         <h2>10. Cookies and browser storage</h2>
@@ -332,9 +332,9 @@ export default function PrivacyPage() {
 
         <h2>11. Children</h2>
         <p>
-          Instantlify is a business tool and is not directed at children. Account
-          holders must be at least 16 years old (or the age of digital consent
-          where they live).
+          Instantlify is a business tool and is not directed at children.
+          Account holders must be at least 16 years old (or the age of digital
+          consent where they live).
         </p>
 
         <h2>12. International transfers</h2>

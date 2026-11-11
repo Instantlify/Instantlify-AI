@@ -29,8 +29,12 @@ test("visitors can ask a question, retain chat and submit a ticket on mobile", a
   });
   await page.goto("/");
   await page.getByRole("button", { name: "Chat with us" }).click();
-  const dialog = page.getByRole("dialog", { name: "Instantlify help and support" });
-  await dialog.getByLabel("Message", { exact: true }).fill("What is Instantlify?");
+  const dialog = page.getByRole("dialog", {
+    name: "Instantlify help and support",
+  });
+  await dialog
+    .getByLabel("Message", { exact: true })
+    .fill("What is Instantlify?");
   await dialog.getByRole("button", { name: "Send message" }).click();
   await expect(
     dialog.getByText("Instantlify connects your sales conversations."),

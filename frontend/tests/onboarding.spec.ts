@@ -9,7 +9,10 @@ import path from "node:path";
  * local test channel, so no provider is ever contacted whatever the adapter mode.
  */
 test.describe.configure({ mode: "serial" });
-test.skip(!!process.env.E2E_BASE_URL, "Requires the local Compose backend to provision the test workspace.");
+test.skip(
+  !!process.env.E2E_BASE_URL,
+  "Requires the local Compose backend to provision the test workspace.",
+);
 
 const email = `e2e-${Date.now()}@example.com`;
 const password = "River!Saffron42Cloud";
@@ -65,7 +68,10 @@ test("sign up, create a workspace and connect a test channel", async ({
     .getByRole("link", { name: "Get started", exact: true })
     .first()
     .click();
-  await page.getByLabel("Your name").fill("Alex");
+  await expect(page).toHaveURL(/\/auth\/?\?mode=signup/);
+  await page
+    .getByRole("textbox", { name: "Your name", exact: true })
+    .fill("Alex");
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page
@@ -92,13 +98,26 @@ test("sign up, create a workspace and connect a test channel", async ({
   });
   expect(workspaceId).toMatch(/^[a-f0-9-]{36}$/);
   await page.goto(`/w/${workspaceId}/overview`);
-  await expect(page).toHaveURL(new RegExp(`/onboarding/?\\?workspace=${workspaceId}`));
+  await expect(page).toHaveURL(
+    new RegExp(`/onboarding/?\\?workspace=${workspaceId}`),
+  );
   // The billing tests cover Stripe activation. Provision this workspace for
   // the rest of the local product smoke test.
-  execFileSync("docker", [
-    "compose", "exec", "-T", "backend", "python", "manage.py", "shell", "-c",
-    `from apps.tenants.models import Workspace; Workspace.objects.filter(pk='${workspaceId}').update(checkout_pending=False)`,
-  ], { cwd: path.resolve(__dirname, "..", "..") });
+  execFileSync(
+    "docker",
+    [
+      "compose",
+      "exec",
+      "-T",
+      "backend",
+      "python",
+      "manage.py",
+      "shell",
+      "-c",
+      `from apps.tenants.models import Workspace; Workspace.objects.filter(pk='${workspaceId}').update(checkout_pending=False)`,
+    ],
+    { cwd: path.resolve(__dirname, "..", "..") },
+  );
   await page.goto(`/onboarding?workspace=${workspaceId}&billing=success`);
   await expect(page).toHaveURL(/\/w\/[0-9a-f-]+\/overview/, { timeout: 30000 });
   workspaceUrl = page.url().replace(/\/overview.*$/, "");

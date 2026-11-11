@@ -323,7 +323,7 @@ export default function TemplatesPage() {
   }
 
   async function unlist(template: Template) {
-    if (!await confirm(`Unlist “${template.title}” from the marketplace?`))
+    if (!(await confirm(`Unlist “${template.title}” from the marketplace?`)))
       return;
     await feedback.run(
       () => api(`${prefix}/templates/${template.id}/`, "DELETE"),
@@ -360,7 +360,9 @@ export default function TemplatesPage() {
     try {
       parsed = JSON.parse(pasted);
     } catch {
-      feedback.setError("We couldn’t read this template file. Choose an exported Instantlify template and try again.");
+      feedback.setError(
+        "We couldn’t read this template file. Choose an exported Instantlify template and try again.",
+      );
       return;
     }
     const result = await feedback.run(
@@ -512,9 +514,9 @@ export default function TemplatesPage() {
               {!seller?.connected ? (
                 <div className="form-grid">
                   <p className="small">
-                    Paid templates are sold through Instantlify and paid out to your
-                    own Stripe account. Set up payouts once; buyers never see
-                    your account.
+                    Paid templates are sold through Instantlify and paid out to
+                    your own Stripe account. Set up payouts once; buyers never
+                    see your account.
                   </p>
                   <label>
                     Country
@@ -570,7 +572,8 @@ export default function TemplatesPage() {
                         disabled={!owner || feedback.busy}
                         onClick={() => payouts("onboard")}
                       >
-                        <BrandIcon name="stripe" size={16} mono /> Finish Stripe setup
+                        <BrandIcon name="stripe" size={16} mono /> Finish Stripe
+                        setup
                       </button>
                     )}
                     <button
@@ -600,7 +603,13 @@ export default function TemplatesPage() {
                   shared.
                 </Empty>
               ) : (
-                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={publish}>
+                <ValidatedForm
+                  fieldErrors={feedback.fieldErrors}
+                  validationTarget={feedback.validationTarget}
+                  onEdit={() => feedback.setError("")}
+                  className="form-grid"
+                  onSubmit={publish}
+                >
                   <label>
                     Automation
                     <ValidatedSelect name="automation" required>
@@ -745,7 +754,13 @@ export default function TemplatesPage() {
               </Panel>
 
               <Panel title="Import & export">
-                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={importFile}>
+                <ValidatedForm
+                  fieldErrors={feedback.fieldErrors}
+                  validationTarget={feedback.validationTarget}
+                  onEdit={() => feedback.setError("")}
+                  className="form-grid"
+                  onSubmit={importFile}
+                >
                   <label>
                     Import a template file
                     <ValidatedInput
@@ -763,7 +778,10 @@ export default function TemplatesPage() {
                     </button>
                   </div>
                 </ValidatedForm>
-                <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")}
+                <ValidatedForm
+                  fieldErrors={feedback.fieldErrors}
+                  validationTarget={feedback.validationTarget}
+                  onEdit={() => feedback.setError("")}
                   className="form-grid"
                   onSubmit={importPasted}
                   style={{ marginTop: 16 }}
