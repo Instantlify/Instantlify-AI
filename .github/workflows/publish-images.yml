@@ -1,0 +1,107 @@
+name: Publish deployment images
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    outputs:
+      web_digest: ${{ steps.web.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select release identity
+        id: release
+        shell: bash
+        env:
+          TARGET_BRANCH: ${{ github.base_ref || github.ref_name }}
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "backend=ghcr.io/$owner/instantlify-backend" >> "$GITHUB_OUTPUT"
+          echo "web=ghcr.io/$owner/instantlify-web" >> "$GITHUB_OUTPUT"
+          if [[ "$TARGET_BRANCH" == main ]]; then
+            echo 'channel=production' >> "$GITHUB_OUTPUT"
+            echo 'host=instantlify.com' >> "$GITHUB_OUTPUT"
+          else
+            echo 'channel=dev' >> "$GITHUB_OUTPUT"
+            echo 'host=dev.instantlify.com' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish backend
+        id: backend
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          target: runtime
+          push: true
+          tags: ${{ steps.release.outputs.backend }}:sha-${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+      - name: Build web image into the local test engine
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/web/Dockerfile
+          target: web
+          load: true
+          tags: instantlify-web:test
+          build-args: |
+            BACKEND_IMAGE=${{ steps.release.outputs.backend }}@${{ steps.backend.outputs.digest }}
+            NEXT_PUBLIC_WS_URL=wss://${{ steps.release.outputs.host }}
+            INSTANTLIFY_PRIVACY_URL=https://${{ steps.release.outputs.host }}/privacy/
+            INSTANTLIFY_TERMS_URL=https://${{ steps.release.outputs.host }}/terms/
+          cache-from: type=gha,scope=web-${{ steps.release.outputs.channel }}
+          cache-to: type=gha,mode=max,scope=web-${{ steps.release.outputs.channel }}
+      - name: Verify the complete rolling web image
+        env:
+          BACKEND_IMAGE: ${{ steps.release.outputs.backend }}@${{ steps.backend.outputs.digest }}
+        run: bash scripts/smoke-web-image.sh instantlify-web:test "$BACKEND_IMAGE"
+      - name: Publish verified web image
+        id: web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/web/Dockerfile
+          target: web
+          push: true
+          tags: |
+            ${{ steps.release.outputs.web }}:sha-${{ github.sha }}
+            ${{ github.event_name == 'push' && format('{0}:{1}', steps.release.outputs.web, steps.release.outputs.channel) || '' }}
+          build-args: |
+            BACKEND_IMAGE=${{ steps.release.outputs.backend }}@${{ steps.backend.outputs.digest }}
+            NEXT_PUBLIC_WS_URL=wss://${{ steps.release.outputs.host }}
+            INSTANTLIFY_PRIVACY_URL=https://${{ steps.release.outputs.host }}/privacy/
+            INSTANTLIFY_TERMS_URL=https://${{ steps.release.outputs.host }}/terms/
+          cache-from: type=gha,scope=web-${{ steps.release.outputs.channel }}
+      - name: Record immutable release references
+        env:
+          BACKEND: ${{ steps.release.outputs.backend }}@${{ steps.backend.outputs.digest }}
+          WEB: ${{ steps.release.outputs.web }}@${{ steps.web.outputs.digest }}
+        run: |
+          printf 'Commit: `%s`\n\nBackend: `%s`\n\nWeb: `%s`\n' "$GITHUB_SHA" "$BACKEND" "$WEB" >> "$GITHUB_STEP_SUMMARY"
+
+  request-deployment:
+    needs: publish
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || 'dev' }}
+    steps:
+      - name: Request the configured Coolify image deployment
+        env:
+          DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
+          API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+        run: |
+          if [[ -z "$DEPLOY_WEBHOOK" || -z "$API_TOKEN" ]]; then
+            echo 'Images published. Configure the environment-specific Coolify webhook/token to enable deployment.'
+            exit 0
+          fi
+          curl --fail --silent --show-error --output /dev/null \
+            --header "Authorization: Bearer $API_TOKEN" "$DEPLOY_WEBHOOK"
