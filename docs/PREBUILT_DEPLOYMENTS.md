@@ -18,6 +18,13 @@ requests during compatible releases; it is not a guarantee against host failures
 broken schema changes, exhausted memory or long-lived WebSocket disconnections.
 The VPS must have room to run two web containers at the same time.
 
+For the current **12 GB RAM / 6 CPU / 100 GB disk** Contabo server, start with
+two web workers (the image default), roughly 2–3 GB RAM per web container and no
+more than two concurrent web replicas during rollout. Measure actual usage with
+the database/workers running before setting final limits. Retain the current and
+previous successful images for rollback; monitor free disk space and prune only
+unused images, never database volumes.
+
 ## GitHub setup
 
 1. The release job depends on all three CI jobs; the CI repairs ship with this change.
