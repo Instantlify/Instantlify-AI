@@ -137,7 +137,9 @@ test("sign up, create a workspace and connect a test channel", async ({
   await connect
     .getByRole("combobox", { name: /^Provider/ })
     .selectOption("instagram");
-  await connect.getByLabel("Account ID", { exact: true }).fill("e2e-instagram");
+  await connect
+    .getByLabel("Account ID", { exact: true })
+    .fill(`e2e-instagram-${workspaceId}`);
   await connect
     .getByLabel("Display name", { exact: true })
     .fill("E2E Test Account");
@@ -218,7 +220,7 @@ test("a simulated comment fires the flow and lands in the inbox", async ({
   await signIn(page);
   await simulate(page, "What is the PRICE?", "comment");
   await nav(page, "Conversations");
-  const row = page.getByRole("button", { name: /lead-one/ });
+  const row = page.getByRole("button", { name: /lead[- .]one/i });
   await expect(row).toBeVisible({ timeout: 30000 });
   await row.click();
   await expect(page.getByText("What is the PRICE?")).toBeVisible();
@@ -256,7 +258,7 @@ test("the AI agent answers with the local test provider", async ({ page }) => {
     timeout: 30000,
   });
   await nav(page, "Conversations");
-  await page.getByRole("button", { name: /lead-one/ }).click();
+  await page.getByRole("button", { name: /lead[- .]one/i }).click();
   const aiActive = page
     .getByRole("group", { name: "Who replies" })
     .getByRole("button", { name: /^(AI active|Return to AI)$/ });
@@ -272,11 +274,11 @@ test("the AI agent answers with the local test provider", async ({ page }) => {
   }
   // Reload so the assertion reflects the server, not the optimistic UI state.
   await page.reload();
-  await page.getByRole("button", { name: /lead-one/ }).click();
+  await page.getByRole("button", { name: /lead[- .]one/i }).click();
   await expect(aiActive).toHaveAttribute("aria-pressed", "true");
   await simulate(page, "Hello there");
   await nav(page, "Conversations");
-  await page.getByRole("button", { name: /lead-one/ }).click();
+  await page.getByRole("button", { name: /lead[- .]one/i }).click();
   await expect(
     page.getByText("[Local test] Thanks for reaching out."),
   ).toBeVisible({
