@@ -30,7 +30,10 @@ for (const width of [390, 1440]) {
     await expect(
       dialog.getByRole("button", { name: "Cancel", exact: true }),
     ).toBeFocused();
-    if (width === 390) await page.screenshot({ path: "test-results/instantlify-confirmation-mobile.png" });
+    if (width === 390)
+      await page.screenshot({
+        path: "test-results/instantlify-confirmation-mobile.png",
+      });
     expect(requests()).toHaveLength(0);
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(dialog).toHaveCount(0);

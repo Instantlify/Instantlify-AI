@@ -147,7 +147,9 @@ test("file uploads and drawn signatures are sent with a consented response", asy
   await expect(main.getByText("signature.png ready to submit.")).toBeVisible();
   await main.getByLabel("You may contact me", { exact: true }).check();
   await main.getByRole("button", { name: "Send response" }).click();
-  await expect(main.getByRole("status")).toHaveText("Files received");
+  await expect(
+    main.getByRole("status").filter({ hasText: "Files received" }),
+  ).toBeVisible();
   expect(Buffer.from(submitted!.answers.file.data, "base64").toString()).toBe(
     "A private proposal",
   );

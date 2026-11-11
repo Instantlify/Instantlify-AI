@@ -117,11 +117,11 @@ export default function TeamPage() {
   async function removeMember(member: Member) {
     const leaving = member.email === user.email;
     if (
-      !await confirm(
+      !(await confirm(
         leaving
           ? "Leave this workspace? You will lose access immediately."
           : `Remove ${member.email} from this workspace?`,
-      )
+      ))
     )
       return;
     await feedback.run(async () => {

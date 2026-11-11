@@ -46,8 +46,8 @@ export default function RootLayout({
       <body>
         <LanguageProvider>
           <ConfirmationProvider>
-          {children}
-          <SupportWidget />
+            {children}
+            <SupportWidget />
           </ConfirmationProvider>
         </LanguageProvider>
       </body>

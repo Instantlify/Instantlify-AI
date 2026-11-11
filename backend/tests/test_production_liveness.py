@@ -9,9 +9,7 @@ from django.test import Client, override_settings
 def test_liveness_probe_uses_production_host_and_proxy_scheme():
     client = Client()
     assert client.get("/health/live/", HTTP_HOST="localhost").status_code == 400
-    assert (
-        client.get("/health/live/", HTTP_HOST="staging.instantlify.com").status_code == 301
-    )
+    assert client.get("/health/live/", HTTP_HOST="staging.instantlify.com").status_code == 301
     response = client.get(
         "/health/live/",
         HTTP_HOST="staging.instantlify.com",

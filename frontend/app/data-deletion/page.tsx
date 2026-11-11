@@ -48,8 +48,8 @@ export default function DataDeletionPage() {
         <ul>
           <li>
             <strong>Removing the app from Instagram or Facebook</strong>{" "}
-            disconnects your account in Instantlify and deletes its access tokens
-            automatically.
+            disconnects your account in Instantlify and deletes its access
+            tokens automatically.
           </li>
           <li>
             <strong>Workspace owners</strong> can export or permanently delete
@@ -57,8 +57,8 @@ export default function DataDeletionPage() {
           </li>
           <li>
             <strong>Customers of a business</strong> who messaged it through
-            Instantlify can ask that business to delete their conversation and contact
-            record.
+            Instantlify can ask that business to delete their conversation and
+            contact record.
           </li>
         </ul>
         <p>

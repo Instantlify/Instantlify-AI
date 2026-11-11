@@ -43,7 +43,11 @@ export type TourStep = "editor" | "crm" | "apps" | "claude-mcp";
 
 type FirstReplyStep = "tested" | "published" | "replied";
 
-export function firstReplyStep(workspaceId: string, step: FirstReplyStep, complete = false) {
+export function firstReplyStep(
+  workspaceId: string,
+  step: FirstReplyStep,
+  complete = false,
+) {
   try {
     const key = `nemio:first-reply:${workspaceId}:${step}`;
     if (complete) window.localStorage.setItem(key, "done");

@@ -81,9 +81,12 @@ for (const width of [390, 1440]) {
       .getByRole("button", { name: "Post reply", exact: true })
       .click();
     await expect(
-      thread.getByText("That makes the handoff clearer.", { exact: true }),
+      thread
+        .locator(".community-thread-content")
+        .getByText("That makes the handoff clearer.", { exact: true }),
     ).toBeVisible();
-    expect(target).toBe("r2");
+    // Verify the submitted parent, rather than matching the filled composer.
+    await expect.poll(() => target).toBe("r2");
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth + 1,

@@ -1,5 +1,12 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 
@@ -14,11 +21,11 @@ jobs:
           POSTGRES_PASSWORD: ci-only-password
           POSTGRES_DB: instantlify
         ports: ['5432:5432']
-        options: --health-cmd 'pg_isready -U instantlify' --health-interval 5s --health-timeout 5s --health-retries 15
+        options: --health-cmd "pg_isready -U instantlify" --health-interval 5s --health-timeout 5s --health-retries 15
       redis:
         image: redis:7.4-alpine
         ports: ['6379:6379']
-        options: --health-cmd 'redis-cli ping' --health-interval 5s --health-timeout 5s --health-retries 15
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 15
     env:
       DATABASE_URL: postgresql://instantlify:ci-only-password@localhost:5432/instantlify
       # Rate-limit tests use a real Redis (Lua scripts); a dedicated DB keeps them isolated.
@@ -69,6 +76,12 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: sh scripts/bootstrap.sh
+      # The browser suite signs up, signs in and files tickets from one IP far faster
+      # than a person; lift the per-minute throttles for this stack only.
+      - run: |
+          echo 'THROTTLE_RATE_ANON=10000/min' >> .env
+          echo 'THROTTLE_RATE_USER=10000/min' >> .env
+          echo 'THROTTLE_RATE_AUTH=10000/min' >> .env
       - run: docker compose up --build -d --wait --wait-timeout 240
       - name: Confirm database, Redis, worker and beat communicate
         run: |
@@ -78,7 +91,17 @@ jobs:
           done
           exit 1
       - run: npm ci --prefix frontend
-      - run: npx --prefix frontend playwright install --with-deps chromium
+      # Ubuntu mirrors occasionally fail DNS on hosted runners. Retry, then fall back to
+      # the browser alone: the runner already ships Chromium's system libraries and the
+      # suite has no visual snapshots that would need the extra fonts.
+      - name: Install Playwright Chromium
+        run: |
+          for attempt in 1 2 3; do
+            npx --prefix frontend playwright install --with-deps chromium && exit 0
+            echo "Dependency install failed (attempt $attempt); retrying in 20s"
+            sleep 20
+          done
+          npx --prefix frontend playwright install chromium
       - run: npm --prefix frontend run test:e2e
       - name: Container status
         if: always()
@@ -90,3 +113,16 @@ jobs:
           path: frontend/test-results
       - run: docker compose down
         if: always()
+
+  publish-images:
+    needs: [backend, frontend, integration]
+    if: (github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main')) || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish-images.yml
+    secrets:
+      COOLIFY_DEV_DEPLOY_WEBHOOK: ${{ github.event_name == 'push' && secrets.COOLIFY_DEV_DEPLOY_WEBHOOK || '' }}
+      COOLIFY_DEV_API_TOKEN: ${{ github.event_name == 'push' && secrets.COOLIFY_DEV_API_TOKEN || '' }}
+      COOLIFY_PRODUCTION_DEPLOY_WEBHOOK: ${{ github.event_name == 'push' && secrets.COOLIFY_PRODUCTION_DEPLOY_WEBHOOK || '' }}
+      COOLIFY_PRODUCTION_API_TOKEN: ${{ github.event_name == 'push' && secrets.COOLIFY_PRODUCTION_API_TOKEN || '' }}

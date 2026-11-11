@@ -244,9 +244,12 @@ export default function AnalyticsPage() {
                     <i style={{ width: `${(item.leads / maxLeads) * 100}%` }} />
                   </div>
                   <strong>
-                    <button className="text-button" disabled={!item.leads || details.busy}
+                    <button
+                      className="text-button"
+                      disabled={!item.leads || details.busy}
                       aria-label={`View ${STEP_LABELS[item.kind] || item.kind} conversations`}
-                      onClick={() => void openDetails(item.kind)}>
+                      onClick={() => void openDetails(item.kind)}
+                    >
                       {item.leads}
                     </button>
                     <span className="muted-text">
@@ -259,8 +262,11 @@ export default function AnalyticsPage() {
                 </div>
               ))}
             </div>
-            <button className="button secondary small" disabled={details.busy}
-              onClick={() => void openDetails("failed")}>
+            <button
+              className="button secondary small"
+              disabled={details.busy}
+              onClick={() => void openDetails("failed")}
+            >
               View failed runs
             </button>
           </Panel>
@@ -275,11 +281,18 @@ export default function AnalyticsPage() {
                   {funnel.automations.map((row) => (
                     <tr key={row.automation_id}>
                       <td>{row.name}</td>
-                      <td><button className="text-button" disabled={!row.triggered || details.busy}
-                        aria-label={`View triggered conversations for ${row.name}`}
-                        onClick={() => void openDetails("triggered", row.automation_id)}>
-                        {row.triggered}
-                      </button></td>
+                      <td>
+                        <button
+                          className="text-button"
+                          disabled={!row.triggered || details.busy}
+                          aria-label={`View triggered conversations for ${row.name}`}
+                          onClick={() =>
+                            void openDetails("triggered", row.automation_id)
+                          }
+                        >
+                          {row.triggered}
+                        </button>
+                      </td>
                       <td>{row.booked}</td>
                       <td>{row.paid}</td>
                       <td>{money(row.revenue_cents)}</td>
@@ -289,24 +302,45 @@ export default function AnalyticsPage() {
               )}
             </Panel>
             {detail && (
-              <Modal title={detail === "failed" ? "Failed runs" : `${STEP_LABELS[detail]} conversations`}
-                onClose={() => setDetail("")}>
+              <Modal
+                title={
+                  detail === "failed"
+                    ? "Failed runs"
+                    : `${STEP_LABELS[detail]} conversations`
+                }
+                onClose={() => setDetail("")}
+              >
                 <ErrorNotice error={details.error} />
-                {details.busy ? <p role="status">Loading activity…</p> : rows.length ? (
+                {details.busy ? (
+                  <p role="status">Loading activity…</p>
+                ) : rows.length ? (
                   <>
-                    <p className="muted-text">Showing up to 100 recent records for the selected filters.</p>
+                    <p className="muted-text">
+                      Showing up to 100 recent records for the selected filters.
+                    </p>
                     <ul className="stack">
                       {rows.map((row) => (
                         <li key={row.id}>
-                          <Link href={`/w/${workspace.id}/inbox?conversation=${row.conversation_id}`}>
+                          <Link
+                            href={`/w/${workspace.id}/inbox?conversation=${row.conversation_id}`}
+                          >
                             Open conversation
-                          </Link>{" · "}{when(row.finished_at || row.created_at)}
-                          {row.automation_name && <p>{row.automation_name} · {row.error_code || row.node_id}</p>}
+                          </Link>
+                          {" · "}
+                          {when(row.finished_at || row.created_at)}
+                          {row.automation_name && (
+                            <p>
+                              {row.automation_name} ·{" "}
+                              {row.error_code || row.node_id}
+                            </p>
+                          )}
                         </li>
                       ))}
                     </ul>
                   </>
-                ) : !details.error && <Empty>No matching records.</Empty>}
+                ) : (
+                  !details.error && <Empty>No matching records.</Empty>
+                )}
               </Modal>
             )}
             <Panel title="By channel">
@@ -409,13 +443,13 @@ function Experiments({ automations }: { automations: Automation[] }) {
         ? nameOf(experiment.variant)
         : nameOf(experiment.control);
     if (
-      !await confirm(
+      !(await confirm(
         `Promote “${label}” as the winner? ${
           winner === "variant"
             ? "Its flow will be republished under the control automation."
             : "The variant will be disabled."
         }`,
-      )
+      ))
     )
       return;
     await feedback.run(async () => {
@@ -498,11 +532,18 @@ function Experiments({ automations }: { automations: Automation[] }) {
       <h3 className="small" style={{ marginBottom: 10 }}>
         Start an experiment
       </h3>
-      <ValidatedForm fieldErrors={feedback.fieldErrors} validationTarget={feedback.validationTarget} onEdit={() => feedback.setError("")} className="form-grid" onSubmit={create}>
+      <ValidatedForm
+        fieldErrors={feedback.fieldErrors}
+        validationTarget={feedback.validationTarget}
+        onEdit={() => feedback.setError("")}
+        className="form-grid"
+        onSubmit={create}
+      >
         <div className="three-col">
           <label>
             Name
-            <ValidatedInput name="name"
+            <ValidatedInput
+              name="name"
               value={form.name}
               maxLength={100}
               required
@@ -511,7 +552,8 @@ function Experiments({ automations }: { automations: Automation[] }) {
           </label>
           <label>
             Control (published)
-            <ValidatedSelect name="control"
+            <ValidatedSelect
+              name="control"
               value={form.control}
               required
               onChange={(e) => setForm({ ...form, control: e.target.value })}
@@ -526,7 +568,8 @@ function Experiments({ automations }: { automations: Automation[] }) {
           </label>
           <label>
             Variant (published)
-            <ValidatedSelect name="variant"
+            <ValidatedSelect
+              name="variant"
               value={form.variant}
               required
               onChange={(e) => setForm({ ...form, variant: e.target.value })}
@@ -545,7 +588,8 @@ function Experiments({ automations }: { automations: Automation[] }) {
         <div className="three-col">
           <label>
             Variant share (%)
-            <ValidatedInput name="split"
+            <ValidatedInput
+              name="split"
               type="number"
               min={1}
               max={99}
@@ -557,7 +601,8 @@ function Experiments({ automations }: { automations: Automation[] }) {
           </label>
           <label>
             Goal
-            <ValidatedSelect name="goal"
+            <ValidatedSelect
+              name="goal"
               value={form.goal}
               onChange={(e) => setForm({ ...form, goal: e.target.value })}
             >
@@ -568,7 +613,8 @@ function Experiments({ automations }: { automations: Automation[] }) {
           </label>
           <label>
             Minimum leads per arm
-            <ValidatedInput name="min_leads"
+            <ValidatedInput
+              name="min_leads"
               type="number"
               min={1}
               value={form.min_leads}

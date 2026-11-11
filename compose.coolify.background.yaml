@@ -1,0 +1,203 @@
+# Background/data services for the EXISTING Coolify resource after web cutover.
+# Keep the same resource identity and volumes. Never deploy this as a second data stack.
+# Requires Preserve repository during deployment for backup script mounts.
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Run bootstrap first}
+      POSTGRES_USER: ${POSTGRES_USER:?Run bootstrap first}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run bootstrap first}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  redis:
+    image: redis:7.4-alpine
+    command:
+      - redis-server
+      - '--appendonly'
+      - 'yes'
+      - '--maxmemory-policy'
+      - noeviction
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  migrate:
+    init: true
+    restart: 'no'
+    command:
+      - python
+      - manage.py
+      - migrate
+      - '--noinput'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment: &ref_0
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in Coolify}
+      FIELD_ENCRYPTION_KEYS: ${FIELD_ENCRYPTION_KEYS:?Set FIELD_ENCRYPTION_KEYS in Coolify}
+      POSTGRES_DB: ${POSTGRES_DB:-instantlify_staging}
+      POSTGRES_USER: ${POSTGRES_USER:-instantlify}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Coolify}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in Coolify}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/1}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-dev.instantlify.com,ops.dev.instantlify.com,backend}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://dev.instantlify.com,https://ops.dev.instantlify.com}
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:8000}
+      CHANNEL_ADAPTER_MODE: ${CHANNEL_ADAPTER_MODE:-disabled}
+      ALLOW_TEST_CHANNELS: ${ALLOW_TEST_CHANNELS:-false}
+      FLOWER_BASIC_AUTH: ${FLOWER_BASIC_AUTH:?Set FLOWER_BASIC_AUTH in Coolify}
+      META_APP_ID: ${META_APP_ID:-}
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_REDIRECT_URI: ${META_REDIRECT_URI:-https://dev.instantlify.com/api/meta/callback/}
+      META_SCOPES: ${META_SCOPES:-instagram_business_basic,instagram_business_manage_messages}
+      META_WEBHOOK_VERIFY_TOKEN: ${META_WEBHOOK_VERIFY_TOKEN:-}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID: ${WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID:-}
+      MESSENGER_APP_SECRET: ${MESSENGER_APP_SECRET:-}
+      LINKEDIN_MESSAGING_APPROVED: ${LINKEDIN_MESSAGING_APPROVED:-false}
+      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID:-}
+      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET:-}
+      LINKEDIN_REDIRECT_URI: ${LINKEDIN_REDIRECT_URI:-https://dev.instantlify.com/api/linkedin/callback/}
+      SNAPCHAT_WEBHOOK_SECRET: ${SNAPCHAT_WEBHOOK_SECRET:-}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-https://dev.instantlify.com}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-wss://dev.instantlify.com}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICES: ${STRIPE_PRICES:-{}}
+      MARKETPLACE_FEE_PERCENT: ${MARKETPLACE_FEE_PERCENT:-15}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_LOGIN_REDIRECT_URI: ${GOOGLE_LOGIN_REDIRECT_URI:-https://dev.instantlify.com/api/auth/google/callback/}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      PLATFORM_ADMIN_HOST: ${PLATFORM_ADMIN_HOST:-ops.dev.instantlify.com}
+      PLATFORM_ADMIN_NETWORKS: ${PLATFORM_ADMIN_NETWORKS:-}
+      TRUSTED_PROXY_DEPTH: '2'
+      PLATFORM_OPENAI_API_KEY: ${PLATFORM_OPENAI_API_KEY:-}
+      PLATFORM_AI_MODEL: ${PLATFORM_AI_MODEL:-gpt-5}
+      PLATFORM_ANTHROPIC_API_KEY: ${PLATFORM_ANTHROPIC_API_KEY:-}
+      PLATFORM_GEMINI_API_KEY: ${PLATFORM_GEMINI_API_KEY:-}
+      PLATFORM_GEMINI_MODEL: ${PLATFORM_GEMINI_MODEL:-gemini-3.5-flash-lite}
+      PLATFORM_XAI_API_KEY: ${PLATFORM_XAI_API_KEY:-}
+      PLATFORM_ELEVENLABS_API_KEY: ${PLATFORM_ELEVENLABS_API_KEY:-}
+      PLATFORM_ELEVENLABS_DEFAULT_VOICE_ID: ${PLATFORM_ELEVENLABS_DEFAULT_VOICE_ID:-21m00Tcm4TlvDq8ikWAM}
+      UPTIME_PROBE_URL: ${UPTIME_PROBE_URL:-https://dev.instantlify.com/health/ready/}
+      UPTIME_LATENCY_MS: ${UPTIME_LATENCY_MS:-2500}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      PAGERDUTY_ROUTING_KEY: ${PAGERDUTY_ROUTING_KEY:-}
+      EMAIL_HOST: ${EMAIL_HOST:-smtp.hostinger.com}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-support@instantlify.com}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:?Set EMAIL_HOST_PASSWORD in Coolify}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-true}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-Instantlify <support@instantlify.com>}
+      SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
+      SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET:-}
+      META_API_VERSION: ${META_API_VERSION:-v23.0}
+      META_CALLS_PER_HOUR: ${META_CALLS_PER_HOUR:-200}
+      META_APP_CALLS_PER_HOUR: ${META_APP_CALLS_PER_HOUR:-0}
+      WHATSAPP_CALLS_PER_HOUR: ${WHATSAPP_CALLS_PER_HOUR:-3600}
+      TELEGRAM_CALLS_PER_HOUR: ${TELEGRAM_CALLS_PER_HOUR:-1800}
+      MESSENGER_CALLS_PER_HOUR: ${MESSENGER_CALLS_PER_HOUR:-3600}
+      STRIPE_TRIAL_DAYS: ${STRIPE_TRIAL_DAYS:-3}
+      STRIPE_METER_EVENT_NAME: ${STRIPE_METER_EVENT_NAME:-ai_messages}
+      DEFAULT_PLAN_SLUG: ${DEFAULT_PLAN_SLUG:-free}
+      PUBLIC_API_RATE: ${PUBLIC_API_RATE:-600/min}
+      RETENTION_DAYS: ${RETENTION_DAYS:-90}
+      FIRSTPROMOTER_API_KEY: ${FIRSTPROMOTER_API_KEY:-}
+      FIRSTPROMOTER_ACCOUNT_ID: ${FIRSTPROMOTER_ACCOUNT_ID:-}
+      FIRSTPROMOTER_CAMPAIGN_ID: ${FIRSTPROMOTER_CAMPAIGN_ID:-0}
+      FIRSTPROMOTER_CURRENCY: ${FIRSTPROMOTER_CURRENCY:-USD}
+      FIRSTPROMOTER_REVENUE_DIVISOR: ${FIRSTPROMOTER_REVENUE_DIVISOR:-100}
+      INSTANTLIFY_PRIVACY_URL: ${INSTANTLIFY_PRIVACY_URL:-https://dev.instantlify.com/privacy/}
+      INSTANTLIFY_TERMS_URL: ${INSTANTLIFY_TERMS_URL:-https://dev.instantlify.com/terms/}
+      INSTANTLIFY_SUPPORT_EMAIL: ${INSTANTLIFY_SUPPORT_EMAIL:-support@instantlify.com}
+      INSTANTLIFY_PRIVACY_EMAIL: ${INSTANTLIFY_PRIVACY_EMAIL:-support@instantlify.com}
+      APP_DOMAIN: ${APP_DOMAIN:-dev.instantlify.com}
+      CUSTOM_DOMAIN_CNAME_TARGET: ${CUSTOM_DOMAIN_CNAME_TARGET:-dev.instantlify.com}
+    image: ${BACKEND_IMAGE:?Set the immutable backend image from the release summary}
+  worker:
+    init: true
+    restart: unless-stopped
+    command:
+      - celery
+      - '-A'
+      - config
+      - worker
+      - '--loglevel=INFO'
+      - '--concurrency=2'
+      - '--hostname=worker@%h'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - celery -A config inspect ping --destination "worker@$$HOSTNAME" --timeout 5 | grep -q pong
+      interval: 30s
+      timeout: 30s
+      start_period: 60s
+      retries: 5
+    environment: *ref_0
+    image: ${BACKEND_IMAGE:?Set the immutable backend image from the release summary}
+  beat:
+    init: true
+    restart: unless-stopped
+    command:
+      - celery
+      - '-A'
+      - config
+      - beat
+      - '--loglevel=INFO'
+      - '--schedule=/tmp/celerybeat-schedule'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    environment: *ref_0
+    image: ${BACKEND_IMAGE:?Set the immutable backend image from the release summary}
+  backup:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    entrypoint:
+      - /bin/sh
+      - /backup.sh
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${POSTGRES_DB:?Run bootstrap first}
+      PGUSER: ${POSTGRES_USER:?Run bootstrap first}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Run bootstrap first}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+    volumes:
+      - ./deploy/backup.sh:/backup.sh:ro
+      - ./deploy/restore.sh:/restore.sh:ro
+      - backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  postgres_data: null
+  redis_data: null
+  backups: {}
