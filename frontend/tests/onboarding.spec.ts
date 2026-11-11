@@ -414,7 +414,7 @@ test("the support assistant opens a ticket for a signed-in user", async ({
   page,
 }) => {
   await signIn(page);
-  await page.goto(`${workspaceUrl}/support`);
+  await page.goto(`${workspaceUrl}/help`);
   const chat = page.getByRole("region", { name: "Support chat" });
   // Name and email come from the account, so no capture card is needed here.
   await chat
