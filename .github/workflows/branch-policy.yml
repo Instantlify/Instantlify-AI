@@ -3,7 +3,7 @@ name: Branch policy
 # Metadata only: never check out or execute pull-request code here.
 on:
   pull_request_target:
-    branches: [main, staging]
+    branches: [main, dev]
     types: [opened, reopened, synchronize, edited, ready_for_review]
 
 permissions:
@@ -14,7 +14,7 @@ jobs:
     name: source-branch
     runs-on: ubuntu-latest
     steps:
-      - name: Enforce feature to staging to main
+      - name: Enforce feature to dev to main
         env:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
@@ -28,10 +28,10 @@ jobs:
           if (source !== target) {
             error = 'The source branch must belong to this repository.';
           } else if (base === 'main') {
-            if (head !== 'staging') error = 'Only staging may open a pull request into main.';
-          } else if (base === 'staging') {
+            if (head !== 'dev') error = 'Only dev may open a pull request into main.';
+          } else if (base === 'dev') {
             if (!head?.startsWith('feature/') || head.length <= 'feature/'.length) {
-              error = 'Only feature/* branches may open a pull request into staging.';
+              error = 'Only feature/* branches may open a pull request into dev.';
             }
           } else {
             error = 'Unexpected target branch.';

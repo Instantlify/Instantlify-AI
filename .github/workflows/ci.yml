@@ -1,9 +1,9 @@
 name: CI
 on:
   push:
-    branches: [main, staging]
+    branches: [main, dev]
   pull_request:
-    branches: [main, staging]
+    branches: [main, dev]
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -116,7 +116,7 @@ jobs:
 
   publish-images:
     needs: [backend, frontend, integration]
-    if: (github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main')) || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    if: (github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')) || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     permissions:
       contents: read
       packages: write

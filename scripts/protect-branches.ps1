@@ -22,7 +22,7 @@ function Invoke-GitHubJson {
 $repo = Invoke-GitHubJson "repos/$Repository"
 if (-not $repo.permissions.admin) { throw 'Repository admin access is required.' }
 if ($repo.default_branch -ne 'main') { throw 'Expected main as the default branch. Review the repository setup first.' }
-foreach ($branch in @('main', 'staging')) {
+foreach ($branch in @('main', 'dev')) {
     $branchInfo = Invoke-GitHubJson "repos/$Repository/branches/$branch"
     if ($branchInfo.protected) {
         throw "$branch already has protection or a ruleset. Review and update its existing policy manually to preserve stronger rules."
@@ -55,7 +55,7 @@ $protection = @{
 
 # This sets the complete classic protection policy. Inspect existing protections
 # and rulesets before running; preserve any stronger organization requirements.
-foreach ($branch in @('staging', 'main')) {
+foreach ($branch in @('dev', 'main')) {
     $null = Invoke-GitHubJson "repos/$Repository/branches/$branch/protection" 'PUT' $protection
     $actual = Invoke-GitHubJson "repos/$Repository/branches/$branch/protection"
     if (-not $actual.enforce_admins.enabled -or $actual.allow_force_pushes.enabled -or
