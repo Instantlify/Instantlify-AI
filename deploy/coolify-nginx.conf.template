@@ -12,6 +12,14 @@ server {
     access_log off;
     client_max_body_size 50m;
 
+    # Container healthcheck: answers from Nginx itself, independent of upstreams,
+    # so a backend restart does not make Traefik drop the gateway route.
+    # Exact match only; /health/live/ and /health/ready/ still go to the backend.
+    location = /health {
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
     location ~ ^/(api/|webhooks/|health/|ws/|media/voice/) {
         proxy_pass http://backend:8000;
         proxy_http_version 1.1;
