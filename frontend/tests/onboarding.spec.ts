@@ -225,14 +225,16 @@ test("a simulated comment fires the flow and lands in the inbox", async ({
   await row.click();
   await expect(page.getByText("What is the PRICE?")).toBeVisible();
   await expect(
-    page.getByText("Thanks for asking! Here is everything you need."),
+    page.getByText("Thanks for asking! Here is everything you need.", {
+      exact: true,
+    }),
   ).toBeVisible({
     timeout: 30000,
   });
   // Human reply through the composer.
   await page.getByLabel("Reply").fill("Happy to help!");
   await page.getByRole("button", { name: "Send message" }).click();
-  await expect(page.getByText("Happy to help!")).toBeVisible();
+  await expect(page.getByText("Happy to help!", { exact: true })).toBeVisible();
   await page.getByLabel("Internal note").fill("Warm lead, follow up tomorrow");
   await page.getByRole("button", { name: "Add note" }).click();
   await expect(page.getByText("Warm lead, follow up tomorrow")).toBeVisible();
@@ -280,7 +282,9 @@ test("the AI agent answers with the local test provider", async ({ page }) => {
   await nav(page, "Conversations");
   await page.getByRole("button", { name: /lead[- .]one/i }).click();
   await expect(
-    page.getByText("[Local test] Thanks for reaching out."),
+    page.locator(".bubble-text").filter({
+      hasText: "[Local test] Thanks for reaching out.",
+    }),
   ).toBeVisible({
     timeout: 30000,
   });
@@ -367,10 +371,11 @@ async function signIn(page: Page) {
   await page.goto("/auth");
   // Either the sign-in form appears, or a live session redirects straight into a workspace.
   const heading = page.getByRole("heading", { name: "Welcome back." });
-  const needsLogin = await heading
-    .waitFor({ state: "visible", timeout: 10000 })
-    .then(() => true)
-    .catch(() => false);
+  await Promise.race([
+    heading.waitFor({ state: "visible", timeout: 15000 }),
+    page.waitForURL(/\/w\/[0-9a-f-]+\//, { timeout: 15000 }),
+  ]);
+  const needsLogin = await heading.isVisible();
   if (needsLogin) {
     await page.getByLabel("Email address").fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);
