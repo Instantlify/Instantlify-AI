@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+.cache
+**/.env
+**/.env.*
+**/.venv
+**/node_modules
+**/.next
+**/test-results
+**/playwright-report
+**/__pycache__
+**/*.log
+**/*.sqlite3
+reference images
