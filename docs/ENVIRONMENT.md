@@ -48,7 +48,7 @@ All settings load from process environment. Docker Compose injects the ignored r
 | `EMAIL_HOST` | Production | No | SMTP host for transactional email. Production refuses to boot without it; locally mail prints to the console |
 | `EMAIL_PORT` / `EMAIL_USE_TLS` | No | No | Default `587` / `true` |
 | `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | With SMTP auth | Yes | SMTP credentials |
-| `DEFAULT_FROM_EMAIL` | Production | No | Sender, e.g. `Instantlify <no-reply@nemio.app>` |
+| `DEFAULT_FROM_EMAIL` | Production | No | Sender: `Instantlify <support@instantlify.com>`; authorize this address with your SMTP provider |
 | `STRIPE_TRIAL_DAYS` | No | No | Trial days on a workspace's first subscription (default 3; 0 disables) |
 | `DEFAULT_PLAN_SLUG` | No | No | Plan a workspace is on before subscribing. `free` in base settings, `dev` (unlimited) in local settings |
 | `STRIPE_METER_EVENT_NAME` | No | No | Meter event name, default `ai_messages` |

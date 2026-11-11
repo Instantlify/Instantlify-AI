@@ -101,6 +101,9 @@ For frontend hot reload against Compose: stop the frontend container with `docke
 
 ## Deploying
 
+For `instantlify.com`, the confirmed support mailbox, and separate staging and
+production environment files, see [domain setup](docs/DOMAIN_SETUP.md).
+
 `compose.yaml` on its own is the local stack: loopback ports, no edge, no certificates,
 no backups. Production adds those through an overlay:
 
