@@ -22,6 +22,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenBlacklistView, TokenObtainPairView, TokenRefreshView
 
+from .auth import VersionedTokenObtainPairSerializer
 from .models import AuditEvent, Membership, Workspace
 from .permissions import workspace_membership
 from .profile import ProfileSerializer, photo_url
@@ -205,6 +206,7 @@ class PasswordChangeView(APIView):
 
 
 class JWTLoginView(TokenObtainPairView):
+    serializer_class = VersionedTokenObtainPairSerializer
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth"
 

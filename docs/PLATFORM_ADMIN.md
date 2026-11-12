@@ -87,3 +87,15 @@ The authenticated API is `/api/workspaces/<workspace_id>/support/tickets/` (list
 In the platform console's Support queues, expand **Conversation and reply** to read the original request and its thread, then send a response. Replies are saved to the ticket and emailed through the configured Django email backend. A mail failure is logged without losing the reply; clients can still read it in the portal. Assignment and resolution controls continue to work.
 
 Production AI answers use `PLATFORM_OPENAI_API_KEY` and the platform knowledge base managed in the console. These are separate from customer agent keys, documents and credits. If the AI provider is unavailable, chat offers the ticket form instead. Real email delivery requires the existing mail provider configuration and `DEFAULT_FROM_EMAIL`; local/test delivery is not evidence of production email delivery.
+
+## Scheduled announcements and client history
+
+In **Notifications**, create or edit a strip or popup, enable it, and optionally set its start/end times and IANA time zone (default `Asia/Karachi`). Leave pages and tiers empty to reach every signed-in user. A blank start publishes immediately when enabled; a blank end has no expiry. The server enforces the schedule on each fetch, so no scheduler or worker configuration is needed. Visible client pages refresh automatically within 15 seconds under normal network conditions, without navigation or extending idle sessions.
+
+The app bell combines announcement unread counts with existing assignment counts. Users can mark announcements read, explicitly acknowledge requested notices, and browse delivery history. Marking all read does not acknowledge notices. History retains delivered content after expiry, edits or deletion. Editing or re-enabling a notice creates a new revision for delivery; previous versions remain in history. Notices that expire before a user visits an eligible page are not delivered retroactively. Reads and acknowledgements are per user across their workspaces. Page and plan targeting still restrict initial delivery.
+
+## Client device controls
+
+**Settings → Profile → Devices and sessions** lists active browser sessions, their device/browser, IP address, last activity and expiry. A user can revoke an individual browser session or sign out everywhere, including the current browser. Existing sessions are backfilled during migration, with unavailable historical device details labelled accordingly. Sign out everywhere also invalidates issued API access/refresh tokens. Other open browser sessions detect revocation within 30 seconds while visible, or on their next authenticated request. Background checks do not renew the one-hour inactivity window.
+
+Notavo, Poppy AI, Salesforce, HubSpot and Zapier remain labelled **Coming soon** in the integration catalogue and have no connect/configure action.

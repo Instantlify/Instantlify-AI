@@ -488,6 +488,11 @@ class Announcement(models.Model):
     target_pages = models.CharField(max_length=500, blank=True)
     target_plans = models.ManyToManyField("billing.Plan", blank=True)
     is_active = models.BooleanField(default=False)
+    starts_at = models.DateTimeField(null=True, blank=True)
+    ends_at = models.DateTimeField(null=True, blank=True)
+    schedule_timezone = models.CharField(max_length=64, default="Asia/Karachi")
+    requires_acknowledgement = models.BooleanField(default=False)
+    revision = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -511,6 +516,35 @@ class AnnouncementView(models.Model):
                 name="one_announcement_view_per_user",
             )
         ]
+
+
+class AnnouncementNotification(models.Model):
+    """Delivered snapshots survive expiry, edits and removal of their source notice."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    announcement = models.ForeignKey(
+        Announcement, null=True, on_delete=models.SET_NULL, related_name="notifications"
+    )
+    revision = models.PositiveIntegerField(default=1)
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True)
+    link_url = models.URLField(max_length=2000, blank=True)
+    tone = models.CharField(max_length=10, default="dark")
+    requires_acknowledgement = models.BooleanField(default=False)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    delivered_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-delivered_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "announcement", "revision"], name="one_notice_delivery_per_revision"
+            )
+        ]
+        indexes = [models.Index(fields=["user", "read_at"], name="notice_user_read_idx")]
 
 
 class EmailTemplate(models.Model):

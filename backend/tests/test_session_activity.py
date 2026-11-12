@@ -92,3 +92,73 @@ def test_existing_session_adopts_idle_policy_without_polling_extensions(user):
     assert client.get("/api/auth/session/").status_code == 200
     assert client.session[ACTIVITY_KEY]
     assert client.session.get_expiry_age() <= 3600
+
+
+def test_device_list_revoke_and_ownership(user):
+    from apps.tenants.models import BrowserSession, User
+
+    first = signed_in(user)
+    second = signed_in(user)
+    listed = first.get("/api/auth/sessions/").json()["results"]
+    assert len(listed) == 2
+    assert sum(row["current"] for row in listed) == 1
+    assert all("session_key" not in row for row in listed)
+    other = User.objects.create_user(username="stranger", password="A-very-long-password42")
+    stranger = signed_in(other)
+    foreign = stranger.get("/api/auth/sessions/").json()["results"][0]
+    assert first.delete(f"/api/auth/sessions/{foreign['id']}/").status_code == 404
+    target = next(row for row in listed if not row["current"])
+    assert first.delete(f"/api/auth/sessions/{target['id']}/").status_code == 204
+    assert second.get("/api/auth/session/").json()["authenticated"] is False
+    assert first.get("/api/auth/session/").json()["authenticated"] is True
+    assert BrowserSession.objects.get(pk=target["id"]).revoked_at
+
+
+def test_sign_out_everywhere_invalidates_cookies_and_tokens(user):
+    from apps.tenants.auth import VersionedTokenObtainPairSerializer
+
+    first = signed_in(user)
+    second = signed_in(user)
+    token = VersionedTokenObtainPairSerializer.get_token(user)
+    jwt = APIClient()
+    jwt.credentials(HTTP_AUTHORIZATION=f"Bearer {token.access_token}")
+    assert jwt.get("/api/auth/me/").status_code == 200
+    assert first.post("/api/auth/sessions/revoke-all/", {}).status_code == 204
+    assert first.get("/api/auth/session/").json()["authenticated"] is False
+    assert second.get("/api/auth/session/").json()["authenticated"] is False
+    assert jwt.get("/api/auth/me/").status_code in [401, 403]
+    assert jwt.post("/api/auth/token/refresh/", {"refresh": str(token)}).status_code in [401, 403]
+    user.refresh_from_db()
+    assert user.session_version == 1
+    assert signed_in(user).get("/api/auth/session/").json()["authenticated"] is True
+
+
+def test_revoke_current_device_signs_out_and_requires_csrf(user):
+    client = signed_in(user)
+    row = client.get("/api/auth/sessions/").json()["results"][0]
+    assert client.delete(f"/api/auth/sessions/{row['id']}/").status_code == 204
+    assert client.get("/api/auth/session/").json()["authenticated"] is False
+    strict = APIClient(enforce_csrf_checks=True)
+    strict.login(username=user.username, password="A-very-long-password42")
+    assert strict.post("/api/auth/sessions/revoke-all/", {}).status_code == 403
+
+
+def test_existing_sessions_are_backfilled_without_reviving_idle_sessions(user):
+    from importlib import import_module
+    from types import SimpleNamespace
+
+    from django.apps import apps
+    from django.db import connection
+
+    from apps.tenants.models import BrowserSession
+
+    active = signed_in(user)
+    idle = signed_in(user)
+    legacy = idle.session
+    legacy[ACTIVITY_KEY] -= 4000
+    legacy.save()
+    BrowserSession.objects.all().delete()
+    migration = import_module("apps.tenants.migrations.0017_user_session_version_browsersession")
+    migration.backfill_sessions(apps, SimpleNamespace(connection=connection))
+    assert BrowserSession.objects.filter(session_key=active.session.session_key).exists()
+    assert not BrowserSession.objects.filter(session_key=idle.session.session_key).exists()

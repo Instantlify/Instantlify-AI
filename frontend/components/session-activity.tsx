@@ -161,8 +161,13 @@ export function SessionActivity() {
     window.addEventListener("instantlify:session-changed", sessionChanged);
     void synchronize();
 
+    const statusTimer = window.setInterval(() => {
+      if (active && !document.hidden && !sending) void synchronize();
+    }, 30_000);
+
     return () => {
       disposed = true;
+      window.clearInterval(statusTimer);
       clearTimeout(expiryTimer);
       clearTimeout(activityTimer);
       channel.close();

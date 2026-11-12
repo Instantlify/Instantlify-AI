@@ -568,6 +568,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <AssignmentNotifications
               key={workspace.id}
               workspaceId={workspace.id}
+              section={section}
             />
             {workspace.parent && (
               <span className="badge-agency">Agency Managed</span>

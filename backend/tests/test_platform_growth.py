@@ -664,3 +664,49 @@ def test_inactive_staff_cannot_be_assigned(operator):
     assert response.status_code == 404
     ticket.refresh_from_db()
     assert ticket.assignee_id is None and ticket.status == "unresolved"
+
+
+def test_scheduled_announcement_admin_validation_and_toggle(operator):
+    client = console(operator)
+    fields = {
+        "name": "Maintenance",
+        "type": "strip",
+        "tone": "blue",
+        "body": "Service pause",
+        "title": "Planned work",
+        "link_url": "https://example.com/status",
+        "target_pages": "settings",
+        "is_active": "on",
+        "requires_acknowledgement": "on",
+        "starts_at": "2026-12-01T10:00",
+        "ends_at": "2026-12-01T11:00",
+        "schedule_timezone": "Asia/Karachi",
+    }
+    assert client.post("/ops/notices/", fields).status_code == 302
+    notice = Announcement.objects.get(name="Maintenance")
+    assert notice.starts_at.isoformat() == "2026-12-01T05:00:00+00:00"
+    assert notice.ends_at.isoformat() == "2026-12-01T06:00:00+00:00"
+    assert notice.requires_acknowledgement
+    assert client.post(f"/ops/notices/{notice.pk}/", {"action": "toggle"}).status_code == 302
+    notice.refresh_from_db()
+    assert not notice.is_active and notice.body == fields["body"]
+    assert notice.target_pages == "settings" and notice.link_url == fields["link_url"]
+    assert (
+        client.post(
+            f"/ops/notices/{notice.pk}/", {"action": "toggle", "is_active": "on"}
+        ).status_code
+        == 302
+    )
+    notice.refresh_from_db()
+    assert notice.revision == 2 and notice.is_active
+    for invalid in [
+        {"ends_at": "2026-12-01T09:00"},
+        {"schedule_timezone": "Bad/Zone"},
+        {"link_url": "javascript:alert(1)"},
+    ]:
+        assert client.post(f"/ops/notices/{notice.pk}/", {**fields, **invalid}).status_code == 403
+    notice.refresh_from_db()
+    assert notice.revision == 2
+    page = client.get(f"/ops/?tab=notifications&edit={notice.pk}")
+    assert page.status_code == 200
+    assert b"2026-12-01T10:00" in page.content
