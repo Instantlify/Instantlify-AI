@@ -1,11 +1,14 @@
 """Email-based recovery with expiring, single-use Django password reset tokens."""
 
+import logging
+from smtplib import SMTPException
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
+from django.core.mail import BadHeaderError
 from django.db import transaction
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -13,7 +16,11 @@ from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
+from apps.platform_ops.growth import TemplateMissing, send_transactional_email
+
 from .views import SignupView
+
+log = logging.getLogger(__name__)
 
 
 class RecoveryRequestSerializer(serializers.Serializer):
@@ -41,15 +48,18 @@ class PasswordResetRequestView(SignupView):
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
             # A fragment keeps the reset secret out of HTTP/access logs and referrers.
-            url = f"{settings.PUBLIC_APP_URL}/auth/reset/#uid={uid}&token={token}"
-            send_mail(
-                "Reset your Instantlify password",
-                f"Use this link to choose a new password:\n\n{url}\n\n"
-                "If you did not request this, you can ignore this email.",
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=True,
-            )
+            url = f"{settings.PUBLIC_APP_URL.rstrip('/')}/auth/reset/#uid={uid}&token={token}"
+            try:
+                send_transactional_email(
+                    "password-reset",
+                    user.email,
+                    {"name": user.first_name or "there", "email": user.email, "link": url},
+                )
+            except (SMTPException, OSError, BadHeaderError, TemplateMissing):
+                log.error(
+                    "Password-reset email was not sent",
+                    extra={"event_code": "password_reset_email_failed"},
+                )
         return Response(
             {"detail": "If this email has an eligible account, a reset link is on its way."}
         )

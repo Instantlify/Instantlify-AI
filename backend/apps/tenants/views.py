@@ -146,6 +146,8 @@ class MeView(APIView):
         try:
             with transaction.atomic():
                 user = get_user_model().objects.select_for_update().get(pk=request.user.pk)
+                old_email = user.email
+                old_email_verified = bool(user.email_verified_at)
                 if "name" in data:
                     user.first_name = data["name"]
                 if "email" in data and data["email"] != user.email:
@@ -162,9 +164,11 @@ class MeView(APIView):
                 {"email": "This email address is already in use."}
             ) from None
         if email_changed:
-            from .verification import send_verification
+            from .verification import send_email_change_notice, send_verification
 
-            send_verification(user)
+            send_verification(user, template_name="email-change-confirmation")
+            if old_email_verified:
+                send_email_change_notice(user, old_email)
         return Response(
             {
                 "id": user.id,

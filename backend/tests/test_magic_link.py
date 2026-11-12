@@ -92,7 +92,8 @@ def test_delivery_failure_is_logged_and_retried_without_token_or_address(user, c
     from apps.tenants.tasks import deliver_magic_link
 
     with patch(
-        "apps.tenants.tasks.send_mail", side_effect=[SMTPException("private-address"), 1]
+        "apps.tenants.tasks.send_transactional_email",
+        side_effect=[SMTPException("private-address"), {}],
     ) as send:
         deliver_magic_link.apply(args=[user.pk], throw=False).get(propagate=True)
     assert send.call_count == 2

@@ -475,7 +475,11 @@ def send_transactional_email(template_name, to, context=None):
     """The single send path for transactional email. Copy lives in `EmailTemplate`
     keyed by name, so changing an email's wording is a content edit and never a
     deploy. A `draft` row is editable but must never reach a customer."""
-    from django.core.mail import EmailMessage
+    from urllib.parse import urlsplit
+
+    from django.conf import settings
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
 
     context = context or {}
     template = EmailTemplate.objects.filter(name=template_name).first()
@@ -483,12 +487,54 @@ def send_transactional_email(template_name, to, context=None):
         raise TemplateMissing(f"No email template named {template_name!r}.")
     if template.status != "active":
         raise TemplateMissing(f"Email template {template_name!r} is a draft and was not sent.")
-    message = EmailMessage(
-        subject=render_template(template.subject, context),
-        body=render_template(template.body, context),
+    subject = render_template(template.subject, context)
+    body = render_template(template.body, context)
+    actions = {
+        "email-verification": ("Verify email address", "link"),
+        "email-change-confirmation": ("Confirm email address", "link"),
+        "password-reset": ("Reset password", "link"),
+        "magic-link-signin": ("Sign in", "link"),
+        "workspace-invitation": ("Accept invitation", "link"),
+        "welcome-v2": ("Open your workspace", "app_url"),
+        "manage-subscription-link": ("Manage subscription", "portal_url"),
+        "trial-ending-soon": ("Manage billing", "billing_url"),
+        "credits-low": ("Manage AI credits", "billing_url"),
+        "auto-topup-failed": ("Update payment method", "billing_url"),
+        "plan-changed-v2": ("Manage subscription", "billing_url"),
+    }
+    action_label, action_key = actions.get(template_name, ("", ""))
+    action_url = str(context.get(action_key, ""))
+    try:
+        parts = urlsplit(action_url)
+        valid_action = parts.scheme in {"http", "https"} and bool(parts.netloc)
+    except ValueError:
+        valid_action = False
+    if not valid_action:
+        action_url = ""
+    if action_url and action_url not in body:
+        body = f"{body}\n\n{action_label}: {action_url}"
+    before, separator, after = body.partition(action_url) if action_url else (body, "", "")
+    message = EmailMultiAlternatives(
+        subject=subject,
+        body=body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
         to=[to],
     )
-    message.send(fail_silently=False)
+    message.attach_alternative(
+        render_to_string(
+            "platform_ops/email.html",
+            {
+                "subject": subject,
+                "body_before": before.rstrip() if separator else body,
+                "body_after": after.lstrip() if separator else "",
+                "action_url": action_url,
+                "action_label": action_label,
+            },
+        ),
+        "text/html",
+    )
+    if message.send(fail_silently=False) != 1:
+        raise OSError("Email backend did not accept the message.")
     return {"template": template_name, "to": to, "subject": message.subject}
 
 
