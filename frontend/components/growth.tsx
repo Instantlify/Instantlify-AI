@@ -393,7 +393,7 @@ export function SupportChat({
         ))}
       </ol>
       {card ? (
-        <ValidatedForm className="chat-card" onSubmit={submitCard}>
+        <ValidatedForm key={card} className="chat-card" onSubmit={submitCard}>
           <label>
             {card === NAME_CARD ? "Your name" : "Your email"}
             <ValidatedInput

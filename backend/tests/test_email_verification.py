@@ -38,7 +38,7 @@ def token_from_email():
 def test_signup_sends_a_confirmation_link_and_reports_unverified():
     client, response = signup()
     assert response.json()["email_verified"] is False
-    assert client.get("/api/auth/me/").json()["email_verified"] is False
+    assert client.get("/api/auth/me/").status_code == 403
     assert len(mail.outbox) == 1
     assert SIGNUP["email"] in mail.outbox[0].to
 
@@ -50,6 +50,13 @@ def test_confirming_marks_the_account_and_grants_the_welcome_credit():
 
     response = APIClient().post("/api/auth/verify-email/", {"token": token_from_email()})
     assert response.status_code == 200
+    assert client.get("/api/auth/me/").status_code == 403
+    assert (
+        client.post(
+            "/api/auth/login/", {"email": SIGNUP["email"], "password": SIGNUP["password"]}
+        ).status_code
+        == 200
+    )
     assert client.get("/api/auth/me/").json()["email_verified"] is True
     assert balance_for(workspace.pk).balance_cents == settings.SIGNUP_CREDIT_CENTS
 

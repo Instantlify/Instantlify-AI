@@ -20,10 +20,12 @@ class FakeStripe:
         self.prices_store = dict(prices or {})
         self.created_prices = []
         self.created_products = []
+        self.updated_products = []
 
         self.products = MagicMock()
         self.products.retrieve.side_effect = self._retrieve_product
         self.products.create.side_effect = self._create_product
+        self.products.update.side_effect = self._update_product
         self.prices = MagicMock()
         self.prices.retrieve.side_effect = self._retrieve_price
         self.prices.create.side_effect = self._create_price
@@ -31,7 +33,11 @@ class FakeStripe:
     def _retrieve_product(self, product_id):
         if product_id not in self.products_store:
             raise stripe.InvalidRequestError("No such product", "id")
-        return SimpleNamespace(id=product_id)
+        return SimpleNamespace(id=product_id, name=self.products_store[product_id]["name"])
+
+    def _update_product(self, product_id, params):
+        self.updated_products.append((product_id, params))
+        self.products_store[product_id].update(params)
 
     def _create_product(self, params):
         self.created_products.append(params)
@@ -148,3 +154,24 @@ def test_a_price_missing_from_this_account_is_reported_not_recreated(settings):
 def test_missing_key_is_refused(settings):
     with pytest.raises(CommandError, match="STRIPE_SECRET_KEY"):
         run(FakeStripe(), settings, key="")
+
+
+def test_existing_product_is_rebranded_without_changing_prices(settings):
+    fake = FakeStripe()
+    run(fake, settings)
+    original_ids = list(PlanPrice.objects.values_list("id", "stripe_price_id", "price_cents"))
+    fake.products_store["nemio-pro"]["name"] = "Nemio Pro"
+    again = FakeStripe(products=fake.products_store, prices=fake.prices_store)
+    run(again, settings)
+    assert again.updated_products == [("nemio-pro", {"name": "Instantlify Pro"})]
+    assert again.created_products == again.created_prices == []
+    assert (
+        list(PlanPrice.objects.values_list("id", "stripe_price_id", "price_cents")) == original_ids
+    )
+
+
+def test_dry_run_does_not_rename_existing_products(settings):
+    fake = FakeStripe(products={"nemio-pro": {"name": "Nemio Pro"}})
+    output = run(fake, settings, dry_run=True)
+    assert "would rename product nemio-pro to Instantlify Pro" in output
+    assert fake.updated_products == []

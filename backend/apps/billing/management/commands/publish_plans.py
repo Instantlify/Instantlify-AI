@@ -96,8 +96,16 @@ class Command(BaseCommand):
     def ensure_product(self, plan):
         product_id = f"nemio-{plan.slug}"
         try:
-            self.client.products.retrieve(product_id)
-            self.stdout.write(f"  product {product_id} exists")
+            product = self.client.products.retrieve(product_id)
+            expected_name = f"Instantlify {plan.name}"
+            if product.name != expected_name:
+                if self.dry_run:
+                    self.stdout.write(f"  would rename product {product_id} to {expected_name}")
+                else:
+                    self.client.products.update(product_id, {"name": expected_name})
+                    self.stdout.write(f"  renamed product {product_id} to {expected_name}")
+            else:
+                self.stdout.write(f"  product {product_id} current")
         except stripe.InvalidRequestError:
             if self.dry_run:
                 self.stdout.write(f"  would create product {product_id} ({plan.name})")

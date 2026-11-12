@@ -1046,8 +1046,7 @@ table th {
   color: var(--brand-on-primary);
   justify-self: end;
 }
-.chat-input,
-.chat-card {
+.chat-input {
   display: flex;
   gap: 8px;
   align-items: flex-end;
@@ -1057,8 +1056,26 @@ table th {
 .chat-input input {
   flex: 1;
 }
+.chat-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+}
 .chat-card label {
-  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.chat-card .button {
+  justify-self: end;
+}
+.chat-input {
+  flex-wrap: wrap;
+}
+.chat-input .form-validation-summary,
+.chat-input .field-error {
+  flex-basis: 100%;
 }
 .blog-page {
   min-height: 100vh;

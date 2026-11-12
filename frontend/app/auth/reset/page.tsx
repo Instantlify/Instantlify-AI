@@ -4,7 +4,8 @@ import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
 
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
-import { api, message } from "@/lib/api";
+import { api, ApiError, message } from "@/lib/api";
+import type { FieldErrors } from "@/lib/form-errors";
 import { Brand } from "@/components/shell";
 import { ErrorNotice, SuccessNotice } from "@/components/ui";
 
@@ -16,6 +17,7 @@ export default function PasswordRecovery() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [done, setDone] = useState(false);
 
   useEffect(() => {
@@ -42,12 +44,9 @@ export default function PasswordRecovery() {
     setBusy(true);
     setError("");
     setNotice("");
+    setFieldErrors({});
     const values = Object.fromEntries(new FormData(event.currentTarget));
-    if (credentials && values.password !== values.confirm) {
-      setError("Passwords do not match.");
-      setBusy(false);
-      return;
-    }
+
     try {
       const result = await api<{ detail: string }>(
         credentials
@@ -61,6 +60,7 @@ export default function PasswordRecovery() {
       setNotice(result.detail);
       setDone(true);
     } catch (err) {
+      setFieldErrors(err instanceof ApiError ? err.fieldErrors : {});
       setError(message(err));
     } finally {
       setBusy(false);
@@ -82,7 +82,17 @@ export default function PasswordRecovery() {
         <ErrorNotice error={error} />
         <SuccessNotice notice={notice} />
         {!done && (
-          <ValidatedForm onSubmit={submit}>
+          <ValidatedForm
+            onSubmit={submit}
+            fieldErrors={fieldErrors}
+            onEdit={() => setError("")}
+            validate={(form): FieldErrors => {
+              const data = new FormData(form);
+              return credentials && data.get("password") !== data.get("confirm")
+                ? { confirm: "Passwords do not match." }
+                : {};
+            }}
+          >
             {credentials ? (
               <>
                 <label>

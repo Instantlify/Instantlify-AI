@@ -1,8 +1,12 @@
+import logging
 from datetime import timedelta
+from smtplib import SMTPException
 
 from celery import shared_task
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ImproperlyConfigured
+from django.core.mail import send_mail
 from django.core.management import call_command
 from django.db import transaction
 from django.utils import timezone
@@ -66,3 +70,54 @@ def purge_unverified_signups():
         is_superuser=False,
     )
     return stale.exclude(pk__in=members).delete()[0]
+
+
+log = logging.getLogger(__name__)
+
+
+@shared_task(bind=True, max_retries=3, ignore_result=True)
+def deliver_magic_link(self, user_id):
+    """Retry transient SMTP errors without putting tokens or addresses in task payloads/logs."""
+    from .magic_link import make_token
+
+    user = get_user_model().objects.filter(pk=user_id, is_active=True, is_banned=False).first()
+    if not user:
+        return
+    try:
+        if settings.EMAIL_BACKEND in {
+            "django.core.mail.backends.console.EmailBackend",
+            "django.core.mail.backends.dummy.EmailBackend",
+        }:
+            raise ImproperlyConfigured("Magic-link delivery requires an outbound email backend.")
+        url = f"{settings.PUBLIC_APP_URL.rstrip('/')}/auth/magic/#token={make_token(user)}"
+        sent = send_mail(
+            "Your Instantlify sign-in link",
+            f"Use this link within 15 minutes to sign in:\n\n{url}\n\n"
+            "It works once. If you did not ask for it, you can ignore this email.",
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+        if sent != 1:
+            raise OSError("Email backend did not accept the message.")
+    except (SMTPException, OSError, ImproperlyConfigured) as exc:
+        log.error(
+            "Magic-link email delivery failed",
+            extra={
+                "event_code": "magic_link_delivery_failed",
+                "user_id": user_id,
+                "error_type": type(exc).__name__,
+                "attempt": self.request.retries + 1,
+            },
+        )
+        # SMTP exceptions may include addresses; do not serialize the original error.
+        raise self.retry(
+            exc=RuntimeError(
+                "Magic-link email delivery failed; check outbound email configuration."
+            ),
+            countdown=30 * (2**self.request.retries),
+        ) from None
+    log.info(
+        "Magic-link email accepted by backend",
+        extra={"event_code": "magic_link_delivery_accepted", "user_id": user_id},
+    )

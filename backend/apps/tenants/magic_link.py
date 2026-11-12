@@ -6,10 +6,13 @@ puts the token in the URL fragment so it never reaches server or proxy logs, and
 request endpoint answers identically whether or not the email has an account.
 """
 
+import logging
+
 from django.conf import settings
 from django.contrib.auth import get_user_model, login
 from django.core import signing
-from django.core.mail import send_mail
+from django.core.cache import cache
+from django.utils.crypto import salted_hmac
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -17,6 +20,12 @@ from .views import SignupView
 
 SALT = "nemio.magic-link"
 MAX_AGE = 15 * 60
+RESEND_SECONDS = 60
+log = logging.getLogger(__name__)
+REQUEST_DETAIL = (
+    "If an account exists for this email address, you'll receive a sign-in link shortly. "
+    "Please check your inbox and spam folder."
+)
 
 
 def _stamp(user):
@@ -52,24 +61,47 @@ class MagicLinkRequestView(SignupView):
     def post(self, request):
         serializer = MagicLinkRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = (
-            get_user_model()
-            .objects.filter(
-                email__iexact=serializer.validated_data["email"], is_active=True, is_banned=False
+        from .tasks import deliver_magic_link
+
+        if settings.EMAIL_BACKEND in {
+            "django.core.mail.backends.console.EmailBackend",
+            "django.core.mail.backends.dummy.EmailBackend",
+        }:
+            log.error(
+                "Magic-link email backend is not configured for delivery",
+                extra={"event_code": "magic_link_backend_unavailable"},
             )
-            .first()
-        )
-        if user:
-            url = f"{settings.PUBLIC_APP_URL}/auth/magic/#token={make_token(user)}"
-            send_mail(
-                "Your Instantlify sign-in link",
-                f"Use this link within 15 minutes to sign in:\n\n{url}\n\n"
-                "It works once. If you did not ask for it, you can ignore this email.",
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=True,
+            return Response(
+                {
+                    "detail": "Sign-in links are temporarily unavailable. Please sign in with your password."
+                },
+                status=503,
             )
-        return Response({"detail": "If this email has an account, a sign-in link is on its way."})
+        email = serializer.validated_data["email"].strip().lower()
+        key = "magic-link-resend:" + salted_hmac("magic-link-resend", email).hexdigest()
+        if cache.add(key, True, timeout=RESEND_SECONDS):
+            user = (
+                get_user_model()
+                .objects.filter(email__iexact=email, is_active=True, is_banned=False)
+                .first()
+            )
+            try:
+                # Enqueue for unknown addresses too: response and broker-error behavior
+                # must not reveal whether an account exists. No email is sent for them.
+                deliver_magic_link.delay(user.pk if user else None)
+            except Exception:  # broker failure, never claim a queued request succeeded
+                cache.delete(key)
+                log.error(
+                    "Magic-link email could not be queued",
+                    extra={"event_code": "magic_link_queue_failed"},
+                )
+                return Response(
+                    {
+                        "detail": "Sign-in links are temporarily unavailable. Please try again shortly or sign in with your password."
+                    },
+                    status=503,
+                )
+        return Response({"detail": REQUEST_DETAIL, "resend_after": RESEND_SECONDS})
 
 
 class MagicLinkVerifyView(SignupView):
