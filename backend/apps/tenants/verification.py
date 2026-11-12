@@ -11,38 +11,63 @@ account moves to a different one. Re-verifying an already verified account is a 
 so a replayed link is harmless and no single-use bookkeeping is needed.
 """
 
+import logging
+from smtplib import SMTPException
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import signing
-from django.core.mail import send_mail
+from django.core.mail import BadHeaderError
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from apps.platform_ops.growth import TemplateMissing, send_transactional_email
+
 from .views import SignupView
 
 SALT = "tenants.email-verification"
 MAX_AGE = 60 * 60 * 24 * 3
+log = logging.getLogger(__name__)
 
 
 def make_token(user):
     return signing.dumps({"user": str(user.pk), "email": user.email.casefold()}, salt=SALT)
 
 
-def send_verification(user):
+def send_verification(user, *, template_name="email-verification"):
     """Best effort, like the welcome mail: a bounced message must not fail a signup."""
     if user.email_verified_at:
         return
-    url = f"{settings.PUBLIC_APP_URL}/auth/verify/#token={make_token(user)}"
-    send_mail(
-        "Confirm your Instantlify email address",
-        f"Confirm this address to finish setting up your account:\n\n{url}\n\n"
-        "The link expires in three days. If you did not sign up, you can ignore this email.",
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-        fail_silently=True,
-    )
+    url = f"{settings.PUBLIC_APP_URL.rstrip('/')}/auth/verify/#token={make_token(user)}"
+    try:
+        send_transactional_email(
+            template_name,
+            user.email,
+            {"name": user.first_name or "there", "email": user.email, "link": url},
+        )
+    except (SMTPException, OSError, BadHeaderError, TemplateMissing):
+        log.error(
+            "Verification email was not sent", extra={"event_code": "verification_email_failed"}
+        )
+
+
+def send_email_change_notice(user, old_email):
+    try:
+        send_transactional_email(
+            "email-change-notice-current",
+            old_email,
+            {
+                "name": user.first_name or "there",
+                "new_email": user.email,
+                "support_email": "support@instantlify.com",
+            },
+        )
+    except (SMTPException, OSError, BadHeaderError, TemplateMissing):
+        log.error(
+            "Email-change notice was not sent", extra={"event_code": "email_change_notice_failed"}
+        )
 
 
 class ConfirmSerializer(serializers.Serializer):

@@ -6,10 +6,11 @@ from celery import shared_task
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
-from django.core.mail import send_mail
 from django.core.management import call_command
 from django.db import transaction
 from django.utils import timezone
+
+from apps.platform_ops.growth import TemplateMissing, send_transactional_email
 
 from .dispatch import enqueue_once
 from .models import AuditEvent, Membership, OutboxEvent
@@ -90,16 +91,17 @@ def deliver_magic_link(self, user_id):
         }:
             raise ImproperlyConfigured("Magic-link delivery requires an outbound email backend.")
         url = f"{settings.PUBLIC_APP_URL.rstrip('/')}/auth/magic/#token={make_token(user)}"
-        sent = send_mail(
-            "Your Instantlify sign-in link",
-            f"Use this link within 15 minutes to sign in:\n\n{url}\n\n"
-            "It works once. If you did not ask for it, you can ignore this email.",
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=False,
+        send_transactional_email(
+            "magic-link-signin",
+            user.email,
+            {"name": user.first_name or "there", "email": user.email, "link": url},
         )
-        if sent != 1:
-            raise OSError("Email backend did not accept the message.")
+    except TemplateMissing:
+        log.error(
+            "Magic-link template is missing or a draft",
+            extra={"event_code": "magic_link_template_unavailable"},
+        )
+        return
     except (SMTPException, OSError, ImproperlyConfigured) as exc:
         log.error(
             "Magic-link email delivery failed",

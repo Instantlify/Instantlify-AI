@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ subject }}</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f2f5f7;color:#14252d;font-family:Arial,Helvetica,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f2f5f7;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;">
+            <tr>
+              <td style="padding:28px 32px;background-color:#10181c;border-radius:16px 16px 0 0;border-top:4px solid #c3ff5c;">
+                <span style="color:#c3ff5c;font-size:24px;font-weight:bold;letter-spacing:-0.5px;">Instantlify</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:32px;background-color:#ffffff;border:1px solid #dce4e8;border-top:0;border-radius:0 0 16px 16px;">
+                <h1 style="margin:0 0 24px;font-size:24px;line-height:1.35;color:#14252d;">{{ subject }}</h1>
+                <div style="font-size:16px;line-height:1.7;overflow-wrap:anywhere;word-break:break-word;">{{ body_before|urlize|linebreaksbr }}</div>
+                {% if action_url %}
+                  <table role="presentation" cellspacing="0" cellpadding="0" style="margin-top:28px;">
+                    <tr>
+                      <td bgcolor="#c3ff5c" style="border-radius:8px;">
+                        <a href="{{ action_url }}" style="display:inline-block;padding:15px 24px;border:1px solid #c3ff5c;border-radius:8px;color:#10181c;font-size:16px;font-weight:bold;text-decoration:none;">{{ action_label }}</a>
+                      </td>
+                    </tr>
+                  </table>
+                {% endif %}
+                {% if body_after %}
+                  <div style="margin-top:24px;font-size:16px;line-height:1.7;overflow-wrap:anywhere;word-break:break-word;">{{ body_after|urlize|linebreaksbr }}</div>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:24px 16px;font-size:12px;line-height:1.6;color:#596b75;">
+                Instantlify &middot; A home for your customer conversations.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
