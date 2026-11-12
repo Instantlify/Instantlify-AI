@@ -17,6 +17,8 @@ test.beforeEach(async ({ page }) => {
       });
     if (path === "/api/growth/support-chat/")
       return route.fulfill({ json: { sentinel: "[[REQUEST_NAME_CARD]]" } });
+    if (path === "/api/growth/announcements/")
+      return route.fulfill({ json: [] });
     return route.fulfill({ json: {} });
   });
 });
@@ -194,6 +196,96 @@ test("completed accounts return to the dashboard after password sign-in", async 
     .getByLabel("Password", { exact: true })
     .fill("Testing-password-2026");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/w/${id}/overview/?$`));
+});
+
+test("signed-in visitors never see workspace creation while their dashboard redirect loads", async ({
+  page,
+}) => {
+  const user = {
+    id: 1,
+    name: "Alex",
+    email: "alex@example.com",
+    email_verified: true,
+  };
+  const id = "11111111-1111-4111-8111-111111111111";
+  const workspace = {
+    id,
+    name: "Studio",
+    role: "owner",
+    checkout_pending: false,
+    branding: { brand_name: "Instantlify" },
+  };
+  await page.route("**/api/auth/me/", (route) => route.fulfill({ json: user }));
+  await page.route("**/api/public/plans/", (route) =>
+    route.fulfill({ json: { plans: [], trial_days: 0 } }),
+  );
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let requested = false;
+  await page.route("**/api/workspaces/", async (route) => {
+    requested = true;
+    await gate;
+    await route.fulfill({ json: { results: [workspace] } });
+  });
+  await page.route(`**/api/workspaces/${id}/`, (route) =>
+    route.fulfill({ json: workspace }),
+  );
+  await page.goto("/");
+  await page
+    .getByRole("link", { name: "Sign in", exact: true })
+    .first()
+    .click();
+  await expect.poll(() => requested).toBe(true);
+  await expect(
+    page.getByText("Opening your workspace", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Workspace name", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "A home for your business." }),
+  ).toHaveCount(0);
+  release();
+  await expect(page).toHaveURL(new RegExp(`/w/${id}/overview/?$`));
+});
+
+test("workspace lookup failures offer a retry instead of starting onboarding", async ({
+  page,
+}) => {
+  const user = { id: 1, name: "Alex", email: "alex@example.com" };
+  const id = "11111111-1111-4111-8111-111111111111";
+  const workspace = {
+    id,
+    name: "Studio",
+    role: "owner",
+    checkout_pending: false,
+    branding: { brand_name: "Instantlify" },
+  };
+  await page.route("**/api/auth/me/", (route) => route.fulfill({ json: user }));
+  let attempts = 0;
+  await page.route("**/api/workspaces/", (route) => {
+    attempts++;
+    return attempts === 1
+      ? route.fulfill({
+          status: 503,
+          json: { detail: "Temporarily unavailable" },
+        })
+      : route.fulfill({ json: { results: [workspace] } });
+  });
+  await page.route(`**/api/workspaces/${id}/`, (route) =>
+    route.fulfill({ json: workspace }),
+  );
+  await page.goto("/auth/");
+  await expect(
+    page.getByRole("heading", { name: "We could not open your workspace." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Workspace name", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Try again", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/w/${id}/overview/?$`));
 });
 

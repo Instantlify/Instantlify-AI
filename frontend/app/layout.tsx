@@ -1,5 +1,6 @@
 import { ConfirmationProvider } from "@/components/confirmation-provider";
 import { SupportWidget } from "@/components/support-center";
+import { SessionActivity } from "@/components/session-activity";
 import { LanguageProvider } from "@/lib/i18n";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
@@ -46,6 +47,7 @@ export default function RootLayout({
       <body>
         <LanguageProvider>
           <ConfirmationProvider>
+            <SessionActivity />
             {children}
             <SupportWidget />
           </ConfirmationProvider>
