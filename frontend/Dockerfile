@@ -1,4 +1,5 @@
-FROM node:22-alpine AS build
+FROM node:22-alpine3.24 AS build
+RUN apk upgrade --no-cache && apk add --no-cache 'zlib>=1.4-r0'
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -13,7 +14,11 @@ ENV INSTANTLIFY_PRIVACY_URL=$INSTANTLIFY_PRIVACY_URL INSTANTLIFY_TERMS_URL=$INST
 ENV BACKEND_INTERNAL_URL=$BACKEND_INTERNAL_URL NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-FROM node:22-alpine AS runner
+FROM node:22-alpine3.24 AS runner
+RUN apk upgrade --no-cache \
+    && apk add --no-cache 'zlib>=1.4-r0' \
+    && rm -rf /usr/local/lib/node_modules /opt/yarn-* \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app
 ARG INSTANTLIFY_PRIVACY_URL=
 ARG INSTANTLIFY_TERMS_URL=

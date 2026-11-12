@@ -35,7 +35,7 @@ unused images, never database volumes.
    their immutable digests. An isolated image smoke test checks PostgreSQL, Redis,
    worker heartbeat, both web processes, Nginx configuration and graceful shutdown.
 4. Same-repository PRs build/test SHA images but never update deployment channel tags
-   or call Coolify. After a successful push to staging, the verified web image also
+   or call Coolify. After a successful push to dev, the verified web image also
    gets `:dev`; main gets `:production` using production frontend URLs.
 5. In GitHub Settings → Secrets and variables → Actions, add repository secrets
    `COOLIFY_DEV_DEPLOY_WEBHOOK` and `COOLIFY_DEV_API_TOKEN` for the dev Docker Image

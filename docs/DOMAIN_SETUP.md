@@ -9,7 +9,7 @@ delivery or connect the website to a server.
 
 Use the standalone **`compose.coolify.yaml`**, not `compose.prod.yaml`, in Coolify.
 Name the Coolify environment **dev** and application **instantlify-dev**. Keep its
-Git source branch **staging** and its existing resource/storage identity. Renaming
+Git source branch **dev** and its existing resource/storage identity. Renaming
 the display labels does not require creating a new application or database.
 Enable **Preserve repository during deployment** so the gateway configuration
 and backup scripts mounted from Git remain available.
@@ -22,9 +22,9 @@ only through Coolify's private network so forwarded headers remain trusted.
    public IPv4 address. Preserve Hostinger mail MX/TXT records. Do not point the
    bare production domain at staging unless that is an explicit launch decision.
 2. In Coolify, create a Git-based Docker Compose application for
-   `Instantlify/Instantlify-AI`, branch `staging`, with Compose file
+   `Instantlify/Instantlify-AI`, branch `dev`, with Compose file
    `/compose.coolify.yaml`. The file must first be committed and merged into
-   staging. Do not select the default local Compose file.
+   dev. Do not select the default local Compose file.
 3. Assign both `https://dev.instantlify.com` and
    `https://ops.dev.instantlify.com` to `gateway`, container port **80**.
    If Coolify's domain field encodes the target port, use `:80` as its documented
