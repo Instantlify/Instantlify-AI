@@ -48,6 +48,7 @@ from apps.tenants.invitations import (
 from apps.tenants.magic_link import MagicLinkRequestView, MagicLinkVerifyView
 from apps.tenants.profile import ProfilePhotoView
 from apps.tenants.recovery import PasswordResetConfirmView, PasswordResetRequestView
+from apps.tenants.sessions import SessionActivityView
 from apps.tenants.verification import ResendVerificationView, VerifyEmailView
 from apps.tenants.views import (
     AuditListView,
@@ -78,6 +79,7 @@ urlpatterns = [
     path("health/live/", live),
     path("health/ready/", ready),
     path("api/auth/csrf/", CSRFView.as_view()),
+    path("api/auth/session/", SessionActivityView.as_view()),
     path("api/auth/signup/", SignupView.as_view()),
     path("api/auth/login/", LoginView.as_view()),
     path(".well-known/oauth-protected-resource", oauth.protected_resource_metadata),

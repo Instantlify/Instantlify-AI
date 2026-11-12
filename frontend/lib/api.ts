@@ -914,6 +914,17 @@ export async function api<T>(
     body: data === undefined ? undefined : JSON.stringify(data),
     signal,
   });
+  if (
+    typeof window !== "undefined" &&
+    response.ok &&
+    [
+      "/api/auth/login/",
+      "/api/auth/logout/",
+      "/api/auth/magic-link/verify/",
+    ].includes(path)
+  ) {
+    window.dispatchEvent(new Event("instantlify:session-changed"));
+  }
   if (response.status === 204) return undefined as T;
   const payload = await response.json().catch(() => ({
     detail: "The service is temporarily unavailable. Please try again.",

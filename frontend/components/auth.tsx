@@ -17,7 +17,7 @@ import {
 import { api, ApiError, message, type Branding, type User } from "@/lib/api";
 import type { FieldErrors } from "@/lib/form-errors";
 import { lastWorkspaceId, loadWorkspaces } from "@/lib/workspace";
-import { Brand, WorkspaceForm } from "@/components/shell";
+import { Brand } from "@/components/shell";
 import { ErrorNotice, SuccessNotice } from "@/components/ui";
 import { TrackVisit } from "@/components/growth";
 import { useT } from "@/lib/i18n";
@@ -29,6 +29,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [invitationError, setInvitationError] = useState(false);
+  const [redirectFailed, setRedirectFailed] = useState(false);
   const [inviteAttempt, setInviteAttempt] = useState(0);
   const [branding, setBranding] = useState<Branding | null>(null);
   const inviteHandled = useRef(false);
@@ -88,6 +89,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
           }
         }
         const all = await loadWorkspaces(controller.signal);
+        if (controller.signal.aborted) return;
         // Nobody lands on an empty product. A first-time account goes through the
         // setup wizard, which is also what produces the signup funnel.
         if (!all.length) {
@@ -112,6 +114,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
       } catch (err) {
         if (!controller.signal.aborted) {
           setError(message(err));
+          setRedirectFailed(true);
           setLoading(false);
         }
       }
@@ -125,6 +128,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
       await api("/api/auth/logout/", "POST");
       inviteHandled.current = false;
       setInvitationError(false);
+      setRedirectFailed(false);
       setError("");
       setUser(null);
       setLoading(false);
@@ -135,24 +139,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
     }
   }
 
-  async function create(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const created = await api<{ id: string }>(
-        "/api/workspaces/",
-        "POST",
-        Object.fromEntries(new FormData(event.currentTarget)),
-      );
-      router.replace(`/w/${created.id}/overview`);
-    } catch (err) {
-      setError(message(err));
-      setBusy(false);
-    }
-  }
-
-  if (loading || (user && busy))
+  if (loading || (user && (busy || (!invitationError && !redirectFailed))))
     return (
       <div className="loading-screen">
         <Brand name={branding?.brand_name} logo={branding?.logo_url} />
@@ -210,14 +197,22 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
           <span className="section-icon">
             <GitBranch size={26} />
           </span>
-          <span className="eyebrow">LET’S MAKE IT YOURS</span>
-          <h1>A home for your business.</h1>
-          <p>
-            Create a workspace to keep your team, connected accounts, and
-            conversations together.
-          </p>
+          <h1>We could not open your workspace.</h1>
           <ErrorNotice error={error} />
-          <WorkspaceForm create={create} busy={busy} />
+          <button
+            className="button primary"
+            onClick={() => {
+              setRedirectFailed(false);
+              setError("");
+              setLoading(true);
+              setInviteAttempt((attempt) => attempt + 1);
+            }}
+          >
+            Try again
+          </button>
+          <button className="text-button" onClick={switchInvitationAccount}>
+            Sign in with another account
+          </button>
         </section>
       </div>
     );
@@ -278,6 +273,14 @@ function Auth({
     if (code)
       queueMicrotask(() =>
         setError(GOOGLE_ERRORS[code] || GOOGLE_ERRORS.google_rejected),
+      );
+    if (
+      new URLSearchParams(window.location.search).get("session") === "expired"
+    )
+      queueMicrotask(() =>
+        setNotice(
+          "You were signed out after 1 hour of inactivity. Sign in to continue.",
+        ),
       );
     return () => controller.abort();
   }, []);

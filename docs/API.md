@@ -7,15 +7,19 @@ All tenant endpoints require an authenticated session or Bearer access token. Re
 | Method | Path | Input / response |
 | --- | --- | --- |
 | GET | `/api/auth/csrf/` | CSRF cookie and `{csrfToken}` |
-| POST | `/api/auth/signup/` | `{name, email, password}` → 201 user + session cookie |
+| POST | `/api/auth/signup/` | `{name, email, password}` → 201 user; sign in separately |
 | POST | `/api/auth/login/` | `{email, password}` → user + session cookie |
 | POST | `/api/auth/logout/` | 204; invalidates session |
+| GET | `/api/auth/session/` | Browser-session status, idle timeout and remaining seconds; does not renew |
+| POST | `/api/auth/session/` | CSRF-protected user activity heartbeat; `{inactive_for?: seconds (0–60)}` renews the browser session |
 | GET | `/api/auth/me/` | `{id, name, email}` |
 | POST | `/api/auth/token/` | `{email, password}` → `{access, refresh}` |
 | POST | `/api/auth/token/refresh/` | `{refresh}` → rotated pair; previous refresh is blacklisted |
 | POST | `/api/auth/token/revoke/` | `{refresh}` → revoke refresh; access expires within five minutes |
 
-Browser clients first GET CSRF, then submit `X-CSRFToken` on every mutation with same-origin cookies. Authentication endpoints are throttled at 10/minute per IP.
+Browser clients first GET CSRF, then submit `X-CSRFToken` on every mutation with same-origin cookies. Sign-in attempts are throttled at 10/minute per IP; session status/activity has a separate 120/minute limit.
+
+Browser sessions expire after one hour without user interaction. Mouse, keyboard, wheel and touch activity renew the session, with activity writes limited to once per 30 seconds per tab. Background polling, visibility changes and status checks do not extend it. Tabs share accepted expiry updates; waking or returning to a tab checks the server before using an old session. Expiry returns the browser to Sign in with an inactivity message. The API token flow retains its existing access/refresh lifetimes.
 
 ## Workspace, team and white-label
 
