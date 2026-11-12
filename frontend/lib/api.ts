@@ -920,12 +920,20 @@ export async function api<T>(
     [
       "/api/auth/login/",
       "/api/auth/logout/",
+      "/api/auth/sessions/revoke-all/",
       "/api/auth/magic-link/verify/",
     ].includes(path)
   ) {
     window.dispatchEvent(
       new CustomEvent("instantlify:session-changed", {
-        detail: { action: path === "/api/auth/logout/" ? "logout" : "login" },
+        detail: {
+          action: [
+            "/api/auth/logout/",
+            "/api/auth/sessions/revoke-all/",
+          ].includes(path)
+            ? "logout"
+            : "login",
+        },
       }),
     );
   }

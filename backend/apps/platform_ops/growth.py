@@ -16,7 +16,6 @@ from django.utils import timezone
 from apps.tenants.client_ip import client_ip
 
 from .models import (
-    Announcement,
     AnnouncementView,
     BlogPost,
     BlogPostView,
@@ -433,21 +432,30 @@ def record_redemption(slug, workspace_id, subscription_id):
 def announcements_for(*, page="", plan=None, user=None):
     """Active announcements matching this page and tier, minus any popup this user
     has already seen. Strips repeat; popups are once per viewer."""
+    from .notifications import deliver_notice, eligible_notices
+
     rows = []
-    for item in Announcement.objects.filter(is_active=True).prefetch_related("target_plans"):
-        pages = item.pages()
-        if pages and page not in pages:
-            continue
-        plans = list(item.target_plans.all())
-        if plans and plan not in plans:
-            continue
-        if item.type == "popup" and user and item.views.filter(user=user).exists():
+    for item in eligible_notices(page=page, plan=plan):
+        receipt = deliver_notice(item, user) if user else None
+        if (
+            (item.type == "popup" or item.requires_acknowledgement)
+            and receipt
+            and receipt.acknowledged_at
+        ):
             continue
         rows.append(item)
     return rows
 
 
 def record_announcement_view(announcement, *, user=None, session_id=""):
+    if user:
+        from .notifications import deliver_notice
+
+        receipt = deliver_notice(announcement, user)
+        now = timezone.now()
+        receipt.read_at = receipt.read_at or now
+        receipt.acknowledged_at = receipt.acknowledged_at or now
+        receipt.save(update_fields=["read_at", "acknowledged_at"])
     try:
         with transaction.atomic():
             return AnnouncementView.objects.create(

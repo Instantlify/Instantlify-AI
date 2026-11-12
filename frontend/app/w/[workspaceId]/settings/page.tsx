@@ -1,5 +1,7 @@
 "use client";
 
+import { DeviceSessions } from "@/components/device-sessions";
+
 import { useConfirmation } from "@/components/confirmation-provider";
 
 import {
@@ -1093,6 +1095,7 @@ export default function SettingsPage() {
               </div>
             </ValidatedForm>
           </div>
+          <DeviceSessions />
         </div>
       )}
 

@@ -16,6 +16,7 @@ class User(AbstractUser):
     # Proof the signup controls this address. Null until confirmed; see
     # tenants.verification for what it gates.
     email_verified_at = models.DateTimeField(null=True, blank=True)
+    session_version = models.PositiveIntegerField(default=0)
 
     class Meta:
         constraints = [models.UniqueConstraint(Lower("email"), name="user_email_ci_unique")]
@@ -247,6 +248,23 @@ class AuditEvent(TenantModel):
     class Meta:
         ordering = ["-created_at", "-id"]
         indexes = [models.Index(fields=["workspace", "created_at"])]
+
+
+class BrowserSession(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="browser_sessions"
+    )
+    session_key = models.CharField(max_length=40, unique=True)
+    device = models.CharField(max_length=160, default="Unknown device")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_activity = models.DateTimeField()
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-last_activity"]
 
 
 class OutboxEvent(TenantModel):

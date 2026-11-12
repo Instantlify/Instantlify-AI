@@ -10,6 +10,8 @@ export type Announcement = {
   body: string;
   tone: string;
   link_url: string;
+  revision?: number;
+  requires_acknowledgement?: boolean;
 };
 
 export type Campaign = {
@@ -62,8 +64,9 @@ export function announcements(page: string, workspaceId: string) {
   return api<Announcement[]>(`/api/growth/announcements/?${query}`);
 }
 
-export function markSeen(id: number) {
-  return api(`/api/growth/announcements/${id}/seen/`, "POST");
+export function markSeen(id: number, page: string, workspaceId: string) {
+  const query = new URLSearchParams({ page, workspace_id: workspaceId });
+  return api(`/api/growth/announcements/${id}/seen/?${query}`, "POST");
 }
 
 export function promo(workspaceId: string) {

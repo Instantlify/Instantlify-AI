@@ -589,7 +589,7 @@ export default function AppStorePage() {
                 {/* Footer Actions */}
                 <div className="boosend-appstore-actions">
                   {isComingSoon ? (
-                    <div className="boosend-appstore-btn-soon">Coming Soon</div>
+                    <div className="boosend-appstore-btn-soon">Coming soon</div>
                   ) : (
                     <>
                       {openUrl ? (

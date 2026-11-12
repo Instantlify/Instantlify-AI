@@ -406,6 +406,10 @@ def support_tickets_dataset(queue="billing"):
 
 
 def notifications_dataset(kind="", editing=""):
+    from zoneinfo import ZoneInfo
+
+    from django.utils import timezone
+
     from .models import Announcement
 
     rows = Announcement.objects.prefetch_related("target_plans", "views")
@@ -422,7 +426,31 @@ def notifications_dataset(kind="", editing=""):
                 "name": item.name,
                 "created": item.created_at,
                 "preview": item.title or item.body[:120],
-                "reads": item.views.count(),
+                "reads": len(
+                    set(item.views.values_list("user_id", flat=True))
+                    | set(
+                        item.notifications.filter(read_at__isnull=False).values_list(
+                            "user_id", flat=True
+                        )
+                    )
+                ),
+                "acknowledged": item.notifications.filter(acknowledged_at__isnull=False)
+                .values("user_id")
+                .distinct()
+                .count(),
+                "schedule": (
+                    "Draft"
+                    if not item.is_active
+                    else "Scheduled"
+                    if item.starts_at and item.starts_at > timezone.now()
+                    else "Expired"
+                    if item.ends_at and item.ends_at <= timezone.now()
+                    else "Live"
+                    if item.is_active
+                    else "Draft"
+                ),
+                "starts_at": item.starts_at,
+                "ends_at": item.ends_at,
                 "targeting": " · ".join(
                     [
                         "Pages: " + (", ".join(pages) if pages else "all pages"),
@@ -434,6 +462,23 @@ def notifications_dataset(kind="", editing=""):
             }
         )
     everything = Announcement.objects.all()
+    editing_item = (
+        Announcement.objects.prefetch_related("target_plans").filter(pk=editing).first()
+        if str(editing).isdigit()
+        else None
+    )
+    if editing_item:
+        zone = ZoneInfo(editing_item.schedule_timezone)
+        editing_item.start_input = (
+            editing_item.starts_at.astimezone(zone).strftime("%Y-%m-%dT%H:%M")
+            if editing_item.starts_at
+            else ""
+        )
+        editing_item.end_input = (
+            editing_item.ends_at.astimezone(zone).strftime("%Y-%m-%dT%H:%M")
+            if editing_item.ends_at
+            else ""
+        )
     return {
         "total": everything.count(),
         "active": everything.filter(is_active=True).count(),
@@ -442,11 +487,7 @@ def notifications_dataset(kind="", editing=""):
         "strips": everything.filter(type="strip").count(),
         "items": items,
         "filter": kind,
-        "editing": (
-            Announcement.objects.prefetch_related("target_plans").filter(pk=editing).first()
-            if str(editing).isdigit()
-            else None
-        ),
+        "editing": editing_item,
         "empty": not items,
     }
 

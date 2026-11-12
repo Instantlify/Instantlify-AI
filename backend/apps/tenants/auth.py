@@ -14,6 +14,7 @@ A ban has to hold at three points, and each needs its own hook:
 from django.contrib.auth.backends import ModelBackend
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 class BanAwareBackend(ModelBackend):
@@ -26,4 +27,16 @@ class BanAwareJWTAuthentication(JWTAuthentication):
         user = super().get_user(validated_token)
         if getattr(user, "is_banned", False):
             raise AuthenticationFailed("This account is suspended.", code="user_banned")
+        if validated_token.get("session_version", 0) != user.session_version:
+            raise AuthenticationFailed(
+                "This login has been revoked. Please sign in again.", code="session_revoked"
+            )
         return user
+
+
+class VersionedTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token["session_version"] = user.session_version
+        return token
