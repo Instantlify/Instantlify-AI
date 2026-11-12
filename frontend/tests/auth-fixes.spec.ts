@@ -212,5 +212,8 @@ test("password reset highlights mismatched confirmation using the shared validat
   await expect(page.locator(".field-error")).toHaveText(
     "Passwords do not match.",
   );
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Passwords do not match" }),
+  ).toBeVisible();
   await expect(page.locator(".form-validation-summary")).toBeVisible();
 });

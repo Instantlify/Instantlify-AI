@@ -88,9 +88,11 @@ export default function PasswordRecovery() {
             onEdit={() => setError("")}
             validate={(form): FieldErrors => {
               const data = new FormData(form);
-              return credentials && data.get("password") !== data.get("confirm")
-                ? { confirm: "Passwords do not match." }
-                : {};
+              const mismatch =
+                credentials && data.get("password") !== data.get("confirm");
+              const mismatchMessage = mismatch ? "Passwords do not match." : "";
+              setError(mismatchMessage);
+              return mismatchMessage ? { confirm: mismatchMessage } : {};
             }}
           >
             {credentials ? (
