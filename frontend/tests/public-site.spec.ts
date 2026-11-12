@@ -383,7 +383,10 @@ test("signup preserves the selected plan through onboarding", async ({
     return route.fulfill({ json: { results: created ? [workspace] : [] } });
   });
   let signedIn = false;
-  await page.route("**/api/auth/signup/", (route) => {
+  await page.route("**/api/auth/signup/", (route) =>
+    route.fulfill({ json: user }),
+  );
+  await page.route("**/api/auth/login/", (route) => {
     signedIn = true;
     return route.fulfill({ json: user });
   });
@@ -408,6 +411,19 @@ test("signup preserves the selected plan through onboarding", async ({
   await page
     .getByRole("button", { name: "Create account", exact: true })
     .click();
+  await expect(page).toHaveURL(/auth\/\?plan=pro&interval=annual/);
+  await expect(page.getByRole("status")).toContainText(
+    "Your account has been created",
+  );
+  await expect(
+    page.getByRole("button", { name: "Sign in", exact: true }),
+  ).toBeVisible();
+  expect(signedIn).toBe(false);
+  await page.getByLabel("Email address").fill(user.email);
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("Testing-password-2026");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/onboarding\/\?plan=pro&interval=annual/);
   await expect(
     page.getByRole("heading", { name: "Name your workspace" }),

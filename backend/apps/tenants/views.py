@@ -70,7 +70,6 @@ class SignupView(APIView):
             return Response(
                 {"detail": "Unable to create this account. Try signing in."}, status=400
             )
-        login(request, user, backend="apps.tenants.auth.BanAwareBackend")
         from .verification import send_verification
 
         send_verification(user)

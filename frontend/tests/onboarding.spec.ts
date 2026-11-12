@@ -86,6 +86,12 @@ test("sign up, create a workspace and connect a test channel", async ({
   await page
     .getByRole("button", { name: "Create account", exact: true })
     .click();
+  await expect(page.getByRole("status")).toContainText(
+    "Your account has been created",
+  );
+  await page.getByLabel("Email address").fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   // Short setup: optionally connect Instagram, then name the workspace.
   await expect(
     page.getByRole("heading", { name: "Connect your Instagram" }),

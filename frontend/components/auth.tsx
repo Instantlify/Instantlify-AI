@@ -18,7 +18,7 @@ import { api, ApiError, message, type Branding, type User } from "@/lib/api";
 import type { FieldErrors } from "@/lib/form-errors";
 import { lastWorkspaceId, loadWorkspaces } from "@/lib/workspace";
 import { Brand, WorkspaceForm } from "@/components/shell";
-import { ErrorNotice } from "@/components/ui";
+import { ErrorNotice, SuccessNotice } from "@/components/ui";
 import { TrackVisit } from "@/components/growth";
 import { useT } from "@/lib/i18n";
 
@@ -174,8 +174,8 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
             You are signed into Instantlify as <strong>{user.email}</strong>.
           </p>
           <p>
-            Opening an email does not change your Instantlify account. Sign in or
-            create an account using the email address that received this
+            Opening an email does not change your Instantlify account. Sign in
+            or create an account using the email address that received this
             invitation. Your invitation link will be kept while you switch
             accounts.
           </p>
@@ -253,10 +253,12 @@ function Auth({
   branding: Branding | null;
   signupInitially: boolean;
 }) {
+  const router = useRouter();
   const t = useT();
   const [signup, setSignup] = useState(signupInitially);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
+  const [notice, setNotice] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const name = branding?.brand_name || "Instantlify";
@@ -284,15 +286,26 @@ function Auth({
     setBusy(true);
     setError("");
     setFieldErrors({});
-    const data = Object.fromEntries(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form));
     try {
-      onSuccess(
-        await api<User>(
-          `/api/auth/${signup ? "signup" : "login"}/`,
-          "POST",
-          data,
-        ),
+      const me = await api<User>(
+        `/api/auth/${signup ? "signup" : "login"}/`,
+        "POST",
+        data,
       );
+      if (signup) {
+        form.reset();
+        setSignup(false);
+        setNotice(
+          "Your account has been created. Sign in to continue to onboarding.",
+        );
+        const query = new URLSearchParams(window.location.search);
+        query.delete("mode");
+        router.replace(`/auth/${query.size ? `?${query}` : ""}`);
+      } else {
+        onSuccess(me);
+      }
     } catch (err) {
       setFieldErrors(err instanceof ApiError ? err.fieldErrors : {});
       setError(message(err));
@@ -367,6 +380,8 @@ function Auth({
             onClick={() => {
               setSignup(!signup);
               setError("");
+              setNotice("");
+              setFieldErrors({});
             }}
           >
             {signup ? "Sign in" : "Create an account"}
@@ -383,12 +398,17 @@ function Auth({
               ? "Start with your account. Your workspace comes next."
               : "Sign in and pick up the conversation."}
           </p>
+          <SuccessNotice notice={notice} />
           <ValidatedForm
+            key={signup ? "signup" : "signin"}
+            className={signup ? "auth-signup-form" : "auth-signin-form"}
             onSubmit={submit}
             fieldErrors={fieldErrors}
             onEdit={() => setError("")}
           >
-            <ErrorNotice error={error} />
+            <div className="auth-feedback">
+              <ErrorNotice error={error} />
+            </div>
             {signup && (
               <label>
                 Your name
