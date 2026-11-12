@@ -923,7 +923,11 @@ export async function api<T>(
       "/api/auth/magic-link/verify/",
     ].includes(path)
   ) {
-    window.dispatchEvent(new Event("instantlify:session-changed"));
+    window.dispatchEvent(
+      new CustomEvent("instantlify:session-changed", {
+        detail: { action: path === "/api/auth/logout/" ? "logout" : "login" },
+      }),
+    );
   }
   if (response.status === 204) return undefined as T;
   const payload = await response.json().catch(() => ({

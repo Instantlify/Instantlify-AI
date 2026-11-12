@@ -68,12 +68,13 @@ export function SessionActivity() {
       const inactiveFor = (Date.now() - lastInteraction) / 1000;
       if (inactiveFor > 60) return;
       sending = true;
+      const request = ++statusRequest;
       lastSent = Date.now();
       try {
         const status = await api<SessionStatus>("/api/auth/session/", "POST", {
           inactive_for: Math.max(0, inactiveFor),
         });
-        if (disposed) return;
+        if (disposed || request !== statusRequest) return;
         if (!status.authenticated || status.remaining <= 0) {
           redirect();
           return;
@@ -81,7 +82,11 @@ export function SessionActivity() {
         schedule(Date.now() + status.remaining * 1000);
         channel.postMessage({ expiresAt });
       } catch (err) {
-        if (err instanceof ApiError && [401, 403].includes(err.status))
+        if (
+          request === statusRequest &&
+          err instanceof ApiError &&
+          [401, 403].includes(err.status)
+        )
           redirect();
       } finally {
         sending = false;
@@ -103,15 +108,38 @@ export function SessionActivity() {
       if (document.visibilityState === "visible") void synchronize();
     }
 
-    function sessionChanged() {
+    function stopSession() {
+      active = false;
+      expiresAt = 0;
+      statusRequest++;
+      clearTimeout(expiryTimer);
+      clearTimeout(activityTimer);
+      activityTimer = undefined;
+    }
+
+    function sessionChanged(event: Event) {
+      const action = (event as CustomEvent<{ action?: string }>).detail?.action;
+      if (action === "logout") {
+        // Let the sign-out action choose its destination. It is not idle expiry.
+        stopSession();
+        channel.postMessage({ signedOut: true });
+        return;
+      }
       void synchronize();
       channel.postMessage({ check: true });
     }
 
     channel.onmessage = (
-      event: MessageEvent<{ expiresAt?: number; check?: boolean }>,
+      event: MessageEvent<{
+        expiresAt?: number;
+        check?: boolean;
+        signedOut?: boolean;
+      }>,
     ) => {
-      if (event.data.check) void synchronize();
+      if (event.data.signedOut) {
+        stopSession();
+        window.location.replace("/auth/");
+      } else if (event.data.check) void synchronize();
       else if (
         active &&
         typeof event.data.expiresAt === "number" &&
