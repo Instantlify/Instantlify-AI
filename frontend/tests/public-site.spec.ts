@@ -46,7 +46,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("public homepage has metadata, live plan controls and signup navigation", async ({
+test("public homepage has metadata, live plan controls and signup navigation @smoke", async ({
   page,
 }) => {
   await page.goto("/");
@@ -81,7 +81,7 @@ test("public homepage has metadata, live plan controls and signup navigation", a
   ).toBeVisible();
 });
 
-test("mobile homepage fits and links to sign in", async ({ page }) => {
+test("mobile homepage fits and links to sign in @smoke", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator(".plan-card")).toBeVisible();
@@ -520,7 +520,7 @@ test("signup preserves the selected plan through onboarding", async ({
   });
 });
 
-test("workspace navigation remains usable on desktop and mobile", async ({
+test("workspace navigation remains usable on desktop and mobile @smoke", async ({
   page,
 }) => {
   const workspace = {

@@ -68,7 +68,7 @@ async function simulate(page: Page, text: string, kind = "dm") {
   ).toBeVisible();
 }
 
-test("sign up, create a workspace and connect a test channel", async ({
+test("sign up, create a workspace and connect a test channel @smoke", async ({
   page,
 }) => {
   test.slow(); // real signup against the live backend
@@ -188,7 +188,7 @@ test("sign up, create a workspace and connect a test channel", async ({
   await expect(page.getByText("Connect your Instagram account")).toHaveCount(0);
 });
 
-test("rename the workspace", async ({ page }) => {
+test("rename the workspace @smoke", async ({ page }) => {
   await signIn(page);
   await nav(page, "Settings");
   await page.getByRole("button", { name: "Workspaces", exact: true }).click();
@@ -367,7 +367,7 @@ test("analytics, bio page, offers and invitations", async ({ page }) => {
   await expect(page.getByText("Book a call with us.")).toBeVisible();
 });
 
-test("sign out, sign in, and the mobile layout", async ({ page }) => {
+test("sign out, sign in, and the mobile layout @smoke", async ({ page }) => {
   test.slow(); // two real sign-ins plus a desktop and a mobile pass
   await signIn(page);
   await signOut(page);
