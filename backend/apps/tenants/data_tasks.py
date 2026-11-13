@@ -180,7 +180,15 @@ def export_tables():
         ),
         "connections": (
             ChannelConnection,
-            ["id", "provider", "external_account_id", "display_name", "status", "created_at"],
+            [
+                "id",
+                "provider",
+                "external_account_id",
+                "meta_authorizer_id",
+                "display_name",
+                "status",
+                "created_at",
+            ],
         ),
         "leads": (
             Lead,

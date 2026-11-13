@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LegalLinks } from "@/components/legal-links";
 import { LEGAL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Privacy policy · Instantlify" };
+export const metadata: Metadata = {
+  title: "Privacy policy · Instantlify",
+  description:
+    "How Instantlify and its operator SKY INNOVA SERVICES (PRIVATE) LIMITED collect, use, share, retain and delete personal information and Meta Platform Data.",
+};
 
 const ARTICLE = { maxWidth: 760, margin: "0 auto", padding: 24 } as const;
 
@@ -14,7 +19,8 @@ export default function PrivacyPage() {
       <article className="stack" style={ARTICLE}>
         <h1>Privacy policy</h1>
         <p className="muted-text">
-          Effective {LEGAL.effectiveDate}. {LEGAL.company}, {LEGAL.address}.
+          Effective {LEGAL.effectiveDate}. Instantlify is a product operated by{" "}
+          {LEGAL.company}, {LEGAL.address}.
         </p>
 
         <p>
@@ -183,33 +189,72 @@ export default function PrivacyPage() {
           business&rsquo;s customer messages for advertising.
         </p>
 
+        <h3>Legal grounds where applicable</h3>
+        <p>
+          Depending on the information and applicable law, processing is
+          necessary to provide our contract with an account holder, follow a
+          business customer&apos;s lawful instructions, maintain legitimate
+          service/security interests, comply with legal obligations, or act on
+          consent. Where processing relies on consent, it may be withdrawn
+          without affecting processing already lawfully carried out.
+        </p>
         <h2>4. AI features</h2>
         <p>
-          AI features run only when a business turns them on. When they do, the
-          text needed for the task (for example the recent conversation, the
-          relevant knowledge and the business&rsquo;s instructions) is sent to
-          the AI provider the business selects, such as OpenAI, Anthropic,
-          Google or xAI, to generate a reply, classify a message, summarize a
-          contact or check a comment. Voice notes may be transcribed and voice
-          replies generated with providers such as OpenAI, ElevenLabs, Inworld
-          or MiniMax; avatar videos and phone calls use providers such as
-          HeyGen, Vapi or Retell when a business configures them. Knowledge
-          documents are converted into embeddings to find relevant passages. We
-          do not use a business&rsquo;s content to train our own models. AI
-          providers process data under their own terms.
+          When a business enables or configures AI features, the text needed for
+          the task (for example the recent conversation, the relevant knowledge
+          and the business&rsquo;s instructions) is sent to the AI provider the
+          business selects, such as OpenAI, Anthropic, Google or xAI, to
+          generate a reply, classify a message, summarize a contact or check a
+          comment. Voice notes may be transcribed and voice replies generated
+          with providers such as OpenAI, ElevenLabs, Inworld or MiniMax; avatar
+          videos and phone calls use providers such as HeyGen, Vapi or Retell
+          when a business configures them. Knowledge documents are converted
+          into embeddings to find relevant passages. We do not use a
+          business&rsquo;s content to train our own models. AI providers process
+          data under their applicable service and data-processing terms. Our own
+          support assistant may also send the questions you submit to our
+          platform AI provider to answer using Instantlify support knowledge.
         </p>
 
-        <h2>5. Meta platform data</h2>
+        <h2>5. Meta Platform Data: Instagram, Facebook and WhatsApp</h2>
         <p>
-          Through Instagram and Facebook we access only what a business
-          authorizes: its connected professional account or page, the messages
-          and comments people send to it, and the profile details Meta provides
-          about those people. We use this solely to show conversations to the
-          business, reply on its behalf and run the automations it sets up. We
-          do not sell this data or use it for advertising. When someone removes
-          Instantlify from their Instagram or Facebook settings, we disconnect
-          the account and delete its access tokens; see{" "}
-          <Link href="/data-deletion/">data deletion</Link>.
+          When an authorized business connects a Meta account, we receive only
+          data available through the permissions it grants and the Meta products
+          it uses. This may include professional account, Page, WhatsApp
+          Business Account and phone-number identifiers; the authorizing Meta
+          user identifier; account names, usernames and profile information;
+          access tokens; messages, comments, story replies, attachments and
+          delivery/read events; and authorized account/media statistics such as
+          follower counts, reach, views and interactions. We do not ask for your
+          Facebook, Instagram or WhatsApp password.
+        </p>
+        <p>
+          We use this data to connect and maintain the selected account, display
+          and respond to customer conversations, run the business&apos;s
+          configured automations, moderate comments, publish content it
+          schedules, and provide the analytics it enables. AI processing of
+          relevant message content is described in section 4. Features operate
+          only within available permissions and platform restrictions. We do not
+          sell Meta Platform Data, provide it to data brokers, use it for
+          targeted advertising, or use it to train general-purpose AI models. We
+          do not combine one business&apos;s private conversations with another
+          business&apos;s knowledge.
+        </p>
+        <p>
+          You can revoke access through Meta&apos;s Apps and Websites or
+          Business Integrations settings, as applicable, or disconnect the
+          account in Instantlify. Revocation stops further access and removes
+          the connected account&apos;s stored access tokens when we receive a
+          valid revocation notification. Revoking access is different from
+          requesting erasure of data already held. To request erasure, use
+          Meta&apos;s deletion-request option where available, our{" "}
+          <Link href="/data-deletion/">data-deletion instructions</Link>, or
+          email{" "}
+          <a href={`mailto:${LEGAL.privacyEmail}`}>{LEGAL.privacyEmail}</a>. A
+          Meta deletion request does not require an active subscription or
+          cancellation of unrelated services. We verify the request, stop
+          relevant access, and erase applicable data promptly, subject to
+          limited lawful retention exceptions.
         </p>
 
         <h2>6. Who we share information with</h2>
@@ -251,8 +296,11 @@ export default function PrivacyPage() {
         <h2>7. How long we keep information</h2>
         <ul>
           <li>
-            Message text, attachments and similar delivery records are removed
-            after {LEGAL.retentionDays} days by default.
+            The default retention job removes or redacts message text,
+            attachments and similar payloads after {LEGAL.retentionDays} days. A
+            business may have a different configured retention period. Valid
+            deletion requests and applicable legal requirements can require
+            earlier erasure.
           </li>
           <li>
             Generated voice files used to send a voice note are deleted within
@@ -265,7 +313,11 @@ export default function PrivacyPage() {
           </li>
           <li>
             Billing and tax records are kept for as long as the law requires.
-            Backups are overwritten on a rolling basis.
+            Backups are access-restricted and expire through the configured
+            backup rotation. Deletion from active systems does not mean every
+            backup copy is immediately overwritten; any restored data must have
+            applicable deletion requests reapplied before ordinary use. Data
+            retained for a legal obligation is restricted to that purpose.
           </li>
         </ul>
 
@@ -274,12 +326,12 @@ export default function PrivacyPage() {
           Data travels over encrypted connections. Access tokens, integration
           credentials, message content and attachments are encrypted at rest.
           Passwords and API tokens are stored only as hashes. Each
-          workspace&rsquo;s data is isolated from every other workspace,
-          including at the database level. Team access is controlled by roles
-          and optional per-account and per-section limits, and staff access
-          requires multi-factor authentication and is logged. No system is
-          perfectly secure, but we work to protect your information and will
-          notify you of a breach as the law requires.
+          workspace&rsquo;s data is isolated from every other workspace, through
+          tenant-scoped access controls. Team access is controlled by roles and
+          optional per-account and per-section limits, and staff access requires
+          multi-factor authentication and is logged. No system is perfectly
+          secure, but we work to protect your information and will notify you of
+          a breach as the law requires.
         </p>
 
         <h2>9. Your choices and rights</h2>
@@ -310,7 +362,14 @@ export default function PrivacyPage() {
         <p>
           To make a request, email <strong>{LEGAL.privacyEmail}</strong>. If you
           are a customer of a business that uses Instantlify, contact that
-          business first; we will help it respond.
+          business for requests about its independent records. You may also
+          contact us directly, including for Meta Platform Data; we will verify
+          the request and coordinate with the business where needed. We may ask
+          for the relevant account/workspace, your relationship to it and
+          reasonable proof of authority, but never your password, access token
+          or full payment-card details. We respond promptly and within
+          applicable legal deadlines, and explain any lawful exception or
+          additional verification needed.
         </p>
 
         <h2>10. Cookies and browser storage</h2>
@@ -333,15 +392,20 @@ export default function PrivacyPage() {
         <h2>11. Children</h2>
         <p>
           Instantlify is a business tool and is not directed at children.
-          Account holders must be at least 16 years old (or the age of digital
-          consent where they live).
+          Account holders must be at least 18 years old or otherwise have legal
+          capacity to enter a business contract. If a child&apos;s information
+          has been submitted to a business through our service, a parent or
+          guardian may contact that business or our privacy contact to request
+          appropriate action.
         </p>
 
         <h2>12. International transfers</h2>
         <p>
           We and our providers may process information in countries other than
-          yours. Where required, we use appropriate safeguards such as standard
-          contractual clauses.
+          yours. Applicable safeguards depend on the destination, provider and
+          law. Where required, we use legally recognized safeguards or another
+          lawful transfer mechanism. Contact our privacy address for information
+          about the providers and safeguards applicable to your data.
         </p>
 
         <h2>13. Changes</h2>
@@ -354,9 +418,13 @@ export default function PrivacyPage() {
         <h2>14. Contact</h2>
         <p>
           {LEGAL.company}, {LEGAL.address}. Privacy: {LEGAL.privacyEmail}.
-          Support: {LEGAL.supportEmail}. See also our{" "}
-          <Link href="/terms/">terms of service</Link>.
+          Support:{" "}
+          <a href={`mailto:${LEGAL.supportEmail}`}>{LEGAL.supportEmail}</a>.
+          Telephone:{" "}
+          <a href={`tel:${LEGAL.supportPhoneHref}`}>{LEGAL.supportPhone}</a>.
+          See also our <Link href="/terms/">terms of service</Link>.
         </p>
+        <LegalLinks />
       </article>
     </main>
   );

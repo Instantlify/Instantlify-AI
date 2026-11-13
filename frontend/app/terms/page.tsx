@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LegalLinks } from "@/components/legal-links";
 import { LEGAL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Terms of service · Instantlify" };
+export const metadata: Metadata = {
+  title: "Terms and conditions · Instantlify",
+  description:
+    "Terms for using Instantlify, a product of SKY INNOVA SERVICES (PRIVATE) LIMITED, including Meta-connected messaging, privacy and data deletion.",
+};
 
 const ARTICLE = { maxWidth: 760, margin: "0 auto", padding: 24 } as const;
 
@@ -12,10 +17,11 @@ export default function TermsPage() {
   return (
     <main className="setup-screen">
       <article className="stack" style={ARTICLE}>
-        <h1>Terms of service</h1>
+        <h1>Terms and conditions</h1>
         <p className="muted-text">
           Effective {LEGAL.effectiveDate}. These terms are an agreement between
-          you and {LEGAL.company} ({LEGAL.address}).
+          you and {LEGAL.company}, the operator of Instantlify ({LEGAL.address}
+          ).
         </p>
 
         <h2>1. Accepting these terms</h2>
@@ -48,7 +54,8 @@ export default function TermsPage() {
             connected apps do in your workspace.
           </li>
           <li>
-            You must be at least 16 and give accurate account information.
+            You must be at least 18 or have legal capacity to enter this
+            business agreement, and give accurate account information.
           </li>
         </ul>
 
@@ -79,6 +86,24 @@ export default function TermsPage() {
           </li>
         </ul>
 
+        <p>
+          Instantlify is an independent product of {LEGAL.company}; it is not
+          owned, sponsored or endorsed by Meta, Instagram, Facebook or WhatsApp.
+          Connecting an account does not grant permissions beyond those
+          authorized by the platform or guarantee app-review approval. You must
+          not use the service to bypass messaging windows, consent requirements
+          or permission restrictions.
+        </p>
+        <p>
+          You must provide an accessible privacy notice for your customers,
+          honor valid access/correction/deletion requests, and assist us in
+          responding to requests concerning Meta Platform Data. Do not sell
+          Platform Data, use it for prohibited advertising or model training, or
+          retain it beyond an authorized purpose. Revoking a connection stops
+          access; erasure requests follow our{" "}
+          <Link href="/data-deletion/">data-deletion process</Link>. Mandatory
+          privacy rights are not conditional on payment.
+        </p>
         <h2>5. Acceptable use</h2>
         <p>You must not use Instantlify to:</p>
         <ul>
@@ -209,9 +234,10 @@ export default function TermsPage() {
 
         <h2>15. Changes to these terms</h2>
         <p>
-          We may update these terms. We will post the new version here and, for
-          material changes, notify account holders in advance. Continuing to use
-          Instantlify after changes take effect means you accept them.
+          We may update these terms. We will post the new version and effective
+          date here and, for material changes, notify account holders in
+          advance. Continuing to use Instantlify after changes take effect means
+          you accept them.
         </p>
 
         <h2>16. Governing law</h2>
@@ -224,8 +250,12 @@ export default function TermsPage() {
         <h2>17. Contact</h2>
         <p>
           {LEGAL.company}, {LEGAL.address}. Support: {LEGAL.supportEmail}.
-          Privacy: {LEGAL.privacyEmail}.
+          Privacy:{" "}
+          <a href={`mailto:${LEGAL.privacyEmail}`}>{LEGAL.privacyEmail}</a>.
+          Telephone:{" "}
+          <a href={`tel:${LEGAL.supportPhoneHref}`}>{LEGAL.supportPhone}</a>.
         </p>
+        <LegalLinks />
       </article>
     </main>
   );
