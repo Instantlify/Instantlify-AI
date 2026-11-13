@@ -15,8 +15,12 @@ export function PublicHelpLinks() {
   return (
     <>
       <Link href="/help">Help</Link>
-      {privacy && <a href={privacy}>Privacy</a>}
-      {terms && <a href={terms}>Terms</a>}
+      {privacy ? (
+        <a href={privacy}>Privacy</a>
+      ) : (
+        <Link href="/privacy/">Privacy</Link>
+      )}
+      {terms ? <a href={terms}>Terms</a> : <Link href="/terms/">Terms</Link>}
     </>
   );
 }

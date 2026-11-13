@@ -8,6 +8,7 @@ from apps.tenants.models import TenantModel
 class ChannelConnection(TenantModel):
     provider = models.CharField(max_length=30, default="instagram")
     external_account_id = models.CharField(max_length=200)
+    meta_authorizer_id = models.CharField(max_length=200, blank=True, db_index=True)
     display_name = models.CharField(max_length=150)
     access_token = EncryptedTextField()
     expires_at = models.DateTimeField()
@@ -80,9 +81,19 @@ class Delivery(TenantModel):
 
 
 class MetaDataDeletion(models.Model):
-    """A Meta data-deletion callback we completed; its code is shown on a public status
-    page. Only a hash of the Meta user ID is kept."""
+    """A verified deletion request with a public, unguessable status code.
+    The encrypted subject identifier is cleared after verified completion."""
 
+    status = models.CharField(max_length=20, default="needs_review")
+    request_hash = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    subject_id = EncryptedTextField(default="", blank=True)
+    providers = models.JSONField(default=list)
+    connection_ids = models.JSONField(default=list)
+    connections_deleted = models.PositiveIntegerField(default=0)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    error_code = models.CharField(max_length=80, blank=True)
+    resolution_note = models.CharField(max_length=500, blank=True)
     code = models.CharField(max_length=40, unique=True)
     user_hash = models.CharField(max_length=64)
     connections_cleared = models.PositiveIntegerField(default=0)

@@ -1818,3 +1818,9 @@
     scroll-behavior: auto !important;
   }
 }
+
+.nm-footer .nm-footer-contact {
+  margin-top: 20px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}

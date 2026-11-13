@@ -1,5 +1,7 @@
 "use client";
 
+import { LEGAL } from "@/lib/legal";
+
 import Link from "next/link";
 import {
   useEffect,
@@ -502,7 +504,13 @@ export function LandingPage({
           focusable="false"
         >
           <defs>
-            <linearGradient id="instantlify-journey-ink" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient
+              id="instantlify-journey-ink"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
               <stop offset="0%" stopColor="#b4f277" stopOpacity="0.06" />
               <stop offset="15%" stopColor="#b4f277" stopOpacity="0.95" />
               <stop offset="85%" stopColor="#b4f277" stopOpacity="0.85" />
@@ -1500,7 +1508,8 @@ export function LandingPage({
             starts with a hello.
           </h2>
           <p>
-            Make room for the work you love. Let Instantlify help with the follow-up.
+            Make room for the work you love. Let Instantlify help with the
+            follow-up.
           </p>
           <Link className="nm-button" href="/auth?mode=signup">
             Get started with Instantlify <ArrowUpRight size={18} />
@@ -1520,6 +1529,15 @@ export function LandingPage({
             <br />
             Better possibilities.
           </p>
+          <nav
+            className="nm-footer-contact"
+            aria-label="Footer contact information"
+          >
+            <strong>Contact</strong>
+            <a href={`mailto:${LEGAL.supportEmail}`}>{LEGAL.supportEmail}</a>
+            <a href={`tel:${LEGAL.supportPhoneHref}`}>{LEGAL.supportPhone}</a>
+            <Link href="/data-deletion/">Data deletion</Link>
+          </nav>
         </div>
         <nav aria-label="Footer product navigation">
           <strong>Explore</strong>
@@ -1542,7 +1560,10 @@ export function LandingPage({
           <Link href="/auth/reset">Reset password</Link>
         </nav>
         <div className="nm-footer-bottom">
-          <span>© {new Date().getFullYear()} Instantlify. All rights reserved.</span>
+          <span>
+            © {new Date().getFullYear()} Instantlify — a product of{" "}
+            {LEGAL.company}. All rights reserved.
+          </span>
           <span>
             <ShieldCheck size={13} /> Your business. Your team. Your workspace.
           </span>
