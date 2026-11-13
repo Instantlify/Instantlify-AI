@@ -230,3 +230,66 @@ test("mobile workspace tools stay inside the viewport", async ({ page }) => {
     fullPage: true,
   });
 });
+
+test("agent cards show only server admin rates and identify fallback pricing", async ({
+  page,
+}) => {
+  await page.route(`**/api/workspaces/${id}/agent/`, (route) =>
+    route.fulfill({
+      json: {
+        available_models: [
+          {
+            id: "gemini-admin-test",
+            provider: "gemini",
+            label: "Admin Gemini",
+            badge: "Admin configured",
+            description: "Configured model",
+            input_rate: "$1.234567",
+            output_rate: "$10.00",
+            rate_summary: "$1.234567 in / $10.00 out per 1M tokens",
+            rate_source: "model",
+            rate_pattern: "gemini-admin-test",
+            rate_label: "My selling rate",
+          },
+          {
+            id: "grok-beta",
+            provider: "xai",
+            label: "Grok",
+            badge: "",
+            description: "",
+            input_rate: "$7.89",
+            output_rate: "$12.34",
+            rate_summary: "$7.89 in / $12.34 out per 1M tokens",
+            rate_source: "fallback",
+            rate_pattern: "%",
+            rate_label: "Fallback",
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto(`/w/${id}/agent/`);
+  await expect(
+    page.getByText("$1.234567 in / $10.00 out per 1M tokens", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Admin rate: My selling rate (gemini-admin-test)"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Admin fallback rate", { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByText("GPT-5.4 Mini", { exact: true })).toHaveCount(0);
+});
+
+test("an empty model catalogue never displays hardcoded prices", async ({
+  page,
+}) => {
+  await page.route(`**/api/workspaces/${id}/agent/`, (route) =>
+    route.fulfill({ json: { available_models: [] } }),
+  );
+  await page.goto(`/w/${id}/agent/`);
+  await expect(
+    page.getByText("Model rates are unavailable.", { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByText("GPT-5.4 Mini", { exact: true })).toHaveCount(0);
+});
