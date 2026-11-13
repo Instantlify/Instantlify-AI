@@ -19,6 +19,7 @@ import "./theme.css";
 import "./workspace-theme.css";
 import "./mission-control.css";
 import "./support.css";
+import "./surface-polish.css";
 
 // Official variable fonts and their licenses are bundled for offline builds.
 const body = localFont({
