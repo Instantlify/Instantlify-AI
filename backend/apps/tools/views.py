@@ -39,6 +39,7 @@ class DeepLinkSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "platform",
+            "open_external",
             "target",
             "code",
             "clicks",
@@ -156,9 +157,12 @@ class DeepLinkRedirect(APIView):
             for key, value in parse_qsl(target.query, keep_blank_values=True)
             if key not in tags
         ]
-        response = HttpResponseRedirect(
-            urlunsplit(target._replace(query=urlencode([*query, *tags.items()])))
-        )
+        destination = urlunsplit(target._replace(query=urlencode([*query, *tags.items()])))
+        from .external_links import external_browser_page
+
+        response = external_browser_page(request, destination) if link.open_external else None
+        if response is None:
+            response = HttpResponseRedirect(destination)
         response["Cache-Control"] = "no-store"
         response["Referrer-Policy"] = "no-referrer"
         return response

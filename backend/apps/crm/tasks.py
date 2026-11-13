@@ -75,6 +75,7 @@ def process_integration(workspace_id, job_id):
         )
         if not job:
             return
+        submission = None
         if job.form_submission_id:
             from apps.tools.models import FormSubmission
 
@@ -98,6 +99,23 @@ def process_integration(workspace_id, job_id):
             job.result = json.dumps({"error": "integration_unavailable"})
             job.save()
             return
+        form_flow = json.loads(job.payload).get("_form_flow")
+        if form_flow:
+            from apps.automations.models import Automation
+
+            if blocked(workspace_id, "automations", f"automation:{form_flow['automation_id']}"):
+                return
+            if (
+                not submission
+                or submission.workflow_status != "running"
+                or not Automation.objects.for_workspace(workspace_id)
+                .filter(pk=form_flow["automation_id"], enabled=True)
+                .exists()
+            ):
+                job.status = "needs_review"
+                job.result = json.dumps({"error": "form_flow_unavailable"})
+                job.save()
+                return
         flow = json.loads(job.payload).get("_flow")
         if flow:
             from apps.automations.models import ConversationState
@@ -134,6 +152,7 @@ def process_integration(workspace_id, job_id):
     try:
         payload = json.loads(job.payload)
         payload.pop("_flow", None)
+        payload.pop("_form_flow", None)
         if job.operation == "create_call_agent":
             from apps.agents.call_agents import create_call_agent
 

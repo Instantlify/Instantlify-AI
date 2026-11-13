@@ -206,6 +206,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.channels.meta_deletion.dispatch_meta_deletions",
         "schedule": 5.0,
     },
+    "form-workflows": {
+        "task": "apps.tools.form_workflows.dispatch_form_workflows",
+        "schedule": 5.0,
+    },
     "creator-statistics": {
         "task": "apps.tools.creator_metrics.dispatch_creator_metrics",
         "schedule": 60.0,

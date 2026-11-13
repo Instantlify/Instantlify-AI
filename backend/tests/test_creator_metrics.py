@@ -122,3 +122,35 @@ def test_foreign_connected_accounts_cannot_be_published(client, workspace, user)
         format="json",
     )
     assert response.status_code == 400
+
+
+def test_opt_in_publishes_provider_insights_without_fabricating_unavailable_counts(
+    client, workspace
+):
+    channel, kit, url, data = create(client, workspace)
+    assert client.put(url, {**data, "live_insights": True}, format="json").status_code == 200
+
+    def fetch(method, url, **kwargs):
+        if not url.endswith("/insights"):
+            return {"followers_count": 321, "follows_count": 24, "media_count": 12}
+        metric = kwargs["params"]["metric"]
+        assert kwargs["params"]["until"] > kwargs["params"]["since"]
+        return (
+            {"data": [{"name": metric, "total_value": {"value": 987}}]}
+            if metric != "views"
+            else {"data": []}
+        )
+
+    with patch("apps.tools.creator_metrics.request", side_effect=fetch):
+        refresh_creator_metrics(str(workspace.pk), str(kit.pk))
+    rows = client.get("/api/public/creator/creator-metrics/").json()["live_statistics"]
+    assert any(row["label"] == "Instagram posts" and row["value"] == "12" for row in rows)
+    assert any(
+        row["label"] == "Accounts reached (28 days)" and row["value"] == "987" for row in rows
+    )
+    assert any(row["label"] == "Views (28 days)" and row["value"] == "Unavailable" for row in rows)
+    assert client.put(url, {**data, "live_insights": False}, format="json").status_code == 200
+    assert not any(
+        "28 days" in row["label"]
+        for row in client.get("/api/public/creator/creator-metrics/").json()["live_statistics"]
+    )

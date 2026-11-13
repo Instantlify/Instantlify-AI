@@ -44,6 +44,31 @@ class CreatorSerializer(serializers.ModelSerializer):
                         or connection.created_at.isoformat(),
                     }
                 )
+            for field, label in [
+                ("follows_count", "Instagram following"),
+                ("media_count", "Instagram posts"),
+            ]:
+                value = profile.get(field)
+                if type(value) is int and value >= 0:
+                    rows.append(
+                        {
+                            "label": label,
+                            "value": str(value),
+                            "account": connection.display_name,
+                            "as_of": profile.get("creator_stats_checked_at")
+                            or connection.created_at.isoformat(),
+                        }
+                    )
+            if obj.live_insights:
+                for item in profile.get("creator_insights", []):
+                    rows.append(
+                        {
+                            **item,
+                            "account": connection.display_name,
+                            "as_of": profile.get("creator_stats_checked_at")
+                            or connection.created_at.isoformat(),
+                        }
+                    )
         return rows
 
     class Meta:
@@ -57,6 +82,7 @@ class CreatorSerializer(serializers.ModelSerializer):
             "links",
             "statistics",
             "live_connection_ids",
+            "live_insights",
             "live_statistics",
             "live_stats_next_at",
             "live_stats_checked_at",
@@ -164,6 +190,7 @@ class CreatorView(APIView):
             Workspace.objects.select_for_update().get(pk=workspace_id)
             item = CreatorKit.objects.for_workspace(workspace_id).first()
             old_ids = item.live_connection_ids if item else []
+            old_insights = item.live_insights if item else False
             serializer = CreatorSerializer(
                 item, data=request.data, context={"workspace_id": workspace_id}
             )
@@ -171,7 +198,7 @@ class CreatorView(APIView):
             try:
                 with transaction.atomic():
                     item = serializer.save(workspace=member.workspace)
-                    if item.live_connection_ids != old_ids:
+                    if item.live_connection_ids != old_ids or item.live_insights != old_insights:
                         item.live_stats_next_at = (
                             timezone.now() if item.live_connection_ids else None
                         )

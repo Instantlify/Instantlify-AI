@@ -569,6 +569,10 @@ export default function FormsPage() {
             <FormAutomationActions
               prefix={prefix}
               actions={draft.submission_actions || []}
+              automationId={draft.automation_id}
+              onAutomationChange={(automation_id) =>
+                setDraft({ ...draft, automation_id })
+              }
               onChange={(submission_actions) =>
                 setDraft({ ...draft, submission_actions })
               }
@@ -709,6 +713,26 @@ export default function FormsPage() {
                     : ""}
                 </p>
               ))}
+              {row.workflow_status && (
+                <p>
+                  Workflow: {row.workflow_status.replaceAll("_", " ")}
+                  {row.workflow_error ? ` — ${row.workflow_error}` : ""}
+                </p>
+              )}
+              {!!row.workflow_trace?.length && (
+                <details>
+                  <summary>Workflow history</summary>
+                  <ol>
+                    {row.workflow_trace.map((entry, index) => (
+                      <li key={index}>
+                        {entry.node_id} · {entry.kind.replaceAll("_", " ")} ·
+                        step {entry.step} ·{" "}
+                        {new Date(entry.at).toLocaleString()}
+                      </li>
+                    ))}
+                  </ol>
+                </details>
+              )}
               {row.action_errors?.map((error, index) => (
                 <p role="alert" key={index}>
                   Action {error.action}: {error.error.replaceAll("_", " ")}

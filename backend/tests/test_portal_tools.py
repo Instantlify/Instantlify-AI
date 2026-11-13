@@ -160,3 +160,39 @@ def test_creator_publication_validates_links_and_preserves_private_draft(client,
     )
     assert client.put(url, {**body, "published": True}, format="json").status_code == 200
     assert anonymous.get("/api/public/creator/creator/").json()["statistics"] == body["statistics"]
+
+
+def test_opt_in_external_browser_handoff_keeps_tags_and_counts_one_visit(client, workspace):
+    response = client.post(
+        f"/api/workspaces/{workspace.pk}/deeplinks/",
+        {
+            "title": "Browser",
+            "platform": "custom",
+            "target": "https://example.com/page?a=1",
+            "code": "browser",
+            "open_external": True,
+            "campaign": "Launch",
+        },
+        format="json",
+    )
+    assert response.status_code == 201
+    anon = APIClient()
+    handoff = anon.get("/go/browser/", HTTP_USER_AGENT="Instagram Android")
+    assert handoff.status_code == 200
+    assert b"Open in Chrome" in handoff.content
+    assert b"com.android.chrome" in handoff.content
+    assert b"utm_campaign=Launch" in handoff.content
+    assert (
+        client.get(f"/api/workspaces/{workspace.pk}/deeplinks/{response.json()['id']}/").json()[
+            "clicks"
+        ]
+        == 1
+    )
+    assert anon.head("/go/browser/", HTTP_USER_AGENT="Instagram Android").status_code == 200
+    assert (
+        client.get(f"/api/workspaces/{workspace.pk}/deeplinks/{response.json()['id']}/").json()[
+            "clicks"
+        ]
+        == 1
+    )
+    assert anon.get("/go/browser/", HTTP_USER_AGENT="Chrome desktop").status_code == 302

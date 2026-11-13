@@ -6,6 +6,17 @@ test("a form has its own editor, public submission and response list", async ({
   page,
 }) => {
   await mockApi(page);
+  await page.route(
+    new RegExp(`/api/workspaces/${id}/automations/(?:\\?.*)?$`),
+    (route) =>
+      route.fulfill({
+        json: {
+          results: [
+            { id: "contact-flow", name: "Contact follow-up", enabled: true },
+          ],
+        },
+      }),
+  );
   let saved: LeadForm | undefined;
   let submitted: Record<string, unknown> | undefined;
   await page.route(`**/api/workspaces/${id}/forms/`, (route) => {
@@ -53,9 +64,13 @@ test("a form has its own editor, public submission and response list", async ({
   await dialog
     .getByLabel("Public address", { exact: true })
     .fill("partnership");
+  await dialog
+    .getByLabel("Contact workflow", { exact: true })
+    .selectOption("contact-flow");
   await dialog.getByLabel("Publish form", { exact: true }).check();
   await dialog.getByRole("button", { name: "Save form", exact: true }).click();
   await expect(page.getByText("Form saved.", { exact: true })).toBeVisible();
+  expect(saved?.automation_id).toBe("contact-flow");
   expect(saved?.fields.map((field) => field.id)).toEqual([
     "name",
     "email",
@@ -119,6 +134,9 @@ test("creator kits publish their saved profile instead of sample statistics", as
   await page.getByRole("button", { name: "Add metric", exact: true }).click();
   await page.getByLabel("Metric", { exact: true }).fill("Monthly reach");
   await page.getByLabel("Value", { exact: true }).fill("18,400");
+  await page
+    .getByLabel("Publish 28-day reach, views and interactions from Instagram")
+    .check();
   await page.getByLabel("Publish creator kit", { exact: true }).check();
   await page
     .getByRole("button", { name: "Save creator kit", exact: true })
@@ -126,6 +144,7 @@ test("creator kits publish their saved profile instead of sample statistics", as
   await expect(
     page.getByText("Creator kit saved.", { exact: true }),
   ).toBeVisible();
+  expect(saved?.live_insights).toBe(true);
   await page.goto("/c/local-creator");
   await expect(
     page.getByRole("heading", { name: "Local Creator", exact: true }),
@@ -170,10 +189,16 @@ test("tracking-link creation persists campaign, source and medium", async ({
     .getByLabel("Source (utm_source)", { exact: true })
     .fill("instagram");
   await page.getByLabel("Medium (utm_medium)", { exact: true }).fill("dm");
+  await page.getByLabel("Offer opening in an external browser").check();
   await page
     .getByRole("button", { name: "Generate Smart Link", exact: true })
     .click();
   await expect
     .poll(() => saved)
-    .toMatchObject({ campaign: "october", source: "instagram", medium: "dm" });
+    .toMatchObject({
+      campaign: "october",
+      source: "instagram",
+      medium: "dm",
+      open_external: true,
+    });
 });

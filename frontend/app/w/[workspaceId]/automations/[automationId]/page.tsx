@@ -1432,6 +1432,87 @@ export default function BuilderPage() {
                       }
                     />
                   </label>
+                  <label className="row">
+                    <input
+                      type="checkbox"
+                      checked={!!selected.data.custom_agent}
+                      onChange={(e) =>
+                        updateSelected({
+                          custom_agent: e.target.checked
+                            ? {
+                                name: "Call assistant",
+                                instructions: "",
+                                first_message: "",
+                                model: "",
+                                voice_id: "",
+                                max_duration_seconds: 600,
+                              }
+                            : undefined,
+                        })
+                      }
+                    />
+                    Customize the agent for this call
+                  </label>
+                  {selected.data.custom_agent && (
+                    <fieldset className="form-grid">
+                      <legend>Per-call agent settings</legend>
+                      <p>
+                        Vapi uses a temporary assistant. Retell keeps the saved
+                        agent instructions and overrides its voice, model,
+                        greeting and duration for this call.
+                      </p>
+                      {(
+                        [
+                          ["name", "Agent name"],
+                          ["model", "Provider model ID"],
+                          ["voice_id", "Provider voice ID"],
+                          ["first_message", "First message"],
+                          ["instructions", "Instructions (Vapi only)"],
+                        ] as const
+                      ).map(([field, label]) => (
+                        <label key={field}>
+                          {label}
+                          <textarea
+                            value={selected.data.custom_agent?.[field] || ""}
+                            maxLength={
+                              field === "instructions"
+                                ? 8000
+                                : field === "first_message"
+                                  ? 1000
+                                  : 150
+                            }
+                            onChange={(e) =>
+                              updateSelected({
+                                custom_agent: {
+                                  ...selected.data.custom_agent!,
+                                  [field]: e.target.value,
+                                },
+                              })
+                            }
+                          />
+                        </label>
+                      ))}
+                      <label>
+                        Maximum duration (seconds)
+                        <input
+                          type="number"
+                          min={30}
+                          max={1800}
+                          value={
+                            selected.data.custom_agent.max_duration_seconds
+                          }
+                          onChange={(e) =>
+                            updateSelected({
+                              custom_agent: {
+                                ...selected.data.custom_agent!,
+                                max_duration_seconds: Number(e.target.value),
+                              },
+                            })
+                          }
+                        />
+                      </label>
+                    </fieldset>
+                  )}
                   <label>
                     Timezone
                     <input
