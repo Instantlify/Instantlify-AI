@@ -226,6 +226,7 @@ class MetaOAuthCallbackView(APIView):
                         "is_test": settings.CHANNEL_ADAPTER_MODE == "fake",
                         "status": "active",
                         "profile": credentials.profile,
+                        "meta_authorizer_id": credentials.meta_authorizer_id,
                         "refresh_due_at": credentials.expires_at - timedelta(days=7),
                     },
                 )

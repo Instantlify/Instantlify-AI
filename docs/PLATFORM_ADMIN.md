@@ -87,3 +87,33 @@ The authenticated API is `/api/workspaces/<workspace_id>/support/tickets/` (list
 In the platform console's Support queues, expand **Conversation and reply** to read the original request and its thread, then send a response. Replies are saved to the ticket and emailed through the configured Django email backend. A mail failure is logged without losing the reply; clients can still read it in the portal. Assignment and resolution controls continue to work.
 
 Production AI answers use `PLATFORM_OPENAI_API_KEY` and the platform knowledge base managed in the console. These are separate from customer agent keys, documents and credits. If the AI provider is unavailable, chat offers the ticket form instead. Real email delivery requires the existing mail provider configuration and `DEFAULT_FROM_EMAIL`; local/test delivery is not evidence of production email delivery.
+
+## Scheduled announcements and client history
+
+In **Notifications**, create or edit a strip or popup, enable it, and optionally set its start/end times and IANA time zone (default `Asia/Karachi`). Leave pages and tiers empty to reach every signed-in user. A blank start publishes immediately when enabled; a blank end has no expiry. The server enforces the schedule on each fetch, so no scheduler or worker configuration is needed. Visible client pages refresh automatically within 15 seconds under normal network conditions, without navigation or extending idle sessions.
+
+The app bell combines announcement unread counts with existing assignment counts. Users can mark announcements read, explicitly acknowledge requested notices, and browse delivery history. Marking all read does not acknowledge notices. History retains delivered content after expiry, edits or deletion. Editing or re-enabling a notice creates a new revision for delivery; previous versions remain in history. Notices that expire before a user visits an eligible page are not delivered retroactively. Reads and acknowledgements are per user across their workspaces. Page and plan targeting still restrict initial delivery.
+
+## Client device controls
+
+**Settings → Profile → Devices and sessions** lists active browser sessions, their device/browser, IP address, last activity and expiry. A user can revoke an individual browser session or sign out everywhere, including the current browser. Existing sessions are backfilled during migration, with unavailable historical device details labelled accordingly. Sign out everywhere also invalidates issued API access/refresh tokens. Other open browser sessions detect revocation within 30 seconds while visible, or on their next authenticated request. Background checks do not renew the one-hour inactivity window.
+
+Notavo, Poppy AI, Salesforce, HubSpot and Zapier remain labelled **Coming soon** in the integration catalogue and have no connect/configure action.
+
+## Form workflows, call settings and creator insights
+
+Forms can select a published, enabled contact workflow in the same workspace. Contact capture must be enabled. Each unique submission gets an encrypted graph snapshot and variables, a persisted cursor, bounded execution history and status in the response list. Conditions, random paths, delays, tags, fields, stages, assignments, integration actions and transfers run without creating a pretend social conversation. Email or form consent does not verify ownership of an Instagram/WhatsApp account, so messaging, reply waits and calling steps cannot be attached to form-only contacts. Disabled flows, opted-out contacts and unavailable integrations stop safely; retries retain integration job keys. Beat dispatches due form workflow steps every five seconds.
+
+AI call nodes support optional per-call settings. Vapi sends a temporary assistant definition without creating a saved agent. Retell uses a saved agent as its base and overrides model, voice, greeting and duration for that call; its saved instructions remain in effect. Existing explicit customer call requests, phone validation, permitted calling windows, opt-out checks and one-shot dispatch still apply.
+
+Creator kits refresh connected account follower/following/post counts. Creators may opt into publishing 28-day reach, views and interaction totals from authorized Instagram Insights. Only returned numeric totals are published; unavailable or permission-restricted metrics say **Unavailable**, rather than zero. Disconnection and capability/plan checks still hide or stop live statistics.
+
+Tracking links can opt into an external-browser handoff page inside supported social browsers. Android visitors can choose a Chrome intent; other visitors receive browser-menu instructions and the destination address. The normal HTTPS destination remains available. Apps and operating systems control whether a handoff is allowed; universal automatic escape is not promised.
+
+## Support product identity
+
+The platform support assistant has a fixed product identity: Instantlify is a social messaging, customer engagement and business automation platform, not a website deployment service. Admin guidance remains editable, but does not replace that identity. General product questions use the verified product overview; absent indexed knowledge, detailed questions receive a no-guessing response and a ticket offer. Configured model responses are used for detailed questions when retrieved knowledge exists. Existing name/email ticket gates are unchanged.
+
+## Client AI model prices
+
+The agent's model cards read the admin rate card's **Our rate** input/output values, per million tokens. **Real cost** is internal provider cost and is not the customer's selling price. The most specific model-ID pattern wins, using the same resolver as credit billing. If no specific pattern matches, the card explicitly identifies the admin fallback rate. Exact chat-model entries for supported OpenAI, Anthropic, Gemini and xAI model prefixes also appear in the catalogue; wildcard entries price models rather than creating model IDs. Reload the agent page after changing a rate. Decimal precision is retained, and a failed or empty catalogue response shows no hardcoded backup prices.

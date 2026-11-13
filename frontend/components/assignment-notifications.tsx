@@ -5,6 +5,7 @@ import { Bell, X } from "lucide-react";
 import { api, message } from "@/lib/api";
 import { useWorkspaceSocket } from "@/lib/ws";
 import styles from "./assignment-notifications.module.css";
+import { AnnouncementInbox } from "./announcement-inbox";
 
 type Assignment = {
   id: string;
@@ -17,9 +18,12 @@ type Feed = { unread_count: number; results: Assignment[] };
 
 export function AssignmentNotifications({
   workspaceId,
+  section,
 }: {
   workspaceId: string;
+  section: string;
 }) {
+  const [noticeCount, setNoticeCount] = useState(0);
   const [feed, setFeed] = useState<Feed>({ unread_count: 0, results: [] });
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState<Assignment | null>(null);
@@ -28,6 +32,7 @@ export function AssignmentNotifications({
   const root = useRef<HTMLDivElement>(null);
   const pending = useRef(false);
   const endpoint = `/api/workspaces/${workspaceId}/assignment-notifications/`;
+  const unread = feed.unread_count + noticeCount;
   const refresh = useCallback(async () => {
     if (pending.current) return;
     pending.current = true;
@@ -97,7 +102,7 @@ export function AssignmentNotifications({
       <button
         type="button"
         className={`icon-button ${styles.bell}`}
-        aria-label={`Assignments, ${feed.unread_count} unread`}
+        aria-label={`Notifications, ${unread} unread`}
         aria-expanded={open}
         onClick={() => {
           setOpen(!open);
@@ -105,40 +110,46 @@ export function AssignmentNotifications({
         }}
       >
         <Bell size={19} />
-        {feed.unread_count > 0 && (
-          <span className={styles.count}>
-            {feed.unread_count > 99 ? "99+" : feed.unread_count}
-          </span>
+        {unread > 0 && (
+          <span className={styles.count}>{unread > 99 ? "99+" : unread}</span>
         )}
       </button>
-      {open && (
-        <section className={styles.panel} aria-label="Assignment notifications">
-          <header>
-            <strong>Assignments</strong>
-            <button
-              type="button"
-              className="text-button"
-              disabled={!feed.unread_count}
-              onClick={() => void markRead()}
-            >
-              Mark all read
-            </button>
-          </header>
-          {error && <p role="alert">{error}</p>}
-          {!feed.results.length && !error && <p>No assignments yet.</p>}
-          {feed.results.map((item) => (
-            <button
-              type="button"
-              className={`${styles.item} ${!item.read ? styles.unread : ""}`}
-              key={item.id}
-              onClick={() => void view(item)}
-            >
-              <strong>{item.contact_name}</strong>
-              <span>{item.assigned_by} assigned this contact to you.</span>
-            </button>
-          ))}
-        </section>
-      )}
+      <section
+        hidden={!open}
+        className={styles.panel}
+        aria-label="Notifications"
+      >
+        <AnnouncementInbox
+          workspaceId={workspaceId}
+          section={section}
+          open={open}
+          onCount={setNoticeCount}
+        />
+        <header>
+          <strong>Assignments</strong>
+          <button
+            type="button"
+            className="text-button"
+            disabled={!feed.unread_count}
+            onClick={() => void markRead()}
+          >
+            Mark all read
+          </button>
+        </header>
+        {error && <p role="alert">{error}</p>}
+        {!feed.results.length && !error && <p>No assignments yet.</p>}
+        {feed.results.map((item) => (
+          <button
+            type="button"
+            className={`${styles.item} ${!item.read ? styles.unread : ""}`}
+            key={item.id}
+            onClick={() => void view(item)}
+          >
+            <strong>{item.contact_name}</strong>
+            <span>{item.assigned_by} assigned this contact to you.</span>
+          </button>
+        ))}
+      </section>
       {toast && (
         <div className={styles.toast} role="status">
           <button

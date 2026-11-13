@@ -32,30 +32,65 @@ export function Announcements({
   page: string;
 }) {
   const [items, setItems] = useState<Announcement[]>([]);
-  const [hidden, setHidden] = useState<number[]>([]);
+  const [hidden, setHidden] = useState<string[]>([]);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const key = (item: Announcement) => `${item.id}:${item.revision || 1}`;
 
   useEffect(() => {
     let live = true;
-    announcements(page, workspaceId)
-      .then((rows) => {
-        if (live) setItems(rows);
-      })
-      .catch(() => undefined);
+    let pending = false;
+    async function refresh() {
+      if (pending) return;
+      pending = true;
+      try {
+        const rows = await announcements(page, workspaceId);
+        if (live && Array.isArray(rows)) setItems(rows);
+      } catch {
+        /* Keep the last notice during a temporary network failure. */
+      } finally {
+        pending = false;
+      }
+    }
+    void refresh();
+    const timer = window.setInterval(() => {
+      if (!document.hidden) void refresh();
+    }, 15000);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("instantlify:notifications-changed", refresh);
     return () => {
       live = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("instantlify:notifications-changed", refresh);
     };
   }, [page, workspaceId]);
 
-  function dismiss(item: Announcement) {
-    setHidden((current) => [...current, item.id]);
-    markSeen(item.id).catch(() => undefined);
+  async function dismiss(item: Announcement) {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await markSeen(item.id, page, workspaceId);
+      setHidden((current) => [...current, key(item)]);
+      window.dispatchEvent(new Event("instantlify:notifications-changed"));
+    } catch (err) {
+      setError(message(err));
+    } finally {
+      setBusy(false);
+    }
   }
 
-  const visible = items.filter((item) => !hidden.includes(item.id));
+  const visible = items.filter((item) => !hidden.includes(key(item)));
   const strips = visible.filter((item) => item.type === "strip");
   const popup = visible.find((item) => item.type === "popup");
   return (
     <>
+      {error && (
+        <p role="alert" className="error-text">
+          {error}
+        </p>
+      )}
       {strips.map((item) => (
         <div
           key={item.id}
@@ -72,11 +107,16 @@ export function Announcements({
             )}
           </span>
           <button
-            className="icon-button"
-            aria-label="Dismiss announcement"
+            className={item.requires_acknowledgement ? "button" : "icon-button"}
+            disabled={busy}
+            aria-label={
+              item.requires_acknowledgement
+                ? "Acknowledge announcement"
+                : "Dismiss announcement"
+            }
             onClick={() => dismiss(item)}
           >
-            <X size={15} />
+            {item.requires_acknowledgement ? "Acknowledge" : <X size={15} />}
           </button>
         </div>
       ))}
@@ -101,8 +141,12 @@ export function Announcements({
                   Learn more
                 </a>
               )}
-              <button className="button primary" onClick={() => dismiss(popup)}>
-                Got it
+              <button
+                className="button primary"
+                disabled={busy}
+                onClick={() => dismiss(popup)}
+              >
+                {popup.requires_acknowledgement ? "Acknowledge" : "Got it"}
               </button>
             </div>
           </div>
@@ -393,7 +437,7 @@ export function SupportChat({
         ))}
       </ol>
       {card ? (
-        <ValidatedForm className="chat-card" onSubmit={submitCard}>
+        <ValidatedForm key={card} className="chat-card" onSubmit={submitCard}>
           <label>
             {card === NAME_CARD ? "Your name" : "Your email"}
             <ValidatedInput

@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
-import { api, message } from "@/lib/api";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { ValidatedForm, ValidatedInput } from "@/components/validated-form";
+import { api, ApiError, message } from "@/lib/api";
+import type { FieldErrors } from "@/lib/form-errors";
 import { Brand } from "@/components/shell";
 import { ErrorNotice, SuccessNotice } from "@/components/ui";
 
@@ -13,6 +15,9 @@ export default function MagicLinkPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [cooldown, setCooldown] = useState(0);
+  const resendAt = useRef(0);
   const [redeeming, setRedeeming] = useState(false);
   const router = useRouter();
 
@@ -32,12 +37,27 @@ export default function MagicLinkPage() {
       });
   }, [router]);
 
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setTimeout(
+      () =>
+        setCooldown(
+          Math.max(0, Math.ceil((resendAt.current - Date.now()) / 1000)),
+        ),
+      1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [cooldown]);
+
   async function request(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy || cooldown > 0) return;
     setBusy(true);
     setError("");
+    setNotice("");
+    setFieldErrors({});
     try {
-      const result = await api<{ detail: string }>(
+      const result = await api<{ detail: string; resend_after: number }>(
         "/api/auth/magic-link/",
         "POST",
         {
@@ -45,8 +65,16 @@ export default function MagicLinkPage() {
         },
       );
       setNotice(result.detail);
+      const seconds = result.resend_after || 60;
+      resendAt.current = Date.now() + seconds * 1000;
+      setCooldown(seconds);
     } catch (err) {
-      setError(message(err));
+      setFieldErrors(err instanceof ApiError ? err.fieldErrors : {});
+      setError(
+        err instanceof ApiError && err.status === 503
+          ? "Sign-in links are temporarily unavailable. Please try again shortly or sign in with your password."
+          : message(err),
+      );
     } finally {
       setBusy(false);
     }
@@ -70,10 +98,16 @@ export default function MagicLinkPage() {
             </p>
             <ErrorNotice error={error} />
             <SuccessNotice notice={notice} />
-            <form className="stack" onSubmit={request}>
+            <ValidatedForm
+              className="stack"
+              onSubmit={request}
+              fieldErrors={fieldErrors}
+              onEdit={() => setError("")}
+            >
               <label>
                 Email
-                <input
+                <ValidatedInput
+                  name="email"
                   type="email"
                   required
                   maxLength={254}
@@ -82,10 +116,25 @@ export default function MagicLinkPage() {
                   onChange={(event) => setEmail(event.target.value)}
                 />
               </label>
-              <button className="button primary full" disabled={busy}>
-                {busy ? "Sending…" : "Email me a sign-in link"}
+              <button
+                className="button primary full"
+                disabled={busy || cooldown > 0}
+              >
+                {busy
+                  ? "Sending..."
+                  : cooldown > 0
+                    ? `Resend in ${cooldown}s`
+                    : notice
+                      ? "Resend sign-in link"
+                      : "Email me a sign-in link"}
               </button>
-            </form>
+            </ValidatedForm>
+            {notice && (
+              <p className="muted-text">
+                You can request another link after 60 seconds. Each link works
+                once and expires after 15 minutes.
+              </p>
+            )}
           </>
         )}
         <p>

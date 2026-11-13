@@ -303,6 +303,13 @@ def promo_save(request, pk=None):
 @protected("owner", "support")
 @transaction.atomic
 def announcement_save(request, pk=None):
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+    from django.core.exceptions import ValidationError
+    from django.core.validators import URLValidator
+    from django.utils import timezone
+    from django.utils.dateparse import parse_datetime
+
     from apps.billing.models import Plan
 
     data = request.POST
@@ -310,6 +317,14 @@ def announcement_save(request, pk=None):
         item = get_object_or_404(Announcement, pk=pk)
         record(request.user, "announcement.deleted", target=item.name)
         item.delete()
+        return redirect("/ops/?tab=notifications")
+    if data.get("action") == "toggle":
+        item = get_object_or_404(Announcement.objects.select_for_update(), pk=pk)
+        item.is_active = flag(data, "is_active")
+        if item.is_active:
+            item.revision += 1
+        item.save(update_fields=["is_active", "revision"])
+        record(request.user, "announcement.toggled", target=item.name, active=item.is_active)
         return redirect("/ops/?tab=notifications")
     kind = data.get("type", "strip")
     if kind not in Announcement.TYPES:
@@ -326,11 +341,32 @@ def announcement_save(request, pk=None):
         "link_url": data.get("link_url", "").strip()[:2000],
         "target_pages": data.get("target_pages", "").strip()[:500],
         "is_active": flag(data, "is_active"),
+        "requires_acknowledgement": flag(data, "requires_acknowledgement"),
+        "schedule_timezone": data.get("schedule_timezone", "Asia/Karachi").strip(),
     }
+    try:
+        zone = ZoneInfo(fields["schedule_timezone"])
+        for field in ["starts_at", "ends_at"]:
+            raw = data.get(field, "").strip()
+            value = parse_datetime(raw) if raw else None
+            if raw and value is None:
+                raise ValueError("Invalid date")
+            fields[field] = (
+                timezone.make_aware(value, zone) if value and timezone.is_naive(value) else value
+            )
+        if fields["starts_at"] and fields["ends_at"] and fields["ends_at"] <= fields["starts_at"]:
+            raise ValueError("End must follow start")
+        if fields["link_url"]:
+            URLValidator(schemes=["http", "https"])(fields["link_url"])
+    except (ValueError, ValidationError, ZoneInfoNotFoundError):
+        return HttpResponseForbidden(
+            "Use valid schedule times and a time zone; end must follow start. Links must use HTTP or HTTPS."
+        )
     if pk:
         item = get_object_or_404(Announcement.objects.select_for_update(), pk=pk)
         for key, value in fields.items():
             setattr(item, key, value)
+        item.revision += 1
         item.save()
     else:
         item = Announcement.objects.create(**fields)

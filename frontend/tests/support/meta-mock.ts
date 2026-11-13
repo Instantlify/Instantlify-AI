@@ -415,7 +415,8 @@ export async function mockApi(page: Page) {
       (item) => path === `${p}/leads/${item.id}/`,
     );
     if (leadRow) return route.fulfill({ json: leadRow });
-    if (path === `${p}/integrations/`) return route.fulfill({ json: [] });
+    if (path === `${p}/integrations/`)
+      return route.fulfill({ json: { results: [], count: 0, next: null } });
     if (path.endsWith("/members/"))
       return route.fulfill({
         json: {

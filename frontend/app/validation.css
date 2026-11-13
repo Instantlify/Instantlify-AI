@@ -26,7 +26,8 @@ textarea[aria-invalid="true"] {
 
 .field-error {
   display: block;
-  color: #9b3526;
+  color: var(--validation-field-color, #9b3526);
+  margin: 0;
   font-size: 12px;
   line-height: 1.5;
   font-weight: 500;
@@ -43,13 +44,7 @@ label.inline > .field-error {
 
 .form-validation-summary {
   grid-column: 1 / -1;
-  border: 1px solid #edc2b8;
-  border-radius: 8px;
-  padding: 12px 14px;
-  background: #fff3ef;
-  color: #8e3628;
-  font-size: 13px;
-  line-height: 1.5;
+  margin: 0 0 16px;
 }
 
 .field-hint {
@@ -78,4 +73,26 @@ label.inline > .field-error {
 
 .password-input-wrapper > .password-toggle-eye {
   top: 12px;
+}
+
+/* Account forms share the same alert treatment and readable field errors. */
+:is(.auth-layout, .setup-screen, .support-widget) {
+  --validation-field-color: #f28b82;
+}
+:is(.auth-layout, .setup-screen, .support-widget) .error-notice,
+.form-validation-summary {
+  border: 1px solid #edc2b8;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #fff3ef;
+  color: #8e3628;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.auth-signin-form .auth-feedback {
+  min-height: 80px;
+}
+.auth-feedback .error-notice {
+  margin-bottom: 16px;
 }

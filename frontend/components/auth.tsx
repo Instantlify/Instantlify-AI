@@ -17,8 +17,8 @@ import {
 import { api, ApiError, message, type Branding, type User } from "@/lib/api";
 import type { FieldErrors } from "@/lib/form-errors";
 import { lastWorkspaceId, loadWorkspaces } from "@/lib/workspace";
-import { Brand, WorkspaceForm } from "@/components/shell";
-import { ErrorNotice } from "@/components/ui";
+import { Brand } from "@/components/shell";
+import { ErrorNotice, SuccessNotice } from "@/components/ui";
 import { TrackVisit } from "@/components/growth";
 import { useT } from "@/lib/i18n";
 
@@ -29,6 +29,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [invitationError, setInvitationError] = useState(false);
+  const [redirectFailed, setRedirectFailed] = useState(false);
   const [inviteAttempt, setInviteAttempt] = useState(0);
   const [branding, setBranding] = useState<Branding | null>(null);
   const inviteHandled = useRef(false);
@@ -88,6 +89,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
           }
         }
         const all = await loadWorkspaces(controller.signal);
+        if (controller.signal.aborted) return;
         // Nobody lands on an empty product. A first-time account goes through the
         // setup wizard, which is also what produces the signup funnel.
         if (!all.length) {
@@ -112,6 +114,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
       } catch (err) {
         if (!controller.signal.aborted) {
           setError(message(err));
+          setRedirectFailed(true);
           setLoading(false);
         }
       }
@@ -125,6 +128,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
       await api("/api/auth/logout/", "POST");
       inviteHandled.current = false;
       setInvitationError(false);
+      setRedirectFailed(false);
       setError("");
       setUser(null);
       setLoading(false);
@@ -135,24 +139,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
     }
   }
 
-  async function create(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const created = await api<{ id: string }>(
-        "/api/workspaces/",
-        "POST",
-        Object.fromEntries(new FormData(event.currentTarget)),
-      );
-      router.replace(`/w/${created.id}/overview`);
-    } catch (err) {
-      setError(message(err));
-      setBusy(false);
-    }
-  }
-
-  if (loading || (user && busy))
+  if (loading || (user && (busy || (!invitationError && !redirectFailed))))
     return (
       <div className="loading-screen">
         <Brand name={branding?.brand_name} logo={branding?.logo_url} />
@@ -174,8 +161,8 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
             You are signed into Instantlify as <strong>{user.email}</strong>.
           </p>
           <p>
-            Opening an email does not change your Instantlify account. Sign in or
-            create an account using the email address that received this
+            Opening an email does not change your Instantlify account. Sign in
+            or create an account using the email address that received this
             invitation. Your invitation link will be kept while you switch
             accounts.
           </p>
@@ -210,14 +197,22 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
           <span className="section-icon">
             <GitBranch size={26} />
           </span>
-          <span className="eyebrow">LET’S MAKE IT YOURS</span>
-          <h1>A home for your business.</h1>
-          <p>
-            Create a workspace to keep your team, connected accounts, and
-            conversations together.
-          </p>
+          <h1>We could not open your workspace.</h1>
           <ErrorNotice error={error} />
-          <WorkspaceForm create={create} busy={busy} />
+          <button
+            className="button primary"
+            onClick={() => {
+              setRedirectFailed(false);
+              setError("");
+              setLoading(true);
+              setInviteAttempt((attempt) => attempt + 1);
+            }}
+          >
+            Try again
+          </button>
+          <button className="text-button" onClick={switchInvitationAccount}>
+            Sign in with another account
+          </button>
         </section>
       </div>
     );
@@ -253,10 +248,12 @@ function Auth({
   branding: Branding | null;
   signupInitially: boolean;
 }) {
+  const router = useRouter();
   const t = useT();
   const [signup, setSignup] = useState(signupInitially);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
+  const [notice, setNotice] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const name = branding?.brand_name || "Instantlify";
@@ -277,6 +274,14 @@ function Auth({
       queueMicrotask(() =>
         setError(GOOGLE_ERRORS[code] || GOOGLE_ERRORS.google_rejected),
       );
+    if (
+      new URLSearchParams(window.location.search).get("session") === "expired"
+    )
+      queueMicrotask(() =>
+        setNotice(
+          "You were signed out after 1 hour of inactivity. Sign in to continue.",
+        ),
+      );
     return () => controller.abort();
   }, []);
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -284,15 +289,26 @@ function Auth({
     setBusy(true);
     setError("");
     setFieldErrors({});
-    const data = Object.fromEntries(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form));
     try {
-      onSuccess(
-        await api<User>(
-          `/api/auth/${signup ? "signup" : "login"}/`,
-          "POST",
-          data,
-        ),
+      const me = await api<User>(
+        `/api/auth/${signup ? "signup" : "login"}/`,
+        "POST",
+        data,
       );
+      if (signup) {
+        form.reset();
+        setSignup(false);
+        setNotice(
+          "Your account has been created. Sign in to continue to onboarding.",
+        );
+        const query = new URLSearchParams(window.location.search);
+        query.delete("mode");
+        router.replace(`/auth/${query.size ? `?${query}` : ""}`);
+      } else {
+        onSuccess(me);
+      }
     } catch (err) {
       setFieldErrors(err instanceof ApiError ? err.fieldErrors : {});
       setError(message(err));
@@ -367,6 +383,8 @@ function Auth({
             onClick={() => {
               setSignup(!signup);
               setError("");
+              setNotice("");
+              setFieldErrors({});
             }}
           >
             {signup ? "Sign in" : "Create an account"}
@@ -383,12 +401,17 @@ function Auth({
               ? "Start with your account. Your workspace comes next."
               : "Sign in and pick up the conversation."}
           </p>
+          <SuccessNotice notice={notice} />
           <ValidatedForm
+            key={signup ? "signup" : "signin"}
+            className={signup ? "auth-signup-form" : "auth-signin-form"}
             onSubmit={submit}
             fieldErrors={fieldErrors}
             onEdit={() => setError("")}
           >
-            <ErrorNotice error={error} />
+            <div className="auth-feedback">
+              <ErrorNotice error={error} />
+            </div>
             {signup && (
               <label>
                 Your name

@@ -34,6 +34,7 @@ test("deep links list the API's links and create new ones through it", async ({
       campaign: "",
       source: "",
       medium: "",
+      open_external: false,
     });
   await expect(page.getByText("/go/order-chat/")).toBeVisible();
 });

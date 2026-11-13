@@ -1,11 +1,16 @@
+import logging
 from datetime import timedelta
+from smtplib import SMTPException
 
 from celery import shared_task
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.db import transaction
 from django.utils import timezone
+
+from apps.platform_ops.growth import TemplateMissing, send_transactional_email
 
 from .dispatch import enqueue_once
 from .models import AuditEvent, Membership, OutboxEvent
@@ -66,3 +71,55 @@ def purge_unverified_signups():
         is_superuser=False,
     )
     return stale.exclude(pk__in=members).delete()[0]
+
+
+log = logging.getLogger(__name__)
+
+
+@shared_task(bind=True, max_retries=3, ignore_result=True)
+def deliver_magic_link(self, user_id):
+    """Retry transient SMTP errors without putting tokens or addresses in task payloads/logs."""
+    from .magic_link import make_token
+
+    user = get_user_model().objects.filter(pk=user_id, is_active=True, is_banned=False).first()
+    if not user:
+        return
+    try:
+        if settings.EMAIL_BACKEND in {
+            "django.core.mail.backends.console.EmailBackend",
+            "django.core.mail.backends.dummy.EmailBackend",
+        }:
+            raise ImproperlyConfigured("Magic-link delivery requires an outbound email backend.")
+        url = f"{settings.PUBLIC_APP_URL.rstrip('/')}/auth/magic/#token={make_token(user)}"
+        send_transactional_email(
+            "magic-link-signin",
+            user.email,
+            {"name": user.first_name or "there", "email": user.email, "link": url},
+        )
+    except TemplateMissing:
+        log.error(
+            "Magic-link template is missing or a draft",
+            extra={"event_code": "magic_link_template_unavailable"},
+        )
+        return
+    except (SMTPException, OSError, ImproperlyConfigured) as exc:
+        log.error(
+            "Magic-link email delivery failed",
+            extra={
+                "event_code": "magic_link_delivery_failed",
+                "user_id": user_id,
+                "error_type": type(exc).__name__,
+                "attempt": self.request.retries + 1,
+            },
+        )
+        # SMTP exceptions may include addresses; do not serialize the original error.
+        raise self.retry(
+            exc=RuntimeError(
+                "Magic-link email delivery failed; check outbound email configuration."
+            ),
+            countdown=30 * (2**self.request.retries),
+        ) from None
+    log.info(
+        "Magic-link email accepted by backend",
+        extra={"event_code": "magic_link_delivery_accepted", "user_id": user_id},
+    )

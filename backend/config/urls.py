@@ -20,6 +20,7 @@ from apps.channels.views import (
 )
 from apps.dashboard_api.setup_progress import SetupProgressView
 from apps.dashboard_api.views import TelemetryView, WorkspaceStatusView, live, ready
+from apps.platform_ops.notifications import NotificationFeedView
 from apps.platform_ops.public import (
     AnnouncementListView,
     AnnouncementSeenView,
@@ -48,6 +49,12 @@ from apps.tenants.invitations import (
 from apps.tenants.magic_link import MagicLinkRequestView, MagicLinkVerifyView
 from apps.tenants.profile import ProfilePhotoView
 from apps.tenants.recovery import PasswordResetConfirmView, PasswordResetRequestView
+from apps.tenants.sessions import (
+    BrowserSessionListView,
+    BrowserSessionRevokeAllView,
+    BrowserSessionRevokeView,
+    SessionActivityView,
+)
 from apps.tenants.verification import ResendVerificationView, VerifyEmailView
 from apps.tenants.views import (
     AuditListView,
@@ -78,6 +85,10 @@ urlpatterns = [
     path("health/live/", live),
     path("health/ready/", ready),
     path("api/auth/csrf/", CSRFView.as_view()),
+    path("api/auth/session/", SessionActivityView.as_view()),
+    path("api/auth/sessions/", BrowserSessionListView.as_view()),
+    path("api/auth/sessions/revoke-all/", BrowserSessionRevokeAllView.as_view()),
+    path("api/auth/sessions/<uuid:pk>/", BrowserSessionRevokeView.as_view()),
     path("api/auth/signup/", SignupView.as_view()),
     path("api/auth/login/", LoginView.as_view()),
     path(".well-known/oauth-protected-resource", oauth.protected_resource_metadata),
@@ -144,6 +155,7 @@ urlpatterns = [
     path("api/growth/tickets/", SupportTicketView.as_view()),
     path("api/growth/support-chat/", SupportChatView.as_view()),
     path("api/growth/announcements/", AnnouncementListView.as_view()),
+    path("api/notifications/", NotificationFeedView.as_view()),
     path("api/growth/announcements/<int:pk>/seen/", AnnouncementSeenView.as_view()),
     path("api/growth/promo/", PromoView.as_view()),
     path("api/blog/", PublicBlogList.as_view()),

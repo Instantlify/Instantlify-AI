@@ -795,7 +795,7 @@ export default function IntegrationsPage() {
         action: "Append Record in Airtable Base",
       },
     },
-    // Coming Soon Apps
+    // Coming soon Apps
     {
       id: "salesforce",
       name: "Salesforce",
@@ -1068,7 +1068,7 @@ export default function IntegrationsPage() {
                     {isComingSoon ? (
                       <span className="boosend-pill-coming">
                         <Clock size={13} />
-                        Coming Soon
+                        Coming soon
                       </span>
                     ) : connected ? (
                       <div

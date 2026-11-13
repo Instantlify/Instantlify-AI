@@ -264,13 +264,9 @@ class AnnouncementListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        plan = None
-        workspace_id = request.query_params.get("workspace_id")
-        if workspace_id:
-            from apps.billing.services import account_for
+        from .notifications import safe_link, viewer_plan
 
-            price = getattr(account_for(workspace_id), "plan_price", None)
-            plan = getattr(price, "plan", None)
+        plan = viewer_plan(request)
         rows = growth.announcements_for(
             page=request.query_params.get("page", ""), plan=plan, user=request.user
         )
@@ -283,7 +279,9 @@ class AnnouncementListView(APIView):
                     "title": item.title,
                     "body": item.body,
                     "tone": item.tone,
-                    "link_url": item.link_url,
+                    "link_url": safe_link(item.link_url),
+                    "revision": item.revision,
+                    "requires_acknowledgement": item.requires_acknowledgement,
                 }
                 for item in rows
             ]
@@ -294,7 +292,15 @@ class AnnouncementSeenView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        announcement = get_object_or_404(Announcement, pk=pk, is_active=True)
+        from .notifications import eligible_notices, viewer_plan
+
+        eligible = [
+            item.pk
+            for item in eligible_notices(
+                page=request.query_params.get("page", ""), plan=viewer_plan(request)
+            )
+        ]
+        announcement = get_object_or_404(Announcement, pk=pk, pk__in=eligible)
         growth.record_announcement_view(announcement, user=request.user)
         return Response(status=204)
 

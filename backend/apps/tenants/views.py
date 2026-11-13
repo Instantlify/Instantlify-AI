@@ -22,6 +22,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenBlacklistView, TokenObtainPairView, TokenRefreshView
 
+from .auth import VersionedTokenObtainPairSerializer
 from .models import AuditEvent, Membership, Workspace
 from .permissions import workspace_membership
 from .profile import ProfileSerializer, photo_url
@@ -70,7 +71,6 @@ class SignupView(APIView):
             return Response(
                 {"detail": "Unable to create this account. Try signing in."}, status=400
             )
-        login(request, user, backend="apps.tenants.auth.BanAwareBackend")
         from .verification import send_verification
 
         send_verification(user)
@@ -147,6 +147,8 @@ class MeView(APIView):
         try:
             with transaction.atomic():
                 user = get_user_model().objects.select_for_update().get(pk=request.user.pk)
+                old_email = user.email
+                old_email_verified = bool(user.email_verified_at)
                 if "name" in data:
                     user.first_name = data["name"]
                 if "email" in data and data["email"] != user.email:
@@ -163,9 +165,11 @@ class MeView(APIView):
                 {"email": "This email address is already in use."}
             ) from None
         if email_changed:
-            from .verification import send_verification
+            from .verification import send_email_change_notice, send_verification
 
-            send_verification(user)
+            send_verification(user, template_name="email-change-confirmation")
+            if old_email_verified:
+                send_email_change_notice(user, old_email)
         return Response(
             {
                 "id": user.id,
@@ -202,6 +206,7 @@ class PasswordChangeView(APIView):
 
 
 class JWTLoginView(TokenObtainPairView):
+    serializer_class = VersionedTokenObtainPairSerializer
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth"
 

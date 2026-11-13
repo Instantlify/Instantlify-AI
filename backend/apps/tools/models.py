@@ -10,6 +10,7 @@ class DeepLink(TenantModel):
     title = models.CharField(max_length=80)
     # instagram, whatsapp, youtube, telegram or custom; only affects the UI.
     platform = models.CharField(max_length=20, default="custom")
+    open_external = models.BooleanField(default=False)
     target = models.URLField(max_length=2000)
     code = models.SlugField(max_length=40, unique=True)
     clicks = models.PositiveIntegerField(default=0)
@@ -38,6 +39,7 @@ class LeadForm(TenantModel):
     description = models.CharField(max_length=1000, blank=True)
     fields = models.JSONField(default=list)
     submission_actions = models.JSONField(default=list)
+    automation_id = models.UUIDField(null=True, blank=True)
     branching = models.JSONField(default=list)
     theme = models.JSONField(default=dict)
     redirect_url = models.URLField(max_length=2000, blank=True)
@@ -60,6 +62,9 @@ class LeadForm(TenantModel):
 
 class FormSubmission(TenantModel):
     action_errors = models.JSONField(default=list)
+    workflow_state = EncryptedTextField(default="{}")
+    workflow_status = models.CharField(max_length=20, blank=True)
+    workflow_due_at = models.DateTimeField(null=True, blank=True, db_index=True)
     form = models.ForeignKey(LeadForm, on_delete=models.CASCADE)
     lead = models.ForeignKey("crm.Lead", null=True, on_delete=models.SET_NULL)
     link = models.ForeignKey(DeepLink, null=True, on_delete=models.SET_NULL)
@@ -83,6 +88,7 @@ class CreatorKit(TenantModel):
     links = models.JSONField(default=list)
     statistics = models.JSONField(default=list)
     live_connection_ids = models.JSONField(default=list)
+    live_insights = models.BooleanField(default=False)
     live_stats_next_at = models.DateTimeField(null=True, blank=True, db_index=True)
     live_stats_checked_at = models.DateTimeField(null=True, blank=True)
     live_stats_started_at = models.DateTimeField(null=True, blank=True)

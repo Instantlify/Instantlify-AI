@@ -87,6 +87,7 @@ export default function CreatorKitPage() {
             setKit((current) => ({
               ...current,
               live_statistics: data.live_statistics,
+              live_insights: data.live_insights,
               live_stats_error: data.live_stats_error,
               live_stats_checked_at: data.live_stats_checked_at,
             }));
@@ -265,6 +266,17 @@ export default function CreatorKitPage() {
                   Stop publishing connected statistics
                 </button>
               )}
+              <label className="row">
+                <input
+                  type="checkbox"
+                  checked={kit.live_insights || false}
+                  disabled={!manager}
+                  onChange={(e) =>
+                    setKit({ ...kit, live_insights: e.target.checked })
+                  }
+                />
+                Publish 28-day reach, views and interactions from Instagram
+              </label>
               {kit.live_statistics?.map((row, index) => (
                 <p key={index}>
                   <strong>{row.account}</strong> · {row.value} {row.label} · As

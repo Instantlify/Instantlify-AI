@@ -202,6 +202,17 @@ test("voice, calling and avatar settings survive saving the advanced draft", asy
   await page
     .getByLabel("Calling integration", { exact: true })
     .selectOption(integrations[1].id);
+  await page.getByLabel("Customize the agent for this call").check();
+  await page
+    .getByLabel("Provider model ID", { exact: true })
+    .fill("gpt-4.1-mini");
+  await page
+    .getByLabel("Provider voice ID", { exact: true })
+    .fill("test-voice");
+  await page.getByLabel("First message", { exact: true }).fill("Hello Alex");
+  await page
+    .getByLabel("Instructions (Vapi only)", { exact: true })
+    .fill("Answer the enquiry.");
   await page.getByLabel("Timezone", { exact: true }).fill("Asia/Karachi");
   await page
     .getByLabel("Exact customer call request", { exact: false })
@@ -229,6 +240,12 @@ test("voice, calling and avatar settings survive saving the advanced draft", asy
   ).toMatchObject({
     timezone: "Asia/Karachi",
     consent_reply: "Yes, call me",
+    custom_agent: {
+      model: "gpt-4.1-mini",
+      voice_id: "test-voice",
+      first_message: "Hello Alex",
+      instructions: "Answer the enquiry.",
+    },
     integration_id: integrations[1].id,
   });
   expect(

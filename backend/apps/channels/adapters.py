@@ -28,6 +28,7 @@ class Credentials:
     expires_at: datetime
     # Public profile facts, when the provider returns them. Never secret.
     profile: dict = field(default_factory=dict)
+    meta_authorizer_id: str = field(default="", repr=False)
 
 
 class ChannelAdapter(ABC):

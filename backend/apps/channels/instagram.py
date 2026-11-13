@@ -268,6 +268,7 @@ def live_exchange(code):
         profile.get("username", account_id),
         long["access_token"],
         timezone.now() + timedelta(seconds=int(long["expires_in"])),
+        meta_authorizer_id=str(short.get("user_id") or account_id),
         profile={
             "name": profile.get("name", ""),
             "biography": profile.get("biography", ""),

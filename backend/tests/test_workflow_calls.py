@@ -185,3 +185,41 @@ def test_provider_calls_have_fixed_endpoints_and_explicit_caller_configuration(w
     else:
         assert kwargs["json"]["assistantId"] == "saved-agent"
         assert kwargs["json"]["phoneNumberId"] == "saved-number"
+
+
+@pytest.mark.parametrize("provider", ["vapi", "retell"])
+def test_per_call_agent_settings_do_not_create_or_edit_a_saved_agent(workspace, provider):
+    config = IntegrationConfig.objects.for_workspace(workspace).create(
+        workspace=workspace,
+        provider=provider,
+        credentials=json.dumps({"api_key": "secret"}),
+        options={
+            "agent_id": "saved-agent",
+            "phone_number_id": "saved-number",
+            "from_number": "+15550100300",
+        },
+    )
+    custom = {
+        "name": "One call",
+        "instructions": "Help with this enquiry" if provider == "vapi" else "",
+        "first_message": "Hello Alex",
+        "model": "gpt-4.1-mini",
+        "voice_id": "test-voice",
+        "max_duration_seconds": 180,
+    }
+    with patch(
+        "apps.channels.transport.request", return_value={"id": "call-id", "call_id": "call-id"}
+    ) as send:
+        create_call(config, {"phone": "+15550100200", "custom_agent": custom}, "one-key")
+    send.assert_called_once()
+    body = send.call_args.kwargs["json"]
+    if provider == "vapi":
+        assert "assistantId" not in body
+        assert body["assistant"]["model"]["messages"][0]["content"] == "Help with this enquiry"
+        assert body["assistant"]["artifactPlan"]["recordingEnabled"] is False
+    else:
+        assert body["override_agent_id"] == "saved-agent"
+        assert body["agent_override"]["retell_llm"]["begin_message"] == "Hello Alex"
+        assert body["agent_override"]["agent"]["max_call_duration_ms"] == 180000
+    config.refresh_from_db()
+    assert config.options["agent_id"] == "saved-agent"

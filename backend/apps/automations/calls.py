@@ -57,9 +57,41 @@ def validate_call(data):
     reply = data.get("consent_reply")
     if not isinstance(reply, str) or not 1 <= len(reply.strip()) <= 64:
         raise ValidationError("Set the exact private reply that requests a phone call.")
+    custom_agent(data)
     agent = data.get("agent_id", "")
     if not isinstance(agent, str) or (agent and not re.fullmatch(r"[A-Za-z0-9_-]{1,150}", agent)):
         raise ValidationError("Choose a valid saved provider agent ID.")
+
+
+def custom_agent(data):
+    from rest_framework import serializers
+
+    value = data.get("custom_agent")
+    if value is None:
+        return None
+    if not isinstance(value, dict) or set(value) - {
+        "name",
+        "instructions",
+        "first_message",
+        "model",
+        "voice_id",
+        "max_duration_seconds",
+    }:
+        raise ValidationError("Use valid per-call agent settings.")
+
+    class Input(serializers.Serializer):
+        name = serializers.CharField(max_length=40, default="Call assistant")
+        instructions = serializers.CharField(
+            max_length=8000, required=False, allow_blank=True, default=""
+        )
+        first_message = serializers.CharField(max_length=1000)
+        model = serializers.RegexField(r"^[A-Za-z0-9_.:/-]{1,100}$")
+        voice_id = serializers.RegexField(r"^[A-Za-z0-9_-]{1,150}$")
+        max_duration_seconds = serializers.IntegerField(min_value=30, max_value=1800, default=600)
+
+    parsed = Input(data=value)
+    parsed.is_valid(raise_exception=True)
+    return parsed.validated_data
 
 
 def next_call_time(data, now):
@@ -110,8 +142,19 @@ def call_config(workspace_id, data):
     credentials = json.loads(config.credentials)
     if not isinstance(credentials.get("api_key"), str) or not credentials["api_key"].strip():
         raise ValidationError("Save your calling provider API key.")
+    custom = custom_agent(data)
     agent = data.get("agent_id") or config.options.get("agent_id")
-    if not isinstance(agent, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,150}", agent):
+    if custom and config.provider == "vapi":
+        if not custom["instructions"]:
+            raise ValidationError("Set instructions for the temporary Vapi assistant.")
+        agent = None
+    if custom and config.provider == "retell" and custom["instructions"]:
+        raise ValidationError(
+            "Retell uses the saved agent instructions; per-call overrides support model, voice, greeting and duration."
+        )
+    if not (custom and config.provider == "vapi") and (
+        not isinstance(agent, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,150}", agent)
+    ):
         raise ValidationError("Save a provider agent ID in the integration or call step.")
     if config.provider == "retell":
         if not isinstance(config.options.get("from_number"), str) or not PHONE.fullmatch(
@@ -123,7 +166,8 @@ def call_config(workspace_id, data):
     else:
         try:
             uuid.UUID(str(config.options.get("phone_number_id", "")))
-            uuid.UUID(agent)
+            if agent:
+                uuid.UUID(agent)
         except ValueError:
             raise ValidationError("Vapi requires valid phone number and assistant UUIDs.") from None
     return config
@@ -192,15 +236,32 @@ def create_call(config, data, key):
     if config.is_test:
         return {"id": "test-call-" + key, "status": "simulated", "test": True}
     headers = {"Authorization": "Bearer " + json.loads(config.credentials)["api_key"]}
-    agent = data.get("agent_id") or config.options["agent_id"]
+    agent = data.get("agent_id") or config.options.get("agent_id")
+    custom = custom_agent(data)
     if config.provider == "vapi":
+        selection = {"assistantId": agent}
+        if custom:
+            selection = {
+                "assistant": {
+                    "name": custom["name"],
+                    "firstMessage": custom["first_message"],
+                    "model": {
+                        "provider": "openai",
+                        "model": custom["model"],
+                        "messages": [{"role": "system", "content": custom["instructions"]}],
+                    },
+                    "voice": {"provider": "11labs", "voiceId": custom["voice_id"]},
+                    "maxDurationSeconds": custom["max_duration_seconds"],
+                    "artifactPlan": {"recordingEnabled": False},
+                }
+            }
         result = request(
             "POST",
             "https://api.vapi.ai/call",
             headers=headers,
             side_effect=True,
             json={
-                "assistantId": agent,
+                **selection,
                 "phoneNumberId": config.options["phone_number_id"],
                 "customer": {"number": data["phone"]},
             },
@@ -216,6 +277,22 @@ def create_call(config, data, key):
                 "from_number": config.options["from_number"],
                 "to_number": data["phone"],
                 "override_agent_id": agent,
+                **(
+                    {
+                        "agent_override": {
+                            "agent": {
+                                "voice_id": custom["voice_id"],
+                                "max_call_duration_ms": custom["max_duration_seconds"] * 1000,
+                            },
+                            "retell_llm": {
+                                "model": custom["model"],
+                                "begin_message": custom["first_message"],
+                            },
+                        }
+                    }
+                    if custom
+                    else {}
+                ),
                 "idempotency_key": key,
             },
         )

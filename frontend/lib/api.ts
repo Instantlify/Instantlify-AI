@@ -283,6 +283,14 @@ export type FlowNodeData = {
   phone_variable?: string;
   consent_reply?: string;
   agent_id?: string;
+  custom_agent?: {
+    name: string;
+    instructions: string;
+    first_message: string;
+    model: string;
+    voice_id: string;
+    max_duration_seconds: number;
+  };
   timezone?: string;
   weekdays?: number[];
   call_start?: string;
@@ -383,6 +391,9 @@ export type PlatformModel = {
   input_rate: string;
   output_rate: string;
   rate_summary: string;
+  rate_source?: "model" | "fallback";
+  rate_pattern?: string;
+  rate_label?: string;
 };
 export type KnowledgeDocument = {
   id: string;
@@ -516,6 +527,7 @@ export type DeepLink = {
   id: string;
   title: string;
   platform: "instagram" | "whatsapp" | "youtube" | "telegram" | "custom";
+  open_external?: boolean;
   target: string;
   code: string;
   clicks: number;
@@ -914,6 +926,29 @@ export async function api<T>(
     body: data === undefined ? undefined : JSON.stringify(data),
     signal,
   });
+  if (
+    typeof window !== "undefined" &&
+    response.ok &&
+    [
+      "/api/auth/login/",
+      "/api/auth/logout/",
+      "/api/auth/sessions/revoke-all/",
+      "/api/auth/magic-link/verify/",
+    ].includes(path)
+  ) {
+    window.dispatchEvent(
+      new CustomEvent("instantlify:session-changed", {
+        detail: {
+          action: [
+            "/api/auth/logout/",
+            "/api/auth/sessions/revoke-all/",
+          ].includes(path)
+            ? "logout"
+            : "login",
+        },
+      }),
+    );
+  }
   if (response.status === 204) return undefined as T;
   const payload = await response.json().catch(() => ({
     detail: "The service is temporarily unavailable. Please try again.",

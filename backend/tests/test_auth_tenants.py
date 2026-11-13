@@ -18,6 +18,20 @@ def test_signup_create_workspace_logout_login():
     )
     assert response.status_code == 201
     assert response.json()["email"] == "sam@example.com"
+    assert client.get("/api/auth/me/").status_code == 403
+    assert "_auth_user_id" not in client.session
+    token = client.get("/api/auth/csrf/").json()["csrfToken"]
+    assert (
+        client.post("/api/workspaces/", {"name": "Acme"}, HTTP_X_CSRFTOKEN=token).status_code == 403
+    )
+    assert (
+        client.post(
+            "/api/auth/login/",
+            {"email": "sam@example.com", "password": "Saffron!River42Cloud"},
+            HTTP_X_CSRFTOKEN=token,
+        ).status_code
+        == 200
+    )
     token = client.get("/api/auth/csrf/").json()["csrfToken"]
     response = client.post("/api/workspaces/", {"name": "Acme"}, HTTP_X_CSRFTOKEN=token)
     assert response.status_code == 201

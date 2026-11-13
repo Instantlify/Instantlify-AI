@@ -120,6 +120,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.tenants.sessions.IdleSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -177,7 +178,9 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_AGE = 60 * 60 * 12
+SESSION_COOKIE_AGE = 60 * 60
+# Polling must not refresh the idle timeout. User interaction renews it explicitly.
+SESSION_SAVE_EVERY_REQUEST = False
 CSRF_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -199,6 +202,14 @@ CELERY_RESULT_EXPIRES = 3600
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 120}
 CELERY_BEAT_SCHEDULE = {
+    "meta-data-deletion": {
+        "task": "apps.channels.meta_deletion.dispatch_meta_deletions",
+        "schedule": 5.0,
+    },
+    "form-workflows": {
+        "task": "apps.tools.form_workflows.dispatch_form_workflows",
+        "schedule": 5.0,
+    },
     "creator-statistics": {
         "task": "apps.tools.creator_metrics.dispatch_creator_metrics",
         "schedule": 60.0,
@@ -237,6 +248,7 @@ REST_FRAMEWORK = {
         "anon": os.environ.get("THROTTLE_RATE_ANON", "60/min"),
         "user": os.environ.get("THROTTLE_RATE_USER", "300/min"),
         "auth": os.environ.get("THROTTLE_RATE_AUTH", "10/min"),
+        "session_activity": "120/min",
     },
     # Without this DRF keys anonymous throttles on the caller's own X-Forwarded-For
     # header, so a fresh value per request buys an unlimited login/signup/reset rate.
