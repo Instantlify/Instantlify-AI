@@ -75,9 +75,18 @@ export type LeadForm = {
   success_text: string;
   published: boolean;
   submission_actions?: FormAction[];
+  automation_id?: string | null;
   submissions?: number;
 };
 export type FormResponse = {
+  workflow_status?: string;
+  workflow_error?: string;
+  workflow_trace?: {
+    node_id: string;
+    kind: string;
+    step: number;
+    at: string;
+  }[];
   actions?: {
     id: string;
     operation: string;
@@ -103,6 +112,7 @@ export type CreatorKit = {
   links: { label: string; url: string }[];
   statistics: { label: string; value: string }[];
   live_connection_ids?: string[];
+  live_insights?: boolean;
   live_statistics?: {
     label: string;
     value: string;

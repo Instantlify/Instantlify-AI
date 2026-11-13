@@ -36,6 +36,7 @@ class FormSerializer(serializers.ModelSerializer):
             "description",
             "fields",
             "submission_actions",
+            "automation_id",
             "branching",
             "theme",
             "redirect_url",
@@ -69,6 +70,30 @@ class FormSerializer(serializers.ModelSerializer):
             else self.context["view"].kwargs["workspace_id"]
         )
         return validate_actions(value, workspace_id)
+
+    def validate_automation_id(self, value):
+        if value is None:
+            return value
+        from apps.automations.models import Automation
+
+        workspace_id = (
+            self.instance.workspace_id
+            if self.instance
+            else self.context["view"].kwargs["workspace_id"]
+        )
+        if (
+            not Automation.objects.for_workspace(workspace_id)
+            .filter(pk=value, enabled=True)
+            .exclude(published={})
+            .exists()
+        ):
+            raise serializers.ValidationError(
+                "Choose a published, enabled automation in this workspace."
+            )
+        from .form_workflows import compatible_graph
+
+        compatible_graph(Automation.objects.for_workspace(workspace_id).get(pk=value).published)
+        return value
 
     def validate_fields(self, value):
         return validate_fields(value, require_email=False)
@@ -127,6 +152,14 @@ class FormSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
+        if attrs.get(
+            "automation_id", self.instance.automation_id if self.instance else None
+        ) and not attrs.get(
+            "capture_contacts", self.instance.capture_contacts if self.instance else True
+        ):
+            raise serializers.ValidationError(
+                {"automation_id": "Enable contact capture for form workflows."}
+            )
         fields = attrs.get("fields", self.instance.fields if self.instance else [])
         rules = attrs.get("branching", self.instance.branching if self.instance else [])
         validate_fields(
@@ -193,6 +226,13 @@ class SubmissionList(APIView):
                     "consent_text": row.consent_text,
                     "link_id": row.link_id,
                     "action_errors": row.action_errors,
+                    "workflow_status": row.workflow_status,
+                    "workflow_error": {
+                        "contact_or_automation_unavailable": "The contact opted out or the selected workflow is unavailable.",
+                        "channel_required_or_invalid_graph": "This workflow requires a verified conversation or has invalid steps.",
+                        "invalid_transition_or_contact_guard": "Review this workflow: a step, contact, integration or plan requirement is unavailable.",
+                    }.get(json.loads(row.workflow_state).get("error", ""), ""),
+                    "workflow_trace": json.loads(row.workflow_state).get("trace", []),
                     "actions": [
                         {
                             "id": job.pk,
@@ -334,6 +374,9 @@ class PublicFormView(APIView):
             queue_submission_actions(
                 submission, form, lead, {**answers, "email": email, "name": contact["name"]}
             )
+            from .form_workflows import queue_workflow
+
+            queue_workflow(submission, form, lead, answer_metadata(answers))
             emit(
                 form.workspace_id,
                 "form.submitted",
