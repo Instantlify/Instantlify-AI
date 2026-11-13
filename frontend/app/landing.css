@@ -1823,3 +1823,10 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+.nm-footer-contact address {
+  margin: 0;
+  font-style: normal;
+  line-height: 1.8;
+  color: var(--text-muted);
+}
