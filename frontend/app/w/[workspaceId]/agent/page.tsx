@@ -64,53 +64,6 @@ const MODEL_BRANDS: Partial<Record<string, BrandName>> = {
   gemini: "gemini",
 };
 
-const DEFAULT_PLATFORM_MODELS: PlatformModel[] = [
-  {
-    id: "gpt-5.4-mini",
-    provider: "openai",
-    label: "GPT-5.4 Mini",
-    badge: "Recommended · Fast",
-    description:
-      "High accuracy and low latency. Ideal for instant lead qualification, sales objection handling, and customer support.",
-    input_rate: "$0.60",
-    output_rate: "$2.40",
-    rate_summary: "$0.60 in / $2.40 out per 1M tokens",
-  },
-  {
-    id: "claude-sonnet-5",
-    provider: "anthropic",
-    label: "Claude Sonnet 5",
-    badge: "Deep Reasoning",
-    description:
-      "State-of-the-art conversational nuance, empathetic tone, and complex multi-step reasoning for high-ticket sales.",
-    input_rate: "$3.00",
-    output_rate: "$15.00",
-    rate_summary: "$3.00 in / $15.00 out per 1M tokens",
-  },
-  {
-    id: "gemini-2.5-flash",
-    provider: "gemini",
-    label: "Gemini 2.5 Flash",
-    badge: "Ultra Fast",
-    description:
-      "Google's high-speed multimodal powerhouse. Instantaneous replies keep customers hooked without lag.",
-    input_rate: "$0.30",
-    output_rate: "$1.20",
-    rate_summary: "$0.30 in / $1.20 out per 1M tokens",
-  },
-  {
-    id: "grok-beta",
-    provider: "xai",
-    label: "xAI Grok",
-    badge: "Direct & Punchy",
-    description:
-      "Punchy, modern conversational style. Well suited for creator brands, direct response, and dynamic social DMs.",
-    input_rate: "$0.80",
-    output_rate: "$3.20",
-    rate_summary: "$0.80 in / $3.20 out per 1M tokens",
-  },
-];
-
 type FormState = {
   name: string;
   system_prompt: string;
@@ -195,9 +148,7 @@ function toggle(list: string[], value: string) {
 export default function AgentPage() {
   const { workspace, prefix, manager } = useWorkspace();
   const [form, setForm] = useState<FormState>(DEFAULTS);
-  const [platformModels, setPlatformModels] = useState<PlatformModel[]>(
-    DEFAULT_PLATFORM_MODELS,
-  );
+  const [platformModels, setPlatformModels] = useState<PlatformModel[]>([]);
   const [configured, setConfigured] = useState(false);
   const [savedConfig, setSavedConfig] = useState<AgentConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -214,7 +165,7 @@ export default function AgentPage() {
       .then((data) => {
         if (controller.signal.aborted) return;
         const config = data as Partial<AgentConfig>;
-        if (config.available_models?.length) {
+        if (Array.isArray(config.available_models)) {
           setPlatformModels(config.available_models);
         }
         if (config.id) {
@@ -258,6 +209,8 @@ export default function AgentPage() {
       setForm(toForm(saved));
       setSavedConfig(saved);
       setConfigured(true);
+      if (Array.isArray(saved.available_models))
+        setPlatformModels(saved.available_models);
     }, "Agent settings saved.");
   }
 
@@ -337,6 +290,12 @@ export default function AgentPage() {
                     gap: 14,
                   }}
                 >
+                  {!platformModels.length && (
+                    <p>
+                      Model rates are unavailable. Reload this page to load the
+                      admin-configured rates.
+                    </p>
+                  )}
                   {platformModels.map((m) => {
                     const isSelected = form.model === m.id;
                     return (
@@ -433,6 +392,16 @@ export default function AgentPage() {
                         >
                           <span style={{ color: "var(--muted)" }}>Rate: </span>
                           <strong>{m.rate_summary}</strong>
+                          {m.rate_source && (
+                            <div className="hint" style={{ marginTop: 6 }}>
+                              {m.rate_source === "fallback"
+                                ? "Admin fallback rate — no model-specific match"
+                                : `Admin rate: ${m.rate_label || m.rate_pattern}`}
+                              {m.rate_source !== "fallback" &&
+                                m.rate_pattern &&
+                                ` (${m.rate_pattern})`}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

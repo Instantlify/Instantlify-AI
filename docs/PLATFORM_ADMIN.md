@@ -99,3 +99,7 @@ The app bell combines announcement unread counts with existing assignment counts
 **Settings → Profile → Devices and sessions** lists active browser sessions, their device/browser, IP address, last activity and expiry. A user can revoke an individual browser session or sign out everywhere, including the current browser. Existing sessions are backfilled during migration, with unavailable historical device details labelled accordingly. Sign out everywhere also invalidates issued API access/refresh tokens. Other open browser sessions detect revocation within 30 seconds while visible, or on their next authenticated request. Background checks do not renew the one-hour inactivity window.
 
 Notavo, Poppy AI, Salesforce, HubSpot and Zapier remain labelled **Coming soon** in the integration catalogue and have no connect/configure action.
+
+## Client AI model prices
+
+The agent's model cards read the admin rate card's **Our rate** input/output values, per million tokens. **Real cost** is internal provider cost and is not the customer's selling price. The most specific model-ID pattern wins, using the same resolver as credit billing. If no specific pattern matches, the card explicitly identifies the admin fallback rate. Exact chat-model entries for supported OpenAI, Anthropic, Gemini and xAI model prefixes also appear in the catalogue; wildcard entries price models rather than creating model IDs. Reload the agent page after changing a rate. Decimal precision is retained, and a failed or empty catalogue response shows no hardcoded backup prices.
