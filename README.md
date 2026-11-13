@@ -92,10 +92,12 @@ npm run lint
 npm run typecheck
 npm run build
 npx playwright install chromium
-npm run test:e2e
+npm run test:e2e:full
 ```
 
 The browser test expects the Compose app running on `http://127.0.0.1:3000`; override with `E2E_BASE_URL`. It signs up, creates a workspace and test channel, publishes an automation, fires it with a simulated comment, replies from the inbox, enables the test AI agent, checks analytics, publishes a bio page, creates an offer and an invitation, and verifies the mobile layout. It writes real local data and never contacts Meta.
+
+Run the full browser suite locally before pushing or opening a PR. CI runs seven critical smoke tests for `dev` changes and the full suite for PRs into `main` and pushes to `main`. See [browser testing](docs/BROWSER_TESTING.md) for commands and required local setup.
 
 For frontend hot reload against Compose: stop the frontend container with `docker compose stop frontend`, then run `npm run dev` from `frontend/`. The default local proxy target is `http://127.0.0.1:8000`. Set `BACKEND_INTERNAL_URL` before starting/building if you change the backend address. This address is embedded at build time in standalone output.
 

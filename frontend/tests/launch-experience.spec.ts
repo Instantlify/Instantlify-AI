@@ -146,7 +146,7 @@ test("short onboarding skips optional setup and shows unique leads", async ({
   ).toBeVisible();
 });
 
-test("password recovery handles email request and token confirmation", async ({
+test("password recovery handles email request and token confirmation @smoke", async ({
   page,
 }) => {
   await page.route("**/api/auth/password-reset/", (route) =>

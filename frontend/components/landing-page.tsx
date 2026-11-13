@@ -1537,6 +1537,7 @@ export function LandingPage({
           <strong>Contact</strong>
           <a href={`mailto:${LEGAL.supportEmail}`}>{LEGAL.supportEmail}</a>
           <a href={`tel:${LEGAL.supportPhoneHref}`}>{LEGAL.supportPhone}</a>
+          <address>{LEGAL.address}</address>
         </nav>
         <nav aria-label="Footer product navigation">
           <strong>Explore</strong>
