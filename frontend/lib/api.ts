@@ -391,6 +391,9 @@ export type PlatformModel = {
   input_rate: string;
   output_rate: string;
   rate_summary: string;
+  rate_source?: "model" | "fallback";
+  rate_pattern?: string;
+  rate_label?: string;
 };
 export type KnowledgeDocument = {
   id: string;

@@ -113,3 +113,7 @@ Tracking links can opt into an external-browser handoff page inside supported so
 ## Support product identity
 
 The platform support assistant has a fixed product identity: Instantlify is a social messaging, customer engagement and business automation platform, not a website deployment service. Admin guidance remains editable, but does not replace that identity. General product questions use the verified product overview; absent indexed knowledge, detailed questions receive a no-guessing response and a ticket offer. Configured model responses are used for detailed questions when retrieved knowledge exists. Existing name/email ticket gates are unchanged.
+
+## Client AI model prices
+
+The agent's model cards read the admin rate card's **Our rate** input/output values, per million tokens. **Real cost** is internal provider cost and is not the customer's selling price. The most specific model-ID pattern wins, using the same resolver as credit billing. If no specific pattern matches, the card explicitly identifies the admin fallback rate. Exact chat-model entries for supported OpenAI, Anthropic, Gemini and xAI model prefixes also appear in the catalogue; wildcard entries price models rather than creating model IDs. Reload the agent page after changing a rate. Decimal precision is retained, and a failed or empty catalogue response shows no hardcoded backup prices.
