@@ -1529,16 +1529,15 @@ export function LandingPage({
             <br />
             Better possibilities.
           </p>
-          <nav
-            className="nm-footer-contact"
-            aria-label="Footer contact information"
-          >
-            <strong>Contact</strong>
-            <a href={`mailto:${LEGAL.supportEmail}`}>{LEGAL.supportEmail}</a>
-            <a href={`tel:${LEGAL.supportPhoneHref}`}>{LEGAL.supportPhone}</a>
-            <Link href="/data-deletion/">Data deletion</Link>
-          </nav>
         </div>
+        <nav
+          className="nm-footer-contact"
+          aria-label="Footer contact information"
+        >
+          <strong>Contact</strong>
+          <a href={`mailto:${LEGAL.supportEmail}`}>{LEGAL.supportEmail}</a>
+          <a href={`tel:${LEGAL.supportPhoneHref}`}>{LEGAL.supportPhone}</a>
+        </nav>
         <nav aria-label="Footer product navigation">
           <strong>Explore</strong>
           <Link href="/features">Platform</Link>

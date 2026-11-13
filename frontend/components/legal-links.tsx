@@ -15,7 +15,6 @@ export function LegalLinks() {
         <Link href="/">Instantlify home</Link>
         <Link href="/privacy/">Privacy policy</Link>
         <Link href="/terms/">Terms and conditions</Link>
-        <Link href="/data-deletion/">Data deletion</Link>
         <a href={`mailto:${LEGAL.supportEmail}`}>{LEGAL.supportEmail}</a>
         <a href={`tel:${LEGAL.supportPhoneHref}`}>{LEGAL.supportPhone}</a>
       </nav>

@@ -248,7 +248,7 @@ export default function PrivacyPage() {
           valid revocation notification. Revoking access is different from
           requesting erasure of data already held. To request erasure, use
           Meta&apos;s deletion-request option where available, our{" "}
-          <Link href="/data-deletion/">data-deletion instructions</Link>, or
+          <a href="#data-deletion">data-deletion instructions below</a>, or
           email{" "}
           <a href={`mailto:${LEGAL.privacyEmail}`}>{LEGAL.privacyEmail}</a>. A
           Meta deletion request does not require an active subscription or
@@ -372,6 +372,55 @@ export default function PrivacyPage() {
           additional verification needed.
         </p>
 
+        <section
+          id="data-deletion"
+          className="stack"
+          style={{ scrollMarginTop: 24 }}
+        >
+          <h3>Request data deletion</h3>
+          <p>
+            Request deletion without signing in or keeping a paid subscription.
+            Email{" "}
+            <a
+              href={`mailto:${LEGAL.privacyEmail}?subject=Instantlify%20data%20deletion%20request`}
+            >
+              {LEGAL.privacyEmail}
+            </a>{" "}
+            with the subject “Instantlify data deletion request”. Identify the
+            account, workspace or connected business account, the data you want
+            deleted, and any confirmation code. If you messaged a business,
+            include its name and the channel or handle you used. Never send
+            passwords, access tokens, one-time codes or full payment-card
+            details.
+          </p>
+          <p>
+            Workspace owners can request deletion in Settings → Data &amp;
+            privacy, confirming their password and workspace name. An active
+            subscription may need cancellation before deleting the whole
+            workspace; this does not prevent separate personal-data or Meta
+            erasure requests. For deletion of your sign-in account, contact our
+            privacy team.
+          </p>
+          <p>
+            For Meta data, find Apps and Websites or Business Integrations in
+            your Facebook or Instagram settings, select Instantlify and use the
+            deletion option if available. Menu names vary. If unavailable or you
+            connected manually, email us instead. Removing access alone does not
+            erase historical data. A valid Meta callback returns a confirmation
+            code and status link; requests remain pending or under review until
+            erasure is complete or verified.
+          </p>
+          <p>
+            Verified erasure covers applicable account credentials, messages,
+            attachments, comments, event/delivery records and related contact
+            and derived data. Shared contacts, independent business records and
+            financial records may require review. We explain verification needs
+            and lawful exceptions and respond within applicable legal deadlines.
+            Section 7 explains backup handling. This does not delete your Meta
+            account or independently held copies; we coordinate with relevant
+            recipients where appropriate.
+          </p>
+        </section>
         <h2>10. Cookies and browser storage</h2>
         <ul>
           <li>

@@ -1389,7 +1389,7 @@
 }
 .nm-footer {
   display: grid;
-  grid-template-columns: 1.7fr 1fr 1fr 1fr;
+  grid-template-columns: 1.2fr 1.2fr 1fr 1fr 1fr;
   gap: 30px;
   max-width: 1280px;
   margin: auto;
@@ -1650,7 +1650,7 @@
     z-index: 1;
   }
   .nm-footer {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 30px;
     padding: 35px 7% 25px;
   }
@@ -1820,7 +1820,6 @@
 }
 
 .nm-footer .nm-footer-contact {
-  margin-top: 20px;
-  font-size: 12px;
+  min-width: 0;
   overflow-wrap: anywhere;
 }
