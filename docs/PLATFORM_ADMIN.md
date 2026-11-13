@@ -99,3 +99,17 @@ The app bell combines announcement unread counts with existing assignment counts
 **Settings → Profile → Devices and sessions** lists active browser sessions, their device/browser, IP address, last activity and expiry. A user can revoke an individual browser session or sign out everywhere, including the current browser. Existing sessions are backfilled during migration, with unavailable historical device details labelled accordingly. Sign out everywhere also invalidates issued API access/refresh tokens. Other open browser sessions detect revocation within 30 seconds while visible, or on their next authenticated request. Background checks do not renew the one-hour inactivity window.
 
 Notavo, Poppy AI, Salesforce, HubSpot and Zapier remain labelled **Coming soon** in the integration catalogue and have no connect/configure action.
+
+## Form workflows, call settings and creator insights
+
+Forms can select a published, enabled contact workflow in the same workspace. Contact capture must be enabled. Each unique submission gets an encrypted graph snapshot and variables, a persisted cursor, bounded execution history and status in the response list. Conditions, random paths, delays, tags, fields, stages, assignments, integration actions and transfers run without creating a pretend social conversation. Email or form consent does not verify ownership of an Instagram/WhatsApp account, so messaging, reply waits and calling steps cannot be attached to form-only contacts. Disabled flows, opted-out contacts and unavailable integrations stop safely; retries retain integration job keys. Beat dispatches due form workflow steps every five seconds.
+
+AI call nodes support optional per-call settings. Vapi sends a temporary assistant definition without creating a saved agent. Retell uses a saved agent as its base and overrides model, voice, greeting and duration for that call; its saved instructions remain in effect. Existing explicit customer call requests, phone validation, permitted calling windows, opt-out checks and one-shot dispatch still apply.
+
+Creator kits refresh connected account follower/following/post counts. Creators may opt into publishing 28-day reach, views and interaction totals from authorized Instagram Insights. Only returned numeric totals are published; unavailable or permission-restricted metrics say **Unavailable**, rather than zero. Disconnection and capability/plan checks still hide or stop live statistics.
+
+Tracking links can opt into an external-browser handoff page inside supported social browsers. Android visitors can choose a Chrome intent; other visitors receive browser-menu instructions and the destination address. The normal HTTPS destination remains available. Apps and operating systems control whether a handoff is allowed; universal automatic escape is not promised.
+
+## Support product identity
+
+The platform support assistant has a fixed product identity: Instantlify is a social messaging, customer engagement and business automation platform, not a website deployment service. Admin guidance remains editable, but does not replace that identity. General product questions use the verified product overview; absent indexed knowledge, detailed questions receive a no-guessing response and a ticket offer. Configured model responses are used for detailed questions when retrieved knowledge exists. Existing name/email ticket gates are unchanged.

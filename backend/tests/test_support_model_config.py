@@ -42,20 +42,60 @@ def test_unindexed_sections_do_not_require_embeddings():
     embed.assert_not_called()
 
 
-def test_support_uses_configured_model_without_knowledge(settings):
+def test_support_does_not_guess_using_a_model_without_knowledge(settings):
+    settings.CHANNEL_ADAPTER_MODE = "live"
+    with patch("apps.platform_ops.intelligence.request") as request:
+        result = support_agent.answer("Hi")
+    request.assert_not_called()
+    assert "social messaging" in result["reply"]
+
+
+def test_product_identity_is_correct_even_with_an_old_admin_prompt():
+    from apps.platform_ops.models import PlatformSetting
+
+    PlatformSetting.objects.create(
+        key="support_agent_system_prompt", value="Describe a website deployment product."
+    )
+    with patch("apps.platform_ops.support_agent.complete") as complete:
+        for question in [
+            "what is the platform about",
+            "i think its a social media management platform",
+            "whta exactly it does",
+        ]:
+            reply = support_agent.answer(question)["reply"]
+            assert "social messaging" in reply
+            assert "CRM" in reply
+            assert "not a website hosting" in reply
+    complete.assert_not_called()
+    assert support_agent.effective_prompt().endswith(support_agent.PRODUCT_RULES)
+
+
+def test_unknown_support_detail_without_knowledge_offers_ticket():
+    with patch("apps.platform_ops.support_agent.complete") as complete:
+        reply = support_agent.answer("Will my special account get an exception?")["reply"]
+    complete.assert_not_called()
+    assert "verified information" in reply and "support ticket" in reply
+
+
+def test_detailed_support_uses_configured_model_with_verified_knowledge(settings):
     settings.CHANNEL_ADAPTER_MODE = "live"
     settings.PLATFORM_OPENAI_API_KEY = "test-only-key"
     settings.PLATFORM_AI_MODEL = "gpt-4.1-mini"
     response = {
         "output": [
-            {
-                "type": "message",
-                "content": [{"type": "output_text", "text": "Hello! How can I help?"}],
-            }
+            {"type": "message", "content": [{"type": "output_text", "text": "Use the reset link."}]}
         ]
     }
-    with patch("apps.platform_ops.intelligence.request", return_value=response) as request:
-        result = support_agent.answer("Hi")
+    with (
+        patch(
+            "apps.platform_ops.support_agent.grounding",
+            return_value=("Password help: Use the reset link.", ["Support: Passwords"]),
+        ),
+        patch("apps.platform_ops.intelligence.request", return_value=response) as request,
+    ):
+        result = support_agent.answer("How can I reset my password?")
     request.assert_called_once()
-    assert request.call_args.kwargs["json"]["model"] == "gpt-4.1-mini"
-    assert result["reply"] == "Hello! How can I help?"
+    body = request.call_args.kwargs["json"]
+    assert body["model"] == "gpt-4.1-mini"
+    assert "social messaging" in body["input"][0]["content"]
+    assert result["sources"] == ["Support: Passwords"]

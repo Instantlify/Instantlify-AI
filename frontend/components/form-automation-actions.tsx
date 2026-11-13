@@ -39,15 +39,30 @@ export function FormAutomationActions({
   prefix,
   actions,
   onChange,
+  automationId,
+  onAutomationChange,
 }: {
   prefix: string;
   actions: FormAction[];
   onChange: (rows: FormAction[]) => void;
+  automationId?: string | null;
+  onAutomationChange: (id: string | null) => void;
 }) {
+  const [flows, setFlows] = useState<
+    { id: string; name: string; enabled: boolean }[]
+  >([]);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [error, setError] = useState("");
   useEffect(() => {
     const controller = new AbortController();
+    apiPages<{ id: string; name: string; enabled: boolean }>(
+      `${prefix}/automations/`,
+      controller.signal,
+    )
+      .then(setFlows)
+      .catch((reason) => {
+        if (!controller.signal.aborted) setError(message(reason));
+      });
     apiPages<Integration>(`${prefix}/integrations/`, controller.signal)
       .then(setIntegrations)
       .catch((reason) => {
@@ -76,6 +91,30 @@ export function FormAutomationActions({
         opt-outs are respected.
       </p>
       <ErrorNotice error={error} />
+      <label>
+        Contact workflow
+        <ValidatedSelect
+          name="automation_id"
+          aria-label="Contact workflow"
+          value={automationId || ""}
+          onChange={(e) => onAutomationChange(e.target.value || null)}
+        >
+          <option value="">No canvas workflow</option>
+          {flows
+            .filter((flow) => flow.enabled)
+            .map((flow) => (
+              <option key={flow.id} value={flow.id}>
+                {flow.name}
+              </option>
+            ))}
+        </ValidatedSelect>
+      </label>
+      <small>
+        Use a published contact workflow with conditions, delays, tags, fields,
+        stages, assignments or integration actions. Form answers become
+        variables. Messaging and reply waits need a verified channel
+        conversation.
+      </small>
       {actions.map((action, index) => (
         <fieldset
           key={index}

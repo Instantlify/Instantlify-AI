@@ -2,6 +2,16 @@
 
 Started 23 October 2026 (Asia/Karachi). This is a behavior checklist, not a claim of full parity.
 
+**13 November update (source implementation):** Per-call Vapi assistants and Retell overrides,
+contact-only form canvas execution with persisted state/history, expanded connected creator
+statistics and opt-in 28-day Insights, and an external-browser handoff page are implemented.
+Social messages, reply waits and calls still require a verified conversation and cannot be
+inferred from a form email address. Retell retains a saved base agent's instructions. Browser
+apps retain control over external opening, so universal automatic escape is not claimed.
+The five designated Coming soon integrations remain unavailable. Live provider acceptance
+is still separate from mocked contract tests. A fresh signed-in reference audit could not run
+because both browser-control runtimes failed to initialize on this workstation.
+
 **26 October update:** The latest implementation and outstanding verification are recorded in
 `PARITY_WORKLOG.md`. The historical increment tables below describe the audit at their date;
 media, AI steps, follow checks, tracked reminders, history, forms, creator pages, campaigns,

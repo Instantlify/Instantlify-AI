@@ -283,6 +283,14 @@ export type FlowNodeData = {
   phone_variable?: string;
   consent_reply?: string;
   agent_id?: string;
+  custom_agent?: {
+    name: string;
+    instructions: string;
+    first_message: string;
+    model: string;
+    voice_id: string;
+    max_duration_seconds: number;
+  };
   timezone?: string;
   weekdays?: number[];
   call_start?: string;
@@ -516,6 +524,7 @@ export type DeepLink = {
   id: string;
   title: string;
   platform: "instagram" | "whatsapp" | "youtube" | "telegram" | "custom";
+  open_external?: boolean;
   target: string;
   code: string;
   clicks: number;

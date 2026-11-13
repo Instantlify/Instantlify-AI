@@ -69,6 +69,7 @@ export default function DeepLinksPage() {
 
   // Form state
   const [title, setTitle] = useState("");
+  const [openExternal, setOpenExternal] = useState(false);
   const [platform, setPlatform] = useState<DeepLink["platform"]>("instagram");
   const [target, setTarget] = useState("");
   const [customCode, setCustomCode] = useState("");
@@ -92,6 +93,7 @@ export default function DeepLinksPage() {
       const created = await api<DeepLink>(`${prefix}/deeplinks/`, "POST", {
         title: title.trim(),
         platform,
+        open_external: openExternal,
         target: target.trim(),
         code,
         campaign,
@@ -358,6 +360,18 @@ export default function DeepLinksPage() {
                 <option value="custom">Custom Web Fallback</option>
               </ValidatedSelect>
             </label>
+            <label className="row">
+              <input
+                type="checkbox"
+                checked={openExternal}
+                onChange={(e) => setOpenExternal(e.target.checked)}
+              />
+              Offer opening in an external browser
+            </label>
+            <small>
+              Shows a Chrome handoff on Android and browser-opening instructions
+              inside supported social apps. Browsers may block the handoff.
+            </small>
             <label>
               Destination HTTPS URL
               <ValidatedInput
