@@ -69,7 +69,7 @@ Prefix: `/api/workspaces/`.
 | GET | `/{id}/automations/stats/` | `{automation_id: {runs, reach}}`, all time |
 | POST | `/{id}/automations/generate/` | `{prompt}`; drafts a validated, disabled flow with the workspace's AI model (metered as `flow_generation`) |
 | POST | `/{id}/automations/{pk}/publish/` | `{graph}` validated (node kinds, buttons, cycles, triggers). A trigger's optional `channel` (`instagram`, `messenger`, `whatsapp`, …) limits it to that provider; blank matches all |
-| GET | `/{id}/automations/{pk}/export/` | Portable JSON (`format: nemio.automation`) |
+| GET | `/{id}/automations/{pk}/export/` | Portable JSON (`format: instantlify.automation`) |
 | POST | `/{id}/automations/import/` | `{template}` or multipart `file` → new draft |
 | GET | `/{id}/automation-runs/` | Conversation states |
 | GET | `/api/public/templates/?search=&category=` | Anonymous marketplace listing |

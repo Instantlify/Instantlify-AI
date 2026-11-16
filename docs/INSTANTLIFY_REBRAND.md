@@ -1,13 +1,11 @@
-# Instantlify rebrand
+# Instantlify branding
 
-The product's display name is Instantlify. Application titles, default workspace branding, marketing pages, admin console, support copy, transactional messages, connector display labels, documentation, test fixtures and export filenames use the new name. The default logo is a vector mark with the Instantlify wordmark; existing tenant-supplied logos remain supported.
+The product's only name is Instantlify. Every display string, identifier, header, storage key, Stripe product/metadata key, signed-link salt, tenant trigger prefix, automation export format, connector node/credential type, DNS challenge record and filename uses the Instantlify spelling. No earlier product name remains in the codebase, and nothing accepts one as an alias.
 
-Apply `platform_ops.0013_instantlify_brand` when deploying. It updates unchanged seeded email subjects/bodies and default workspace branding without replacing customized templates or tenant logos. Fresh databases also receive this migration after their historical seeds.
+Set the confirmed public contact details through `INSTANTLIFY_SUPPORT_EMAIL` and `INSTANTLIFY_PRIVACY_EMAIL`. Optional external policy links use `INSTANTLIFY_PRIVACY_URL` and `INSTANTLIFY_TERMS_URL`. Docker build/runtime configuration passes these values through. The production identity is `instantlify.com` with `support@instantlify.com` as the default support/privacy contact. Development `PUBLIC_APP_URL` remains local.
 
-Set the confirmed public contact details through `INSTANTLIFY_SUPPORT_EMAIL` and `INSTANTLIFY_PRIVACY_EMAIL`. Optional external policy links use `INSTANTLIFY_PRIVACY_URL` and `INSTANTLIFY_TERMS_URL`. Docker build/runtime configuration passes these values through. Deployment configuration uses only the `INSTANTLIFY_*` names; legacy branding aliases have been removed. The owner confirmed `instantlify.com` and `support@instantlify.com`; these are the production identity and default support/privacy contacts. Development `PUBLIC_APP_URL` remains local.
+Custom-domain DNS verification uses a TXT record at `_instantlify-challenge.<domain>` containing `instantlify-verify=<token>`, or a CNAME to the configured platform target.
 
-Compatibility identifiers deliberately retain their old spelling: existing database/schema and Docker project/volume names, browser storage keys, webhook header names/signature protocols, signed-link salts, automation file formats and continuation payloads, affiliate customer IDs, and installed connector node/credential types. Changing these as a text replacement would disconnect existing records, invalidate links, lose preferences or break customer workflows. Historical migrations, archived design artifacts and actual filesystem paths also retain their original identifiers.
+Webhook deliveries carry `X-Instantlify-Event`, `X-Instantlify-Delivery`, `X-Instantlify-Signature` and, when configured, `X-Instantlify-Token`.
 
-New DNS TXT verification instructions use `_instantlify-challenge` and `instantlify-verify=`; old `_nemio-challenge` / `nemio-verify=` records remain valid. Existing CNAME/TLS deployment targets remain accepted alongside the confirmed Instantlify domain. Domain ownership, DNS records, external provider application names, published connector listings and deployed services were not changed by this source update.
-
-Validation: production frontend build, TypeScript and ESLint passed; 31 production browser checks passed with no failures or retries; n8n connector build passed; 10 mocked Zapier tests passed. Backend verification passed 1,038 tests with 10 skipped and one deselected; that voice-conversion test passed separately outside the Windows sandbox because its temporary-directory cleanup was blocked inside it. Focused branding/email/DNS/API checks passed 34 tests. Migration drift check found no changes.
+`platform_ops.0013_instantlify_brand` is an empty migration kept so the migration graph stays intact.

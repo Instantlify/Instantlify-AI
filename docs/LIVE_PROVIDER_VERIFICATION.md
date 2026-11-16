@@ -52,7 +52,7 @@ repository root on Windows:
 
 Keep that terminal running. The helper verifies test mode, captures the listener signing
 secret without printing it, updates only `STRIPE_WEBHOOK_SECRET` in `.env`, and forwards to
-`http://127.0.0.1:<NEMIO_BACKEND_PORT>/webhooks/stripe/` (default port 8000; this workstation
+`http://127.0.0.1:<INSTANTLIFY_BACKEND_PORT>/webhooks/stripe/` (default port 8000; this workstation
 uses 8002). It logs only event IDs/types/statuses under ignored `.cache/stripe-local/`.
 In another terminal, reload the backend environment and exercise isolated trial fixtures:
 

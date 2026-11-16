@@ -1,10 +1,10 @@
 {
-  "name": "n8n-nodes-nemio",
+  "name": "n8n-nodes-instantlify",
   "version": "1.0.0",
   "description": "n8n community node for Instantlify: signed webhook trigger plus lead, conversation and message operations.",
   "keywords": [
     "n8n-community-node-package",
-    "nemio",
+    "instantlify",
     "instagram",
     "whatsapp",
     "crm"
@@ -21,11 +21,11 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/NemioApi.credentials.js"
+      "dist/credentials/InstantlifyApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/Nemio/Nemio.node.js",
-      "dist/nodes/Nemio/NemioTrigger.node.js"
+      "dist/nodes/Instantlify/Instantlify.node.js",
+      "dist/nodes/Instantlify/InstantlifyTrigger.node.js"
     ]
   },
   "peerDependencies": {

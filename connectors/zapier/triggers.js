@@ -21,7 +21,7 @@ const EVENTS = [
   ["payment.paid", "Payment Received", "Triggers when an in-chat payment is paid."],
 ];
 
-/** Zapier prefixes raw request headers (e.g. `Http-X-Nemio-Signature`); match loosely. */
+/** Zapier prefixes raw request headers (e.g. `Http-X-Instantlify-Signature`); match loosely. */
 const header = (bundle, name) => {
   const headers = (bundle.rawRequest && bundle.rawRequest.headers) || {};
   const wanted = name.toLowerCase();
@@ -36,7 +36,7 @@ const header = (bundle, name) => {
 const verifySignature = (z, bundle) => {
   const secret = bundle.subscribeData && bundle.subscribeData.secret;
   const raw = bundle.rawRequest && bundle.rawRequest.content;
-  const signature = header(bundle, "x-nemio-signature");
+  const signature = header(bundle, "x-instantlify-signature");
   if (!secret || typeof raw !== "string" || !signature) {
     throw new z.errors.Error("Missing webhook signature", "SignatureError", 400);
   }
@@ -99,7 +99,7 @@ const makeTrigger = ([event, label, description]) => ({
       verifySignature(z, bundle);
       const envelope = bundle.cleanedRequest;
       if (!envelope || envelope.event !== event) return [];
-      return [flatten(envelope, header(bundle, "x-nemio-delivery"))];
+      return [flatten(envelope, header(bundle, "x-instantlify-delivery"))];
     },
     performList: (z, bundle) =>
       z

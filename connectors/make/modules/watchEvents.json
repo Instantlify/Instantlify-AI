@@ -3,8 +3,8 @@
   "label": "Watch Events",
   "description": "Triggers instantly when Instantlify emits a subscribed event (lead, message, handoff, booking, payment).",
   "type": "instant_trigger",
-  "connection": "nemio",
-  "webhook": "nemio",
+  "connection": "instantlify",
+  "webhook": "instantlify",
   "communication": {
     "output": "{{payload}}"
   },

@@ -97,7 +97,7 @@
 - Integration setup highlights every missing required value and malformed email/web address.
   API errors translate slug to public address, explain missing values and invalid choices,
   and avoid raw server failures or technical nested object output.
-- Copied the owner's supplied nemio_ai_logo_v2.gif unchanged into public/brand. The shared
+- Copied the owner's supplied instantlify_ai_logo_v2.gif unchanged into public/brand. The shared
   default Instantlify mark uses the full animation with readable brand text; custom workspace
   branding is preserved. Landing header/footer logo clicks return to the top without a reload,
   respect modified-click navigation and use instant scrolling for reduced-motion preferences.

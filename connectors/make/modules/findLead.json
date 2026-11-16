@@ -3,7 +3,7 @@
   "label": "Search Leads",
   "description": "Finds leads by email, stage or tag.",
   "type": "search",
-  "connection": "nemio",
+  "connection": "instantlify",
   "communication": {
     "url": "/api/v1/leads/",
     "method": "GET",

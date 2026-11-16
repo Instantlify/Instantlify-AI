@@ -109,12 +109,12 @@ def notify(check, problem, *, resolved=False):
         event = {
             "routing_key": settings.PAGERDUTY_ROUTING_KEY,
             "event_action": "resolve" if resolved else "trigger",
-            "dedup_key": f"nemio:{check}",
+            "dedup_key": f"instantlify:{check}",
         }
         if not resolved:
             event["payload"] = {
                 "summary": summary[:1024],
-                "source": settings.PUBLIC_APP_URL or "nemio",
+                "source": settings.PUBLIC_APP_URL or "instantlify",
                 "severity": "critical",
                 "component": check,
             }

@@ -58,7 +58,7 @@ export function FlowTools({
       new Blob(
         [
           JSON.stringify(
-            { format: "nemio.automation", version: 1, name, graph },
+            { format: "instantlify.automation", version: 1, name, graph },
             null,
             2,
           ),

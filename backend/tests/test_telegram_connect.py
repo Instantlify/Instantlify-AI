@@ -17,14 +17,14 @@ PROFILE = {
     "id": 123456789,
     "is_bot": True,
     "first_name": "Instantlify Bot",
-    "username": "nemio_test_bot",
+    "username": "instantlify_test_bot",
 }
 
 
 @pytest.fixture(autouse=True)
 def live_telegram(settings):
     settings.CHANNEL_ADAPTER_MODE = "live"
-    settings.PUBLIC_APP_URL = "https://nemio.example"
+    settings.PUBLIC_APP_URL = "https://instantlify.example"
 
 
 @contextmanager
@@ -53,7 +53,7 @@ def test_token_only_connection_autofills_bot_and_encrypts_token(client, workspac
     assert item.external_account_id == "123456789"
     assert item.display_name == "Instantlify Bot"
     assert item.status == "active" and item.is_test is False
-    webhook.assert_called_once_with(f"https://nemio.example/webhooks/telegram/{item.pk}/")
+    webhook.assert_called_once_with(f"https://instantlify.example/webhooks/telegram/{item.pk}/")
     assert TOKEN not in response.content.decode()
     with database.cursor() as cursor:
         cursor.execute(

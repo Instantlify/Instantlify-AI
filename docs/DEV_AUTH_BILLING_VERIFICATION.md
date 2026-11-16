@@ -4,7 +4,7 @@ Changes are delivered through feature branches into dev. Main remains the produc
 
 ## Stripe sandbox
 
-The existing nemio-starter, nemio-pro and nemio-scale product IDs are compatibility identifiers. Their display names are Instantlify Starter, Instantlify Pro and Instantlify Scale. Never replace price IDs or recreate subscriptions to fix branding. The publish_plans command now also updates the display name of existing products. Its dry run reports proposed renames without applying them.
+Plans are published as the Stripe products instantlify-starter, instantlify-pro and instantlify-scale, displayed as Instantlify Starter, Instantlify Pro and Instantlify Scale. Never replace price IDs or recreate subscriptions to fix branding. The publish_plans command now also updates the display name of existing products. Its dry run reports proposed renames without applying them.
 
 Stripe's internal Account name is separate from its public business name. In the sandbox used by dev, set Business details / Public details / Public business name to Instantlify. Check any receipt and invoice statement descriptors for legacy text as well. Stripe requires its Dashboard to update your own account: https://docs.stripe.com/api/accounts/update
 

@@ -232,7 +232,7 @@ now read their own tables, and the tenant-facing surfaces that produce those row
       releasing on `connectors-vX.Y.Z`; Zapier publishing blocker (D021) fixed
 - ✅ Plan phase 5 — white-label domains, automated TLS & reseller billing: `WorkspaceBranding` extended with
       `custom_domain_status`, `verification_token`, `verified_at`, and `tls_status`; domain ownership verification
-      service (`apps.tenants.domain_verification`) supporting DNS TXT challenge (`_nemio-challenge.<domain>`) and
+      service (`apps.tenants.domain_verification`) supporting DNS TXT challenge (`_instantlify-challenge.<domain>`) and
       CNAME routing to platform domains with on-demand API trigger (`POST /api/workspaces/<id>/branding/verify-domain/`);
       edge On-Demand TLS validation endpoint (`GET /api/v1/tls/check-domain/`) queried by Caddy `on_demand_tls`;
       `DynamicAllowedHosts` container allowing verified tenant domains dynamically in Django `ALLOWED_HOSTS`;

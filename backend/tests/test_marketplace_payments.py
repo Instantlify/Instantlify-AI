@@ -127,7 +127,7 @@ def test_paid_publishing_requires_connected_payouts(client, workspace, user, str
     assert created.args[0]["configuration"]["recipient"]["capabilities"]["stripe_balance"] == {
         "stripe_transfers": {"requested": True}
     }
-    assert created.kwargs == {} and created.args[1]["idempotency_key"].startswith("nemio-seller:")
+    assert created.kwargs == {} and created.args[1]["idempotency_key"].startswith("instantlify-seller:")
     assert publish_paid(client, workspace, user).status_code == 201
     assert SellerAccount.objects.for_workspace(workspace).count() == 1
     # A second onboarding call reuses the same account.
@@ -190,7 +190,7 @@ def test_paid_install_creates_a_destination_charge_and_installs_on_webhook(
     assert params["line_items"][0]["price_data"]["unit_amount"] == 1900
     assert params["payment_intent_data"]["application_fee_amount"] == 285
     assert params["payment_intent_data"]["transfer_data"] == {"destination": "acct_seller"}
-    assert params["metadata"]["nemio_template_purchase"] == body["purchase_id"]
+    assert params["metadata"]["instantlify_template_purchase"] == body["purchase_id"]
     assert params["metadata"]["workspace"] == str(buyer.workspace.pk)
     assert "payment_method_types" not in params
     # Same key: same purchase, no second session.
@@ -272,14 +272,14 @@ def test_webhook_ignores_forged_purchase_metadata(workspace, buyer):
             "object": {
                 "id": "cs_1",
                 "metadata": {
-                    "nemio_template_purchase": str(purchase.pk),
+                    "instantlify_template_purchase": str(purchase.pk),
                     "workspace": str(workspace.pk),
                 },
             }
         },
     }
     assert event_workspace(forged) is None
-    forged["data"]["object"]["metadata"]["nemio_template_purchase"] = "not-a-uuid"
+    forged["data"]["object"]["metadata"]["instantlify_template_purchase"] = "not-a-uuid"
     assert event_workspace(forged) is None
     assert event_workspace({"type": "checkout.session.completed", "data": {"object": {}}}) is None
 

@@ -37,10 +37,10 @@ Deliveries are `POST` requests with a JSON body:
 {"event": "lead.hot", "workspace_id": "…", "occurred_at": "…", "data": {…}}
 ```
 
-Headers: `X-Nemio-Event`, `X-Nemio-Delivery` (unique ID, use it to dedupe), `X-Nemio-Signature: t=<unix seconds>,v1=<hex>` where `v1 = HMAC-SHA256(secret, "<t>." + raw body)`, and `X-Nemio-Token` (the subscription's shared token). Verify the signature and reject timestamps older than five minutes. Receivers that cannot compute an HMAC over the raw body (Make) should at least compare `X-Nemio-Token` in constant time; it proves the sender holds the subscription's credential but does not protect against replay.
+Headers: `X-Instantlify-Event`, `X-Instantlify-Delivery` (unique ID, use it to dedupe), `X-Instantlify-Signature: t=<unix seconds>,v1=<hex>` where `v1 = HMAC-SHA256(secret, "<t>." + raw body)`, and `X-Instantlify-Token` (the subscription's shared token). Verify the signature and reject timestamps older than five minutes. Receivers that cannot compute an HMAC over the raw body (Make) should at least compare `X-Instantlify-Token` in constant time; it proves the sender holds the subscription's credential but does not protect against replay.
 
 Only public HTTPS targets are accepted; private, loopback and link-local addresses are refused. Failed deliveries retry with exponential backoff up to 8 times; a subscription that fails 50 times in a row is disabled and must be re-enabled from the app.
 
 ## Connectors
 
-Ready-made Zapier, n8n and Make packages live under `connectors/` in the repository; see `connectors/README.md` for install and publishing steps. They use only the endpoints above. Zapier and n8n verify the HMAC delivery signature; Make checks the shared `X-Nemio-Token` header.
+Ready-made Zapier, n8n and Make packages live under `connectors/` in the repository; see `connectors/README.md` for install and publishing steps. They use only the endpoints above. Zapier and n8n verify the HMAC delivery signature; Make checks the shared `X-Instantlify-Token` header.

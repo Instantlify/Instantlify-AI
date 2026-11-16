@@ -6,14 +6,14 @@ def seed_invitation_email(apps, schema_editor):
         name="workspace-invitation",
         defaults={
             "description": "Sent when a workspace owner or admin invites a teammate.",
-            "subject": "Join {{ workspace }} on Nemio",
+            "subject": "Join {{ workspace }} on Instantlify",
             "body": (
-                "Hello,\n\n{{ inviter }} invited you to join {{ workspace }} on Nemio "
+                "Hello,\n\n{{ inviter }} invited you to join {{ workspace }} on Instantlify "
                 "as an {{ role }}.\n\nAccept your invitation:\n{{ link }}\n\n"
                 "Sign in or create an account using {{ email }} to accept. "
                 "This invitation expires in seven days.\n\n"
                 "If you were not expecting this invitation, you can ignore it. "
-                "You have not been added to the workspace.\n\nThe Nemio team"
+                "You have not been added to the workspace.\n\nThe Instantlify team"
             ),
             "status": "active",
         },

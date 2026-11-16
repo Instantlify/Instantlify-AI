@@ -92,8 +92,8 @@ def test_verify_custom_domain_txt_challenge(workspace):
     )
 
     def mock_resolver(domain, record_type):
-        if domain == "_nemio-challenge.app.myclient.com" and record_type == "TXT":
-            return ["nemio-verify=token-abc-123"]
+        if domain == "_instantlify-challenge.app.myclient.com" and record_type == "TXT":
+            return ["instantlify-verify=token-abc-123"]
         return []
 
     verified, msg = verify_custom_domain(branding, resolver=mock_resolver)
@@ -115,7 +115,7 @@ def test_verify_custom_domain_cname(workspace):
 
     def mock_resolver(domain, record_type):
         if domain == "app.customcname.com" and record_type == "CNAME":
-            return ["domains.nemio.ai."]
+            return ["domains.instantlify.com."]
         return []
 
     verified, msg = verify_custom_domain(branding, resolver=mock_resolver)
@@ -171,7 +171,7 @@ def test_verify_domain_api_endpoint(client, workspace):
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(
             "apps.tenants.domain_verification.query_dns_records",
-            lambda d, r: ["nemio-verify=test-token-789"] if r == "TXT" else [],
+            lambda d, r: ["instantlify-verify=test-token-789"] if r == "TXT" else [],
         )
         res = client.post(verify_url)
         assert res.status_code == 200
@@ -191,7 +191,7 @@ def test_caddy_tls_ask_endpoint(client, workspace):
     assert res.data["allowed"] is False
 
     # Platform domains always allowed -> 200
-    for host in ["localhost", "127.0.0.1", "app.nemio.ai", "ops.nemio.ai"]:
+    for host in ["localhost", "127.0.0.1", "app.instantlify.com", "ops.instantlify.com"]:
         res = client.get(f"{tls_url}?domain={host}")
         assert res.status_code == 200
         assert res.data["allowed"] is True

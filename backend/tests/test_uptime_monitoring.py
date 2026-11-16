@@ -45,7 +45,7 @@ def test_ingress_outage_pages_once_then_resolves():
     slack = next(body for url, body in messages if url == "https://hooks.example.com/alert")
     assert slack["text"].startswith("[Instantlify] DOWN ingress: HTTP 503")
     pager = next(body for url, body in messages if "pagerduty" in url)
-    assert (pager["event_action"], pager["dedup_key"]) == ("trigger", "nemio:ingress")
+    assert (pager["event_action"], pager["dedup_key"]) == ("trigger", "instantlify:ingress")
     with (
         patch("apps.platform_ops.uptime.httpx.get", return_value=response(200)),
         patch("apps.platform_ops.uptime.httpx.post") as post,

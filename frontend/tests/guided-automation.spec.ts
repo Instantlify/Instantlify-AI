@@ -27,7 +27,10 @@ const settings = (): GuidedSettings => ({
 });
 
 test("guided flow requires opt-in and email before delivering multiple resources and CRM actions", () => {
-  const graph = compileGuidedAutomation(settings(), "nemio:continue:test");
+  const graph = compileGuidedAutomation(
+    settings(),
+    "instantlify:continue:test",
+  );
   expect(graph.connection_id).toBe("account-one");
   expect(graph.triggers).toEqual([
     { kind: "comment", keyword: "guide", channel: "instagram" },
@@ -46,9 +49,9 @@ test("guided flow requires opt-in and email before delivering multiple resources
   expect(graph.nodes[0].data.buttons?.[0]).toEqual({
     type: "postback",
     title: "Send guide",
-    payload: "nemio:continue:test",
+    payload: "instantlify:continue:test",
   });
-  expect(graph.nodes[1].data.expected_reply).toBe("nemio:continue:test");
+  expect(graph.nodes[1].data.expected_reply).toBe("instantlify:continue:test");
   expect(
     graph.nodes.find((n) => n.id === "resources")?.data.buttons,
   ).toHaveLength(2);

@@ -242,14 +242,14 @@ function WhatsAppSetup({
       if (event.target === window) void complete();
     };
     window.addEventListener("message", receive);
-    window.addEventListener("nemio-whatsapp-code", codeReady);
+    window.addEventListener("instantlify-whatsapp-code", codeReady);
     return () => {
       active.current = false;
       signingRef.current = false;
       signup.current = {};
       controller.abort();
       window.removeEventListener("message", receive);
-      window.removeEventListener("nemio-whatsapp-code", codeReady);
+      window.removeEventListener("instantlify-whatsapp-code", codeReady);
     };
     // Feedback methods are stable; prepare only once per workspace/dialog.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -272,7 +272,7 @@ function WhatsAppSetup({
           return;
         if (response.authResponse?.code) {
           signup.current.code = response.authResponse.code;
-          window.dispatchEvent(new Event("nemio-whatsapp-code"));
+          window.dispatchEvent(new Event("instantlify-whatsapp-code"));
         } else {
           signingRef.current = false;
           signup.current = {};

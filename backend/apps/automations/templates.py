@@ -7,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 from .models import Automation
 from .services import validate_graph
 
-FORMAT = "nemio.automation"
+FORMAT = "instantlify.automation"
 VERSION = 1
 MAX_BYTES = 200_000
 

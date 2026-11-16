@@ -37,7 +37,7 @@ def test_a_claimed_campaign_becomes_a_coupon_at_checkout(workspace, user):
     claimed(workspace, user)
     with patch("stripe.Coupon.retrieve"), patch("stripe.Coupon.create") as create:
         promotion = growth.coupon_for_checkout(workspace.pk, price_for("pro", "monthly"))
-    assert promotion == {"slug": "launch", "coupon": "nemio-promo-launch-30"}
+    assert promotion == {"slug": "launch", "coupon": "instantlify-promo-launch-30"}
     create.assert_not_called()
 
 

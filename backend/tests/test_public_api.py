@@ -200,8 +200,8 @@ def test_delivery_is_signed_and_backs_off_then_fails(workspace):
         post.return_value = MagicMock(status_code=200)
         deliver_webhook(str(workspace.pk), str(hook.id))
         body = post.call_args.kwargs["content"]
-        assert post.call_args.kwargs["headers"]["X-Nemio-Token"] == "whtok_shared"
-        header = post.call_args.kwargs["headers"]["X-Nemio-Signature"]
+        assert post.call_args.kwargs["headers"]["X-Instantlify-Token"] == "whtok_shared"
+        header = post.call_args.kwargs["headers"]["X-Instantlify-Signature"]
         timestamp, digest = (part.split("=")[1] for part in header.split(","))
         expected = hmac.new(
             b"topsecret", f"{timestamp}.".encode() + body, hashlib.sha256

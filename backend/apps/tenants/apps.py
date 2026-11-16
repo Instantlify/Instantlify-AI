@@ -12,6 +12,6 @@ class TenantsConfig(AppConfig):
         from .isolation import on_post_migrate
         from .sessions import on_login, on_logout
 
-        post_migrate.connect(on_post_migrate, dispatch_uid="nemio_tenant_isolation")
+        post_migrate.connect(on_post_migrate, dispatch_uid="instantlify_tenant_isolation")
         user_logged_in.connect(on_login, dispatch_uid="instantlify_session_activity")
         user_logged_out.connect(on_logout, dispatch_uid="instantlify_session_logout")

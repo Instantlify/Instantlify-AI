@@ -46,7 +46,7 @@ def main():
     cli = shutil.which("stripe")
     if not cli:
         raise RuntimeError("Install Stripe CLI before starting local forwarding.")
-    port = int(values.get("NEMIO_BACKEND_PORT") or 8000)
+    port = int(values.get("INSTANTLIFY_BACKEND_PORT") or 8000)
     if not 1 <= port <= 65535:
         raise RuntimeError("Invalid local backend port.")
     target = f"http://127.0.0.1:{port}/webhooks/stripe/"

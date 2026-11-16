@@ -261,7 +261,8 @@ for (const order of ["event-first", "code-first"] as const) {
             ? {
                 ready: true,
                 steps: [],
-                webhook_url: "https://nemio.example.com/webhooks/whatsapp/",
+                webhook_url:
+                  "https://instantlify.example.com/webhooks/whatsapp/",
               }
             : {
                 state: "state-1",

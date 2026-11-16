@@ -1,5 +1,5 @@
 {
-  "name": "nemio-zapier",
+  "name": "instantlify-zapier",
   "version": "1.0.0",
   "description": "Zapier integration for Instantlify: instant triggers for leads, messages, bookings and payments, plus actions to reply and update leads.",
   "main": "index.js",

@@ -13,8 +13,8 @@ log = logging.getLogger(__name__)
 
 PLATFORM_CNAME_TARGETS = {
     settings.CUSTOM_DOMAIN_CNAME_TARGET,
-    "domains.nemio.ai",
-    "app.nemio.ai",
+    "domains.instantlify.com",
+    "app.instantlify.com",
     getattr(settings, "APP_DOMAIN", "instantlify.com").lower(),
 }
 
@@ -57,7 +57,6 @@ def verify_custom_domain(
 
     Verification succeeds if either:
     1. A TXT record at `_instantlify-challenge.<custom_domain>` contains `instantlify-verify=<token>` or `<token>`.
-       Previously issued verification records remain accepted.
     2. A CNAME record at `<custom_domain>` resolves to one of the platform targets (the configured platform target).
 
     Args:
@@ -80,7 +79,7 @@ def verify_custom_domain(
 
     dns_query = resolver or query_dns_records
 
-    # Advertise the new name while retaining existing customer DNS records.
+    # 1. Check TXT record at _instantlify-challenge.<domain>
     challenge_host = f"_instantlify-challenge.{domain}"
     txt_records = dns_query(challenge_host, "TXT")
     expected_full = f"instantlify-verify={token}"
@@ -88,9 +87,6 @@ def verify_custom_domain(
         record == expected_full or record == token or expected_full in record
         for record in txt_records
     )
-    if not txt_verified:
-        legacy_records = dns_query(f"_nemio-challenge.{domain}", "TXT")
-        txt_verified = any(record in {f"nemio-verify={token}", token} for record in legacy_records)
 
     # 2. Check CNAME record at <domain>
     cname_records = [rec.rstrip(".").lower() for rec in dns_query(domain, "CNAME")]

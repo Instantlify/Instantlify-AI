@@ -76,13 +76,13 @@ def test_publishes_every_priced_interval_and_stores_the_ids(settings):
     # Stripe's own interval names, not Instantlify's.
     intervals = {call["recurring"]["interval"] for call in fake.created_prices}
     assert intervals == {"month", "year"}
-    assert {p["id"] for p in fake.created_products} == {"nemio-starter", "nemio-pro", "nemio-scale"}
+    assert {p["id"] for p in fake.created_products} == {"instantlify-starter", "instantlify-pro", "instantlify-scale"}
 
 
 def test_free_and_custom_tiers_are_not_published(settings):
     fake = FakeStripe()
     run(fake, settings)
-    slugs = {call["metadata"]["nemio_plan"] for call in fake.created_prices}
+    slugs = {call["metadata"]["instantlify_plan"] for call in fake.created_prices}
     assert "free" not in slugs and "dev" not in slugs
 
 
@@ -160,10 +160,10 @@ def test_existing_product_is_rebranded_without_changing_prices(settings):
     fake = FakeStripe()
     run(fake, settings)
     original_ids = list(PlanPrice.objects.values_list("id", "stripe_price_id", "price_cents"))
-    fake.products_store["nemio-pro"]["name"] = "Nemio Pro"
+    fake.products_store["instantlify-pro"]["name"] = "Pro (old name)"
     again = FakeStripe(products=fake.products_store, prices=fake.prices_store)
     run(again, settings)
-    assert again.updated_products == [("nemio-pro", {"name": "Instantlify Pro"})]
+    assert again.updated_products == [("instantlify-pro", {"name": "Instantlify Pro"})]
     assert again.created_products == again.created_prices == []
     assert (
         list(PlanPrice.objects.values_list("id", "stripe_price_id", "price_cents")) == original_ids
@@ -171,7 +171,7 @@ def test_existing_product_is_rebranded_without_changing_prices(settings):
 
 
 def test_dry_run_does_not_rename_existing_products(settings):
-    fake = FakeStripe(products={"nemio-pro": {"name": "Nemio Pro"}})
+    fake = FakeStripe(products={"instantlify-pro": {"name": "Pro (old name)"}})
     output = run(fake, settings, dry_run=True)
-    assert "would rename product nemio-pro to Instantlify Pro" in output
+    assert "would rename product instantlify-pro to Instantlify Pro" in output
     assert fake.updated_products == []

@@ -228,7 +228,7 @@ export function SimpleAutomationBuilder({
         throw new Error("Choose an available workspace member.");
       if (settings.transfer && !targets.some((a) => a.id === settings.transfer))
         throw new Error("Choose an enabled automation on this account.");
-      token.current ||= `nemio:continue:${crypto.randomUUID()}`;
+      token.current ||= `instantlify:continue:${crypto.randomUUID()}`;
       const draft = compileGuidedAutomation(
         { ...settings, connectionId: accountId },
         token.current,

@@ -160,7 +160,7 @@ class CalCom(IntegrationAdapter):
                     "email": payload["email"],
                     "timeZone": self.config.options.get("timezone", "UTC"),
                 },
-                "metadata": {"nemio_operation": idempotency_key},
+                "metadata": {"instantlify_operation": idempotency_key},
             },
         )
         return {"id": body["data"]["uid"], "start": payload["start"]}
@@ -496,7 +496,7 @@ def sync_email_list(provider, token, options, payload):
         result = request(
             "PUT",
             f"{mailchimp_base(token)}/lists/{quote(list_id, safe='')}/members/{member}",
-            auth=("nemio", token),
+            auth=("instantlify", token),
             side_effect=True,
             json={
                 "email_address": email,
@@ -520,7 +520,7 @@ def sync_email_list(provider, token, options, payload):
                 "email": email,
                 "reactivate_existing": False,
                 "send_welcome_email": False,
-                "utm_source": "nemio",
+                "utm_source": "instantlify",
             },
         )
         identifier = (result.get("data") or {}).get("id")

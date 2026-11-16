@@ -173,7 +173,7 @@ def make(bundle=True):
     if bundle:
         out = ROOT / "dist"
         out.mkdir(exist_ok=True)
-        target = out / "nemio-make-app.zip"
+        target = out / "instantlify-make-app.zip"
         with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
             for file in sorted(path.rglob("*.json")):
                 archive.write(file, file.relative_to(path))

@@ -4,7 +4,7 @@
   "description": "Queues a reply into a conversation through Instantlify's delivery pipeline (opt-out and messaging-window rules apply).",
   "type": "action",
   "actionType": "create",
-  "connection": "nemio",
+  "connection": "instantlify",
   "communication": {
     "url": "/api/v1/conversations/{{parameters.conversationId}}/messages/",
     "method": "POST",

@@ -30,7 +30,7 @@ def headers():
 
 
 def customer_id(user):
-    return f"nemio:{user.pk}"
+    return f"instantlify:{user.pk}"
 
 
 def owned(data, user):

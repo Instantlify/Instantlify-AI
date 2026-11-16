@@ -90,7 +90,7 @@ def ensure_seller(workspace, user, country="us"):
                 "metadata": {"workspace_id": str(workspace.pk)},
                 "include": ["configuration.recipient", "requirements"],
             },
-            {"idempotency_key": f"nemio-seller:{workspace.pk}"},
+            {"idempotency_key": f"instantlify-seller:{workspace.pk}"},
         )
     except stripe.StripeError:
         raise ProviderError("payment_provider_error") from None
@@ -189,7 +189,7 @@ def _create_checkout(workspace, user, template, key, seller):
         currency="usd",
         idempotency_key=key,
     )
-    metadata = {"nemio_template_purchase": str(purchase.pk), "workspace": str(workspace.pk)}
+    metadata = {"instantlify_template_purchase": str(purchase.pk), "workspace": str(workspace.pk)}
     try:
         session = client.checkout.sessions.create(
             {
@@ -213,7 +213,7 @@ def _create_checkout(workspace, user, template, key, seller):
                 "success_url": _templates_url(workspace.pk, f"purchase={purchase.pk}"),
                 "cancel_url": _templates_url(workspace.pk, f"purchase={purchase.pk}&cancelled=1"),
             },
-            {"idempotency_key": f"nemio-template:{purchase.pk}"},
+            {"idempotency_key": f"instantlify-template:{purchase.pk}"},
         )
     except stripe.StripeError:
         raise ProviderError("payment_provider_error") from None

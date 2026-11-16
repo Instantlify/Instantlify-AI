@@ -1,5 +1,5 @@
 /* Instantlify website chat widget. Embed with:
-   <script src="https://<your nemio host>/widget.js" data-workspace="<workspace id>" async></script>
+   <script src="https://<your instantlify host>/widget.js" data-workspace="<workspace id>" async></script>
    Messages land in the workspace inbox; replies from the team or the AI agent show here. */
 (function () {
   var script = document.currentScript;
@@ -8,7 +8,7 @@
   if (!workspace) return;
   var origin = new URL(script.src, location.href).origin;
   var api = origin + "/api/public/webchat/" + workspace + "/";
-  var storageKey = "nemio:webchat:visitor";
+  var storageKey = "instantlify:webchat:visitor";
   var visitor = "";
   try {
     visitor = localStorage.getItem(storageKey) || "";
@@ -48,46 +48,46 @@
 
   var style = document.createElement("style");
   style.textContent =
-    ".nemio-chat-button{position:fixed;bottom:20px;min-width:56px;height:56px;padding:0 18px;border-radius:28px;border:0;color:#fff;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.2);z-index:2147483000;font:600 14px system-ui,sans-serif}" +
-    ".nemio-chat-panel{position:fixed;bottom:88px;width:340px;max-width:calc(100vw - 32px);height:480px;max-height:calc(100vh - 110px);display:none;flex-direction:column;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:2147483000;font:14px system-ui,sans-serif;color:#1f2937}" +
-    ".nemio-chat-panel.open{display:flex}" +
-    ".nemio-chat-head{padding:12px 16px;color:#fff;font-weight:700;display:flex;gap:10px;align-items:center}" +
-    ".nemio-chat-head img{width:32px;height:32px;border-radius:50%;object-fit:cover;background:#fff}" +
-    ".nemio-chat-head small{display:block;font-weight:400;opacity:.85;font-size:12px}" +
-    ".nemio-chat-log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:#f8fafc}" +
-    ".nemio-chat-msg{max-width:80%;padding:9px 12px;border-radius:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word}" +
-    ".nemio-chat-msg.in{align-self:flex-end;color:#fff;border-bottom-right-radius:4px}" +
-    ".nemio-chat-msg.out{align-self:flex-start;background:#e5e7eb;border-bottom-left-radius:4px}" +
-    ".nemio-chat-actions{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:90%}" +
-    ".nemio-chat-actions button,.nemio-chat-actions a{padding:7px 12px;border-radius:999px;border:1px solid;background:#fff;font:inherit;font-size:13px;cursor:pointer;text-decoration:none}" +
-    ".nemio-chat-form{display:flex;gap:8px;padding:10px;border-top:1px solid #e5e7eb}" +
-    ".nemio-chat-form input{flex:1;padding:10px 12px;border:1px solid #d1d5db;border-radius:999px;font:inherit}" +
-    ".nemio-chat-form button{padding:0 16px;border:0;border-radius:999px;color:#fff;font:inherit;font-weight:600;cursor:pointer}";
+    ".instantlify-chat-button{position:fixed;bottom:20px;min-width:56px;height:56px;padding:0 18px;border-radius:28px;border:0;color:#fff;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.2);z-index:2147483000;font:600 14px system-ui,sans-serif}" +
+    ".instantlify-chat-panel{position:fixed;bottom:88px;width:340px;max-width:calc(100vw - 32px);height:480px;max-height:calc(100vh - 110px);display:none;flex-direction:column;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:2147483000;font:14px system-ui,sans-serif;color:#1f2937}" +
+    ".instantlify-chat-panel.open{display:flex}" +
+    ".instantlify-chat-head{padding:12px 16px;color:#fff;font-weight:700;display:flex;gap:10px;align-items:center}" +
+    ".instantlify-chat-head img{width:32px;height:32px;border-radius:50%;object-fit:cover;background:#fff}" +
+    ".instantlify-chat-head small{display:block;font-weight:400;opacity:.85;font-size:12px}" +
+    ".instantlify-chat-log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:#f8fafc}" +
+    ".instantlify-chat-msg{max-width:80%;padding:9px 12px;border-radius:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word}" +
+    ".instantlify-chat-msg.in{align-self:flex-end;color:#fff;border-bottom-right-radius:4px}" +
+    ".instantlify-chat-msg.out{align-self:flex-start;background:#e5e7eb;border-bottom-left-radius:4px}" +
+    ".instantlify-chat-actions{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:90%}" +
+    ".instantlify-chat-actions button,.instantlify-chat-actions a{padding:7px 12px;border-radius:999px;border:1px solid;background:#fff;font:inherit;font-size:13px;cursor:pointer;text-decoration:none}" +
+    ".instantlify-chat-form{display:flex;gap:8px;padding:10px;border-top:1px solid #e5e7eb}" +
+    ".instantlify-chat-form input{flex:1;padding:10px 12px;border:1px solid #d1d5db;border-radius:999px;font:inherit}" +
+    ".instantlify-chat-form button{padding:0 16px;border:0;border-radius:999px;color:#fff;font:inherit;font-weight:600;cursor:pointer}";
   document.head.appendChild(style);
 
   var button = document.createElement("button");
-  button.className = "nemio-chat-button";
+  button.className = "instantlify-chat-button";
   button.type = "button";
   button.setAttribute("aria-label", text.open);
   button.textContent = config.launcher_label;
   var panel = document.createElement("div");
-  panel.className = "nemio-chat-panel";
+  panel.className = "instantlify-chat-panel";
   panel.setAttribute("role", "dialog");
   panel.innerHTML =
-    '<div class="nemio-chat-head"><img alt="" hidden><div><span></span><small></small></div></div>' +
-    '<div class="nemio-chat-log" aria-live="polite"></div>' +
-    '<form class="nemio-chat-form"><input type="text" maxlength="2000" placeholder="' + text.placeholder + '" aria-label="' + text.message + '" required><button type="submit">' + text.send + "</button></form>";
+    '<div class="instantlify-chat-head"><img alt="" hidden><div><span></span><small></small></div></div>' +
+    '<div class="instantlify-chat-log" aria-live="polite"></div>' +
+    '<form class="instantlify-chat-form"><input type="text" maxlength="2000" placeholder="' + text.placeholder + '" aria-label="' + text.message + '" required><button type="submit">' + text.send + "</button></form>";
   document.body.appendChild(panel);
   document.body.appendChild(button);
-  var head = panel.querySelector(".nemio-chat-head");
+  var head = panel.querySelector(".instantlify-chat-head");
   var logo = head.querySelector("img");
-  var log = panel.querySelector(".nemio-chat-log");
+  var log = panel.querySelector(".instantlify-chat-log");
   var form = panel.querySelector("form");
   var input = form.querySelector("input");
 
   function actionRow(items) {
     var row = document.createElement("div");
-    row.className = "nemio-chat-actions";
+    row.className = "instantlify-chat-actions";
     items.forEach(function (item) {
       var el;
       if (item.url) {
@@ -131,7 +131,7 @@
     form.querySelector("button").style.background = config.color;
     if (config.greeting && !log.querySelector("[data-greeting]")) {
       var greeting = document.createElement("div");
-      greeting.className = "nemio-chat-msg out";
+      greeting.className = "instantlify-chat-msg out";
       greeting.setAttribute("data-greeting", "1");
       greeting.textContent = config.greeting;
       log.insertBefore(greeting, log.firstChild);
@@ -157,7 +157,7 @@
     seen[message.id] = true;
     messageCount += 1;
     var row = document.createElement("div");
-    row.className = "nemio-chat-msg " + (message.direction === "inbound" ? "in" : "out");
+    row.className = "instantlify-chat-msg " + (message.direction === "inbound" ? "in" : "out");
     if (message.direction === "inbound") row.style.background = config.color;
     row.textContent = message.text;
     log.appendChild(row);

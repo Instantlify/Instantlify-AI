@@ -19,7 +19,7 @@ def test_mailchimp_uses_double_opt_in_by_default():
     member = hashlib.md5(b"ada@example.com", usedforsecurity=False).hexdigest()
     assert (method, url) == ("PUT", f"https://us21.api.mailchimp.com/3.0/lists/L1/members/{member}")
     assert call.call_args.kwargs["json"]["status_if_new"] == "pending"
-    assert call.call_args.kwargs["auth"] == ("nemio", "key-us21")
+    assert call.call_args.kwargs["auth"] == ("instantlify", "key-us21")
 
     with patch("apps.crm.integrations.request", return_value={"id": "m1"}) as call:
         sync_email_list("mailchimp", "key-us21", {"list_id": "L1", "double_opt_in": "false"}, LEAD)

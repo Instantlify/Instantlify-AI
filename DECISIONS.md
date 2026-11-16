@@ -203,7 +203,7 @@ which would otherwise leave a cross-tenant foreign key.
 
 ## Promo coupons carry the discount in their id
 
-The Stripe coupon for a campaign is `nemio-promo-<slug>-<percent>`. Editing a campaign's
+The Stripe coupon for a campaign is `instantlify-promo-<slug>-<percent>`. Editing a campaign's
 discount therefore mints a new coupon instead of silently changing one already attached
 to live subscriptions. Any Stripe error while preparing the coupon means full price,
 never a failed checkout.

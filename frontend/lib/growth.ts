@@ -51,7 +51,7 @@ export function firstReplyStep(
   complete = false,
 ) {
   try {
-    const key = `nemio:first-reply:${workspaceId}:${step}`;
+    const key = `instantlify:first-reply:${workspaceId}:${step}`;
     if (complete) window.localStorage.setItem(key, "done");
     return window.localStorage.getItem(key) === "done";
   } catch {

@@ -3,7 +3,7 @@
 The PostgreSQL tests need a PostgreSQL test database (the default suite runs on SQLite
 and skips them). Run them with, for example:
 
-    DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/nemio \\
+    DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/instantlify \\
         uv run pytest tests/test_tenant_db_isolation.py
 """
 

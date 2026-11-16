@@ -393,7 +393,7 @@ def coupon_for_checkout(workspace_id, price):
             continue
         # Percent in the id: editing the discount mints a new coupon instead of
         # silently changing one already attached to live subscriptions.
-        coupon = f"nemio-promo-{campaign.slug}-{campaign.discount_percent}"
+        coupon = f"instantlify-promo-{campaign.slug}-{campaign.discount_percent}"
         try:
             try:
                 stripe.Coupon.retrieve(coupon, api_key=settings.STRIPE_SECRET_KEY)

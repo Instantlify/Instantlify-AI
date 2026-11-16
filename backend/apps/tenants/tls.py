@@ -20,8 +20,8 @@ def is_domain_allowed_for_tls(domain: str) -> bool:
     # Standard platform domains are always allowed
     platform_hosts = {
         "instantlify.com",
-        "app.nemio.ai",
-        "ops.nemio.ai",
+        "app.instantlify.com",
+        "ops.instantlify.com",
         "ops.localhost",
         getattr(settings, "APP_DOMAIN", "instantlify.com").lower(),
         getattr(settings, "PLATFORM_ADMIN_HOST", "ops.localhost").lower(),

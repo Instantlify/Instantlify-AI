@@ -8,7 +8,7 @@ const App = require("../index");
 const appTester = zapier.createAppTester(App);
 zapier.tools.env.inject();
 
-const BASE = "https://nemio.example.com";
+const BASE = "https://instantlify.example.com";
 const authData = { base_url: `${BASE}/`, api_key: "nmk_test" };
 
 const signed = (secret, body, at = Math.floor(Date.now() / 1000)) => {
@@ -64,8 +64,8 @@ describe("hook triggers", () => {
       rawRequest: {
         content: body,
         headers: {
-          "Http-X-Nemio-Signature": signed("whsec_abc", body),
-          "Http-X-Nemio-Delivery": "delivery-9",
+          "Http-X-Instantlify-Signature": signed("whsec_abc", body),
+          "Http-X-Instantlify-Delivery": "delivery-9",
         },
       },
     });
@@ -93,7 +93,7 @@ describe("hook triggers", () => {
         ...base,
         rawRequest: {
           content: body,
-          headers: { "Http-X-Nemio-Signature": signed("wrong", body) },
+          headers: { "Http-X-Instantlify-Signature": signed("wrong", body) },
         },
       }),
     ).rejects.toThrow(/Invalid webhook signature/);
@@ -103,7 +103,7 @@ describe("hook triggers", () => {
         rawRequest: {
           content: body,
           headers: {
-            "Http-X-Nemio-Signature": signed(
+            "Http-X-Instantlify-Signature": signed(
               "whsec_abc",
               body,
               Math.floor(Date.now() / 1000) - 3600,
@@ -125,7 +125,7 @@ describe("hook triggers", () => {
       cleanedRequest: JSON.parse(body),
       rawRequest: {
         content: body,
-        headers: { "Http-X-Nemio-Signature": signed("whsec_abc", body) },
+        headers: { "Http-X-Instantlify-Signature": signed("whsec_abc", body) },
       },
     });
     expect(results).toEqual([]);

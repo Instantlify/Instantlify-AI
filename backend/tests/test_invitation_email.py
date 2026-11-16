@@ -14,7 +14,7 @@ def test_invitation_email_contains_the_same_usable_link(
     client, workspace, user, mailoutbox, settings
 ):
     seats(workspace, 3)
-    settings.PUBLIC_APP_URL = "https://app.nemio.example"
+    settings.PUBLIC_APP_URL = "https://app.instantlify.example"
     settings.DEFAULT_FROM_EMAIL = "Instantlify <sender@example.com>"
     mailoutbox.clear()
     response = invite(client, workspace, "teammate@example.com")

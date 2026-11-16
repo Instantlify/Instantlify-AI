@@ -18,7 +18,7 @@ from rest_framework.response import Response
 
 from .views import SignupView
 
-SALT = "nemio.magic-link"
+SALT = "instantlify.magic-link"
 MAX_AGE = 15 * 60
 RESEND_SECONDS = 60
 log = logging.getLogger(__name__)
