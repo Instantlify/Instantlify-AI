@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone as datetime_timezone
+from datetime import UTC, datetime, timedelta
 
 from django.conf import settings
 from django.utils import timezone
@@ -11,7 +11,8 @@ class LiveInstagramAdapter(InstagramAdapter):
     @property
     def graph_url(self):
         host = (
-            "graph.facebook.com" if (self.connection.profile or {}).get("unified_login")
+            "graph.facebook.com"
+            if (self.connection.profile or {}).get("unified_login")
             else "graph.instagram.com"
         )
         return f"https://{host}/{settings.META_API_VERSION}"
@@ -290,12 +291,16 @@ def live_exchange(code):
 
 def unified_exchange(code):
     graph_url = f"https://graph.facebook.com/{settings.META_API_VERSION}"
-    token = request("GET", f"{graph_url}/oauth/access_token", params={
-        "client_id": settings.META_APP_ID,
-        "client_secret": settings.META_APP_SECRET,
-        "redirect_uri": settings.META_REDIRECT_URI,
-        "code": code,
-    })["access_token"]
+    token = request(
+        "GET",
+        f"{graph_url}/oauth/access_token",
+        params={
+            "client_id": settings.META_APP_ID,
+            "client_secret": settings.META_APP_SECRET,
+            "redirect_uri": settings.META_REDIRECT_URI,
+            "code": code,
+        },
+    )["access_token"]
     debug = request(
         "GET",
         f"{graph_url}/debug_token",
@@ -332,8 +337,7 @@ def unified_exchange(code):
         account_id,
         profile.get("username", account_id),
         token,
-        datetime.fromtimestamp(expiry, datetime_timezone.utc)
-        if expiry else datetime.max.replace(tzinfo=datetime_timezone.utc),
+        datetime.fromtimestamp(expiry, UTC) if expiry else datetime.max.replace(tzinfo=UTC),
         meta_authorizer_id=str(debug.get("user_id") or ""),
         profile={
             "unified_login": True,

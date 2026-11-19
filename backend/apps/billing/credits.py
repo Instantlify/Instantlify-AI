@@ -184,7 +184,10 @@ def auto_topup(balance):
             off_session=True,
             confirm=True,
             description="Instantlify AI credits auto top-up",
-            metadata={"workspace_id": str(balance.workspace_id), "instantlify_credit_auto_topup": key},
+            metadata={
+                "workspace_id": str(balance.workspace_id),
+                "instantlify_credit_auto_topup": key,
+            },
             idempotency_key=key,
         )
         if intent.status != "succeeded":

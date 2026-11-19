@@ -131,7 +131,10 @@ class Command(BaseCommand):
             )
             stripe.Subscription.modify(
                 subscription.id,
-                metadata={"instantlify_local_verification": marker, "verification_stage": "updated"},
+                metadata={
+                    "instantlify_local_verification": marker,
+                    "verification_stage": "updated",
+                },
                 api_key=self.key,
                 idempotency_key=f"instantlify-local-update:{marker}",
             )
@@ -201,7 +204,9 @@ class Command(BaseCommand):
                 current = stripe.Subscription.retrieve(subscription.id, api_key=self.key)
                 if (
                     current.livemode
-                    or stripe_data(current).get("metadata", {}).get("instantlify_local_verification")
+                    or stripe_data(current)
+                    .get("metadata", {})
+                    .get("instantlify_local_verification")
                     != marker
                 ):
                     raise CommandError(

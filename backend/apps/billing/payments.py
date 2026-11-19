@@ -77,7 +77,10 @@ def create_checkout(offer, conversation, key):
                 or settings.PUBLIC_APP_URL + "/pay/thanks/",
                 cancel_url=integration.options.get("cancel_url")
                 or settings.PUBLIC_APP_URL + "/pay/cancelled/",
-                metadata={"instantlify_payment": str(payment.pk), "workspace": str(offer.workspace_id)},
+                metadata={
+                    "instantlify_payment": str(payment.pk),
+                    "workspace": str(offer.workspace_id),
+                },
                 idempotency_key=f"instantlify:{payment.pk}",
             )
         except (stripe.StripeError, KeyError):

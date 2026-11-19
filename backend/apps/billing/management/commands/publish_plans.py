@@ -155,7 +155,10 @@ class Command(BaseCommand):
                 "currency": options["currency"],
                 "unit_amount": price.price_cents,
                 "recurring": {"interval": STRIPE_INTERVAL[price.billing_interval]},
-                "metadata": {"instantlify_plan": plan.slug, "instantlify_interval": price.billing_interval},
+                "metadata": {
+                    "instantlify_plan": plan.slug,
+                    "instantlify_interval": price.billing_interval,
+                },
             }
         )
         PlanPrice.objects.filter(pk=price.pk).update(stripe_price_id=created.id)
