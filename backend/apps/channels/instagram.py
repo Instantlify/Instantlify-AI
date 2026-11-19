@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone as datetime_timezone
+from datetime import UTC, datetime, timedelta
 
 from django.conf import settings
 from django.utils import timezone
@@ -332,8 +332,7 @@ def unified_exchange(code):
         account_id,
         profile.get("username", account_id),
         token,
-        datetime.fromtimestamp(expiry, datetime_timezone.utc)
-        if expiry else datetime.max.replace(tzinfo=datetime_timezone.utc),
+        datetime.fromtimestamp(expiry, UTC) if expiry else datetime.max.replace(tzinfo=UTC),
         meta_authorizer_id=str(debug.get("user_id") or ""),
         profile={
             "unified_login": True,
