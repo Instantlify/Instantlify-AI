@@ -66,6 +66,7 @@ services:
       ALLOW_TEST_CHANNELS: ${ALLOW_TEST_CHANNELS:-false}
       FLOWER_BASIC_AUTH: ${FLOWER_BASIC_AUTH:?Set FLOWER_BASIC_AUTH in Coolify}
       META_APP_ID: ${META_APP_ID:-}
+      INSTAGRAM_UNIFIED_LOGIN_CONFIG_ID: ${INSTAGRAM_UNIFIED_LOGIN_CONFIG_ID:-}
       META_APP_SECRET: ${META_APP_SECRET:-}
       META_REDIRECT_URI: ${META_REDIRECT_URI:-https://dev.instantlify.com/api/meta/callback/}
       META_SCOPES: ${META_SCOPES:-instagram_business_basic,instagram_business_manage_messages}

@@ -130,6 +130,21 @@ class MetaOAuthStartView(APIView):
             expires_at=timezone.now() + timedelta(minutes=10),
         )
         if settings.CHANNEL_ADAPTER_MODE == "live":
+            if settings.INSTAGRAM_UNIFIED_LOGIN_CONFIG_ID:
+                params = {
+                    "client_id": settings.META_APP_ID,
+                    "config_id": settings.INSTAGRAM_UNIFIED_LOGIN_CONFIG_ID,
+                    "display": "popup",
+                    "override_default_response_type": "true",
+                    "redirect_uri": settings.META_REDIRECT_URI,
+                    "response_type": "code",
+                    "state": state,
+                    "prompt": "login",
+                }
+                return Response({
+                    "authorization_url": "https://www.facebook.com/dialog/oauth?" + urlencode(params),
+                    "mode": "live",
+                })
             return Response(
                 {
                     "authorization_url": "https://www.instagram.com/oauth/authorize?"
@@ -227,7 +242,10 @@ class MetaOAuthCallbackView(APIView):
                         "status": "active",
                         "profile": credentials.profile,
                         "meta_authorizer_id": credentials.meta_authorizer_id,
-                        "refresh_due_at": credentials.expires_at - timedelta(days=7),
+                        "refresh_due_at": (
+                            None if credentials.profile.get("unified_login")
+                            else credentials.expires_at - timedelta(days=7)
+                        ),
                     },
                 )
                 # A bio changes, so the marketing segment derived from it is re-run on

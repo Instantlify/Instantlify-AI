@@ -285,6 +285,7 @@ SIMPLE_JWT = {
     "CHECK_REVOKE_TOKEN": True,
 }
 META_APP_ID = os.environ.get("META_APP_ID", "")
+INSTAGRAM_UNIFIED_LOGIN_CONFIG_ID = os.environ.get("INSTAGRAM_UNIFIED_LOGIN_CONFIG_ID", "")
 META_APP_SECRET = os.environ.get("META_APP_SECRET", "")
 WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID = os.environ.get("WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID", "")
 META_REDIRECT_URI = os.environ.get("META_REDIRECT_URI", "http://localhost:3000/api/meta/callback/")
