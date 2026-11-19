@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as datetime_timezone
 
 from django.conf import settings
 from django.utils import timezone
@@ -8,10 +8,18 @@ from .transport import ProviderError, request
 
 
 class LiveInstagramAdapter(InstagramAdapter):
+    @property
+    def graph_url(self):
+        host = (
+            "graph.facebook.com" if (self.connection.profile or {}).get("unified_login")
+            else "graph.instagram.com"
+        )
+        return f"https://{host}/{settings.META_API_VERSION}"
+
     def following_status(self, sender_id):
         body = request(
             "GET",
-            f"https://graph.instagram.com/{settings.META_API_VERSION}/{sender_id}",
+            f"{self.graph_url}/{sender_id}",
             headers=self.headers(),
             params={"fields": "is_user_follow_business"},
         )
@@ -66,7 +74,7 @@ class LiveInstagramAdapter(InstagramAdapter):
         return body["message_id"]
 
     def url(self, resource):
-        return f"https://graph.instagram.com/{settings.META_API_VERSION}/{self.connection.external_account_id}/{resource}"
+        return f"{self.graph_url}/{self.connection.external_account_id}/{resource}"
 
     def send_voice_note(self, *, recipient_id, media_url, idempotency_key):
         body = request(
@@ -87,7 +95,7 @@ class LiveInstagramAdapter(InstagramAdapter):
     def fetch_profile(self, sender_id):
         body = request(
             "GET",
-            f"https://graph.instagram.com/{settings.META_API_VERSION}/{sender_id}",
+            f"{self.graph_url}/{sender_id}",
             headers=self.headers(),
             params={"fields": "name,username,profile_pic"},
         )
@@ -101,7 +109,7 @@ class LiveInstagramAdapter(InstagramAdapter):
     def hide_comment(self, comment_id):
         request(
             "POST",
-            f"https://graph.instagram.com/{settings.META_API_VERSION}/{comment_id}",
+            f"{self.graph_url}/{comment_id}",
             side_effect=True,
             headers=self.headers(),
             json={"hide": True},
@@ -126,7 +134,7 @@ class LiveInstagramAdapter(InstagramAdapter):
     def owns_post(self, post_id):
         body = request(
             "GET",
-            f"https://graph.instagram.com/{settings.META_API_VERSION}/{post_id}",
+            f"{self.graph_url}/{post_id}",
             headers=self.headers(),
             params={"fields": "owner"},
         )
@@ -153,7 +161,7 @@ class LiveInstagramAdapter(InstagramAdapter):
     def reply_comment(self, *, comment_id, text, idempotency_key):
         body = request(
             "POST",
-            f"https://graph.instagram.com/{settings.META_API_VERSION}/{comment_id}/replies",
+            f"{self.graph_url}/{comment_id}/replies",
             side_effect=True,
             headers=self.headers(),
             data={"message": text},
@@ -167,7 +175,7 @@ class LiveInstagramAdapter(InstagramAdapter):
     def delete_comment(self, comment_id):
         request(
             "DELETE",
-            f"https://graph.instagram.com/{settings.META_API_VERSION}/{comment_id}",
+            f"{self.graph_url}/{comment_id}",
             side_effect=True,
             headers=self.headers(),
         )
@@ -188,7 +196,7 @@ class LiveInstagramAdapter(InstagramAdapter):
         self.check_publishing_access()
         body = request(
             "GET",
-            f"https://graph.instagram.com/{settings.META_API_VERSION}/{container_id}",
+            f"{self.graph_url}/{container_id}",
             headers=self.headers(),
             params={"fields": "status_code,status"},
         )
@@ -228,6 +236,8 @@ class LiveInstagramAdapter(InstagramAdapter):
 def live_exchange(code):
     if not settings.META_APP_ID or not settings.META_APP_SECRET or not code:
         raise IntegrationUnavailable("Meta credentials are not configured")
+    if settings.INSTAGRAM_UNIFIED_LOGIN_CONFIG_ID:
+        return unified_exchange(code)
     short = request(
         "POST",
         "https://api.instagram.com/oauth/access_token",
@@ -273,6 +283,61 @@ def live_exchange(code):
             "name": profile.get("name", ""),
             "biography": profile.get("biography", ""),
             "website": profile.get("website", ""),
+            "followers_count": profile.get("followers_count", 0),
+        },
+    )
+
+
+def unified_exchange(code):
+    graph_url = f"https://graph.facebook.com/{settings.META_API_VERSION}"
+    token = request("GET", f"{graph_url}/oauth/access_token", params={
+        "client_id": settings.META_APP_ID,
+        "client_secret": settings.META_APP_SECRET,
+        "redirect_uri": settings.META_REDIRECT_URI,
+        "code": code,
+    })["access_token"]
+    debug = request(
+        "GET",
+        f"{graph_url}/debug_token",
+        params={"input_token": token},
+        headers={"Authorization": f"Bearer {settings.META_APP_ID}|{settings.META_APP_SECRET}"},
+    )["data"]
+    if not debug.get("is_valid") or str(debug.get("app_id")) != settings.META_APP_ID:
+        raise ProviderError("invalid_instagram_token")
+    accounts = {
+        str(account_id)
+        for permission in debug.get("granular_scopes", [])
+        if permission.get("scope") == "instagram_manage_messages"
+        for account_id in permission.get("target_ids", [])
+    }
+    if len(accounts) != 1:
+        raise ProviderError("select_one_instagram_messaging_account")
+    account_id = accounts.pop()
+    headers = {"Authorization": f"Bearer {token}"}
+    profile = request(
+        "GET",
+        f"{graph_url}/{account_id}",
+        params={"fields": "username,name,biography,website,followers_count"},
+        headers=headers,
+    )
+    request(
+        "POST",
+        f"{graph_url}/{account_id}/subscribed_apps",
+        data={"subscribed_fields": "messages,messaging_postbacks"},
+        headers=headers,
+    )
+    deadlines = [int(debug.get(field) or 0) for field in ("expires_at", "data_access_expires_at")]
+    expiry = min((deadline for deadline in deadlines if deadline > 0), default=None)
+    return Credentials(
+        account_id,
+        profile.get("username", account_id),
+        token,
+        datetime.fromtimestamp(expiry, datetime_timezone.utc)
+        if expiry else datetime.max.replace(tzinfo=datetime_timezone.utc),
+        meta_authorizer_id=str(debug.get("user_id") or ""),
+        profile={
+            "unified_login": True,
+            **{field: profile.get(field, "") for field in ("name", "biography", "website")},
             "followers_count": profile.get("followers_count", 0),
         },
     )
