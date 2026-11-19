@@ -61,7 +61,7 @@ export function Brand({
   name?: string;
   logo?: string;
 }) {
-  const defaultBrand = !logo && /^(?:instantlify|nemio)(?:\s*ai)?$/i.test(name.trim());
+  const defaultBrand = !logo && /^instantlify$/i.test(name.trim());
   return (
     <div
       className={`brand-logo-container${defaultBrand ? " instantlify-original-brand" : ""}`}

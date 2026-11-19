@@ -290,7 +290,7 @@ def test_export_then_import_round_trips_as_a_draft(client, workspace, user):
     exported = client.get(f"/api/workspaces/{workspace.pk}/automations/{item.pk}/export/")
     assert exported.status_code == 200
     document = exported.json()
-    assert document["format"] == "nemio.automation"
+    assert document["format"] == "instantlify.automation"
     stranger = User.objects.create_user(username="s", email="s@example.com")
     other = create_workspace(stranger, "Agency client")
     theirs = APIClient()
@@ -308,9 +308,9 @@ def test_export_then_import_round_trips_as_a_draft(client, workspace, user):
     "document",
     [
         {"format": "other"},
-        {"format": "nemio.automation", "version": 99, "graph": {}},
+        {"format": "instantlify.automation", "version": 99, "graph": {}},
         {
-            "format": "nemio.automation",
+            "format": "instantlify.automation",
             "version": 1,
             "graph": {"start": "x", "nodes": [], "edges": []},
         },

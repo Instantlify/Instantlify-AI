@@ -5,7 +5,7 @@ be told about them once. This writes each created price back onto its `PlanPrice
 is the same field the console's tier form edits, so publishing and hand-entering IDs
 cannot disagree.
 
-Idempotent: products use a deterministic `nemio-<slug>` id, and a `PlanPrice` that
+Idempotent: products use a deterministic `instantlify-<slug>` id, and a `PlanPrice` that
 already carries an id is verified rather than recreated. Re-running after adding a tier
 publishes only the new one.
 
@@ -94,7 +94,7 @@ class Command(BaseCommand):
             )
 
     def ensure_product(self, plan):
-        product_id = f"nemio-{plan.slug}"
+        product_id = f"instantlify-{plan.slug}"
         try:
             product = self.client.products.retrieve(product_id)
             expected_name = f"Instantlify {plan.name}"
@@ -115,7 +115,7 @@ class Command(BaseCommand):
                     {
                         "id": product_id,
                         "name": f"Instantlify {plan.name}",
-                        "metadata": {"nemio_plan": plan.slug},
+                        "metadata": {"instantlify_plan": plan.slug},
                     }
                 )
                 self.stdout.write(self.style.SUCCESS(f"  created product {product_id}"))
@@ -155,7 +155,7 @@ class Command(BaseCommand):
                 "currency": options["currency"],
                 "unit_amount": price.price_cents,
                 "recurring": {"interval": STRIPE_INTERVAL[price.billing_interval]},
-                "metadata": {"nemio_plan": plan.slug, "nemio_interval": price.billing_interval},
+                "metadata": {"instantlify_plan": plan.slug, "instantlify_interval": price.billing_interval},
             }
         )
         PlanPrice.objects.filter(pk=price.pk).update(stripe_price_id=created.id)

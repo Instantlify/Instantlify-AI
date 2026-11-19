@@ -4,7 +4,7 @@
   "description": "Updates a lead's name, email, stage, tags or custom fields.",
   "type": "action",
   "actionType": "update",
-  "connection": "nemio",
+  "connection": "instantlify",
   "communication": {
     "url": "/api/v1/leads/{{parameters.leadId}}/",
     "method": "PATCH",

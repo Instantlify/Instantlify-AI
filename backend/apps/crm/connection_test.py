@@ -73,7 +73,7 @@ def probe(provider, credentials, options):
         from .integrations import mailchimp_base
 
         try:
-            return "GET", f"{mailchimp_base(token)}/ping", {"auth": ("nemio", token)}
+            return "GET", f"{mailchimp_base(token)}/ping", {"auth": ("instantlify", token)}
         except ProviderError:
             return None
     if provider == "beehiiv":

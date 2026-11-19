@@ -140,7 +140,7 @@ test("the builder tests a draft, shows retained executions and exports the same 
   expect(path).toBeTruthy();
   const exported = JSON.parse(await readFile(path!, "utf8"));
   expect(exported).toMatchObject({
-    format: "nemio.automation",
+    format: "instantlify.automation",
     version: 1,
     name: "Tools check",
   });

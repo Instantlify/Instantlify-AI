@@ -791,7 +791,7 @@ export default function TemplatesPage() {
                     <ValidatedTextarea
                       value={pasted}
                       onChange={(event) => setPasted(event.target.value)}
-                      placeholder='{"format": "nemio.automation", …}'
+                      placeholder='{"format": "instantlify.automation", …}'
                       className="mono"
                     />
                   </label>

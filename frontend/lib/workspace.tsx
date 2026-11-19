@@ -24,7 +24,8 @@ export type WorkspaceContextValue = {
   setActiveAccount: (connectionId: string | null) => void;
 };
 
-const accountKey = (workspaceId: string) => `nemio:account:${workspaceId}`;
+const accountKey = (workspaceId: string) =>
+  `instantlify:account:${workspaceId}`;
 
 function storedAccount(workspaceId: string) {
   try {
@@ -86,7 +87,7 @@ export function WorkspaceProvider({
   );
   useEffect(() => {
     try {
-      localStorage.setItem("nemio:last-workspace", workspaceId);
+      localStorage.setItem("instantlify:last-workspace", workspaceId);
     } catch {
       // Storage may be unavailable; the URL is the source of truth anyway.
     }
@@ -131,7 +132,7 @@ export function useWorkspace() {
 
 export function lastWorkspaceId() {
   try {
-    return localStorage.getItem("nemio:last-workspace");
+    return localStorage.getItem("instantlify:last-workspace");
   } catch {
     return null;
   }

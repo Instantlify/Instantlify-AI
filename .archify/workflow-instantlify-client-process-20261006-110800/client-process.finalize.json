@@ -1,0 +1,1634 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "startedAt": "2026-10-06T06:11:00.421Z",
+  "specification": {
+    "path": "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\candidate.json",
+    "sha256": "4455648ccdb548a23171e0bc931c9eebcb1c2a5c9a924b8a27770ee2c0e9aafc",
+    "bytes": 6497
+  },
+  "artifact": {
+    "path": "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\client-process.html",
+    "sha256": "4455a9f855e902913118549e6530d0d0e4e6d71a7dd0dc87123625f8277bc119",
+    "bytes": 785605
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\OC\\.gemini\\config\\skills\\archify\\bin\\archify.mjs",
+        "deliver",
+        "workflow",
+        "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\candidate.json",
+        "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\client-process.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "4455648ccdb548a23171e0bc931c9eebcb1c2a5c9a924b8a27770ee2c0e9aafc",
+          "bytes": 6497
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 1300,
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\OC\\.gemini\\config\\skills\\archify\\bin\\archify.mjs",
+        "deliver",
+        "workflow",
+        "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\candidate.json",
+        "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\client-process.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "e3130365-a8ad-4d66-8ff4-7910c0528431",
+        "ok": true,
+        "command": "deliver",
+        "type": "workflow",
+        "input": "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\candidate.json",
+        "output": "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\client-process.html",
+        "specification": {
+          "sha256": "4455648ccdb548a23171e0bc931c9eebcb1c2a5c9a924b8a27770ee2c0e9aafc",
+          "bytes": 6497
+        },
+        "artifact": {
+          "sha256": "4455a9f855e902913118549e6530d0d0e4e6d71a7dd0dc87123625f8277bc119",
+          "bytes": 785605
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 260,
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\OC\\.gemini\\config\\skills\\archify\\bin\\archify.mjs",
+        "check",
+        "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\client-process.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\client-process.html",
+        "artifact": {
+          "sha256": "4455a9f855e902913118549e6530d0d0e4e6d71a7dd0dc87123625f8277bc119",
+          "bytes": 785605
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 0,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 59.6,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 6.819431714023831,
+            "maxBends": 4,
+            "routesOverSuggestedBends": 2,
+            "maxStretch": 2.126,
+            "routesOverSuggestedStretch": 1,
+            "minSegmentPx": 16,
+            "minInteriorSegmentPx": 34,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [],
+            "detours": [
+              {
+                "relationship": {
+                  "id": "e_ingress_session",
+                  "from": "tenant_ingress",
+                  "to": "session_lookup",
+                  "label": "load state",
+                  "collectionIndex": 1,
+                  "artifactIndex": 2
+                },
+                "bends": 2,
+                "stretch": 2.126
+              },
+              {
+                "relationship": {
+                  "id": "e_msg_ingress",
+                  "from": "user_msg",
+                  "to": "tenant_ingress",
+                  "label": "HTTPS / WS",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "bends": 3,
+                "stretch": 1
+              },
+              {
+                "relationship": {
+                  "id": "e_stream_persist",
+                  "from": "stream_engine",
+                  "to": "audit_persist",
+                  "label": "save log &amp; tokens",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "bends": 4,
+                "stretch": 1.085
+              }
+            ]
+          },
+          "leadingSpace": {
+            "measured": false,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "legacy-930",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 930,
+            "actualBudgetPx": 930,
+            "limit": "legacy",
+            "requestedTargetPx": null,
+            "requestedTargetMet": null,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "node",
+              "id": "user_msg"
+            },
+            "minimumSourceTextPx": 8,
+            "minimumProjectedTextPx": 6.819431714023831,
+            "semanticTextCount": 30
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "e3130365-a8ad-4d66-8ff4-7910c0528431"
+      }
+    },
+    "browser-check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 5299,
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\OC\\.gemini\\config\\skills\\archify\\bin\\archify.mjs",
+        "browser-check",
+        "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\client-process.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "pass",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "e3130365-a8ad-4d66-8ff4-7910c0528431",
+        "artifact": {
+          "path": "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\client-process.html",
+          "sha256": "4455a9f855e902913118549e6530d0d0e4e6d71a7dd0dc87123625f8277bc119",
+          "bytes": 785605
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "available",
+          "executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+        },
+        "diagnostics": [],
+        "containment": {
+          "status": "pass",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1138,
+              "diagramWidth": 1108,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 115,
+                "diagramChromePx": 78,
+                "svgPx": 682,
+                "cardsPx": 0,
+                "viewBoxHeight": 672
+              },
+              "viewBoxWidth": 1091,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-2",
+                  "heightPx": 114,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "prompt_builder",
+                    "llm_reasoning",
+                    "tool_exec"
+                  ],
+                  "nodeSpanPx": 69,
+                  "spaceAboveNodesPx": 40,
+                  "spaceBelowNodesPx": 5
+                },
+                {
+                  "frameId": "lane-3",
+                  "heightPx": 114,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "session_lookup",
+                    "rag_retrieval",
+                    "audit_persist"
+                  ],
+                  "nodeSpanPx": 69,
+                  "spaceAboveNodesPx": 40,
+                  "spaceBelowNodesPx": 5
+                },
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 108,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "user_msg",
+                    "client_reply"
+                  ],
+                  "nodeSpanPx": 69,
+                  "spaceAboveNodesPx": 35,
+                  "spaceBelowNodesPx": 4
+                },
+                {
+                  "frameId": "lane-1",
+                  "heightPx": 108,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "tenant_ingress",
+                    "stream_engine"
+                  ],
+                  "nodeSpanPx": 69,
+                  "spaceAboveNodesPx": 35,
+                  "spaceBelowNodesPx": 4
+                }
+              ],
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "Web Chat / WhatsApp",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "user_msg"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1255,
+              "diagramWidth": 1225,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 755,
+                "cardsPx": 0,
+                "viewBoxHeight": 672
+              },
+              "viewBoxWidth": 1091,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-2",
+                  "heightPx": 126,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "prompt_builder",
+                    "llm_reasoning",
+                    "tool_exec"
+                  ],
+                  "nodeSpanPx": 76,
+                  "spaceAboveNodesPx": 44,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-3",
+                  "heightPx": 126,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "session_lookup",
+                    "rag_retrieval",
+                    "audit_persist"
+                  ],
+                  "nodeSpanPx": 76,
+                  "spaceAboveNodesPx": 44,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 119,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "user_msg",
+                    "client_reply"
+                  ],
+                  "nodeSpanPx": 76,
+                  "spaceAboveNodesPx": 38,
+                  "spaceBelowNodesPx": 4
+                },
+                {
+                  "frameId": "lane-1",
+                  "heightPx": 119,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "tenant_ingress",
+                    "stream_engine"
+                  ],
+                  "nodeSpanPx": 76,
+                  "spaceAboveNodesPx": 38,
+                  "spaceBelowNodesPx": 4
+                }
+              ],
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "Web Chat / WhatsApp",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "user_msg"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1385,
+              "diagramWidth": 1355,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 835,
+                "cardsPx": 0,
+                "viewBoxHeight": 672
+              },
+              "viewBoxWidth": 1091,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-2",
+                  "heightPx": 139,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "prompt_builder",
+                    "llm_reasoning",
+                    "tool_exec"
+                  ],
+                  "nodeSpanPx": 84,
+                  "spaceAboveNodesPx": 48,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-3",
+                  "heightPx": 139,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "session_lookup",
+                    "rag_retrieval",
+                    "audit_persist"
+                  ],
+                  "nodeSpanPx": 84,
+                  "spaceAboveNodesPx": 48,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 132,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "user_msg",
+                    "client_reply"
+                  ],
+                  "nodeSpanPx": 84,
+                  "spaceAboveNodesPx": 42,
+                  "spaceBelowNodesPx": 5
+                },
+                {
+                  "frameId": "lane-1",
+                  "heightPx": 132,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "tenant_ingress",
+                    "stream_engine"
+                  ],
+                  "nodeSpanPx": 84,
+                  "spaceAboveNodesPx": 42,
+                  "spaceBelowNodesPx": 5
+                }
+              ],
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "Web Chat / WhatsApp",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "user_msg"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1765,
+              "diagramWidth": 1715,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 94,
+                "diagramChromePx": 94,
+                "svgPx": 1056,
+                "cardsPx": 0,
+                "viewBoxHeight": 672
+              },
+              "viewBoxWidth": 1091,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-2",
+                  "heightPx": 176,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "prompt_builder",
+                    "llm_reasoning",
+                    "tool_exec"
+                  ],
+                  "nodeSpanPx": 107,
+                  "spaceAboveNodesPx": 61,
+                  "spaceBelowNodesPx": 8
+                },
+                {
+                  "frameId": "lane-3",
+                  "heightPx": 176,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "session_lookup",
+                    "rag_retrieval",
+                    "audit_persist"
+                  ],
+                  "nodeSpanPx": 107,
+                  "spaceAboveNodesPx": 61,
+                  "spaceBelowNodesPx": 8
+                },
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 167,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "user_msg",
+                    "client_reply"
+                  ],
+                  "nodeSpanPx": 107,
+                  "spaceAboveNodesPx": 53,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-1",
+                  "heightPx": 167,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "tenant_ingress",
+                    "stream_engine"
+                  ],
+                  "nodeSpanPx": 107,
+                  "spaceAboveNodesPx": 53,
+                  "spaceBelowNodesPx": 6
+                }
+              ],
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "Web Chat / WhatsApp",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "user_msg"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "themeStates": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            }
+          ]
+        },
+        "readability": {
+          "status": "pass",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1138,
+              "diagramWidth": 1108,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 115,
+                "diagramChromePx": 78,
+                "svgPx": 682,
+                "cardsPx": 0,
+                "viewBoxHeight": 672
+              },
+              "viewBoxWidth": 1091,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-2",
+                  "heightPx": 114,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "prompt_builder",
+                    "llm_reasoning",
+                    "tool_exec"
+                  ],
+                  "nodeSpanPx": 69,
+                  "spaceAboveNodesPx": 40,
+                  "spaceBelowNodesPx": 5
+                },
+                {
+                  "frameId": "lane-3",
+                  "heightPx": 114,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "session_lookup",
+                    "rag_retrieval",
+                    "audit_persist"
+                  ],
+                  "nodeSpanPx": 69,
+                  "spaceAboveNodesPx": 40,
+                  "spaceBelowNodesPx": 5
+                },
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 108,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "user_msg",
+                    "client_reply"
+                  ],
+                  "nodeSpanPx": 69,
+                  "spaceAboveNodesPx": 35,
+                  "spaceBelowNodesPx": 4
+                },
+                {
+                  "frameId": "lane-1",
+                  "heightPx": 108,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "tenant_ingress",
+                    "stream_engine"
+                  ],
+                  "nodeSpanPx": 69,
+                  "spaceAboveNodesPx": 35,
+                  "spaceBelowNodesPx": 4
+                }
+              ],
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "Web Chat / WhatsApp",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "user_msg"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1255,
+              "diagramWidth": 1225,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 755,
+                "cardsPx": 0,
+                "viewBoxHeight": 672
+              },
+              "viewBoxWidth": 1091,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-2",
+                  "heightPx": 126,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "prompt_builder",
+                    "llm_reasoning",
+                    "tool_exec"
+                  ],
+                  "nodeSpanPx": 76,
+                  "spaceAboveNodesPx": 44,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-3",
+                  "heightPx": 126,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "session_lookup",
+                    "rag_retrieval",
+                    "audit_persist"
+                  ],
+                  "nodeSpanPx": 76,
+                  "spaceAboveNodesPx": 44,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 119,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "user_msg",
+                    "client_reply"
+                  ],
+                  "nodeSpanPx": 76,
+                  "spaceAboveNodesPx": 38,
+                  "spaceBelowNodesPx": 4
+                },
+                {
+                  "frameId": "lane-1",
+                  "heightPx": 119,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "tenant_ingress",
+                    "stream_engine"
+                  ],
+                  "nodeSpanPx": 76,
+                  "spaceAboveNodesPx": 38,
+                  "spaceBelowNodesPx": 4
+                }
+              ],
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "Web Chat / WhatsApp",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "user_msg"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1385,
+              "diagramWidth": 1355,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 835,
+                "cardsPx": 0,
+                "viewBoxHeight": 672
+              },
+              "viewBoxWidth": 1091,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-2",
+                  "heightPx": 139,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "prompt_builder",
+                    "llm_reasoning",
+                    "tool_exec"
+                  ],
+                  "nodeSpanPx": 84,
+                  "spaceAboveNodesPx": 48,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-3",
+                  "heightPx": 139,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "session_lookup",
+                    "rag_retrieval",
+                    "audit_persist"
+                  ],
+                  "nodeSpanPx": 84,
+                  "spaceAboveNodesPx": 48,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 132,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "user_msg",
+                    "client_reply"
+                  ],
+                  "nodeSpanPx": 84,
+                  "spaceAboveNodesPx": 42,
+                  "spaceBelowNodesPx": 5
+                },
+                {
+                  "frameId": "lane-1",
+                  "heightPx": 132,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "tenant_ingress",
+                    "stream_engine"
+                  ],
+                  "nodeSpanPx": 84,
+                  "spaceAboveNodesPx": 42,
+                  "spaceBelowNodesPx": 5
+                }
+              ],
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "Web Chat / WhatsApp",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "user_msg"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1765,
+              "diagramWidth": 1715,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 94,
+                "diagramChromePx": 94,
+                "svgPx": 1056,
+                "cardsPx": 0,
+                "viewBoxHeight": 672
+              },
+              "viewBoxWidth": 1091,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-2",
+                  "heightPx": 176,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "prompt_builder",
+                    "llm_reasoning",
+                    "tool_exec"
+                  ],
+                  "nodeSpanPx": 107,
+                  "spaceAboveNodesPx": 61,
+                  "spaceBelowNodesPx": 8
+                },
+                {
+                  "frameId": "lane-3",
+                  "heightPx": 176,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "session_lookup",
+                    "rag_retrieval",
+                    "audit_persist"
+                  ],
+                  "nodeSpanPx": 107,
+                  "spaceAboveNodesPx": 61,
+                  "spaceBelowNodesPx": 8
+                },
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 167,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "user_msg",
+                    "client_reply"
+                  ],
+                  "nodeSpanPx": 107,
+                  "spaceAboveNodesPx": 53,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-1",
+                  "heightPx": 167,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "tenant_ingress",
+                    "stream_engine"
+                  ],
+                  "nodeSpanPx": 107,
+                  "spaceAboveNodesPx": 53,
+                  "spaceBelowNodesPx": 6
+                }
+              ],
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "Web Chat / WhatsApp",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "user_msg"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "viewerChrome": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1138,
+              "diagramWidth": 1108,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 115,
+                "diagramChromePx": 78,
+                "svgPx": 682,
+                "cardsPx": 0,
+                "viewBoxHeight": 672
+              },
+              "viewBoxWidth": 1091,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-2",
+                  "heightPx": 114,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "prompt_builder",
+                    "llm_reasoning",
+                    "tool_exec"
+                  ],
+                  "nodeSpanPx": 69,
+                  "spaceAboveNodesPx": 40,
+                  "spaceBelowNodesPx": 5
+                },
+                {
+                  "frameId": "lane-3",
+                  "heightPx": 114,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "session_lookup",
+                    "rag_retrieval",
+                    "audit_persist"
+                  ],
+                  "nodeSpanPx": 69,
+                  "spaceAboveNodesPx": 40,
+                  "spaceBelowNodesPx": 5
+                },
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 108,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "user_msg",
+                    "client_reply"
+                  ],
+                  "nodeSpanPx": 69,
+                  "spaceAboveNodesPx": 35,
+                  "spaceBelowNodesPx": 4
+                },
+                {
+                  "frameId": "lane-1",
+                  "heightPx": 108,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "tenant_ingress",
+                    "stream_engine"
+                  ],
+                  "nodeSpanPx": 69,
+                  "spaceAboveNodesPx": 35,
+                  "spaceBelowNodesPx": 4
+                }
+              ],
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "Web Chat / WhatsApp",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "user_msg"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1255,
+              "diagramWidth": 1225,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 755,
+                "cardsPx": 0,
+                "viewBoxHeight": 672
+              },
+              "viewBoxWidth": 1091,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-2",
+                  "heightPx": 126,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "prompt_builder",
+                    "llm_reasoning",
+                    "tool_exec"
+                  ],
+                  "nodeSpanPx": 76,
+                  "spaceAboveNodesPx": 44,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-3",
+                  "heightPx": 126,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "session_lookup",
+                    "rag_retrieval",
+                    "audit_persist"
+                  ],
+                  "nodeSpanPx": 76,
+                  "spaceAboveNodesPx": 44,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 119,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "user_msg",
+                    "client_reply"
+                  ],
+                  "nodeSpanPx": 76,
+                  "spaceAboveNodesPx": 38,
+                  "spaceBelowNodesPx": 4
+                },
+                {
+                  "frameId": "lane-1",
+                  "heightPx": 119,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "tenant_ingress",
+                    "stream_engine"
+                  ],
+                  "nodeSpanPx": 76,
+                  "spaceAboveNodesPx": 38,
+                  "spaceBelowNodesPx": 4
+                }
+              ],
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "Web Chat / WhatsApp",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "user_msg"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1385,
+              "diagramWidth": 1355,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 835,
+                "cardsPx": 0,
+                "viewBoxHeight": 672
+              },
+              "viewBoxWidth": 1091,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-2",
+                  "heightPx": 139,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "prompt_builder",
+                    "llm_reasoning",
+                    "tool_exec"
+                  ],
+                  "nodeSpanPx": 84,
+                  "spaceAboveNodesPx": 48,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-3",
+                  "heightPx": 139,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "session_lookup",
+                    "rag_retrieval",
+                    "audit_persist"
+                  ],
+                  "nodeSpanPx": 84,
+                  "spaceAboveNodesPx": 48,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 132,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "user_msg",
+                    "client_reply"
+                  ],
+                  "nodeSpanPx": 84,
+                  "spaceAboveNodesPx": 42,
+                  "spaceBelowNodesPx": 5
+                },
+                {
+                  "frameId": "lane-1",
+                  "heightPx": 132,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "tenant_ingress",
+                    "stream_engine"
+                  ],
+                  "nodeSpanPx": 84,
+                  "spaceAboveNodesPx": 42,
+                  "spaceBelowNodesPx": 5
+                }
+              ],
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "Web Chat / WhatsApp",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "user_msg"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": null,
+              "ok": true,
+              "readerWidth": 1765,
+              "diagramWidth": 1715,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 94,
+                "diagramChromePx": 94,
+                "svgPx": 1056,
+                "cardsPx": 0,
+                "viewBoxHeight": 672
+              },
+              "viewBoxWidth": 1091,
+              "workflowLanes": [
+                {
+                  "frameId": "lane-2",
+                  "heightPx": 176,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "prompt_builder",
+                    "llm_reasoning",
+                    "tool_exec"
+                  ],
+                  "nodeSpanPx": 107,
+                  "spaceAboveNodesPx": 61,
+                  "spaceBelowNodesPx": 8
+                },
+                {
+                  "frameId": "lane-3",
+                  "heightPx": 176,
+                  "nodeCount": 3,
+                  "nodeIds": [
+                    "session_lookup",
+                    "rag_retrieval",
+                    "audit_persist"
+                  ],
+                  "nodeSpanPx": 107,
+                  "spaceAboveNodesPx": 61,
+                  "spaceBelowNodesPx": 8
+                },
+                {
+                  "frameId": "lane-0",
+                  "heightPx": 167,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "user_msg",
+                    "client_reply"
+                  ],
+                  "nodeSpanPx": 107,
+                  "spaceAboveNodesPx": 53,
+                  "spaceBelowNodesPx": 6
+                },
+                {
+                  "frameId": "lane-1",
+                  "heightPx": 167,
+                  "nodeCount": 2,
+                  "nodeIds": [
+                    "tenant_ingress",
+                    "stream_engine"
+                  ],
+                  "nodeSpanPx": 107,
+                  "spaceAboveNodesPx": 53,
+                  "spaceBelowNodesPx": 6
+                }
+              ],
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 8,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "Web Chat / WhatsApp",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "user_msg"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "client-process.browser-check.json",
+          "files": []
+        }
+      }
+    }
+  },
+  "diagnostics": [],
+  "evidence": {
+    "receipt": "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\client-process.finalize.json",
+    "summaryReceipt": "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\client-process.finalize-summary.json",
+    "browserCheckReceipt": "C:\\Users\\OC\\Desktop\\Instantlify\\.archify\\workflow-instantlify-client-process-20261006-110800\\client-process.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "finishedAt": "2026-10-06T06:11:08.352Z",
+  "durationMs": 7930,
+  "update": {
+    "status": "current",
+    "installedVersion": "3.0.1",
+    "availableVersion": "3.0.1",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-06T06:01:50.789Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  }
+}

@@ -60,6 +60,6 @@ jobs:
         run: |
           python connectors/scripts/publish.py make
           gh release create "$GITHUB_REF_NAME" --title "Connectors $VERSION" --notes \
-            "Upload nemio-make-app.zip in Make's developer platform." \
-            connectors/dist/nemio-make-app.zip || \
-          gh release upload "$GITHUB_REF_NAME" connectors/dist/nemio-make-app.zip --clobber
+            "Upload instantlify-make-app.zip in Make's developer platform." \
+            connectors/dist/instantlify-make-app.zip || \
+          gh release upload "$GITHUB_REF_NAME" connectors/dist/instantlify-make-app.zip --clobber

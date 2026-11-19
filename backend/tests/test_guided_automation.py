@@ -16,7 +16,7 @@ from apps.tenants.models import Membership, User
 from apps.tenants.services import create_workspace
 
 pytestmark = pytest.mark.django_db
-TOKEN = "nemio:continue:test-button"
+TOKEN = "instantlify:continue:test-button"
 
 
 @pytest.fixture(autouse=True)

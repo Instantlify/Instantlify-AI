@@ -12,7 +12,7 @@ from apps.crm.services import queue_reply
 from tests.test_guided_automation import flow, inbound, publish, quiet_notify, run  # noqa: F401
 
 pytestmark = pytest.mark.django_db
-FOLLOW = "nemio:follow:test"
+FOLLOW = "instantlify:follow:test"
 
 
 @pytest.fixture(name="channel")

@@ -27,7 +27,7 @@ from .auth import PREFIX, APIKeyAuthentication, APIKeyPrincipal, APIKeyThrottle
 from .models import MCPClient
 
 SUPPORTED_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26"]
-SERVER_INFO = {"name": "nemio", "title": "Instantlify", "version": "1.0.0"}
+SERVER_INFO = {"name": "instantlify", "title": "Instantlify", "version": "1.0.0"}
 INSTRUCTIONS = (
     "Instantlify is a sales inbox for Instagram, WhatsApp, Messenger and Telegram. Read "
     "conversations and leads, reply to customers, start published automations, and manage "
@@ -66,7 +66,7 @@ class MCPKeyAuthentication(APIKeyAuthentication):
         # Points MCP clients at OAuth discovery (RFC 9728) when no token was sent.
         from .oauth import resource_metadata_url
 
-        return f'Bearer realm="nemio-mcp", resource_metadata="{resource_metadata_url()}"'
+        return f'Bearer realm="instantlify-mcp", resource_metadata="{resource_metadata_url()}"'
 
 
 # ------------------------------------------------------------------------ tools

@@ -80,7 +80,7 @@ Instantlify AI avoids derivative copycat styling (such as generic dark modes or 
 
 ### 3.2 Overview & Meta Telemetry Hub (`/w/[id]/overview`)
 1. **Meta Channel Connection Status Banner**:
-   - Compact health ribbon showing connected Meta assets (e.g. `Instagram: Connected (@nemio_app) • Facebook: 2 Pages • WhatsApp: 1 Number`).
+   - Compact health ribbon showing connected Meta assets (e.g. `Instagram: Connected (@instantlify_app) • Facebook: 2 Pages • WhatsApp: 1 Number`).
 2. **Key Metric Sparklines**:
    - **DM Conversations**: Graph showing daily volume across IG, FB, and WhatsApp.
    - **Contacts Captured**: Net new leads generated through comment triggers and story replies.

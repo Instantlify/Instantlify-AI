@@ -48,7 +48,7 @@ def isolated(settings):
     settings.WHATSAPP_APP_SECRET = "app-secret"
     settings.META_WEBHOOK_VERIFY_TOKEN = "verify-token"
     settings.WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID = "999"
-    settings.PUBLIC_APP_URL = "https://nemio.example.com"
+    settings.PUBLIC_APP_URL = "https://instantlify.example.com"
     with (
         patch("apps.crm.services.notify"),
         patch("apps.channels.tasks.rate_limit_wait", return_value=0),

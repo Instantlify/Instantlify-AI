@@ -841,7 +841,7 @@ export class ApiError extends Error {
 
 /** Fired on the window whenever the API blocks an action on plan grounds, so the
  * shell can open the upgrade modal without every page wiring it up. */
-export const UPGRADE_EVENT = "nemio:upgrade-required";
+export const UPGRADE_EVENT = "instantlify:upgrade-required";
 
 function failure(payload: unknown, status: number) {
   const upgrade =

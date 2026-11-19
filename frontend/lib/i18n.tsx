@@ -285,7 +285,7 @@ const DICTIONARIES: Record<Language, Dictionary> = {
   ru: RU,
   sr: SR,
 };
-const STORAGE_KEY = "nemio:language";
+const STORAGE_KEY = "instantlify:language";
 
 export function detectLanguage(): Language {
   try {

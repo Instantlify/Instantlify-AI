@@ -60,7 +60,7 @@ def event_workspace(event):
     obj = event["data"]["object"]
     if event["type"].startswith("checkout.session."):
         metadata = obj.get("metadata") or {}
-        topup_id = metadata.get("nemio_credit_topup")
+        topup_id = metadata.get("instantlify_credit_topup")
         if topup_id:
             try:
                 pending = AICreditTransaction.all_objects.filter(pk=topup_id).first()
@@ -69,7 +69,7 @@ def event_workspace(event):
             if pending and str(pending.workspace_id) == metadata.get("workspace"):
                 return pending.workspace_id
             return None
-        purchase_id = metadata.get("nemio_template_purchase")
+        purchase_id = metadata.get("instantlify_template_purchase")
         if purchase_id:
             from apps.marketplace.models import TemplatePurchase
 

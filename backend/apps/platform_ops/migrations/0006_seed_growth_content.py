@@ -11,16 +11,16 @@ TEMPLATES = [
     (
         "welcome-v2",
         "Sent once, immediately after a workspace is created.",
-        "Welcome to Nemio, {{ name }}",
+        "Welcome to Instantlify, {{ name }}",
         "Hi {{ name }},\n\nYour workspace {{ workspace }} is ready.\n\n"
         "Connect an account and your first automation can be live in a few minutes.\n\n"
-        "{{ app_url }}\n\n— The Nemio team",
+        "{{ app_url }}\n\n— The Instantlify team",
         "active",
     ),
     (
         "magic-link-signin",
         "Magic link / OTP sign-in email.",
-        "Your Nemio sign-in link",
+        "Your Instantlify sign-in link",
         "Use this link to sign in:\n\n{{ link }}\n\n"
         "It works once and expires in 15 minutes. If you did not ask for it, ignore this email.",
         "active",
@@ -28,7 +28,7 @@ TEMPLATES = [
     (
         "password-reset",
         "Password reset.",
-        "Reset your Nemio password",
+        "Reset your Instantlify password",
         "Reset your password here:\n\n{{ link }}\n\n"
         "The link expires in 1 hour. If you did not request a reset, nothing has changed.",
         "active",
@@ -56,7 +56,7 @@ TEMPLATES = [
         "Stripe billing-portal link. The URL must be generated fresh immediately "
         "before send: it is single-use and expires in about five minutes, so it can "
         "never be pre-generated and stored.",
-        "Manage your Nemio subscription",
+        "Manage your Instantlify subscription",
         "Hi {{ name }},\n\nManage or cancel your subscription here:\n\n{{ portal_url }}\n\n"
         "This link is single-use and expires shortly.",
         "active",
@@ -65,7 +65,7 @@ TEMPLATES = [
         "email-change-notice-current",
         "Goes to the CURRENT address when an email change is requested. Companion to "
         "email-change-confirmation, which goes to the new address.",
-        "Your Nemio account email was changed",
+        "Your Instantlify account email was changed",
         "Your account email was changed to {{ new_email }}.\n\n"
         "If this was not you, contact support immediately: {{ support_email }}",
         "active",
@@ -73,8 +73,8 @@ TEMPLATES = [
     (
         "email-change-confirmation",
         "Goes to the NEW address; carries the confirmation link.",
-        "Confirm your new Nemio email",
-        "Confirm this address for your Nemio account:\n\n{{ link }}",
+        "Confirm your new Instantlify email",
+        "Confirm this address for your Instantlify account:\n\n{{ link }}",
         "active",
     ),
     (

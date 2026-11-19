@@ -172,7 +172,7 @@ Enhance custom domain functionality to handle ownership verification, automated 
 
 #### [NEW] [domain_verification.py](file:///c:/Users/OC/Desktop/Instantlify%20AI/backend/apps/tenants/domain_verification.py)
 - Service `verify_custom_domain(workspace_branding)`:
-  - Queries DNS for TXT record `_nemio-challenge.<custom_domain>` or CNAME `instantlify.com`.
+  - Queries DNS for TXT record `_instantlify-challenge.<custom_domain>` or CNAME `instantlify.com`.
   - Updates `custom_domain_status = "active"` upon resolution.
 
 #### [NEW] [tls.py](file:///c:/Users/OC/Desktop/Instantlify%20AI/backend/apps/tenants/tls.py)

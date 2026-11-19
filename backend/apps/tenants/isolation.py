@@ -20,7 +20,7 @@ relies on `TenantModel.save()` and `TenantQuerySet`'s bulk checks instead.
 
 from collections import defaultdict
 
-PREFIX = "nemio_tenant"
+PREFIX = "instantlify_tenant"
 
 
 def tenant_links():

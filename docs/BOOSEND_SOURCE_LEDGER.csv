@@ -1,4 +1,4 @@
-reference_source,kind,methods,area,nemio_status,nemio_source,acceptance_test,live_verified
+reference_source,kind,methods,area,instantlify_status,instantlify_source,acceptance_test,live_verified
 app/[username]/page.tsx,screen,,[username],requires_behavior_mapping,,,no
 app/affiliate/page.tsx,screen,,affiliate,partial_implemented_mock_provider_tests,backend/apps/platform_ops/affiliates.py;frontend/app/w/[workspaceId]/affiliate/page.tsx,backend/tests/test_affiliates.py;frontend/tests/affiliate-profile.spec.ts,no
 app/app-store/page.tsx,screen,,app-store,requires_behavior_mapping,,,no

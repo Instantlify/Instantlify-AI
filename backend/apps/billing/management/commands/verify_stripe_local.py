@@ -91,9 +91,9 @@ class Command(BaseCommand):
         workspace = Workspace.objects.create(name=f"Stripe local verification {marker[:8]}")
         customer = stripe.Customer.create(
             name="Instantlify local webhook verification",
-            metadata={"nemio_local_verification": marker},
+            metadata={"instantlify_local_verification": marker},
             api_key=self.key,
-            idempotency_key=f"nemio-local-customer:{marker}",
+            idempotency_key=f"instantlify-local-customer:{marker}",
         )
         BillingAccount.objects.for_workspace(workspace).create(
             workspace=workspace, customer_id=customer.id
@@ -111,9 +111,9 @@ class Command(BaseCommand):
                 items=[{"price": price.stripe_price_id}],
                 trial_period_days=7,
                 trial_settings={"end_behavior": {"missing_payment_method": "cancel"}},
-                metadata={"nemio_local_verification": marker},
+                metadata={"instantlify_local_verification": marker},
                 api_key=self.key,
-                idempotency_key=f"nemio-local-subscription:{marker}",
+                idempotency_key=f"instantlify-local-subscription:{marker}",
             )
             account, count = self.wait_for(workspace.pk, subscription.id, "trialing")
             if account.plan_price_id != price.pk or account.period_end is None:
@@ -131,9 +131,9 @@ class Command(BaseCommand):
             )
             stripe.Subscription.modify(
                 subscription.id,
-                metadata={"nemio_local_verification": marker, "verification_stage": "updated"},
+                metadata={"instantlify_local_verification": marker, "verification_stage": "updated"},
                 api_key=self.key,
-                idempotency_key=f"nemio-local-update:{marker}",
+                idempotency_key=f"instantlify-local-update:{marker}",
             )
             account, count = self.wait_for(
                 workspace.pk, subscription.id, "trialing", minimum_events=before + 1
@@ -178,7 +178,7 @@ class Command(BaseCommand):
                         ],
                         proration_behavior="none",
                         api_key=self.key,
-                        idempotency_key=f"nemio-local-{stage}:{marker}",
+                        idempotency_key=f"instantlify-local-{stage}:{marker}",
                     )
                     account, count = self.wait_for(
                         workspace.pk,
@@ -201,7 +201,7 @@ class Command(BaseCommand):
                 current = stripe.Subscription.retrieve(subscription.id, api_key=self.key)
                 if (
                     current.livemode
-                    or stripe_data(current).get("metadata", {}).get("nemio_local_verification")
+                    or stripe_data(current).get("metadata", {}).get("instantlify_local_verification")
                     != marker
                 ):
                     raise CommandError(
@@ -210,7 +210,7 @@ class Command(BaseCommand):
                 stripe.Subscription.cancel(
                     subscription.id,
                     api_key=self.key,
-                    idempotency_key=f"nemio-local-cancel:{marker}",
+                    idempotency_key=f"instantlify-local-cancel:{marker}",
                 )
                 account, count = self.wait_for(workspace.pk, subscription.id, "canceled")
                 self.report(

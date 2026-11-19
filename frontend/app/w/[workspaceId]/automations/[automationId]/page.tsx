@@ -719,7 +719,10 @@ export default function BuilderPage() {
                   kind,
                   text: "Please follow this Instagram account, then tap below to continue.",
                   button_title: "I'm following",
-                  expected_reply: `nemio:${automationId}:${id}`.slice(0, 64),
+                  expected_reply: `instantlify:${automationId}:${id}`.slice(
+                    0,
+                    64,
+                  ),
                 }
               : kind === "ai_agent"
                 ? {

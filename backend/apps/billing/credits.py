@@ -184,7 +184,7 @@ def auto_topup(balance):
             off_session=True,
             confirm=True,
             description="Instantlify AI credits auto top-up",
-            metadata={"workspace_id": str(balance.workspace_id), "nemio_credit_auto_topup": key},
+            metadata={"workspace_id": str(balance.workspace_id), "instantlify_credit_auto_topup": key},
             idempotency_key=key,
         )
         if intent.status != "succeeded":
@@ -297,7 +297,7 @@ def create_topup_session(job, account):
             "setup_future_usage": "off_session",
             "metadata": {"workspace_id": str(job.workspace_id)},
         },
-        metadata={"nemio_credit_topup": str(pending.pk), "workspace": str(job.workspace_id)},
+        metadata={"instantlify_credit_topup": str(pending.pk), "workspace": str(job.workspace_id)},
         # job.workspace_id, not the account's: a reseller's client pays from their own
         # workspace and must come back to it, not to the agency parent.
         success_url=payments_url(job.workspace_id, f"?credits=success&topup={pending.pk}"),
@@ -307,10 +307,10 @@ def create_topup_session(job, account):
 
 
 def apply_checkout_event(workspace_id, payload):
-    """Platform webhook for top-up checkouts (routed by `nemio_credit_topup` metadata)."""
+    """Platform webhook for top-up checkouts (routed by `instantlify_credit_topup` metadata)."""
     session = payload["data"]["object"]
     event_type = payload["type"]
-    pending_id = (session.get("metadata") or {}).get("nemio_credit_topup")
+    pending_id = (session.get("metadata") or {}).get("instantlify_credit_topup")
     with transaction.atomic():
         pending = (
             AICreditTransaction.objects.for_workspace(workspace_id)

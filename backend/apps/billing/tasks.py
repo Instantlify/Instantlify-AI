@@ -275,7 +275,7 @@ def billing_interval(items):
 def apply_event(workspace_id, payload, event_id):
     if payload["type"].startswith("checkout.session."):
         metadata = payload["data"]["object"].get("metadata") or {}
-        if metadata.get("nemio_credit_topup"):
+        if metadata.get("instantlify_credit_topup"):
             from .credits import apply_checkout_event as apply_credit_checkout
 
             return apply_credit_checkout(workspace_id, payload)

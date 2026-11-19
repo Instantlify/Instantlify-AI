@@ -252,7 +252,7 @@ def test_topup_checkout_credits_on_webhook_and_saves_the_card(client, workspace,
     )
     assert kwargs["payment_intent_data"]["setup_future_usage"] == "off_session"
     pending = AICreditTransaction.objects.for_workspace(workspace).get(type="topup")
-    assert pending.status == "pending" and kwargs["metadata"]["nemio_credit_topup"] == str(
+    assert pending.status == "pending" and kwargs["metadata"]["instantlify_credit_topup"] == str(
         pending.pk
     )
     payload = {
@@ -264,7 +264,7 @@ def test_topup_checkout_credits_on_webhook_and_saves_the_card(client, workspace,
                 "payment_status": "paid",
                 "amount_total": 2500,
                 "payment_intent": "pi_manual",
-                "metadata": {"nemio_credit_topup": str(pending.pk), "workspace": str(workspace.pk)},
+                "metadata": {"instantlify_credit_topup": str(pending.pk), "workspace": str(workspace.pk)},
             }
         },
     }

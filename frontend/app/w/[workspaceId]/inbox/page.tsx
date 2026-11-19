@@ -118,7 +118,7 @@ const EVENT_LABELS: Record<ConversationEvent["kind"], string> = {
 // Quick replies used to live only in each browser. They are now shared by the team on
 // the server; a browser's old list is moved up once if the team has none yet.
 const legacyRepliesKey = (workspaceId: string) =>
-  `nemio:quick-replies:${workspaceId}`;
+  `instantlify:quick-replies:${workspaceId}`;
 function takeLegacyReplies(workspaceId: string): string[] | null {
   try {
     const stored = JSON.parse(
