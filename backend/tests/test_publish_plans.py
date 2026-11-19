@@ -76,7 +76,11 @@ def test_publishes_every_priced_interval_and_stores_the_ids(settings):
     # Stripe's own interval names, not Instantlify's.
     intervals = {call["recurring"]["interval"] for call in fake.created_prices}
     assert intervals == {"month", "year"}
-    assert {p["id"] for p in fake.created_products} == {"instantlify-starter", "instantlify-pro", "instantlify-scale"}
+    assert {p["id"] for p in fake.created_products} == {
+        "instantlify-starter",
+        "instantlify-pro",
+        "instantlify-scale",
+    }
 
 
 def test_free_and_custom_tiers_are_not_published(settings):

@@ -141,10 +141,13 @@ class MetaOAuthStartView(APIView):
                     "state": state,
                     "prompt": "login",
                 }
-                return Response({
-                    "authorization_url": "https://www.facebook.com/dialog/oauth?" + urlencode(params),
-                    "mode": "live",
-                })
+                return Response(
+                    {
+                        "authorization_url": "https://www.facebook.com/dialog/oauth?"
+                        + urlencode(params),
+                        "mode": "live",
+                    }
+                )
             return Response(
                 {
                     "authorization_url": "https://www.instagram.com/oauth/authorize?"
@@ -243,7 +246,8 @@ class MetaOAuthCallbackView(APIView):
                         "profile": credentials.profile,
                         "meta_authorizer_id": credentials.meta_authorizer_id,
                         "refresh_due_at": (
-                            None if credentials.profile.get("unified_login")
+                            None
+                            if credentials.profile.get("unified_login")
                             else credentials.expires_at - timedelta(days=7)
                         ),
                     },

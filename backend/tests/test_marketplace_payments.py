@@ -127,7 +127,9 @@ def test_paid_publishing_requires_connected_payouts(client, workspace, user, str
     assert created.args[0]["configuration"]["recipient"]["capabilities"]["stripe_balance"] == {
         "stripe_transfers": {"requested": True}
     }
-    assert created.kwargs == {} and created.args[1]["idempotency_key"].startswith("instantlify-seller:")
+    assert created.kwargs == {} and created.args[1]["idempotency_key"].startswith(
+        "instantlify-seller:"
+    )
     assert publish_paid(client, workspace, user).status_code == 201
     assert SellerAccount.objects.for_workspace(workspace).count() == 1
     # A second onboarding call reuses the same account.
