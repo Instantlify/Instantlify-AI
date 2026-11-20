@@ -7,8 +7,10 @@ import httpx
 
 
 class ProviderError(Exception):
-    def __init__(self, code="provider_rejected"):
+    def __init__(self, code="provider_rejected", detail=""):
         self.code = code
+        # Provider's own error summary for server logs; never shown to users.
+        self.detail = detail
         super().__init__(code)
 
 
@@ -91,9 +93,17 @@ def _request(method, url, *, side_effect=False, empty_success=False, **kwargs):
         code = body.get("error", {}).get("code") if isinstance(body.get("error"), dict) else None
         if code in {4, 17, 32, 613, 80004}:
             raise RetryableError(60)
+        detail = ""
+        if isinstance(error, dict):
+            detail = (
+                f"HTTP {response.status_code} code={code} "
+                f"subcode={error.get('error_subcode')} type={error.get('type')} "
+                f"message={str(error.get('message', ''))[:300]}"
+            )
         raise ProviderError(
             "credentials_expired"
             if response.status_code == 401 or code == 190
-            else "provider_rejected"
+            else "provider_rejected",
+            detail,
         )
     return body
