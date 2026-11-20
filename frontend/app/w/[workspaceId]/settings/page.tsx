@@ -1521,7 +1521,7 @@ export default function SettingsPage() {
                   </span>
                 </div>
                 <div className="plan-stat-item">
-                  <span className="stat-label">DMs This Month</span>
+                  <span className="stat-label">AI Messages This Period</span>
                   <span className="stat-val">
                     {billing
                       ? `${billing.used} / ${limit(billing.usage_limit)}`
