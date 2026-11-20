@@ -315,10 +315,9 @@ def unified_exchange(code):
         for permission in debug.get("granular_scopes") or []
         if permission.get("scope") == messaging_scope
     ]
-    if not messaging_grants:
-        if messaging_scope in (debug.get("scopes") or []):
-            raise ProviderError("instagram_messaging_grant_has_no_targets")
+    if not messaging_grants and messaging_scope not in (debug.get("scopes") or []):
         raise ProviderError("instagram_messaging_grant_missing")
+    headers = {"Authorization": f"Bearer {token}"}
     accounts = {
         str(account_id)
         for permission in messaging_grants
@@ -326,11 +325,24 @@ def unified_exchange(code):
         if account_id
     }
     if not accounts:
+        # Unified Login issues a business-integration system-user token whose
+        # granular scopes may omit target_ids; the granted Instagram accounts are
+        # then listed as the system user's assigned assets instead.
+        assigned = (
+            request(
+                "GET",
+                f"{graph_url}/me/assigned_instagram_accounts",
+                params={"fields": "id,username"},
+                headers=headers,
+            ).get("data")
+            or []
+        )
+        accounts = {str(item["id"]) for item in assigned if item.get("id")}
+    if not accounts:
         raise ProviderError("instagram_messaging_grant_has_no_targets")
     if len(accounts) > 1:
         raise ProviderError("instagram_messaging_grant_has_multiple_targets")
     account_id = accounts.pop()
-    headers = {"Authorization": f"Bearer {token}"}
     profile = request(
         "GET",
         f"{graph_url}/{account_id}",
