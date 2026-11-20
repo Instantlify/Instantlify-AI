@@ -267,12 +267,12 @@ class MetaOAuthCallbackView(APIView):
                     provider="instagram",
                 )
         except (IntegrationUnavailable, IntegrityError, ProviderError, KeyError, ValueError) as exc:
+            reason = type(exc).__name__
+            if isinstance(exc, ProviderError):
+                reason = f"{exc.code}:code={exc.upstream_code}:subcode={exc.upstream_subcode}"
             logging.getLogger(__name__).warning(
-                "Instagram connect failed for workspace %s: %s %s %s",
-                pending.workspace_id,
-                type(exc).__name__,
-                getattr(exc, "code", exc),
-                getattr(exc, "detail", ""),
+                "Instagram connection failed",
+                extra={"event_code": f"instagram_connect_failed:{reason}"},
             )
             return Response(
                 {"detail": "Connection failed. Start a new connection attempt."}, status=400
