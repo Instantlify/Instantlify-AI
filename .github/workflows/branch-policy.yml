@@ -14,7 +14,7 @@ jobs:
     name: source-branch
     runs-on: ubuntu-latest
     steps:
-      - name: Enforce feature to dev to main
+      - name: Enforce work branch to dev to main
         env:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
@@ -24,14 +24,18 @@ jobs:
         run: |
           const { BASE_BRANCH: base, HEAD_BRANCH: head,
             HEAD_REPOSITORY: source, BASE_REPOSITORY: target } = process.env;
+          // Work branches that may target dev, named <prefix>/<description>.
+          const prefixes = ['feature', 'fix', 'bugfix', 'refactor', 'upgrade'];
+          const allowed = prefixes.map((prefix) => prefix + '/*').join(', ');
           let error;
           if (source !== target) {
             error = 'The source branch must belong to this repository.';
           } else if (base === 'main') {
             if (head !== 'dev') error = 'Only dev may open a pull request into main.';
           } else if (base === 'dev') {
-            if (!head?.startsWith('feature/') || head.length <= 'feature/'.length) {
-              error = 'Only feature/* branches may open a pull request into dev.';
+            const prefix = prefixes.find((name) => head?.startsWith(name + '/'));
+            if (!prefix || head.length <= prefix.length + 1) {
+              error = 'Only ' + allowed + ' branches may open a pull request into dev.';
             }
           } else {
             error = 'Unexpected target branch.';
