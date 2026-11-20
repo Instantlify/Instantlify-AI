@@ -309,14 +309,26 @@ def unified_exchange(code):
     )["data"]
     if not debug.get("is_valid") or str(debug.get("app_id")) != settings.META_APP_ID:
         raise ProviderError("invalid_instagram_token")
+    messaging_scope = "instagram_manage_messages"
+    messaging_grants = [
+        permission
+        for permission in debug.get("granular_scopes") or []
+        if permission.get("scope") == messaging_scope
+    ]
+    if not messaging_grants:
+        if messaging_scope in (debug.get("scopes") or []):
+            raise ProviderError("instagram_messaging_grant_has_no_targets")
+        raise ProviderError("instagram_messaging_grant_missing")
     accounts = {
         str(account_id)
-        for permission in debug.get("granular_scopes", [])
-        if permission.get("scope") == "instagram_manage_messages"
-        for account_id in permission.get("target_ids", [])
+        for permission in messaging_grants
+        for account_id in permission.get("target_ids") or []
+        if account_id
     }
-    if len(accounts) != 1:
-        raise ProviderError("select_one_instagram_messaging_account")
+    if not accounts:
+        raise ProviderError("instagram_messaging_grant_has_no_targets")
+    if len(accounts) > 1:
+        raise ProviderError("instagram_messaging_grant_has_multiple_targets")
     account_id = accounts.pop()
     headers = {"Authorization": f"Bearer {token}"}
     profile = request(
