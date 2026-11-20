@@ -1,6 +1,14 @@
 # Branch workflow
 
-`feature/*` → pull request → `dev` → pull request → `main`.
+Work branch → pull request → `dev` → pull request → `main`.
+
+| Prefix | Use for |
+|---|---|
+| `feature/` | New functionality |
+| `fix/` | Fixes, including urgent ones |
+| `bugfix/` | Bug fixes (same as `fix/`; either is accepted) |
+| `refactor/` | Restructuring without behavior changes |
+| `upgrade/` | Dependency, framework or platform upgrades |
 
 - `dev` represents the dev release; `main` represents production.
 - Both branches require a PR and the GitHub Actions checks `source-branch`,
@@ -9,10 +17,11 @@
   administrators. Repository administrators can still edit repository settings.
 - Source branches must belong to this repository. Fork PRs are rejected.
 - No reviewer approval is required initially, so a solo maintainer can merge.
-- Feature branches are named `feature/<description>` and start from `dev`.
+- Work branches are named `<prefix>/<description>` using a prefix from the table
+  above, and start from `dev`. Any other name fails the `source-branch` check.
 - Promote dev into main with a merge commit. Keep dev after release.
 - Do not enable strict "branch must be up to date" protection on main: merging
-  main back into dev would conflict with the feature-only source rule.
+  main back into dev would conflict with the work-branch-only source rule.
   CI still tests the proposed merge through the existing pull_request workflow.
 - Tag production releases, for example `v1.0.0`, and record image digests.
 
@@ -42,8 +51,8 @@
    read-only preflight checks before updating and verifying protections. A failure
    after the first update can leave that branch protected; inspect and finish the
    remaining branch manually rather than removing the protection to rerun.
-6. Open an allowed feature PR into dev and verify all four checks appear.
-   Verify a non-feature PR into dev fails `source-branch`, a feature PR into
+6. Open an allowed work-branch PR into dev and verify all four checks appear.
+   Verify a PR from an unlisted prefix into dev fails `source-branch`, a feature PR into
    main fails it, and dev into main passes it. Close test PRs without merging.
    Confirm an ordinary direct push is rejected, without bypassing protections.
 
@@ -54,7 +63,7 @@ Start from a clean working tree:
 ```sh
 git switch dev
 git pull --ff-only origin dev
-git switch -c feature/your-change
+git switch -c feature/your-change   # or fix/, bugfix/, refactor/, upgrade/
 # Commit only the intended files, then:
 git push -u origin feature/your-change
 ```
@@ -63,7 +72,7 @@ Open a PR to dev. Once merged and tested, open a dev-to-main release PR.
 Urgent fixes follow the same route. Avoid squash/rebase merging the release PR;
 use a merge commit to retain the shared branch history.
 
-The current `boosend-parity` work must move through a `feature/*` branch before
+The current `boosend-parity` work must move through an allowed work branch before
 entering dev after protections are enabled. Preserve uncommitted work first.
 
 ## Deployment scope
